@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy voor de multi-tenant installatie.
+# Deploy for the multi-tenant installation.
 set -euo pipefail
 case "$0" in
     */*) cd "${0%/*}/.." ;;
@@ -8,84 +8,84 @@ esac
 
 step() { printf '\n== %s ==\n' "$1"; }
 
-step "Onderhoud aan"
+step "Maintenance on"
 php artisan app:maintenance --message="We zijn zo terug." || php artisan down
 
 restore() { php artisan up || true; }
 trap restore EXIT
 
-# Zeggen waar het stukliep. Met set -e stopt dit script bij de eerste fout, en
-# dat gebeurde tot nu toe zonder een woord: je zag een kopregel en daarna weer
-# 'live', en moest het met bash -x opnieuw draaien om te zien waar.
+# Say where it broke. With set -e this script stops at the first error, and that
+# used to happen without a word: you saw a heading and then 'live' again, and
+# had to run it with bash -x to see where.
 trap 'echo "
-  Gestopt op regel ${LINENO}: ${BASH_COMMAND}
-  (de melding hierboven hoort daarbij; er is niets uitgerold)" >&2' ERR
+  Stopped on line ${LINENO}: ${BASH_COMMAND}
+  (the message above belongs to it; nothing has been deployed)" >&2' ERR
 
-step "Back-up van elke database"
+step "Backup of every database"
 STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 mkdir -p storage/backups
 
-# De inloggegevens komen uit de app zelf: de centrale uit de configuratie, die
-# van elke klant uit de registratie. Zonder gegevens valt mysqldump terug op de
-# socket en probeert het als de linux-gebruiker, en die heeft geen
-# MySQL-account -- 'Access denied for user lavoro@localhost', vlak nadat het
-# onderhoudsscherm aanging.
+# The credentials come from the app itself: the central ones from the
+# configuration, each customer's from the registry. Without credentials
+# mysqldump falls back to the socket and tries as the linux user, and that one
+# has no MySQL account -- 'Access denied for user lavoro@localhost', right after
+# the maintenance page went up.
 #
-# Klanten waarvan de database niet opengaat worden overgeslagen en genoemd. Van
-# een database die er niet meer is valt niets te bewaren, en dat mag de uitrol
-# niet tegenhouden.
-# Via een eigen commando en niet via tinker: dat is een schil om een REPL die
-# zijn eigen meldingen schrijft en een exitcode teruggeeft die niets zegt. En
-# de fout blijft zichtbaar -- hier stond 2>/dev/null, precies op het commando
-# waarvan de mislukking de hele uitrol afbreekt, zodat er niets te zien was
-# behalve een kopregel en daarna weer 'live'.
-# Ook stderr erbij, en bij een fout wordt het getoond: artisan schrijft zijn
-# foutmelding naar stdout, dus die verdween in deze variabele en er was niets
-# te zien behalve een kopregel.
+# Customers whose database will not open are skipped and named. There is nothing
+# to keep of a database that is gone, and that must not hold up the deploy.
+#
+# Through a command of its own and not through tinker: that is a shell around a
+# REPL which writes its own messages and returns an exit code that says nothing.
+# And the error stays visible -- there used to be a 2>/dev/null here, on exactly
+# the command whose failure aborts the whole deploy, so there was nothing to see
+# but a heading and then 'live' again.
+#
+# stderr included, and shown on failure: artisan writes its error message to
+# stdout, so it disappeared into this variable and there was nothing to see.
 if ! LINES=$(php artisan tenancy:backup-targets 2>&1); then
-    echo "  Kon niet opvragen wat er geback-upt moet worden:" >&2
-    # Zonder de DUMP-regels: daar staan wachtwoorden in, en die horen niet in
-    # de terugmelding of in de scrollback te belanden.
+    echo "  Could not ask what has to be backed up:" >&2
+    # Without the DUMP lines: they hold passwords, and those do not belong in
+    # the report or in the scrollback.
     printf '%s\n' "$LINES" | grep -v '^DUMP' | sed 's/^/    /' >&2 || true
     exit 1
 fi
 
 if ! printf '%s\n' "$LINES" | grep -q '^DUMP'; then
-    echo "  Geen enkele database om te bewaren -- kwam de centrale database wel op?" >&2
+    echo "  Not a single database to keep -- did the central database come up?" >&2
     exit 1
 fi
 
-# Met een here-string en niet via een pijp: in 'grep | while' draait de lus in
-# een subshell, en alles wat daarbinnen omvalt sterft daar stil. Je zag dan
-# alleen dat de pijplijn mislukte, zonder de melding uit de lus zelf -- en een
-# exit uit die lus stopte het script niet eens.
+# With a here-string and not through a pipe: in 'grep | while' the loop runs in
+# a subshell, and everything falling over inside it dies there quietly. All you
+# saw was that the pipeline failed, without the message from the loop itself --
+# and an exit from that loop did not even stop the script.
 while IFS=$'\t' read -r MARK REST; do
-    [ "$MARK" = "OVERSLAAN" ] && echo "  overgeslagen (database niet bereikbaar): ${REST}"
+    [ "$MARK" = "OVERSLAAN" ] && echo "  skipped (database unreachable): ${REST}"
 done <<< "$LINES"
 
 while IFS=$'\t' read -r MARK DB USER PASS HOST PORT; do
     [ "$MARK" = "DUMP" ] || continue
 
-    # Via een tijdelijk bestand en niet op de opdrachtregel: daar leest iedereen
-    # met ps het wachtwoord mee.
+    # Through a temporary file and not on the command line: there anyone with ps
+    # reads the password along.
     CONFIG=$(mktemp)
     chmod 600 "$CONFIG"
     printf '[client]\nuser=%s\npassword=%s\nhost=%s\nport=%s\n' "$USER" "$PASS" "$HOST" "$PORT" > "$CONFIG"
 
     TARGET="storage/backups/${DB}-${STAMP}.sql.gz"
 
-    # --no-tablespaces: het uitlezen van tablespaces vraagt het PROCESS-recht, en
-    # dat hebben deze accounts met opzet niet.
+    # --no-tablespaces: reading tablespaces asks for the PROCESS right, and
+    # these accounts deliberately do not have it.
     if ! mysqldump --defaults-extra-file="$CONFIG" --single-transaction --no-tablespaces "$DB" | gzip > "${TARGET}.part"; then
         rm -f "$CONFIG" "${TARGET}.part"
-        echo "  Back-up van ${DB} mislukt. Er wordt niets uitgerold zonder back-up." >&2
+        echo "  Backup of ${DB} failed. Nothing is deployed without a backup." >&2
         exit 1
     fi
 
     rm -f "$CONFIG"
 
     if ! mv "${TARGET}.part" "$TARGET"; then
-        echo "  Kon de back-up van ${DB} niet op zijn plek zetten. Is storage/backups beschrijfbaar voor $(id -un)?" >&2
+        echo "  Could not put the backup of ${DB} in place. Is storage/backups writable for $(id -un)?" >&2
         exit 1
     fi
 
@@ -93,23 +93,23 @@ while IFS=$'\t' read -r MARK DB USER PASS HOST PORT; do
 done <<< "$LINES"
 
 step "Code"
-# De build maakt public/service-worker.js opnieuw. Zolang die op deze server nog
-# in git zit, blokkeert zijn eigen wijziging de pull die hem er juist uithaalt.
+# The build makes public/service-worker.js again. As long as that file is still
+# in git on this server, its own change blocks the pull that takes it out.
 for GENERATED in public/service-worker.js; do
     if git ls-files --error-unmatch "$GENERATED" >/dev/null 2>&1; then
         git checkout -- "$GENERATED" 2>/dev/null || true
     fi
 done
 
-# Een pull met --ff-only weigert zodra een gevolgd bestand lokaal gewijzigd is.
-# Dat is terecht, maar de kale git-melding zegt niet welk bestand het is.
+# A pull with --ff-only refuses as soon as a tracked file is locally modified.
+# That is right, but the bare git message does not say which file it is.
 DIRTY=$(git status --porcelain --untracked-files=no)
 if [ -n "$DIRTY" ]; then
     echo "$DIRTY"
     echo
-    echo "  Lokale wijzigingen in gevolgde bestanden: de pull zou ze overschrijven."
-    echo "  Bekijk ze met 'git diff' en zet ze terug of leg ze vast, en draai daarna"
-    echo "  deze deploy opnieuw. Er is nog niets uitgerold; de site staat weer aan."
+    echo "  Local changes in tracked files: the pull would overwrite them."
+    echo "  Look at them with 'git diff' and revert or commit them, then run this"
+    echo "  deploy again. Nothing has been deployed; the site is back up."
     exit 1
 fi
 
@@ -117,58 +117,59 @@ git pull --ff-only
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 
-step "Migraties"
-php artisan migrate --force          # centraal
-php artisan tenants:migrate          # elke tenant -- zonder dit blijft ieder schema achter
+step "Migrations"
+php artisan migrate --force          # central
+php artisan tenants:migrate          # every tenant -- without this each schema stays behind
 
 step "Caches"
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-# Beide workers echt herstarten, niet alleen een sein geven.
+# Really restart both workers, not merely signal them.
 #
-# queue:restart zet een vlag in de cache die de worker tussen twee taken door
-# oppikt. Dat kwam hier niet aan: na een uitrol meldde de doctor allebei de
-# workers nog op de oude code. Het commando herstart de units, legt om wat de
-# herstart heeft overleefd, en wacht tot beide wachtrijen zich melden met de
-# code die er nu staat -- of zegt precies welk proces dat niet doet.
+# queue:restart sets a flag in the cache that the worker picks up between two
+# jobs. That did not arrive here: after a deploy the doctor reported both
+# workers still on the old code. The command restarts the units, stops whatever
+# survived that restart, and waits until both queues report in with the code
+# that is here now -- or says exactly which process does not.
 php artisan tenancy:restart-workers || true
 
-# Ook php onder de webserver houdt de gecompileerde code vast. Zonder dit
-# draait hij door op de oude klassen terwijl de sjablonen al nieuw zijn.
+# Php under the web server holds on to the compiled code as well. Without this
+# it keeps running the old classes while the templates are already new.
 #
-# lsphp eerst, want daar draait deze installatie op. En met -f: pkill vergelijkt
-# standaard de procesnaam precies, en die is lsphp8.3 -- 'pkill lsphp' vond dus
-# nooit iets. LiteSpeed heeft geen unit; de processen komen vanzelf terug.
+# lsphp first, because that is what this installation runs on. And with -f:
+# pkill compares the process name exactly by default, and that is lsphp8.3 --
+# so 'pkill lsphp' never found anything. LiteSpeed has no unit; the processes
+# come back by themselves.
 #
-# systemctl alleen als het zonder wachtwoord kan: als gewone gebruiker vraagt
-# reload om een polkit-wachtwoord, en dan staat een uitrol te wachten op iemand
-# die niet meekijkt.
+# systemctl only when it can go without a password: as an ordinary user reload
+# asks for a polkit password, and then a deploy sits waiting for someone who is
+# not watching.
 if pkill -f lsphp 2>/dev/null; then
-    echo "  lsphp herstart (opcache leeg)"
+    echo "  lsphp restarted (opcache cleared)"
 elif sudo -n systemctl reload php8.3-fpm 2>/dev/null; then
-    echo "  php-fpm herladen (opcache leeg)"
+    echo "  php-fpm reloaded (opcache cleared)"
 else
-    echo "  Let op: php onder de webserver zelf herstarten, anders draait hij door op de oude code."
+    echo "  Note: restart php under the web server yourself, or it keeps running the old code."
 fi
 
-step "Controle"
-# Twee controles, elk met een eigen bereik: het script kijkt naar de rechten van
-# de databaseaccounts (root nodig), de doctor naar de rest van de opstelling.
+step "Check"
+# Two checks, each with its own reach: the script looks at the rights of the
+# database accounts (needs root), the doctor at the rest of the setup.
 scripts/tenancy/verify-mysql.sh
-# In een if, want de doctor geeft een foutcode zodra hij iets te melden heeft.
-# Dat is geen mislukte uitrol -- die is dan al klaar -- en de ERR-trap zei
-# daardoor 'er is niets uitgerold' terwijl alles er gewoon stond.
+# In an if, because the doctor returns an error code as soon as it has something
+# to report. That is not a failed deploy -- that one is done by then -- and the
+# ERR trap therefore said 'nothing has been deployed' while everything was there.
 if php artisan tenancy:doctor; then
     echo "
-  Klaar. De controle vond niets."
+  Done. The check found nothing."
 else
     echo "
-  Uitgerold. De controle hierboven vond punten die aandacht vragen; de nieuwe
-  code draait."
+  Deployed. The check above found points that need attention; the new code is
+  running."
 fi
 
-step "Onderhoud uit"
+step "Maintenance off"
 php artisan up
 trap - EXIT
-echo "Klaar."
+echo "Done."

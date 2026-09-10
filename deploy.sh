@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-# Dit script bestaat niet meer -- het hoorde bij de installatie van vóór de
-# multi-tenancy en deed twee dingen die daar nu schade aanrichten:
+# This script no longer exists -- it belonged to the installation from before
+# the multi-tenancy and did two things that now do damage:
 #
-#   git reset --hard origin/master   -- gooit de tenancy-branch weg en zet er
-#                                       de oude eenklant-versie voor terug
-#   php artisan migrate --force      -- draait de migraties van die versie over
-#                                       de centrale database heen
+#   git reset --hard origin/master   -- throws the tenancy branch away and puts
+#                                       the old single-customer version back
+#   php artisan migrate --force      -- runs that version's migrations over the
+#                                       central database
 #
-# De backup ervoor liep bovendien met de verkeerde login, meldde 'saved' en
-# schreef een leeg bestand: precies wanneer je hem nodig hebt is hij er niet.
+# The backup before it also ran with the wrong login, reported 'saved' and wrote
+# an empty file: exactly when you need it, it is not there.
 set -euo pipefail
 
 cat >&2 <<'MELDING'
-Dit is het oude deploy-script en het doet meer kwaad dan goed.
+This is the old deploy script and it does more harm than good.
 
-Gebruik:
+Use:
 
     scripts/deploy.sh
 
-Die maakt een back-up van de centrale database én van elke klant, haalt de
-huidige branch op (en niet master), draait de migraties van zowel centraal als
-elke klant, en kijkt achteraf met tenancy:doctor of het klopt.
+That one backs up the central database and every customer's, fetches the current
+branch (and not master), runs the migrations for both central and every
+customer, and checks afterwards with tenancy:doctor whether it is right.
 MELDING
 
 exit 1

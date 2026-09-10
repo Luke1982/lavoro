@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Importeert een bestaande enkelvoudige installatie als tenant.
+# Imports an existing single-customer installation as a tenant.
 set -euo pipefail
 
 FROM=""; NAME=""; SLUG=""; PACKAGE=""; DRY=0
@@ -14,32 +14,32 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ -n "$FROM" ] && [ -n "$NAME" ] && [ -n "$SLUG" ] || { echo "--from, --name en --slug zijn verplicht" >&2; exit 2; }
+[ -n "$FROM" ] && [ -n "$NAME" ] && [ -n "$SLUG" ] || { echo "--from, --name and --slug are required" >&2; exit 2; }
 
 DB="lavoro_tenant_${SLUG}"
 run() { if [ "$DRY" -eq 1 ]; then echo "+ $*"; else "$@"; fi; }
 step() { printf '\n== %s ==\n' "$1"; }
 
-# --- 1. preflight, voordat er iets geschreven wordt ---
+# --- 1. preflight, before anything is written ---
 step "Controle vooraf"
-[ -d "$FROM" ] || { echo "Bronmap bestaat niet: $FROM" >&2; exit 1; }
-[ -r "$FROM/.env" ] || { echo "Kan $FROM/.env niet lezen (sudo nodig?)" >&2; exit 1; }
+[ -d "$FROM" ] || { echo "Source directory does not exist: $FROM" >&2; exit 1; }
+[ -r "$FROM/.env" ] || { echo "Cannot read $FROM/.env (sudo needed?)" >&2; exit 1; }
 
 SRC_DB=$(grep -E '^DB_DATABASE=' "$FROM/.env" | cut -d= -f2- | tr -d '"'"'"' ')
 [ -n "$SRC_DB" ] || { echo "Geen DB_DATABASE in $FROM/.env" >&2; exit 1; }
 
 if $MYSQL -N -e "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME='$DB'" | grep -q .; then
-    echo "$DB bestaat al. Verwijder hem of kies een andere slug." >&2; exit 1
+    echo "$DB already exists. Remove it or choose another slug." >&2; exit 1
 fi
 echo "bron: $SRC_DB -> doel: $DB"
 
-# --- 2. dump en herstel, zonder de databasenaam uit de dump ---
+# --- 2. dump and restore, without the database name from the dump ---
 step "Dump en herstel"
 DUMP=$(mktemp /tmp/import-XXXXXX.sql)
 trap 'rm -f "$DUMP"' EXIT
 run bash -c "$MYSQLDUMP --single-transaction --routines '$SRC_DB' > '$DUMP'"
 run bash -c "$MYSQL -e \"CREATE DATABASE \\\`$DB\\\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\""
-# De dump kan zijn eigen CREATE DATABASE/USE meebrengen; die negeert het doel stil.
+# The dump may bring its own CREATE DATABASE/USE; that silently ignores the target.
 run bash -c "sed -e '/^CREATE DATABASE .*\`$SRC_DB\`/d' -e '/^USE \`$SRC_DB\`/d' '$DUMP' | $MYSQL '$DB'"
 
 if [ "$DRY" -eq 0 ]; then
@@ -48,8 +48,8 @@ if [ "$DRY" -eq 0 ]; then
     echo "tabellen: $TABLES"
 fi
 
-# --- 3. tabellen die nu centraal staan ---
-step "Centrale tabellen weghalen uit de kopie"
+# --- 3. tables that now live centrally ---
+step "Removing central tables from the copy"
 run bash -c "$MYSQL '$DB' -e 'DROP TABLE IF EXISTS sessions, cache, cache_locks, jobs, job_batches, failed_jobs'"
 
 # --- 4. registreren (controleert zelf op dubbele e-mailadressen) ---

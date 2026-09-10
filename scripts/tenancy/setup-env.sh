@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 #
-# Zet .env klaar voor een multi-tenant installatie.
+# Puts .env in place for a multi-tenant installation.
 #
-# Het tegenhangertje van setup-mysql.sh: dat script maakt de databaseaccounts
-# en zet de DB_-sleutels, dit script zet de rest. Samen dekken ze alles wat
+# The counterpart of setup-mysql.sh: that script creates the database accounts
+# and sets the DB_ keys, this script sets the rest. Together they cover
+# everything that
 # tenancy:doctor over .env te zeggen heeft.
 #
 #   scripts/tenancy/setup-env.sh
 #   scripts/tenancy/setup-env.sh --url=https://lavoro.example --mail-host=smtp.example
 #
-# Draait zonder root en raakt de database niet aan. Veilig om opnieuw te
+# Runs without root and does not touch the database. Safe to run
 # draaien: bestaande waarden blijven staan tenzij je ze overschrijft.
 
 set -euo pipefail
 
-# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
-# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
-# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
 case "${BASH_SOURCE[0]}" in
     */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
     *)   SCRIPT_DIR="$PWD" ;;
@@ -40,25 +41,25 @@ DRY_RUN=0
 
 usage() {
     cat <<'USAGE'
-Gebruik: scripts/tenancy/setup-env.sh [opties]
+Usage: scripts/tenancy/setup-env.sh [options]
 
-Zonder opties wordt er per waarde gevraagd, met wat er nu in .env staat als
-voorzet. Enter houdt die waarde.
+Without options every value is asked for, with what is in .env now as the
+suggestion. Enter keeps that value.
 
-  --url=URL                  Het adres waarop Lavoro draait
-  --app-key=base64:...       De APP_KEY van de bestaande installatie
-  --mail-host=HOST           SMTP-server voor de facturen die jij verstuurt
-  --mail-port=PORT           Standaard 587
-  --mail-username=NAAM
-  --mail-from=ADRES
-  --mail-from-name=NAAM
-  --yes                      Niets vragen; alleen zetten wat is meegegeven
-  --dry-run                  Laat zien wat er gezet zou worden, en schrijf niets
+  --url=URL                  The address Lavoro runs on
+  --app-key=base64:...       The APP_KEY of the existing installation
+  --mail-host=HOST           SMTP server for the invoices you send
+  --mail-port=PORT           Defaults to 587
+  --mail-username=NAME
+  --mail-from=ADDRESS
+  --mail-from-name=NAME
+  --yes                      Ask nothing; only set what was passed in
+  --dry-run                  Show what would be set, and write nothing
   --help
 
-Het wachtwoord van de mailserver komt uit LANDLORD_MAIL_PASSWORD in de
-omgeving, of wordt gevraagd. Het komt nooit op de opdrachtregel te staan,
-want daar is het voor iedereen op de server zichtbaar.
+The mail server password comes from LANDLORD_MAIL_PASSWORD in the environment,
+or is asked for. It never goes on the command line, because there it is visible
+to everyone on the server.
 USAGE
 }
 
@@ -82,10 +83,10 @@ done
 ENV_FILE="$PROJECT_ROOT/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
-    [ -f "$PROJECT_ROOT/.env.example" ] || die "Geen .env en geen .env.example in $PROJECT_ROOT."
+    [ -f "$PROJECT_ROOT/.env.example" ] || die "No .env and no .env.example in $PROJECT_ROOT."
 
     if [ "$DRY_RUN" -eq 1 ]; then
-        warn "Er is nog geen .env; die zou uit .env.example gemaakt worden."
+        warn "There is no .env yet; it would be made from .env.example."
         ENV_FILE="$PROJECT_ROOT/.env.example"
     else
         cp "$PROJECT_ROOT/.env.example" "$ENV_FILE"
@@ -93,8 +94,8 @@ if [ ! -f "$ENV_FILE" ]; then
     fi
 fi
 
-# Bij --dry-run alleen laten zien wat er zou komen te staan. Zo is te zien wat
-# er verandert voordat er iets verandert, net als bij de andere scripts.
+# With --dry-run only show what would be put in place. That way you see what
+# changes before anything changes, like in the other scripts.
 set_key() {
     if [ "$DRY_RUN" -eq 1 ]; then
         printf '  %s=%s\n' "$1" "$2"
@@ -107,8 +108,8 @@ interactive() {
     [ "$ASSUME_YES" -eq 0 ] && have_tty
 }
 
-# Vraagt één waarde, met wat er nu staat als voorzet. Enter houdt die.
-# Volgorde: wat is meegegeven wint, dan het antwoord, dan wat er al stond.
+# Asks one value, with what is there now as the suggestion. Enter keeps it.
+# Order: what was passed in wins, then the answer, then what was already there.
 ask() {
     local __var="$1" label="$2" given="$3" current="$4" answer
 
@@ -139,15 +140,15 @@ if [ "$DRY_RUN" -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Wat niet ter discussie staat
+# What is not up for discussion
 # ---------------------------------------------------------------------------
 #
-# Deze waarden zijn geen voorkeur maar een voorwaarde. De wachtrij op sync laat
-# provisioning in het webverzoek draaien, als het account dat juist geen
-# databases mag maken. Een sessie die niet centraal staat zoekt bij het inloggen
-# in de verkeerde database. Een cache die niet in de database staat deelt de
-# scheiding tussen klanten niet. En MAIL_MAILER moet op tenant, anders verstuurt
-# iedere klant post vanuit de mailbox van een ander bedrijf.
+# These values are not a preference but a precondition. The queue on sync makes
+# provisioning run inside the web request, as the account that may precisely not
+# create databases. A session that is not central looks in the wrong database
+# when logging in. A cache that is not in the database does not share the
+# separation between customers. And MAIL_MAILER has to be on tenant, otherwise
+# every customer sends post from another company's mailbox.
 
 info "  Vaste waarden"
 
@@ -159,9 +160,9 @@ set_key QUEUE_CONNECTION database
 set_key CACHE_STORE database
 set_key MAIL_MAILER tenant
 
-# De applicatie is Nederlands. Zonder dit komen de meldingen van Laravel zelf --
-# "The collect on field is required" -- in het Engels op het scherm, midden in
-# een Nederlands formulier. De vertalingen staan in lang/nl.
+# The application is Dutch. Without this Laravel's own messages -- "The collect
+# on field is required" -- appear in English on screen, in the middle of a Dutch
+# form. The translations are in lang/nl.
 set_key APP_LOCALE nl
 set_key APP_FALLBACK_LOCALE en
 
@@ -169,10 +170,10 @@ set_key APP_FALLBACK_LOCALE en
 # APP_KEY
 # ---------------------------------------------------------------------------
 #
-# Deze sleutel ontsluit elke opgeslagen Google-koppeling, elk klantwachtwoord
-# voor de database en elk versleuteld veld. Een nieuwe sleutel op een bestaande
-# installatie maakt die gegevens onleesbaar, en er is geen weg terug. Daarom
-# wordt een bestaande sleutel nooit vervangen.
+# This key unlocks every stored Google integration, every customer database
+# password and every encrypted field. A new key on an existing installation
+# makes that data unreadable, and there is no way back. So an existing key is
+# never replaced.
 
 CURRENT_KEY="$(env_value APP_KEY "$ENV_FILE")"
 
@@ -183,54 +184,54 @@ key_is_valid() {
 }
 
 if [ -n "$APP_KEY_OPT" ]; then
-    key_is_valid "$APP_KEY_OPT" || die "Die APP_KEY klopt niet. Verwacht 'base64:' met daarachter 32 bytes.
-Neem hem letterlijk over uit de .env van de oude installatie."
+    key_is_valid "$APP_KEY_OPT" || die "That APP_KEY is not right. Expected 'base64:' followed by 32 bytes.
+Copy it literally from the .env of the old installation."
     set_key APP_KEY "$APP_KEY_OPT"
     green "  APP_KEY overgenomen."
 elif [ -n "$CURRENT_KEY" ]; then
-    info "  APP_KEY stond er al; niet aangeraakt."
+    info "  APP_KEY was already there; not touched."
 elif interactive; then
     info ""
-    warn "  Er staat nog geen APP_KEY in .env."
-    info "  Verhuis je een bestaande installatie, neem dan de APP_KEY over uit de oude .env."
-    info "  Zonder die sleutel is alles wat versleuteld is opgeslagen onleesbaar."
+    warn "  There is no APP_KEY in .env yet."
+    info "  If you are moving an existing installation, copy the APP_KEY from the old .env."
+    info "  Without that key everything stored encrypted is unreadable."
     info ""
-    printf '  APP_KEY van de oude installatie (of Enter voor een nieuwe): ' >&2
+    printf '  APP_KEY of the old installation (or Enter for a new one): ' >&2
     read -r PASTED_KEY < /dev/tty
 
     if [ -n "$PASTED_KEY" ]; then
-        key_is_valid "$PASTED_KEY" || die "Die sleutel klopt niet. Verwacht 'base64:' met daarachter 32 bytes."
+        key_is_valid "$PASTED_KEY" || die "That key is not right. Expected 'base64:' followed by 32 bytes."
         set_key APP_KEY "$PASTED_KEY"
-        green "  APP_KEY overgenomen."
+        green "  APP_KEY copied."
     elif [ "$DRY_RUN" -eq 1 ]; then
-        info "  Er zou een nieuwe APP_KEY gemaakt worden."
+        info "  A new APP_KEY would be made."
     else
         (cd "$PROJECT_ROOT" && php artisan key:generate --force)
-        green "  Nieuwe APP_KEY gemaakt. Bewaar hem: zonder die sleutel is niets meer te lezen."
+        green "  New APP_KEY made. Keep it: without that key nothing can be read any more."
     fi
 else
-    warn "  Geen APP_KEY en niets om te vragen. Zet hem zelf, of draai 'php artisan key:generate'."
+    warn "  No APP_KEY and nothing to ask on. Set it yourself, or run 'php artisan key:generate'."
 fi
 
 # ---------------------------------------------------------------------------
-# Adres en post
+# Address and post
 # ---------------------------------------------------------------------------
 
 info ""
-info "  Adres"
+info "  Address"
 
-ask APP_URL "  Adres waarop Lavoro draait" "$APP_URL_OPT" "$(env_value APP_URL "$ENV_FILE")"
+ask APP_URL "  Address Lavoro runs on" "$APP_URL_OPT" "$(env_value APP_URL "$ENV_FILE")"
 if [ -n "$APP_URL" ]; then set_key APP_URL "$APP_URL"; fi
 
 info ""
-info "  Mailserver voor de facturen die jij naar klanten stuurt"
-info "  (klanten versturen hun eigen post met hun eigen instellingen)"
+info "  Mail server for the invoices you send to customers"
+info "  (customers send their own post with their own settings)"
 
-ask MAIL_HOST      "  SMTP-server"   "$MAIL_HOST_OPT"      "$(env_value LANDLORD_MAIL_HOST "$ENV_FILE")"
-ask MAIL_PORT      "  Poort"         "$MAIL_PORT_OPT"      "$(env_value LANDLORD_MAIL_PORT "$ENV_FILE")"
-ask MAIL_USERNAME  "  Gebruikersnaam" "$MAIL_USERNAME_OPT" "$(env_value LANDLORD_MAIL_USERNAME "$ENV_FILE")"
-ask MAIL_FROM      "  Afzenderadres" "$MAIL_FROM_OPT"      "$(env_value LANDLORD_MAIL_FROM_ADDRESS "$ENV_FILE")"
-ask MAIL_FROM_NAME "  Afzendernaam"  "$MAIL_FROM_NAME_OPT" "$(env_value LANDLORD_MAIL_FROM_NAME "$ENV_FILE")"
+ask MAIL_HOST      "  SMTP server"  "$MAIL_HOST_OPT"      "$(env_value LANDLORD_MAIL_HOST "$ENV_FILE")"
+ask MAIL_PORT      "  Port"          "$MAIL_PORT_OPT"      "$(env_value LANDLORD_MAIL_PORT "$ENV_FILE")"
+ask MAIL_USERNAME  "  User name"     "$MAIL_USERNAME_OPT"  "$(env_value LANDLORD_MAIL_USERNAME "$ENV_FILE")"
+ask MAIL_FROM      "  Sender address" "$MAIL_FROM_OPT"     "$(env_value LANDLORD_MAIL_FROM_ADDRESS "$ENV_FILE")"
+ask MAIL_FROM_NAME "  Sender name"   "$MAIL_FROM_NAME_OPT" "$(env_value LANDLORD_MAIL_FROM_NAME "$ENV_FILE")"
 
 if [ -n "$MAIL_HOST" ];      then set_key LANDLORD_MAIL_HOST "$MAIL_HOST"; fi
 if [ -n "$MAIL_USERNAME" ];  then set_key LANDLORD_MAIL_USERNAME "$MAIL_USERNAME"; fi
@@ -239,27 +240,27 @@ if [ -n "$MAIL_FROM_NAME" ]; then set_key LANDLORD_MAIL_FROM_NAME "$MAIL_FROM_NA
 
 set_key LANDLORD_MAIL_PORT "${MAIL_PORT:-587}"
 
-# Het wachtwoord komt uit de omgeving of uit een prompt, nooit van de
-# opdrachtregel: daar staat het in `ps` en in de geschiedenis van de shell.
+# The password comes from the environment or from a prompt, never from the
+# command line: there it sits in `ps` and in the shell's history.
 MAIL_PASSWORD="${LANDLORD_MAIL_PASSWORD:-}"
 
 if [ -n "$MAIL_PASSWORD" ]; then
     set_key LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
-    info "  Wachtwoord uit LANDLORD_MAIL_PASSWORD overgenomen."
+    info "  Password taken from LANDLORD_MAIL_PASSWORD."
 elif [ -z "$(env_value LANDLORD_MAIL_PASSWORD "$ENV_FILE")" ] && [ -n "$MAIL_HOST" ] && interactive; then
-    prompt_password MAIL_PASSWORD "  Wachtwoord van de mailserver"
+    prompt_password MAIL_PASSWORD "  Mail server password"
     set_key LANDLORD_MAIL_PASSWORD "$MAIL_PASSWORD"
 fi
 
 info ""
 
 if [ "$DRY_RUN" -eq 1 ]; then
-    info "Niets gewijzigd (--dry-run)."
+    info "Nothing changed (--dry-run)."
     exit 0
 fi
 
-green ".env bijgewerkt."
+green ".env updated."
 info ""
-info "Hierna:"
+info "After this:"
 info "  php artisan migrate --force"
 info "  php artisan tenancy:doctor"

@@ -15,9 +15,9 @@
 
 set -euo pipefail
 
-# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
-# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
-# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
 case "${BASH_SOURCE[0]}" in
     */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
     *)   SCRIPT_DIR="$PWD" ;;
@@ -104,10 +104,10 @@ detect_flavour
 # Vroeg falen als er straks niets weggeschreven kan worden
 # ---------------------------------------------------------------------------
 #
-# Zonder deze controle maakte --write-env eerst het account met een
-# gegenereerd wachtwoord aan en ontdekte daarna pas dat er geen .env was om het
-# in te zetten. Het wachtwoord was op dat moment nergens meer te vinden en het
-# account onbruikbaar; alleen --rotate-app-password kon dat nog rechttrekken.
+# Without this check --write-env first created the account with a generated
+# password and only then discovered there was no .env to put it in. At that
+# point the password was nowhere to be found and the account unusable; only
+# --rotate-app-password could still put that right.
 
 if [ "$WRITE_ENV" -eq 1 ] && [ ! -f "$PROJECT_ROOT/.env" ]; then
     if [ -f "$PROJECT_ROOT/.env.example" ]; then
@@ -208,13 +208,13 @@ CREATE PROCEDURE \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`(
     IN tenant_user VARCHAR(64)
 )
     SQL SECURITY DEFINER
-    COMMENT 'Geeft een klantlogin rechten op alleen zijn eigen database'
+    COMMENT 'Grants a customer login rights on its own database only'
 BEGIN
     IF tenant_db NOT LIKE '${TENANT_PREFIX//_/\\_}%'
         OR tenant_db REGEXP '[^a-zA-Z0-9_]'
         OR tenant_user REGEXP '[^a-zA-Z0-9_]' THEN
         SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Alleen namen binnen de klantnaamruimte, en zonder bijzondere tekens.';
+            SET MESSAGE_TEXT = 'Only names inside the customer namespace, and without special characters.';
     END IF;
 
     SET @grant_statement = CONCAT(
@@ -312,8 +312,8 @@ fi
 
 DB_PORT="$(detect_port)"
 
-# De sleutels die bij de accounts horen die dit script aanmaakt, en alleen die.
-# De rest van .env is van setup-env.sh.
+# The keys belonging to the accounts this script creates, and only those. The
+# rest of .env belongs to setup-env.sh.
 ENV_BLOCK="DB_CONNECTION=mysql
 DB_HOST=${APP_HOST}
 DB_PORT=${DB_PORT}
@@ -327,11 +327,11 @@ DB_PROVISIONER_SOCKET=$(detect_socket)"
 if [ "$WRITE_ENV" -eq 1 ]; then
     ENV_FILE="$PROJECT_ROOT/.env"
 
-    # Een nieuw wachtwoord bestaat op dit moment alleen hier. Gaat het
-    # wegschrijven mis, dan is het account onbruikbaar en is het wachtwoord
-    # weg; laat het dan zien in plaats van het te laten verdampen.
+    # A new password exists only here at this moment. If writing it fails, the
+    # account is unusable and the password is gone; show it then instead of
+    # letting it evaporate.
     trap 'if [ "$APP_PASSWORD_IS_NEW" -eq 1 ]; then
-        red "Kon .env niet bijwerken. Bewaar dit wachtwoord nu, het staat nergens anders:"
+        red "Could not update .env. Save this password now, it is nowhere else:"
         red "  DB_PASSWORD=\"$APP_PASSWORD\""
     fi' ERR
 
@@ -342,25 +342,25 @@ if [ "$WRITE_ENV" -eq 1 ]; then
         env_set "$ENV_FILE" "${line%%=*}" "${line#*=}"
     done <<< "$ENV_BLOCK"
 
-    # Met een wachtwoord of een netwerkadres voor de provisioner kan alles wat
-    # .env kan lezen -- de website incluis -- elke klantdatabase weggooien. Het
-    # account hoort alleen via de socket bereikbaar te zijn, als Linux-gebruiker.
+    # With a password or a network address for the provisioner, everything that
+    # can read .env -- the website included -- can drop every customer database.
+    # The account should only be reachable through the socket, as a Linux user.
     env_remove "$ENV_FILE" DB_PROVISIONER_PASSWORD
     env_remove "$ENV_FILE" DB_PROVISIONER_HOST
 
-    # DB_SOCKET geldt voor de verbinding waar het account van de applicatie op
-    # draait, en dat account bestaat alleen op 127.0.0.1. Een socketverbinding
-    # komt bij MySQL binnen als 'localhost', waar geen account voor is: dan
-    # geeft migrate "Access denied" met een hostnaam die nergens in de
-    # instellingen staat. De provisioner heeft zijn eigen socketsleutel en die
-    # blijft wel staan -- dat account hangt juist aan de Linux-gebruiker.
+    # DB_SOCKET applies to the connection the application's account runs on,
+    # and that account exists only on 127.0.0.1. A socket connection arrives at
+    # MySQL as 'localhost', for which there is no account: migrate then gives
+    # "Access denied" with a host name that appears nowhere in the settings. The
+    # provisioner has a socket key of its own and that one does stay -- that
+    # account hangs on the Linux user precisely.
     env_remove "$ENV_FILE" DB_SOCKET
 
     trap - ERR
     green "  .env bijgewerkt."
 
     if [ "$APP_PASSWORD_IS_NEW" -eq 0 ] && [ -z "$APP_PASSWORD" ]; then
-        warn "  DB_PASSWORD is niet aangeraakt; dit script kent het wachtwoord van het bestaande account niet."
+        warn "  DB_PASSWORD was not touched; this script does not know the existing account's password."
     fi
 else
     info "==> Zet dit in .env"

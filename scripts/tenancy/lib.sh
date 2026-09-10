@@ -6,9 +6,9 @@ TENANT_PREFIX="${TENANT_PREFIX:-lavoro_tenant_}"
 APP_USER="${APP_USER:-lavoro_app}"
 APP_HOST="${APP_HOST:-127.0.0.1}"
 PROV_USER="${PROV_USER:-lavoro_provisioner}"
-# Een eigen database voor de procedure die rechten uitdeelt. Met opzet buiten de
-# klantnaamruimte: de provisioner heeft er niets te zoeken behalve die ene
-# procedure aanroepen, en kan hem dus niet vervangen door een ruimere versie.
+# A database of its own for the procedure that hands out rights. Deliberately
+# outside the customer namespace: the provisioner has nothing to do there except
+# call that one procedure, and so cannot replace it with a broader version.
 ADMIN_DB="${ADMIN_DB:-lavoro_admin}"
 GRANT_PROCEDURE="${GRANT_PROCEDURE:-grant_tenant_access}"
 PROV_HOST="${PROV_HOST:-localhost}"
@@ -24,18 +24,18 @@ COLLATION="utf8mb4_unicode_ci"
 CHARSET="utf8mb4"
 
 # ---------------------------------------------------------------------------
-# Draait dit script hier uberhaupt?
+# Can this script run here at all?
 # ---------------------------------------------------------------------------
 #
-# Elke aanname die deze scripts doen is ergens niet waar: een minimale image
-# zonder getent, een server zonder openssl, busybox in plaats van GNU-sed, een
-# oude bash zonder mapfile. Halverwege stuklopen op een programma dat er niet
-# is kost meer tijd dan het vooraf nakijken.
+# Every assumption these scripts make is untrue somewhere: a minimal image
+# without getent, a server without openssl, busybox instead of GNU sed, an old
+# bash without mapfile. Breaking halfway on a program that is not there costs
+# more time than checking beforehand.
 
 require_bash() {
     if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
-        die "Dit script heeft bash 4 of nieuwer nodig (nu: ${BASH_VERSION:-onbekend}).
-mapfile en 'printf -v' bestaan daaronder niet."
+        die "This script needs bash 4 or newer (now: ${BASH_VERSION:-unknown}).
+mapfile and 'printf -v' do not exist below that."
     fi
 }
 
@@ -49,22 +49,22 @@ require_commands() {
     done
 
     if [ "${#missing[@]}" -gt 0 ]; then
-        die "Deze programma's ontbreken op deze server: ${missing[*]}
-Installeer ze en draai opnieuw."
+        die "These programs are missing on this server: ${missing[*]}
+Install them and run again."
     fi
 }
 
-# Wat elk van deze scripts hoe dan ook gebruikt, direct of via dit bestand.
+# What every one of these scripts uses in any case, directly or through this file.
 preflight_common() {
     require_bash
     require_commands sed grep awk cut tr mktemp date cp id
     require_gnu_sed
 }
 
-# GNU-sed en BSD-sed hebben allebei -i maar bedoelen er iets anders mee: bij
-# BSD is het argument erachter de achtervoegsel voor een reservekopie, dus
-# 'sed -i "s|a|b|" file' eet daar het patroon op. Alles wat .env aanpast gaat
-# door sed heen, dus dat moet vooraf vaststaan.
+# GNU sed and BSD sed both have -i but mean something different by it: on BSD
+# the argument after it is the suffix for a backup, so 'sed -i "s|a|b|" file'
+# eats the pattern there. Everything that changes .env goes through sed, so that
+# has to be established up front.
 require_gnu_sed() {
     local probe
     probe="$(mktemp)"
@@ -73,8 +73,8 @@ require_gnu_sed() {
 
     if ! sed -i 's|a|b|' "$probe" 2>/dev/null || [ "$(cat "$probe")" != "b" ]; then
         rm -f "$probe"
-        die "sed gedraagt zich hier niet als GNU-sed. Op BSD en macOS heeft -i een
-argument nodig; deze scripts gaan uit van GNU-sed (Linux)."
+        die "sed does not behave like GNU sed here. On BSD and macOS -i needs an
+argument; these scripts assume GNU sed (Linux)."
     fi
 
     rm -f "$probe"
@@ -294,14 +294,14 @@ env_value() {
     printf '%s' "$line"
 }
 
-# Zet één sleutel in .env. Bestaat de regel al, dan wordt hij vervangen; zo niet,
-# dan komt hij erbij. Idempotent, zodat de scripts opnieuw gedraaid kunnen worden.
+# Sets one key in .env. If the line exists it is replaced; if not, it is added.
+# Idempotent, so the scripts can be run again.
 #
-# De waarde kan / en & bevatten, dus een scheidingsteken dat niet in een sleutel
-# kan voorkomen, met een ontsnapping voor de vervanging. Waarden met een spatie
-# of een # gaan tussen aanhalingstekens, anders leest Laravel ze half in.
-# De poort waarop de server luistert. Niet elke installatie draait op 3306, en
-# een verkeerd nummer in .env geeft "connection refused" zonder verdere uitleg.
+# The value can contain / and &, so a separator that cannot occur in a key, with
+# an escape for the replacement. Values with a space or a # are quoted, otherwise
+# Laravel reads them in half.
+# The port the server listens on. Not every installation runs on 3306, and a
+# wrong number in .env gives "connection refused" without further explanation.
 detect_port() {
     local found
 
@@ -312,12 +312,12 @@ detect_port() {
     fi
 }
 
-# Waar de databaseserver zijn socket neerlegt. Het pad verschilt per
-# distributie, en het provisioner-account kan alleen via de socket naar binnen:
-# staat hier het verkeerde pad, dan kan er geen enkele klant aangemaakt worden.
+# Where the database server puts its socket. The path differs per distribution,
+# and the provisioner account can only get in through the socket: with the wrong
+# path here, no customer can be created at all.
 #
-# Eerst de server zelf vragen; lukt dat niet, dan de plekken langs waar hij bij
-# de gangbare pakketten staat.
+# Ask the server itself first; if that fails, walk the places the common
+# packages put it.
 detect_socket() {
     local found candidate
 
@@ -353,15 +353,15 @@ env_set() {
     fi
 }
 
-# Haalt een sleutel helemaal weg. Voor DB_PROVISIONER_PASSWORD en
-# DB_PROVISIONER_HOST: leeg laten staan werkt ook, maar een lege regel nodigt
-# uit om er ooit iets in te zetten, en juist dat mag nooit.
+# Removes a key entirely. For DB_PROVISIONER_PASSWORD and DB_PROVISIONER_HOST:
+# leaving them empty works too, but an empty line invites someone to put
+# something in it one day, and that is exactly what must never happen.
 env_remove() {
     local file="$1" key="$2"
     sed -i "/^${key}=/d" "$file"
 }
 
-# Eén reservekopie per keer dat een script draait, niet per sleutel.
+# One backup per run of a script, not per key.
 ENV_BACKUP_MADE=0
 env_backup() {
     local file="$1" backup

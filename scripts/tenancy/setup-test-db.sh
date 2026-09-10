@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# Zet de testdatabase klaar op deze machine.
+# Puts the test database in place on this machine.
 #
 #   sudo scripts/tenancy/setup-test-db.sh
 #
-# Eén keer draaien, daarna werkt 'composer test' en kan de hele
-# tenancy-keten hier gedraaid worden in plaats van op een server.
+# Run once, after that 'composer test' works and the whole tenancy chain can be
+# run here instead of on a server.
 #
-# Dit is een ontwikkelmachine: het testaccount krijgt ruime rechten, want het
-# maakt en gooit klantdatabases weg en moet daar logins op kunnen geven. Op een
-# server hoort dat juist niet; daar staat setup-mysql.sh voor.
+# This is a development machine: the test account gets broad rights, because it
+# creates and drops customer databases and has to be able to grant logins on
+# them. On a server that is precisely wrong; setup-mysql.sh is there for that.
 
 set -euo pipefail
 
@@ -27,8 +27,8 @@ detect_client
 ensure_admin_connection
 detect_flavour
 
-# De waarden komen uit phpunit.xml; dat bestand blijft de enige plek waar ze
-# staan, zodat ze niet uit elkaar kunnen lopen.
+# The values come from phpunit.xml; that file stays the only place they live, so
+# they cannot drift apart.
 read_phpunit() {
     grep -oP "(?<=name=\"$1\" value=\")[^\"]+" "$PROJECT_ROOT/phpunit.xml" | head -1
 }
@@ -51,8 +51,8 @@ info "  procedure: ${PROCEDURE}"
 info ""
 
 if [ -n "$SERVER_PORT" ] && [ "$SERVER_PORT" != "$TEST_PORT" ]; then
-    die "phpunit.xml wijst naar poort ${TEST_PORT}, maar deze server luistert op ${SERVER_PORT}.
-Pas DB_PORT in phpunit.xml aan, anders draaien de tests tegen niets."
+    die "phpunit.xml points at port ${TEST_PORT}, but this server listens on ${SERVER_PORT}.
+Change DB_PORT in phpunit.xml, or the tests run against nothing."
 fi
 
 sql_root_stdin <<SQL
@@ -62,15 +62,16 @@ CREATE DATABASE IF NOT EXISTS \`${ADMIN_SCHEMA}\` CHARACTER SET ${CHARSET} COLLA
 CREATE USER IF NOT EXISTS '${TEST_USER}'@'${TEST_HOST}' IDENTIFIED BY '${TEST_PASSWORD}';
 ALTER USER '${TEST_USER}'@'${TEST_HOST}' IDENTIFIED BY '${TEST_PASSWORD}';
 
--- Ruim, en dat mag hier: dit account maakt klantdatabases aan, gooit ze weg en
--- geeft er logins op. Op een server doet de provisioner dat, met veel minder.
+-- Broad, and that is allowed here: this account creates customer databases,
+-- drops them and grants logins on them. On a server the provisioner does that,
+-- with far less.
 GRANT ALL PRIVILEGES ON *.* TO '${TEST_USER}'@'${TEST_HOST}' WITH GRANT OPTION;
 
 DROP PROCEDURE IF EXISTS \`${ADMIN_SCHEMA}\`.\`${PROCEDURE_NAME}\`;
 SQL
 
-# Dezelfde procedure als in productie, zodat de tests dezelfde weg lopen. Een
-# testomgeving die het net even anders doet, test het verkeerde.
+# The same procedure as in production, so the tests walk the same path. A test
+# environment that does it slightly differently tests the wrong thing.
 sql_root_stdin <<SQL
 DELIMITER //
 CREATE PROCEDURE \`${ADMIN_SCHEMA}\`.\`${PROCEDURE_NAME}\`(
@@ -83,7 +84,7 @@ BEGIN
         OR tenant_db REGEXP '[^a-zA-Z0-9_]'
         OR tenant_user REGEXP '[^a-zA-Z0-9_]' THEN
         SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'Alleen namen binnen de klantnaamruimte, en zonder bijzondere tekens.';
+            SET MESSAGE_TEXT = 'Only names inside the customer namespace, and without special characters.';
     END IF;
 
     SET @grant_statement = CONCAT(

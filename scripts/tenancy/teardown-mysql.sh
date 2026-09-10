@@ -10,9 +10,9 @@
 
 set -euo pipefail
 
-# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
-# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
-# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
 case "${BASH_SOURCE[0]}" in
     */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
     *)   SCRIPT_DIR="$PWD" ;;
@@ -97,9 +97,9 @@ if [ -n "$TENANT_USERS" ]; then
 fi
 
 sql_root "DROP DATABASE IF EXISTS \`${LANDLORD_DB}\`;"
-# Ook de database met de procedure die klantlogins hun rechten geeft. Blijft die
-# staan, dan lijkt een volgende installatie schoon terwijl er nog een procedure
-# van de vorige klaarstaat.
+# The database holding the procedure that grants customer logins their rights
+# goes as well. If it stays, a next installation looks clean while a procedure
+# from the previous one is still standing by.
 sql_root "DROP DATABASE IF EXISTS \`${ADMIN_DB}\`;"
 sql_root "DROP USER IF EXISTS '${APP_USER}'@'${APP_HOST}';"
 sql_root "DROP USER IF EXISTS '${PROV_USER}'@'${PROV_HOST}';"

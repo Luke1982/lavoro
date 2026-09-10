@@ -14,9 +14,9 @@
 
 set -euo pipefail
 
-# Zonder dirname: dit staat boven het inlezen van lib.sh, dus een fout hier
-# komt eruit als een klacht over een bestand dat niet gevonden wordt. De shell
-# kan dit zelf, en dan hoeft er niets te bestaan om hier te komen.
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
 case "${BASH_SOURCE[0]}" in
     */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
     *)   SCRIPT_DIR="$PWD" ;;
@@ -56,9 +56,9 @@ done
 
 pass() { green "  PASS  $*"; PASSED=$((PASSED + 1)); }
 fail() { red   "  FAIL  $*"; FAILED=$((FAILED + 1)); }
-# Twee soorten overslaan, en het verschil is wezenlijk. Iets niet kunnen
-# nakijken laat een gat achter; iets nakijken dat er nog niet is, niet. Alleen
-# het eerste maakt de uitslag onvolledig.
+# Two kinds of skipping, and the difference matters. Not being able to check
+# something leaves a hole; checking something that does not exist yet does not.
+# Only the first makes the verdict incomplete.
 skip() { warn  "  SKIP  $*"; SKIPPED=$((SKIPPED + 1)); }
 skip_na() { warn  "  SKIP  $*"; NOT_APPLICABLE=$((NOT_APPLICABLE + 1)); }
 
@@ -125,8 +125,8 @@ if ! id -u "$PROV_USER" >/dev/null 2>&1; then
 elif [ "$(id -u)" -ne 0 ]; then
     skip "provisioner checks need root to switch user — re-run with sudo"
 else
-    # Alles in dit blok draait als de provisioner zelf. Eén plek waar dat staat,
-    # in plaats van vijf keer dezelfde regel met een ander commando erin.
+    # Everything in this block runs as the provisioner itself. One place where
+    # that is written, instead of the same line five times with another command.
     as_provisioner() {
         sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -e "$1" 2>&1
     }
@@ -139,9 +139,9 @@ else
         fail "expected ${PROV_USER}@${PROV_HOST}, got '${CURRENT:-<connection failed>}'"
     fi
 
-    # Wat er ook misgaat, de proefdatabase en het proefaccount gaan weer weg.
-    # Blijven ze staan, dan draagt elke volgende controle de rommel van de
-    # vorige mee -- en juist een controlescript hoort niets achter te laten.
+    # Whatever goes wrong, the probe database and the probe account go away
+    # again. If they stay, every following check carries the previous one's
+    # leftovers -- and a checking script of all things should leave nothing.
     clean_probe() {
         as_provisioner "DROP USER IF EXISTS \`${SCRATCH_USER}\`@\`%\`;" >/dev/null 2>&1 || true
         as_provisioner "DROP DATABASE IF EXISTS \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
@@ -149,9 +149,9 @@ else
 
     trap clean_probe EXIT
 
-    # Restjes van een eerdere run opruimen. Een controle die halverwege afbreekt
-    # laat zijn proefdatabase staan, en die duikt daarna op als "database zonder
-    # tenant" in de doctor -- een melding over een probleem dat dit script zelf
+    # Clean up leftovers from an earlier run. A check that breaks off halfway
+    # leaves its probe database behind, and that then shows up as "database
+    # without a tenant" in the doctor -- a finding about a problem this script
     # heeft gemaakt.
     if [ "$HAVE_ROOT_DB" -eq 1 ]; then
         while IFS= read -r statement; do
@@ -169,15 +169,16 @@ else
     if as_provisioner "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
         pass "can create a database inside the ${TENANT_PREFIX} namespace"
 
-        # Een database aanmaken is de helft van het werk. Elke klant krijgt ook
-        # een eigen MySQL-login die alleen bij die ene database mag. Dat
-        # uitdelen doet een procedure die als root draait, omdat een GRANT met
-        # een databasenaam erin niet af te doen is met het jokerteken dat dit
-        # account heeft. Alleen het aanmaken nakijken liet precies dit in
-        # productie stuklopen, met een half aangemaakte klant tot gevolg.
+        # Creating a database is half the work. Every customer also gets a
+        # MySQL login of its own that may only reach that one database. Handing
+        # that out is done by a procedure running as root, because a GRANT with
+        # a database name in it cannot be satisfied by the wildcard this account
+        # holds. Checking only the creating let exactly this break in
+        # production, leaving a half created customer behind.
         #
-        # '|| true' hoort hier: zonder dat neemt een mislukte opdracht onder
-        # 'set -e' het hele script mee, en dan valt er niets meer te melden.
+        # '|| true' belongs here: without it a failed statement under 'set -e'
+        # takes the whole script with it, and then there is nothing left to
+        # report.
         USER_ERROR="$(as_provisioner "CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';" || true)"
 
         if [ -n "$USER_ERROR" ]; then
@@ -194,10 +195,10 @@ else
         Re-run: sudo scripts/tenancy/setup-mysql.sh"
             fi
 
-            # De procedure is het enige gaatje in de afscherming, dus dat gaatje
-            # moet zo nauw zijn als bedoeld: buiten de klantnaamruimte hoort hij
-            # te weigeren. Doet hij dat niet, dan kan de provisioner via deze weg
-            # rechten uitdelen op elke database die er is.
+            # The procedure is the only hole in the separation, so that hole
+            # has to be as narrow as intended: outside the customer namespace it
+            # should refuse. If it does not, the provisioner can hand out rights
+            # on every database there is through this road.
             if as_provisioner "CALL \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`('${LANDLORD_DB}', '${SCRATCH_USER}');" >/dev/null 2>&1; then
                 fail "the grant procedure accepted ${LANDLORD_DB} — it must refuse anything
         outside the ${TENANT_PREFIX} namespace"
@@ -210,8 +211,9 @@ else
         fail "cannot create ${SCRATCH_DB} — tenant creation will fail"
     fi
 
-    # De naamruimte is het hele punt: alles daarbuiten hoort onbereikbaar te
-    # zijn, zodat een fout in het provisioneren niet bij een andere database kan.
+    # The namespace is the whole point: everything outside it should be
+    # unreachable, so that a mistake in provisioning cannot touch another
+    # database.
     if as_provisioner "CREATE DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1; then
         fail "created ${OUTSIDE_DB} outside the tenant namespace — the grant is too wide"
         as_provisioner "DROP DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1 || true
@@ -324,25 +326,25 @@ fi
 # Een spoor achterlaten
 # ---------------------------------------------------------------------------
 #
-# Dit script heeft root nodig, de doctor draait als het account van de site.
-# Die kan er dus nooit zelf bij en moest tot nu toe zeggen "hiervandaan niet te
-# zien". Door de uitslag hier weg te schrijven weet de doctor wel wat eruit
+# This script needs root, the doctor runs as the site's account. So it can
+# never reach this itself and had to say "cannot be seen from here" until now.
+# By writing the verdict down here the doctor does know what came out
 # kwam en wanneer.
 #
-# Alleen een volledige run wordt vastgelegd: zonder root slaat dit script het
-# meeste over, en dat is geen goedkeuring.
+# Only a complete run is recorded: without root this script skips most of it,
+# and that is not approval.
 
 record_outcome() {
     local file="$PROJECT_ROOT/storage/app/tenancy-privileges.json"
 
     [ -d "${file%/*}" ] || return 0
 
-    # Een halve run mag een hele niet overschrijven. Zonder root wordt het
-    # meeste overgeslagen, en dat zou de uitslag van een eerdere volledige
-    # controle wegzetten voor iets dat niets bewijst.
+    # Half a run must not overwrite a whole one. Without root most of it is
+    # skipped, and that would replace the verdict of an earlier complete check
+    # with something that proves nothing.
     #
-    # Controles die niet van toepassing zijn tellen hier niet mee: dat er nog
-    # geen klantaccounts zijn is geen gat in de controle, dat is de situatie.
+    # Checks that do not apply are not counted here: that there are no customer
+    # accounts yet is not a hole in the check, that is the situation.
     if [ "$SKIPPED" -ne 0 ]; then
         return 0
     fi
@@ -358,9 +360,9 @@ record_outcome
 
 info ""
 
-# Overgeslagen controles apart noemen. "All 4 checks passed" onder een lijst
-# waarin de helft is overgeslagen leest als goedkeuring, terwijl juist de
-# controles die root nodig hebben -- de rechten van de accounts -- niet zijn
+# Name skipped checks separately. "All 4 checks passed" under a list where half
+# was skipped reads as approval, while precisely the checks that need root --
+# the rights of the accounts -- have not
 # gedaan.
 if [ "$FAILED" -eq 0 ] && [ "$SKIPPED" -eq 0 ]; then
     if [ "$NOT_APPLICABLE" -eq 0 ]; then
