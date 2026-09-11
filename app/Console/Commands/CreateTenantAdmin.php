@@ -21,7 +21,7 @@ class CreateTenantAdmin extends Command
     protected $signature = 'tenant:admin
         {tenant : Id of naam van de tenant}
         {email : Het e-mailadres van de beheerder}
-        {--password= : Leeg laten genereert er een}
+        {--password= : leave empty to generate one}
         {--name=Beheerder}';
 
     protected $description = 'Creates an admin for a tenant, or resets their password';

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Licensing;
 
+use App\Models\Central\Module;
 use App\Models\Tenant;
 use App\Services\TenantSubscription;
 use Illuminate\Console\Command;
@@ -10,18 +11,24 @@ class SetTenantModules extends Command
 {
     protected $signature = 'tenant:modules {id} {--add=*} {--remove=*}';
 
-    protected $description = 'Voegt modules toe of haalt ze weg';
+    protected $description = 'Adds or removes modules';
 
     public function handle(): int
     {
         $tenant = $this->tenant();
-        if (! $tenant) { return self::FAILURE; }
+        if (!$tenant) {
+            return self::FAILURE;
+        }
 
-        $known = \App\Models\Central\Module::on('central')->pluck('key');
+        $known = Module::on('central')->pluck('key');
         $modules = collect($tenant->modules ?? []);
 
         foreach ($this->option('add') as $key) {
-            if (! $known->contains($key)) { $this->error("Onbekende module: {$key}"); return self::FAILURE; }
+            if (!$known->contains($key)) {
+                $this->error("Unknown module: {$key}");
+
+                return self::FAILURE;
+            }
             $modules->push($key);
         }
 
@@ -30,7 +37,7 @@ class SetTenantModules extends Command
         $tenant->update(['modules' => $modules->values()->all()]);
         $this->line('  modules: ' . ($modules->implode(', ') ?: '-'));
 
-        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per maand');
+        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per month');
 
         return self::SUCCESS;
     }
@@ -39,8 +46,8 @@ class SetTenantModules extends Command
     {
         $tenant = Tenant::on('central')->find($this->argument('id'));
 
-        if (! $tenant) {
-            $this->error('Onbekende tenant.');
+        if (!$tenant) {
+            $this->error('Unknown tenant.');
         }
 
         return $tenant;

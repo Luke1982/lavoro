@@ -10,18 +10,20 @@ class SetTenantStorage extends Command
 {
     protected $signature = 'tenant:storage {id} {--limit=}';
 
-    protected $description = 'Zet de opslaglimiet in GB';
+    protected $description = 'Sets the storage limit in GB';
 
     public function handle(): int
     {
         $tenant = $this->tenant();
-        if (! $tenant) { return self::FAILURE; }
+        if (!$tenant) {
+            return self::FAILURE;
+        }
 
         if ($this->option('limit') !== null) {
             $tenant->update(['storage_limit_gb' => max(0, (int) $this->option('limit'))]);
         }
 
-        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per maand');
+        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per month');
 
         return self::SUCCESS;
     }
@@ -30,8 +32,8 @@ class SetTenantStorage extends Command
     {
         $tenant = Tenant::on('central')->find($this->argument('id'));
 
-        if (! $tenant) {
-            $this->error('Onbekende tenant.');
+        if (!$tenant) {
+            $this->error('Unknown tenant.');
         }
 
         return $tenant;

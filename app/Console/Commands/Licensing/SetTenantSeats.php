@@ -10,16 +10,20 @@ class SetTenantSeats extends Command
 {
     protected $signature = 'tenant:seats {id} {--field=} {--office=}';
 
-    protected $description = 'Past de extra plaatsen aan (+5, -2 of absoluut)';
+    protected $description = 'Changes the extra seats (+5, -2 or absolute)';
 
     public function handle(): int
     {
         $tenant = $this->tenant();
-        if (! $tenant) { return self::FAILURE; }
+        if (!$tenant) {
+            return self::FAILURE;
+        }
 
         foreach (['field' => 'extra_field_seats', 'office' => 'extra_office_seats'] as $option => $column) {
             $value = $this->option($option);
-            if ($value === null) { continue; }
+            if ($value === null) {
+                continue;
+            }
             $tenant->{$column} = str_starts_with($value, '+') || str_starts_with($value, '-')
                 ? max(0, (int) $tenant->{$column} + (int) $value)
                 : max(0, (int) $value);
@@ -27,7 +31,7 @@ class SetTenantSeats extends Command
 
         $tenant->save();
 
-        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per maand');
+        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per month');
 
         return self::SUCCESS;
     }
@@ -36,8 +40,8 @@ class SetTenantSeats extends Command
     {
         $tenant = Tenant::on('central')->find($this->argument('id'));
 
-        if (! $tenant) {
-            $this->error('Onbekende tenant.');
+        if (!$tenant) {
+            $this->error('Unknown tenant.');
         }
 
         return $tenant;

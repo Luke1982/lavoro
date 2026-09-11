@@ -502,6 +502,6 @@ either.
 
 | | |
 | --- | --- |
-| `tenancy-bediening.md` | day to day commands |
-| `tenancy-testrisicos.md` | where this breaks and how you would notice |
+| `tenancy-operations.md` | day to day commands |
+| `tenancy-test-risks.md` | where this breaks and how you would notice |
 | `superpowers/plans/2026-06-09-multi-database-tenancy.md` | why it is built this way |

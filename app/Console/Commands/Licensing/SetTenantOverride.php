@@ -10,16 +10,18 @@ class SetTenantOverride extends Command
 {
     protected $signature = 'tenant:override {id} {--price=} {--clear}';
 
-    protected $description = 'Zet of wist een vaste maandprijs in centen';
+    protected $description = 'Sets or clears a fixed monthly package price in cents';
 
     public function handle(): int
     {
         $tenant = $this->tenant();
-        if (! $tenant) { return self::FAILURE; }
+        if (!$tenant) {
+            return self::FAILURE;
+        }
 
         $tenant->update(['price_override_cents' => $this->option('clear') ? null : (int) $this->option('price')]);
 
-        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per maand');
+        $this->info($tenant->name . ': ' . number_format((new TenantSubscription($tenant->refresh()))->monthlyTotalCents() / 100, 2) . ' per month');
 
         return self::SUCCESS;
     }
@@ -28,8 +30,8 @@ class SetTenantOverride extends Command
     {
         $tenant = Tenant::on('central')->find($this->argument('id'));
 
-        if (! $tenant) {
-            $this->error('Onbekende tenant.');
+        if (!$tenant) {
+            $this->error('Unknown tenant.');
         }
 
         return $tenant;

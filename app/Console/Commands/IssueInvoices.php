@@ -11,10 +11,10 @@ use Illuminate\Console\Command;
 class IssueInvoices extends Command
 {
     protected $signature = 'invoices:issue
-        {--tenant= : Alleen deze tenant}
-        {--on= : Doe alsof het deze datum is (jjjj-mm-dd)}
-        {--mail : Ook meteen versturen}
-        {--dry-run : Alleen tonen wat er zou gebeuren}';
+        {--tenant= : only this tenant}
+        {--on= : act as if it is this date (yyyy-mm-dd)}
+        {--mail : send them straight away as well}
+        {--dry-run : only show what would happen}';
 
     protected $description = 'Creates the invoices whose period has started';
 
