@@ -61,7 +61,7 @@ class ScheduledWorkSkipsBrokenTenantsTest extends TestCase
         Tenancy::forEachReachable(fn () => null);
 
         Log::shouldHaveReceived('warning')
-            ->withArgs(fn (string $message, array $context) => str_contains($message, 'overgeslagen')
+            ->withArgs(fn (string $message, array $context) => str_contains($message, 'skipped')
                 && $context['tenant'] === $broken->id);
     }
 

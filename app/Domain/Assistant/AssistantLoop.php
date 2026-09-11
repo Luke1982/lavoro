@@ -270,11 +270,11 @@ class AssistantLoop
                 'eur_per_usd' => $cost->eur_per_usd,
             ]);
         } catch (Throwable $e) {
-            Log::error('Kon assistentverbruik niet vastleggen', ['model' => $cost->model, 'exception' => $e]);
+            Log::error('Could not record assistant usage', ['model' => $cost->model, 'exception' => $e]);
         }
 
         if (!$cost->isPriced()) {
-            Log::warning('Geen prijs bekend voor model, verbruik geteld als nul', ['model' => $cost->model]);
+            Log::warning('No price known for the model; usage counted as zero', ['model' => $cost->model]);
         }
 
         return $cost->cost_micros;

@@ -60,7 +60,9 @@ fi
 # saw was that the pipeline failed, without the message from the loop itself --
 # and an exit from that loop did not even stop the script.
 while IFS=$'\t' read -r MARK REST; do
-    [ "$MARK" = "OVERSLAAN" ] && echo "  skipped (database unreachable): ${REST}"
+    if [ "$MARK" = "SKIP" ]; then
+        echo "  skipped (database unreachable): ${REST}"
+    fi
 done <<< "$LINES"
 
 while IFS=$'\t' read -r MARK DB USER PASS HOST PORT; do

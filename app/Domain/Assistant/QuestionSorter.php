@@ -83,7 +83,7 @@ class QuestionSorter
                 $this->instructions(),
             );
         } catch (ModelUnavailable|Throwable $e) {
-            Log::warning('Kon de vraag niet inschalen, dus op de veilige kant beoordeeld', [
+            Log::warning('Could not grade the question, so it was judged on the safe side', [
                 'exception' => $e->getMessage(),
             ]);
 
@@ -124,7 +124,7 @@ class QuestionSorter
                 'eur_per_usd' => $cost->eur_per_usd,
             ]);
         } catch (Throwable $e) {
-            Log::error('Kon de kosten van het inschalen niet vastleggen', ['exception' => $e]);
+            Log::error('Could not record the cost of grading', ['exception' => $e]);
         }
     }
 

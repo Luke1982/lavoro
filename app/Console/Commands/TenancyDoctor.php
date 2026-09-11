@@ -471,7 +471,7 @@ class TenancyDoctor extends Command
             tenancy()->end();
         } catch (\Throwable $e) {
             tenancy()->end();
-            $this->bad('verbinden mislukt: ' . $e->getMessage());
+            $this->bad('connecting failed: ' . $e->getMessage());
         }
     }
 

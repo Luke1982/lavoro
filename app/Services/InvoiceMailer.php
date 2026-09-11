@@ -33,7 +33,7 @@ class InvoiceMailer
              * not arrive would make the number disappear from a continuous
              * series.
              */
-            Log::error('Factuur versturen mislukt', [
+            Log::error('Sending the invoice failed', [
                 'invoice' => $invoice->number,
                 'tenant' => $tenant->id,
                 'error' => $e->getMessage(),

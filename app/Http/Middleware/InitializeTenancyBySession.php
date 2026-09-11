@@ -32,9 +32,9 @@ class InitializeTenancyBySession
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('De database van een klant is niet bereikbaar; sessie genegeerd', [
+            Log::warning("A tenant's database is unreachable; session ignored", [
                 'tenant' => $tenant->getTenantKey(),
-                'fout' => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return false;

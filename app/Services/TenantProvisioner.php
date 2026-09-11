@@ -217,7 +217,7 @@ class TenantProvisioner
          * itself -- then an error while creating is worse than the error itself.
          */
         if (!$tenant) {
-            Log::warning('Aanmaken mislukt voordat er iets bestond; niets op te ruimen', [
+            Log::warning('Creating failed before anything existed; nothing to clean up', [
                 'database' => $database,
             ]);
 
@@ -227,9 +227,9 @@ class TenantProvisioner
         try {
             $this->destroy($tenant);
         } catch (\Throwable $ignored) {
-            Log::warning('Opruimen na een mislukte aanmaak lukte niet', [
+            Log::warning('Cleaning up after a failed creation did not work', [
                 'database' => $database,
-                'fout' => $ignored->getMessage(),
+                'error' => $ignored->getMessage(),
             ]);
         }
     }

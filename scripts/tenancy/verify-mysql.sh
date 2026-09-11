@@ -323,13 +323,13 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Een spoor achterlaten
+# Leaving a trace
 # ---------------------------------------------------------------------------
 #
 # This script needs root, the doctor runs as the site's account. So it can
 # never reach this itself and had to say "cannot be seen from here" until now.
-# By writing the verdict down here the doctor does know what came out
-# kwam en wanneer.
+# By writing the verdict down here the doctor does know what came out,
+# and when.
 #
 # Only a complete run is recorded: without root this script skips most of it,
 # and that is not approval.

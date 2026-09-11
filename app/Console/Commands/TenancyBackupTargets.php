@@ -15,7 +15,7 @@ use Illuminate\Console\Command;
  * stop at every error that is exactly wrong.
  *
  * Every line reads: DUMP<tab>database<tab>user<tab>password<tab>host<tab>port
- * or OVERSLAAN<tab>name for a customer whose database will not open.
+ * or SKIP<tab>name for a customer whose database will not open.
  */
 class TenancyBackupTargets extends Command
 {
@@ -31,7 +31,7 @@ class TenancyBackupTargets extends Command
 
         foreach (Tenant::on('central')->get() as $tenant) {
             if (!Tenancy::reachable($tenant)) {
-                $this->line("OVERSLAAN\t" . $tenant->name);
+                $this->line("SKIP\t" . $tenant->name);
 
                 continue;
             }

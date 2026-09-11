@@ -48,7 +48,7 @@ class RunTenantProvisioningRequestJob implements ShouldQueue
 
             $request->update(['status' => 'done', 'error' => null, 'finished_at' => now()]);
         } catch (\Throwable $e) {
-            Log::error('Aanvraag mislukt', ['request' => $request->id, 'error' => $e->getMessage()]);
+            Log::error('Provisioning request failed', ['request' => $request->id, 'error' => $e->getMessage()]);
 
             $request->update([
                 'status' => 'failed',

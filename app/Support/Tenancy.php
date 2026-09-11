@@ -84,7 +84,7 @@ final class Tenancy
     {
         Tenant::on('central')->cursor()->each(function (Tenant $tenant) use ($work) {
             if (!static::reachable($tenant)) {
-                Log::warning('Klant overgeslagen: database niet te openen.', [
+                Log::warning('Tenant skipped: its database will not open.', [
                     'tenant' => $tenant->id,
                     'name' => $tenant->name,
                 ]);
