@@ -2,7 +2,6 @@
 
 namespace Database\Seeders\Demo;
 
-use App\Enums\EventCompletionStatus;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\ServiceOrderTypes;
@@ -12,7 +11,6 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
-use App\Models\EventUserExecution;
 use App\Models\Remark;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
@@ -69,8 +67,8 @@ final class WorkSeeder
             $this->stages[$flag] = ServiceOrderStage::where($flag, true)->orderBy('order')->firstOrFail();
         }
 
-        $this->planner = $this->context->users['mark@lavoro.demo'];
-        $this->desk = $this->context->users['lisa@lavoro.demo'];
+        $this->planner = $this->context->users['mark@lavorofsm.nl'];
+        $this->desk = $this->context->users['lisa@lavorofsm.nl'];
 
         $this->planning();
         $this->unplanned();
@@ -128,7 +126,7 @@ final class WorkSeeder
 
     private function absent(User $mechanic, int $day): bool
     {
-        return $mechanic->email === 'bas@lavoro.demo' && $day >= 9 && $day <= 11;
+        return $mechanic->email === 'bas@lavorofsm.nl' && $day >= 9 && $day <= 11;
     }
 
     /** Someone from the same team who is free that day, for a two-man job. */
@@ -154,7 +152,7 @@ final class WorkSeeder
      */
     private function workday(User $mechanic, int $day): void
     {
-        $until = $mechanic->email === 'yusuf@lavoro.demo' && $this->context->day($day)->isFriday()
+        $until = $mechanic->email === 'yusuf@lavorofsm.nl' && $this->context->day($day)->isFriday()
             ? 12 * 60
             : 16 * 60 + 30;
         $minute = 8 * 60;
@@ -278,9 +276,13 @@ final class WorkSeeder
 
         $order->events()->attach($event->id);
 
+        /**
+         * No registered times: a mechanic's "done" greys the appointment out and
+         * hatches it, and a planning full of grey shows nothing of what the
+         * planner looks like. The orders and checklists still say what was done.
+         */
         foreach ($mechanics as $mechanic) {
             $event->addExecutingUser($mechanic->id);
-            $this->execution($event, $mechanic, $phase, $start, $end);
         }
 
         foreach ($assets as $asset) {
@@ -391,22 +393,6 @@ final class WorkSeeder
             'survey' => 'Inventarisatie',
             default => $found_something ? 'Controle met storingen' : 'Periodieke controle',
         }];
-    }
-
-    private function execution(Event $event, User $mechanic, string $phase, CarbonImmutable $start, CarbonImmutable $end): void
-    {
-        if ($phase === 'planned') {
-            return;
-        }
-
-        EventUserExecution::forceCreate([
-            'event_id' => $event->id,
-            'user_id' => $mechanic->id,
-            'completion_status' => $phase === 'done' ? EventCompletionStatus::completed->value : EventCompletionStatus::ongoing->value,
-            'actual_start' => $start->addMinutes($this->context->between(-10, 15)),
-            'actual_end' => $phase === 'done' ? $end->addMinutes($this->context->between(-15, 20)) : null,
-            'travel_time_minutes' => $this->context->between(12, 45),
-        ]);
     }
 
     /**

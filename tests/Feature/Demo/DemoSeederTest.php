@@ -5,6 +5,7 @@ namespace Tests\Feature\Demo;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Event;
+use App\Models\EventUserExecution;
 use App\Models\Image;
 use App\Models\Product;
 use App\Models\ProductType;
@@ -60,6 +61,7 @@ class DemoSeederTest extends TestCase
         $this->theProductTreeHasAProductWithAPictureOnEveryLeaf();
         $this->everyCustomerHasMachines();
         $this->thePlanningCoversTwoWeeksBackAndTwoAhead($now);
+        $this->assertSame(0, EventUserExecution::count(), 'registered times grey the planning out');
         $this->thereIsWorkWaitingForADate();
         $this->theDeskHasTicketsInEveryState();
     }
@@ -73,11 +75,15 @@ class DemoSeederTest extends TestCase
             );
         }
 
-        foreach (User::all() as $user) {
-            $this->assertNotEmpty(Storage::disk('public')->files("users/{$user->id}/avatar"), "{$user->name} has no picture");
+        foreach (User::where('email', 'like', '%@lavorofsm.nl')->get() as $user) {
+            $this->assertSame(
+                ["users/{$user->id}/avatar/" . strtok($user->email, '@') . '.jpg'],
+                Storage::disk('public')->files("users/{$user->id}/avatar"),
+                "{$user->name} should have a photo, and only that"
+            );
         }
 
-        $this->assertTrue(User::where('email', 'demo@lavoro.demo')->exists(), 'the demo login is missing');
+        $this->assertTrue(User::where('email', 'demo@lavorofsm.nl')->exists(), 'the demo login is missing');
         $this->assertGreaterThanOrEqual(5, User::where('plannable', true)->count(), 'a planning needs mechanics');
     }
 

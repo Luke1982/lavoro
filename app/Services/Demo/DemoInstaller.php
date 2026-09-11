@@ -24,7 +24,7 @@ final class DemoInstaller
 {
     public const NAME = 'Demo';
 
-    public const LOGIN = 'demo@lavoro.demo';
+    public const LOGIN = 'demo@lavorofsm.nl';
 
     public const PASSWORD = 'demo';
 
@@ -49,7 +49,9 @@ final class DemoInstaller
      * minute on a slow server, so people do -- and a tenant called Demo stays
      * behind without the mark, which the next run then refused as a real
      * customer. What tells them apart is who can log in: a half-made demo has
-     * nobody, or only demo addresses; a real customer called Demo has its own.
+     * nobody, or only the demo's own addresses; a real customer called Demo has
+     * its own. The addresses themselves and not their domain: that is ours, and
+     * a real customer of ours may well log in with it.
      */
     private function isOurs(Tenant $tenant): bool
     {
@@ -59,7 +61,13 @@ final class DemoInstaller
 
         return $tenant->name === self::NAME
             && !UserTenantLookup::on('central')->where('tenant_id', $tenant->id)
-                ->where('email', 'not like', '%@lavoro.demo')->exists();
+                ->whereNotIn('email', self::addresses())->exists();
+    }
+
+    /** @return array<int, string> */
+    private static function addresses(): array
+    {
+        return array_column((require database_path('seeders/data/demo/team.php'))['people'], 'email');
     }
 
     /**
