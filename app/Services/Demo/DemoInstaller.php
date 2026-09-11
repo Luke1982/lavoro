@@ -3,6 +3,7 @@
 namespace App\Services\Demo;
 
 use App\Exceptions\Refusal;
+use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use App\Services\TenantProvisioner;
 use App\Support\Tenancy;
@@ -41,13 +42,34 @@ final class DemoInstaller
     public function __construct(private TenantProvisioner $provisioner) {}
 
     /**
+     * A demo, or what is left of one.
+     *
+     * The mark is set once the tenant exists, and creating it runs every
+     * migration first. Stop the command halfway -- it prints nothing for a
+     * minute on a slow server, so people do -- and a tenant called Demo stays
+     * behind without the mark, which the next run then refused as a real
+     * customer. What tells them apart is who can log in: a half-made demo has
+     * nobody, or only demo addresses; a real customer called Demo has its own.
+     */
+    private function isOurs(Tenant $tenant): bool
+    {
+        if ($tenant->isDemo()) {
+            return true;
+        }
+
+        return $tenant->name === self::NAME
+            && !UserTenantLookup::on('central')->where('tenant_id', $tenant->id)
+                ->where('email', 'not like', '%@lavoro.demo')->exists();
+    }
+
+    /**
      * @param  (Closure(string): void)|null  $progress  told what is happening, for a command to show
      */
     public function install(?Closure $progress = null): Tenant
     {
         $tell = fn (string $message) => $progress ? $progress($message) : null;
 
-        foreach (Tenant::on('central')->get()->filter->isDemo() as $previous) {
+        foreach (Tenant::on('central')->get()->filter(fn (Tenant $tenant) => $this->isOurs($tenant)) as $previous) {
             $tell('removing the previous demo...');
             $this->provisioner->destroy($previous);
         }
@@ -58,8 +80,8 @@ final class DemoInstaller
          * it -- say which it is instead of leaving that to a database error.
          */
         if (Tenant::on('central')->where('name', self::NAME)->exists()) {
-            throw new Refusal('Er bestaat al een klant met de naam "' . self::NAME . '" die geen demo is.'
-                . ' Die wordt niet overschreven.');
+            throw new Refusal('A customer called "' . self::NAME . '" already exists and is not the demo.'
+                . ' It is not overwritten.');
         }
 
         $tell('creating the tenant: database, login and every migration...');
