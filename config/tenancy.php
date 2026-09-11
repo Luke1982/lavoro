@@ -34,10 +34,19 @@ return [
     'filesystem' => ['suffix_base' => 'tenant', 'disks' => [], 'root_override' => []],
     'redis' => ['prefix_base' => 'tenant', 'prefixed_connections' => []],
     'features' => [],
+    /**
+     * Both need --force: in production, tenants:migrate and tenants:seed ask
+     * "are you sure?", and when Tenant::create() runs them nobody sees that
+     * question. From a terminal it waits forever; from a worker the answer
+     * is no and the step is skipped without a word.
+     */
     'migration_parameters' => [
         '--force' => true,
         '--path' => [database_path('migrations/tenant')],
         '--realpath' => true,
     ],
-    'seeder_parameters' => ['--class' => 'Database\Seeders\TenantDatabaseSeeder'],
+    'seeder_parameters' => [
+        '--force' => true,
+        '--class' => 'Database\Seeders\TenantDatabaseSeeder',
+    ],
 ];
