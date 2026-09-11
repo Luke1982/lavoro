@@ -8,7 +8,9 @@ use App\Models\Central\Package;
 use App\Models\GeneralSetting;
 use App\Models\InternalAnnouncement;
 use App\Models\Ticket;
+use App\Support\PageTitle;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -127,20 +129,21 @@ class HandleInertiaRequests extends Middleware
                 ? InternalAnnouncement::openFor($request->user())
                     ?->only(['id', 'title', 'body'])
                 : null,
+            /** Also on a partial reload: app.js puts it in the tab after every visit. */
+            'title' => Inertia::always(fn () => PageTitle::for($request)),
+            /** The package this customer subscribes to, for the licence card in the menu. */
+            'tenant' => tenancy()->initialized ? [
+                'name' => tenancy()->tenant->name,
+                'package' => optional(Package::on('central')
+                    ->where('key', tenancy()->tenant->package_key)->first())->name,
+                'modules' => tenancy()->tenant->modules ?? [],
+            ] : null,
             /**
              * The public half of the VAPID keypair, which the browser needs in
              * hand to subscribe at all. Null when the installation has no keys,
              * which is the front end's cue not to ask for permission it could
              * never act on.
              */
-            /** The package this customer subscribes to, for the licence card in the menu. */
-            'tenant' => tenancy()->initialized ? [
-                /** For the page title: 'Lavoro - <customer> - <module>'. */
-                'name' => tenancy()->tenant->name,
-                'package' => optional(Package::on('central')
-                    ->where('key', tenancy()->tenant->package_key)->first())->name,
-                'modules' => tenancy()->tenant->modules ?? [],
-            ] : null,
             'push' => [
                 'vapid_public_key' => $request->user() ? config('webpush.public_key') : null,
             ],

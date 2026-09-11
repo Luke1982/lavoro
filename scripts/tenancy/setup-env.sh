@@ -150,8 +150,12 @@ fi
 # separation between customers. And MAIL_MAILER has to be on tenant, otherwise
 # every customer sends post from another company's mailbox.
 
-info "  Vaste waarden"
+info "  Fixed values"
 
+# The name mails are sent under, among other things. Laravel's own default is
+# "Laravel", and an .env carried over from the old installation often still has
+# it.
+set_key APP_NAME Lavoro
 set_key APP_ENV production
 set_key APP_DEBUG false
 set_key SESSION_DRIVER database

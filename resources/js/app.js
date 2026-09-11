@@ -1,6 +1,5 @@
 import { createApp, h } from "vue";
 import { createInertiaApp, router } from "@inertiajs/vue3";
-import menu from "@/Navigation/menu.json";
 import MainLayout from "@/Layouts/MainLayout.vue";
 import FloatingVue from "floating-vue";
 import { autoAnimatePlugin } from "@formkit/auto-animate/vue";
@@ -9,40 +8,23 @@ import "floating-vue/dist/style.css";
 import "@imengyu/vue3-context-menu/lib/vue3-context-menu.css";
 
 /**
- * De titel is altijd "Lavoro - <klant> - <onderdeel>".
+ * De titel ("Lavoro - <onderdeel> - <klant>") maakt de server, in
+ * App\Support\PageTitle, en stuurt hem met elke pagina mee.
  *
- * Het onderdeel komt uit menu.json, hetzelfde bestand waar het menu zijn labels
- * uit haalt. Zo staat er in de titelbalk wat er in het menu staat, en levert een
- * nieuw scherm niet een naam op die nergens anders bestaat.
+ * Inertia gooit bij het opstarten de titel uit de server weg en vraagt de
+ * title-callback om een nieuwe; zonder <Head> op de pagina krijgt die een
+ * lege string. Gaf de callback die gewoon terug, dan stond er na elke volledige
+ * paginalading niets in het tabblad.
  */
-const menuLabels = (() => {
-    const labels = [];
+let currentTitle = document.title;
 
-    const walk = (items) => (items ?? []).forEach((item) => {
-        if (item.href) {
-            labels.push({ href: item.href, label: item.label });
-        }
-
-        walk(item.items);
-    });
-
-    walk(menu.sections ?? Object.values(menu).flat?.() ?? []);
-
-    /** Langste eerst: /serviceorders/12 hoort bij /serviceorders en niet bij /. */
-    return labels.sort((a, b) => b.href.length - a.href.length);
-})();
-
-const moduleFor = (path) => menuLabels.find(({ href }) => path === href || path.startsWith(href + "/"))?.label;
-
-const applyTitle = () => {
-    const base = document.querySelector("title")?.dataset.base
-        ?? document.title.split(" - ").slice(0, 2).join(" - ");
-    const module = moduleFor(window.location.pathname);
-
-    document.title = [base, module].filter(Boolean).join(" - ");
+const applyTitle = (page) => {
+    currentTitle = page?.props?.title ?? currentTitle;
+    document.title = currentTitle;
 };
 
 createInertiaApp({
+    title: (title) => title || currentTitle,
     resolve: async (name) => {
         const pages = import.meta.glob("./Pages/**/*.vue", { eager: true });
         const page = await pages[`./Pages/${name}.vue`];
@@ -50,19 +32,8 @@ createInertiaApp({
         return page;
     },
     setup({ el, App, props, plugin }) {
-        /**
-         * De basis ("Lavoro - Klant") komt uit de server-side titel. Die wordt
-         * hier vastgelegd voordat er iets aan geplakt wordt, anders groeit hij
-         * bij elke navigatie aan.
-         */
-        const title = document.querySelector("title");
-
-        if (title && !title.dataset.base) {
-            title.dataset.base = document.title;
-        }
-
-        applyTitle();
-        router.on("navigate", applyTitle);
+        applyTitle(props.initialPage);
+        router.on("navigate", (event) => applyTitle(event.detail.page));
 
         createApp({
             render: () => h(App, props),

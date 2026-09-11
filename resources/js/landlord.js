@@ -10,8 +10,11 @@ import LandlordLayout from "@/Layouts/LandlordLayout.vue";
  * nergens op, en meeliften zou betekenen dat elk scherm daar rekening mee moet
  * houden of er wel een klant is.
  */
+/** Zoals de server hem zet: APP_NAME, of Lavoro als daar Laravels eigen standaard staat. */
+const brand = document.querySelector('meta[name="application-name"]')?.content || "Lavoro";
+
 createInertiaApp({
-    title: (title) => (title ? `Lavoro Beheer - ${title}` : "Lavoro Beheer"),
+    title: (title) => [brand, title, "Beheer"].filter(Boolean).join(" - "),
     resolve: async (name) => {
         const pages = import.meta.glob("./Pages/Landlord/**/*.vue", { eager: true });
         const page = await pages[`./Pages/${name}.vue`];

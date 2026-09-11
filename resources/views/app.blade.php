@@ -12,17 +12,12 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 
-    {{--
-        config() en niet env(): zodra config:cache heeft gedraaid geeft env()
-        buiten de configuratiebestanden zijn standaardwaarde terug, en dat is
-        letterlijk 'Laravel'. In productie stond dat dus in de titelbalk.
-
-        De klantnaam komt uit de gedeelde props; het onderdeel zet app.js erbij
-        zodra bekend is welke pagina er staat.
-    --}}
-    <title inertia>{{ collect([config('app.name'), data_get($page, 'props.tenant.name')])
-        ->filter()->implode(' - ') }}</title>
+    {{-- "Lavoro - <module> - <tenant>", built in one place; app.js applies it after every visit. --}}
+    <title inertia>{{ data_get($page, 'props.title', App\Support\PageTitle::brand()) }}</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @inertiaHead

@@ -563,6 +563,11 @@ class TenancyDoctor extends Command
                 . ' functions commands do not elevate themselves, and whether they could cannot be'
                 . ' checked above -- so those findings say nothing.');
 
+        config('app.name') === 'Laravel'
+            ? $this->bad('APP_NAME is "Laravel" -- mails go out under that name. Set APP_NAME=Lavoro in .env,'
+                . ' or run scripts/tenancy/setup-env.sh')
+            : $this->pass('APP_NAME is ' . config('app.name'));
+
         filled(config('app.key'))
             ? $this->pass('APP_KEY is set')
             : $this->bad('APP_KEY is empty -- no customer database password can be read at all');
