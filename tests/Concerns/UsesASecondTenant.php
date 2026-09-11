@@ -90,7 +90,7 @@ trait UsesASecondTenant
         $this->asTenant($tenant, function () {
             DB::connection('tenant')->statement('SET FOREIGN_KEY_CHECKS=0');
 
-            foreach (['users', 'customers', 'activities', 'activityables', 'images', 'imageables'] as $table) {
+            foreach (['users', 'customers', 'activities', 'activityables', 'images', 'imageables', 'products', 'assets', 'tickets', 'access_tokens'] as $table) {
                 if (DB::connection('tenant')->getSchemaBuilder()->hasTable($table)) {
                     DB::connection('tenant')->table($table)->delete();
                 }

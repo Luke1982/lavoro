@@ -231,6 +231,10 @@ sudo setfacl -R -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 sudo setfacl -R -d -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 ```
 
+The folders the application makes itself are group-writable
+(`config/filesystems.php`), and that matters: on a folder made `0755` these
+lists grant read-only, whatever they say.
+
 **If you installed somewhere under `/home` instead**, permissions on `storage`
 alone are not enough. A home directory is `0750`, so the provisioner cannot
 walk through it to reach anything inside, and no amount of access on `storage`

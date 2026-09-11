@@ -285,20 +285,28 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MessageSending::class, ApplyTenantSender::class);
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
+        /**
+         * The file route sits behind the login, so a customer on a public page
+         * gets the logo inline: without a session there is no tenant to fetch
+         * it from.
+         */
         Inertia::share('company', function () {
             if (!tenancy()->initialized) {
                 return null;
             }
 
-            $company = Company::where('is_main', true)->first();
+            $company = Company::main();
             if (!$company) {
                 return null;
             }
-            $logo_url = $company->logo_path ? url("/files/companies/{$company->id}/logo") : null;
 
             return [
                 'name' => $company->name,
-                'logo_url' => $logo_url,
+                'logo_url' => match (true) {
+                    !$company->logo_path => null,
+                    auth()->check() => route('files.companyLogo', $company),
+                    default => $company->logoDataUri(),
+                },
             ];
         });
     }

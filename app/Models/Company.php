@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
@@ -19,11 +20,11 @@ class Company extends Model
         'country',
         'logo_path',
         'logo_negative_path',
-        'is_main'
+        'is_main',
     ];
 
     protected $casts = [
-        'is_main' => 'boolean'
+        'is_main' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -39,25 +40,58 @@ class Company extends Model
         });
     }
 
+    public static function main(): ?self
+    {
+        return static::where('is_main', true)->first();
+    }
+
+    /**
+     * The logo as a file on the tenant's disk, or null when there is nothing
+     * to show. Never through storage_path(): that is the shared folder, which
+     * under tenancy holds no customer's files.
+     */
+    public function logoFile(): ?string
+    {
+        $disk = Storage::disk('public');
+
+        return $this->logo_path && $disk->exists($this->logo_path) && $disk->size($this->logo_path) > 0
+            ? $disk->path($this->logo_path)
+            : null;
+    }
+
+    /** The logo inline, for what cannot fetch it: a pdf, or a visitor without a login. */
+    public function logoDataUri(): ?string
+    {
+        $path = $this->logoFile();
+
+        if ($path === null) {
+            return null;
+        }
+
+        $mime = match ($extension = strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'svg' => 'image/svg+xml',
+            'jpg' => 'image/jpeg',
+            default => 'image/' . $extension,
+        };
+
+        return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+    }
+
     /**
      * Returns logo data URI, inline style constraints and spacer height (mm) for PDF usage.
+     *
      * @return array{data:?string,style:string,spacer:int}
      */
     public static function pdfLogo(?Company $company = null): array
     {
-        $company = $company ?: static::where('is_main', true)->first();
-        if (!$company || !$company->logo_path) {
-            return ['data' => null, 'style' => '', 'spacer' => 0];
-        }
-        $path = storage_path('app/public/' . $company->logo_path);
-        if (!is_file($path) || filesize($path) === 0) {
+        $company ??= static::main();
+        $path = $company?->logoFile();
+        if ($path === null) {
             return ['data' => null, 'style' => '', 'spacer' => 0];
         }
         try {
-            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-            $isSvg = $ext === 'svg';
-            $mime = $isSvg ? 'image/svg+xml' : 'image/' . ($ext === 'jpg' ? 'jpeg' : $ext);
-            $data = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+            $isSvg = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg';
+            $data = $company->logoDataUri();
             $maxWidthMm = 52;
             $wideMaxHeight = 13; // ~66% of 20
             $tallMaxHeight = 18; // ~66% of 28
@@ -71,6 +105,7 @@ class Company extends Model
             $maxHeightMm = ($aspect !== null && $aspect >= 2) ? $wideMaxHeight : $tallMaxHeight;
             $style = sprintf('max-width:%dmm; max-height:%dmm; width:auto; height:auto;', $maxWidthMm, $maxHeightMm);
             $spacer = $maxHeightMm + 8;
+
             return ['data' => $data, 'style' => $style, 'spacer' => $spacer];
         } catch (\Throwable) {
             return ['data' => null, 'style' => '', 'spacer' => 0];

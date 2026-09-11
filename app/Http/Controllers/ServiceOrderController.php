@@ -59,6 +59,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ServiceOrderController extends Controller
@@ -814,7 +815,7 @@ class ServiceOrderController extends Controller
             'imageGroups' => $serviceorder->images
                 ->sortBy('created_at')
                 ->map(function ($image) use ($display_timezone) {
-                    $path = storage_path('app/public/' . $image->path);
+                    $path = Storage::disk('public')->path($image->path);
                     if (!file_exists($path)) {
                         return null;
                     }

@@ -12,18 +12,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 /**
- * Eén link die iemand zonder account mag openen, voor één record en één doel.
+ * One link someone without an account may open, for one record and one purpose.
  *
- * Het model weet niet waar de link over gaat: dat staat in de morph en in het
- * doel. Wie er iets mee mag, en wat, hoort bij het scherm erachter.
+ * The model does not know what the link is about: that is in the morph and in
+ * the purpose. Who may do what with it belongs to the screen behind it.
  *
  * @property AccessTokenPurpose $purpose
  */
 class AccessToken extends Model
 {
+    public const TENANT_SEPARATOR = '_';
+
     /**
-     * De hash staat er met opzet niet bij: die wordt gezet bij het uitgeven en
-     * mag daarna nooit meer door een massa-toewijzing bewegen.
+     * The hash is left out on purpose: it is set when the link is handed out and
+     * must never move through a mass assignment after that.
      */
     protected $fillable = [
         'tokenable_type',
@@ -43,12 +45,17 @@ class AccessToken extends Model
     ];
 
     /**
-     * De leesbare waarde bestaat alleen in de teruggegeven waarde en in de mail
-     * die ermee verstuurd wordt. Hier blijft de hash achter.
+     * The readable value exists only in what is returned and in the mail sent
+     * with it. Only the hash stays behind here.
      *
-     * Een tweede link voor hetzelfde record trekt de eerste niet in: ze wijzen
-     * naar hetzelfde en dezelfde rechten, en een link stukmaken waar een klant
-     * op dat moment naar kijkt levert niets op.
+     * The tenant goes in front, as with the Google webhook: whoever opens the
+     * link has no session, so the link itself is the only thing that can say
+     * whose database to look in. The hash covers it, so it cannot be swapped
+     * for another tenant's.
+     *
+     * A second link for the same record does not revoke the first: they point
+     * at the same thing with the same rights, and breaking a link a customer is
+     * looking at that moment gains nothing.
      */
     public static function issue(
         Model $tokenable,
@@ -56,7 +63,7 @@ class AccessToken extends Model
         ?string $recipient = null,
         array $payload = [],
     ): IssuedAccessToken {
-        $plaintext = Str::random(48);
+        $plaintext = tenant()->getTenantKey() . self::TENANT_SEPARATOR . Str::random(48);
 
         $token = new self([
             'tokenable_type' => $tokenable->getMorphClass(),
@@ -75,12 +82,12 @@ class AccessToken extends Model
     }
 
     /**
-     * Alleen binnen het doel waarvoor gevraagd wordt, zodat een link voor het ene
-     * scherm het andere niet opent.
+     * Only within the purpose asked for, so a link for one screen does not open
+     * another.
      *
-     * Ingetrokken is niets: dan is er nooit iets geweest. Verlopen komt wél
-     * terug, want wie de link heeft gehad verdient een zin die uitlegt waarom
-     * hij niet meer werkt.
+     * Revoked is nothing: then there never was anything. Expired does come back,
+     * because whoever had the link deserves a sentence explaining why it no
+     * longer works.
      */
     public static function resolve(string $plaintext, AccessTokenPurpose $purpose): ?self
     {
@@ -94,6 +101,18 @@ class AccessToken extends Model
     public static function hash(string $plaintext): string
     {
         return hash('sha256', $plaintext);
+    }
+
+    /**
+     * The tenant a link was handed out for. Split on the last separator: the
+     * random part never holds one, a tenant key might. Null for a link from
+     * before the tenant was part of it.
+     */
+    public static function tenantKeyOf(string $plaintext): ?string
+    {
+        $at = strrpos($plaintext, self::TENANT_SEPARATOR);
+
+        return $at ? substr($plaintext, 0, $at) : null;
     }
 
     public function isExpired(): bool
@@ -112,8 +131,8 @@ class AccessToken extends Model
     }
 
     /**
-     * Eén schrijfopdracht: increment neemt de rest mee, en het is de teller die
-     * niet mag achterlopen op het moment.
+     * One write: increment takes the rest along, and it is the counter that must
+     * not lag behind the moment.
      */
     public function markUsed(): void
     {
@@ -128,7 +147,7 @@ class AccessToken extends Model
         ])->save();
     }
 
-    /** Wat er nog openstaat: niet ingetrokken en niet verlopen. */
+    /** What is still open: not revoked and not expired. */
     public function scopeUsable(Builder $query): Builder
     {
         return $query->whereNull('revoked_at')->where('expires_at', '>', now());

@@ -28,6 +28,13 @@ return [
     |
     */
 
+    /*
+    | Group-writable, because two accounts work in the same folders: the web
+    | server puts uploads down, the provisioner seeds and deletes customers.
+    | The access control lists in docs/tenancy-production.md name both, but
+    | a folder made 0755 caps what they grant at read-only, and 0700 (the
+    | default for the local disk) at nothing.
+    */
     'disks' => [
 
         'local' => [
@@ -36,6 +43,10 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0660],
+                'dir' => ['public' => 0775, 'private' => 0770],
+            ],
         ],
 
         'public' => [
@@ -45,6 +56,10 @@ return [
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0660],
+                'dir' => ['public' => 0775, 'private' => 0770],
+            ],
         ],
 
         's3' => [

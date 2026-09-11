@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\ShowsCompanyLogo;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\ServiceOrder;
@@ -13,6 +14,7 @@ class AppointmentConfirmationMail extends Mailable
 {
     use Queueable;
     use SerializesModels;
+    use ShowsCompanyLogo;
 
     public function __construct(public Event $event, public ServiceOrder $serviceOrder)
     {
@@ -21,7 +23,7 @@ class AppointmentConfirmationMail extends Mailable
 
     public function build(): self
     {
-        $company = Company::where('is_main', true)->first();
+        $company = Company::main();
 
         return $this->subject('Afspraakbevestiging #' . $this->serviceOrder->id)
             ->from(config('mail.from.address'), $company?->name ?? config('app.name'))
@@ -29,6 +31,7 @@ class AppointmentConfirmationMail extends Mailable
                 'event' => $this->event,
                 'serviceOrder' => $this->serviceOrder,
                 'company' => $company,
+                ...$this->companyLogo(),
             ]);
     }
 }

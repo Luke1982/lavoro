@@ -35,6 +35,7 @@ worker (point 4).
 | Files | `/files/images/7` of customer A can be requested as customer B | Request an id that belongs to the other; should be 404. **Not covered yet** |
 | Search | The spotlight searches the wrong database | Search as B for a name only A has |
 | Activities | A's trail shows up in B's history | Change something as A, count `activities` in both |
+| Shared folder | `storage_path()` is the one folder of the whole installation, not the customer's: logos and photos drop out of pdfs and mails without an error, an imported image lands where every customer can overwrite it | Covered by `TenantFilesStayOnTheTenantDiskTest`; every customer file goes through `Storage::disk()` |
 
 `Tests\Concerns\UsesASecondTenant` sets up that second customer. Note: the
 second database does not run in a transaction, because switching tenant throws
@@ -97,6 +98,11 @@ The rule is: per customer, or nothing. No falling back to `.env`.
   covered** — and it tests well with one worker and two tenants.
 - **Invoices to customers** deliberately go through a separate mailer. If a
   customer breaks their own mail server, our invoices must keep going.
+- **Another company's logo, or none.** The werkbon mails took their logo from
+  the shared `public/storage/logo.png` and signed with the app's name, so every
+  customer's mail came from "Lavoro" with whatever logo lay there. The logo is
+  now the customer's own, embedded rather than linked: the link would need a
+  login. **Covered** by `TenantFilesStayOnTheTenantDiskTest`.
 
 ## 5. Background work
 
@@ -158,6 +164,17 @@ for:
   The middleware now checks first that the database is still there, and forgets
   the session otherwise. That customer's edit screen keeps working too; it holds
   the button that clears it away.
+- **A question nobody sees.** In production `tenants:seed` asks "are you
+  sure?", and creating a customer runs it through `Artisan::call`, where the
+  question goes into a buffer. From a terminal that waited forever --
+  `demo:install` hung without a word -- and from a worker the answer was no, so
+  the step was skipped. `config/tenancy.php` passes `--force` to both commands.
+- **Two accounts, one folder.** The web server puts uploads down and the
+  provisioner seeds and deletes customers, in the same folders. The access lists
+  name both, but a folder made `0755` caps them at read-only and `0700` at
+  nothing: a customer's uploads could not be deleted with the customer. The
+  disks now make folders group-writable. Measured with `getfacl`, not covered by
+  a test.
 - **A check that stops one step too early.** `verify-mysql.sh` proved the
   provisioner could create a database, but not that it could grant a login on it
   -- exactly the step that failed. Every check needs the question: does this cover
@@ -173,6 +190,12 @@ for:
   the order, **not** for the behaviour.
 - **Forgotten password** finds the customer through the address. An address that
   exists nowhere must not give away that it exists nowhere.
+- **A link without a session.** A customer opening the upload link from a mail
+  has no session, so nothing said whose database to look in, and the page did
+  not open. Opened in the browser of a logged-in colleague it did, which hid it.
+  The tenant is now part of the link, as with the Google webhook; links from
+  before that are found by asking every database, until they expire. **Covered**
+  by `PublicLinkFindsItsTenantTest`, which requests with no tenant open.
 - **The API has its own pipeline.** The planner talks to `/api`, which runs
   through Sanctum's own pipeline and skips it for any request it does not
   recognise as its own front end. Then there is no session and the planner gets

@@ -54,12 +54,6 @@ class ImageController extends Controller
          */
         foreach ($request->file('images') as $image) {
             $path = 'uploaded/' . $modelname . '/' . $request->imageable_id . '/';
-            $real_path = storage_path('app/' . $path);
-
-            // Ensure the directory exists with proper permissions
-            if (!file_exists($real_path)) {
-                mkdir($real_path, 0755, true);
-            }
             $image->storePubliclyAs($path, $image->getClientOriginalName(), 'public');
             /**
              * Titles are optional in the rules, so an upload without them must fall
@@ -262,14 +256,8 @@ class ImageController extends Controller
         $array = explode('\\', $imageable_type);
         $modelname = strtolower(array_pop($array));
         $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
-        $real_path = storage_path('app/public/' . $path);
-
-        if (!file_exists($real_path)) {
-            mkdir($real_path, 0755, true);
-        }
-
         $filename = 'import-' . time() . '.' . $extension;
-        file_put_contents($real_path . $filename, $image_data);
+        Storage::disk('public')->put($path . $filename, $image_data);
 
         $new_image = Image::create([
             'name' => $name,
