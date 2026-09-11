@@ -6,6 +6,7 @@ use App\Exceptions\Refusal;
 use App\Models\Tenant;
 use App\Services\TenantProvisioner;
 use App\Support\Tenancy;
+use Closure;
 use Database\Seeders\Demo\DemoSeeder;
 
 /**
@@ -39,9 +40,15 @@ final class DemoInstaller
 
     public function __construct(private TenantProvisioner $provisioner) {}
 
-    public function install(): Tenant
+    /**
+     * @param  (Closure(string): void)|null  $progress  told what is happening, for a command to show
+     */
+    public function install(?Closure $progress = null): Tenant
     {
+        $tell = fn (string $message) => $progress ? $progress($message) : null;
+
         foreach (Tenant::on('central')->get()->filter->isDemo() as $previous) {
+            $tell('removing the previous demo...');
             $this->provisioner->destroy($previous);
         }
 
@@ -55,6 +62,9 @@ final class DemoInstaller
                 . ' Die wordt niet overschreven.');
         }
 
+        $tell('creating the tenant: database, login and every migration...');
+        $started = microtime(true);
+
         ['tenant' => $tenant] = $this->provisioner->create(
             name: self::NAME,
             email: self::LOGIN,
@@ -67,7 +77,9 @@ final class DemoInstaller
         $tenant->extra_office_seats = self::EXTRA_OFFICE_SEATS;
         $tenant->save();
 
-        Tenancy::within($tenant, fn () => (new DemoSeeder)->run());
+        $tell(sprintf('tenant created (%.0f s)', microtime(true) - $started));
+
+        Tenancy::within($tenant, fn () => (new DemoSeeder(progress: $progress))->run());
 
         return $tenant;
     }

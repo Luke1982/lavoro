@@ -37,7 +37,7 @@ class InstallDemoTenant extends Command
         $started = microtime(true);
 
         try {
-            $tenant = $installer->install();
+            $tenant = $installer->install(fn (string $message) => $this->line('  ' . $message));
         } catch (\RuntimeException $e) {
             $this->error($e->getMessage());
 
