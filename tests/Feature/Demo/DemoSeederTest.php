@@ -9,6 +9,7 @@ use App\Models\EventUserExecution;
 use App\Models\Image;
 use App\Models\Product;
 use App\Models\ProductType;
+use App\Models\Project;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\Tenant;
@@ -62,6 +63,7 @@ class DemoSeederTest extends TestCase
         $this->everyCustomerHasMachines();
         $this->thePlanningCoversTwoWeeksBackAndTwoAhead($now);
         $this->assertSame(0, EventUserExecution::count(), 'registered times grey the planning out');
+        $this->theProjectsRun();
         $this->thereIsWorkWaitingForADate();
         $this->theDeskHasTicketsInEveryState();
     }
@@ -135,6 +137,38 @@ class DemoSeederTest extends TestCase
 
             $expected = $event->end->lessThanOrEqualTo($now) ? 'Afgerond' : ($event->start->lessThanOrEqualTo($now) ? 'Gaande' : 'Gepland');
             $this->assertSame($expected, $event->status, "appointment {$event->id} on {$event->start} has the wrong status");
+        }
+    }
+
+    private function theProjectsRun(): void
+    {
+        $projects = Project::with('milestones', 'projectManager.roles', 'serviceOrders.taskInstances', 'serviceOrders.events.executingUsers')->get();
+
+        $this->assertEqualsCanonicalizing(['Afgerond', 'Gestart', 'Niet gestart'], $projects->pluck('status')->unique()->values()->all());
+
+        foreach ($projects as $project) {
+            $this->assertNotEmpty($project->milestones, "{$project->title} has no milestones");
+            $this->assertContains('Projectleider', $project->projectManager->roles->pluck('name'), "{$project->title} is not led by the project leader");
+            $this->assertSame('Totaal', last($project->financial_notes['data'])[0], "{$project->title} has no budget");
+
+            foreach ($project->serviceOrders as $order) {
+                $this->assertNotEmpty($order->taskInstances, "phase {$order->description} has no tasks");
+            }
+        }
+
+        $finished = $projects->firstWhere('status', 'Afgerond');
+
+        $this->assertTrue($finished->milestones->every(fn ($milestone) => $milestone->actual_date !== null), 'a finished project with open milestones');
+        $this->assertTrue($finished->serviceOrders->every(fn (ServiceOrder $order) => $order->is_closed), 'a finished project with open work');
+
+        /** A project day is the whole day: nothing else for its team. */
+        foreach ($projects->flatMap->serviceOrders->flatMap->events as $event) {
+            foreach ($event->executingUsers as $mechanic) {
+                $that_day = Event::whereHas('executingUsers', fn ($query) => $query->whereKey($mechanic->id))
+                    ->whereDate('start', $event->start->toDateString())->count();
+
+                $this->assertSame(1, $that_day, "{$mechanic->name} has more than the project on {$event->start->toDateString()}");
+            }
         }
     }
 

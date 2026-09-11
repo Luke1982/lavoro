@@ -444,7 +444,9 @@ A tenant called **Demo** holds a complete, credible installation for showing
 the app: a climate company with thirteen people (one per role, all with a
 face), a product catalogue with a picture on every product, some 150
 customers with their installations, five weeks of planning around today,
-open work waiting for a date, and tickets in every state.
+open work waiting for a date, tickets in every state, and five projects --
+running, not started and finished -- with milestones, a budget sheet and a
+work order per phase, whose days show up in the planner.
 
 ```
 php artisan demo:install

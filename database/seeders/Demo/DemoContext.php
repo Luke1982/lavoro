@@ -52,6 +52,9 @@ final class DemoContext
      */
     public array $customers = [];
 
+    /** @var array<int, array<int, true>> day => user id, for the days a mechanic is on a project */
+    public array $booked = [];
+
     public function __construct(?CarbonImmutable $now = null, int $seed = 2026)
     {
         $this->random = new Randomizer(new Mt19937($seed));

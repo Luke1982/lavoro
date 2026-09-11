@@ -36,6 +36,8 @@ class DemoSeeder extends Seeder
                 fn () => count($context->customers) . ' customers, '
                     . collect($context->customers)->sum(fn (array $entry) => collect($entry['sites'])->sum(fn (array $site) => count($site['assets'])))
                     . ' machines');
+            $this->phase('projects', fn () => (new ProjectSeeder($context))->run(),
+                fn () => count($context->data('projects')) . ' projects');
             $this->phase('planning, orders and tickets', fn () => (new WorkSeeder($context))->run());
         });
     }

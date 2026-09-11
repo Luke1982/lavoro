@@ -60,7 +60,7 @@ final class WorkSeeder
         $work = $this->context->data('work');
 
         foreach ($work['event_types'] as $name => $color) {
-            $this->event_types[$name] = EventType::create(['name' => $name, 'color' => $color]);
+            $this->event_types[$name] = EventType::firstOrCreate(['name' => $name], ['color' => $color]);
         }
 
         foreach (['is_plannable_state', 'is_planned_state', 'is_closed_state', 'is_invoiced_state', 'is_incomplete_state', 'is_planning_cancelled_state'] as $flag) {
@@ -85,7 +85,8 @@ final class WorkSeeder
             $busy = [];
 
             foreach ($this->context->mechanics as $mechanic) {
-                if (isset($busy[$mechanic->id]) || $this->absent($mechanic, $day) || !$this->context->chance($this->fill($day))) {
+                if (isset($busy[$mechanic->id]) || $this->booked($mechanic, $day) || $this->absent($mechanic, $day)
+                    || !$this->context->chance($this->fill($day))) {
                     continue;
                 }
 
@@ -129,13 +130,19 @@ final class WorkSeeder
         return $mechanic->email === 'bas@lavorofsm.nl' && $day >= 9 && $day <= 11;
     }
 
+    /** On a project that day: the whole day is there. */
+    private function booked(User $mechanic, int $day): bool
+    {
+        return isset($this->context->booked[$day][$mechanic->id]);
+    }
+
     /** Someone from the same team who is free that day, for a two-man job. */
     private function partner(User $mechanic, int $day, array $busy): ?User
     {
         $team = $this->groupOf($mechanic);
 
         foreach ($this->context->mechanics as $candidate) {
-            if ($candidate->isNot($mechanic) && !isset($busy[$candidate->id])
+            if ($candidate->isNot($mechanic) && !isset($busy[$candidate->id]) && !$this->booked($candidate, $day)
                 && $this->groupOf($candidate) === $team && !$this->absent($candidate, $day)) {
                 return $candidate;
             }
