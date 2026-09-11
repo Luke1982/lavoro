@@ -242,7 +242,7 @@ class TenancyDoctor extends Command
 
         $worst = $recent
             ->map(fn ($row) => [
-                'job' => json_decode($row->payload, true)['displayName'] ?? 'onbekende taak',
+                'job' => json_decode($row->payload, true)['displayName'] ?? 'unknown job',
                 'reason' => trim(strtok((string) $row->exception, "\n")),
             ])
             ->groupBy(fn (array $row) => $row['job'] . ' | ' . $row['reason'])
@@ -259,7 +259,7 @@ class TenancyDoctor extends Command
             )
             : '';
 
-        $this->bad("{$total} mislukte ta(a)k(en), laatste op {$newest}." . $summary
+        $this->bad("{$total} failed job(s), the last on {$newest}." . $summary
             . "\n         Those have quietly been left undone: no invoice sent, no synchronisation"
             . " run.\n         Inspect: php artisan queue:failed"
             . "\n         Retry:   php artisan queue:retry all");
@@ -291,9 +291,12 @@ class TenancyDoctor extends Command
             $age = now()->timestamp - $beat;
 
             if ($age > WorkerHeartbeat::STALE_AFTER_MINUTES * 60) {
-                $this->bad("Wachtrij '{$queue}': laatste hartslag "
-                    . CarbonImmutable::createFromTimestamp($beat)->diffForHumans()
-                    . ". De worker is gestopt. Start '{$command}'."
+                $this->bad("Queue '{$queue}': last heartbeat "
+                    . CarbonImmutable::createFromTimestamp($beat)->diffForHumans() . '. '
+                    . (app()->isDownForMaintenance()
+                        ? 'The application is in maintenance mode, and a worker skips its rounds then;'
+                            . ' it reports again once the application is up.'
+                        : "The worker has stopped. Start '{$command}'.")
                     . $this->whoIsReporting($queue));
 
                 continue;
@@ -321,7 +324,7 @@ class TenancyDoctor extends Command
                 fn (string $code) => $code !== '' && $now !== '' && $code !== $now);
 
             $stale = match (true) {
-                $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint() => 'instellingen',
+                $settings !== null && $settings !== WorkerHeartbeat::settingsFingerprint() => 'settings',
                 $outdated !== [] => 'code',
                 default => null,
             };
@@ -350,7 +353,7 @@ class TenancyDoctor extends Command
         $code = WorkerHeartbeat::codeVersion();
 
         $evidence = "\n         here stands: " . base_path() . ', code '
-            . ($code === '' ? 'onbekend' : substr($code, 0, 8));
+            . ($code === '' ? 'unknown' : substr($code, 0, 8));
 
         if ($lines !== []) {
             $evidence .= "\n         reporting:   " . implode("\n                      ", $lines);
@@ -360,7 +363,7 @@ class TenancyDoctor extends Command
             $evidence .= "\n         running now: " . implode("\n                      ", $running);
         }
 
-        return $evidence . (count($lines) > 1 || count($running) > 1
+        return $evidence . (count(WorkerHeartbeat::liveCodes($queue)) > 1 || count($running) > 1
             ? "\n         More than one process on the same queue: restarting the unit alone leaves"
                 . ' the rest running.'
             : '');
@@ -538,7 +541,7 @@ class TenancyDoctor extends Command
 
         foreach (['pcntl', 'posix', 'pdo_mysql'] as $extension) {
             extension_loaded($extension)
-                ? $this->pass("PHP-onderdeel {$extension}")
+                ? $this->pass("PHP extension {$extension}")
                 : $this->bad("PHP extension {$extension} is missing -- the provisioner command"
                     . ' cannot elevate itself then and has to be typed with sudo -u');
         }
@@ -561,13 +564,13 @@ class TenancyDoctor extends Command
                 . ' checked above -- so those findings say nothing.');
 
         filled(config('app.key'))
-            ? $this->pass('APP_KEY staat ingevuld')
+            ? $this->pass('APP_KEY is set')
             : $this->bad('APP_KEY is empty -- no customer database password can be read at all');
 
         if (app()->environment('production')) {
             config('app.debug')
                 ? $this->bad('APP_DEBUG is on in production -- error pages then show .env values')
-                : $this->pass('APP_DEBUG staat uit');
+                : $this->pass('APP_DEBUG is off');
         }
 
         config('mail.default') === 'tenant'

@@ -14,8 +14,8 @@ use Illuminate\Console\Command;
  * into the same heartbeat, and keeps the "running older code" finding alive no
  * matter how often you restart. Two deploys in a row showed exactly that.
  *
- * So: restart the units, stop whatever survived that restart, and then wait
- * until both queues report in with the code that is here now.
+ * So: restart the units, stop whatever of ours runs outside them, and then
+ * wait until both queues report in with the code that is here now.
  */
 class TenancyRestartWorkers extends Command
 {
@@ -23,15 +23,11 @@ class TenancyRestartWorkers extends Command
 
     protected $description = 'Restarts the queue workers and waits until they run the current code';
 
-    /** @var array<int, string> */
-    private const UNITS = ['lavoro-worker', 'lavoro-provisioning'];
-
-    /** A process older than this survived the restart, so the unit does not own it. */
-    private const SURVIVED_AFTER_SECONDS = 15;
-
     public function handle(): int
     {
-        if (!$this->restartUnits()) {
+        if ($this->restartUnits()) {
+            $this->stopStrays();
+        } else {
             $this->call('queue:restart');
             $this->line('  Note: the workers were only signalled. Run scripts/tenancy/setup-sudoers.sh'
                 . ' as root and the deploy may restart them itself.');
@@ -41,14 +37,6 @@ class TenancyRestartWorkers extends Command
             return self::SUCCESS;
         }
 
-        if ($this->stopStrays()) {
-            $this->restartUnits();
-
-            if ($this->reportingIn()) {
-                return self::SUCCESS;
-            }
-        }
-
         $this->warn('  The workers do not run the code that is checked out; see above.');
 
         return self::FAILURE;
@@ -56,7 +44,7 @@ class TenancyRestartWorkers extends Command
 
     private function restartUnits(): bool
     {
-        exec('sudo -n systemctl restart ' . implode(' ', array_map('escapeshellarg', self::UNITS))
+        exec('sudo -n systemctl restart ' . implode(' ', array_map('escapeshellarg', WorkerProcesses::UNITS))
             . ' 2>/dev/null', $output, $status);
 
         if ($status === 0) {
@@ -72,28 +60,25 @@ class TenancyRestartWorkers extends Command
         return $this->call('tenancy:await-workers', ['--timeout' => $this->option('timeout')]) === self::SUCCESS;
     }
 
-    /** Whether anything was stopped, and therefore worth restarting for. */
-    private function stopStrays(): bool
+    /**
+     * Our workers outside the units: started by hand once, untouched by the
+     * restart, and writing the old code into the heartbeat. Only after the
+     * units did restart -- without them every worker is outside one, and
+     * nothing would start them again.
+     */
+    private function stopStrays(): void
     {
-        $strays = array_filter(WorkerProcesses::all(),
-            fn (array $worker) => $worker['seconds'] > self::SURVIVED_AFTER_SECONDS);
+        $strays = array_filter(WorkerProcesses::ours(), fn (array $worker) => !WorkerProcesses::inUnit($worker));
 
         if ($strays === []) {
-            return false;
+            return;
         }
 
-        $this->line('  These were running before the restart and so do not belong to the units:');
-
-        $stopped = false;
+        $this->line('  Running next to the units, where a restart does not reach them:');
 
         foreach ($strays as $stray) {
-            $went = WorkerProcesses::stop($stray);
-            $stopped = $stopped || $went;
-
             $this->line('    ' . WorkerProcesses::describe($stray)
-                . ($went ? ' -- stopped' : ' -- cannot be stopped from this account'));
+                . (WorkerProcesses::stop($stray) ? ' -- stopped' : ' -- cannot be stopped from this account'));
         }
-
-        return $stopped;
     }
 }

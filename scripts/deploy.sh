@@ -147,12 +147,23 @@ php artisan tenancy:restart-workers || true
 # systemctl only when it can go without a password: as an ordinary user reload
 # asks for a polkit password, and then a deploy sits waiting for someone who is
 # not watching.
-if pkill -f lsphp 2>/dev/null; then
-    echo "  lsphp restarted (opcache cleared)"
+#
+# No php running is not a problem: the next request starts one on the new code.
+# Only a php this account cannot restart is worth a note.
+ME=$(id -un)
+LSPHP=$(pgrep -f '[l]sphp' | head -n 1 || true)
+if pgrep -u "$ME" -f '[l]sphp' >/dev/null; then
+    if pkill -u "$ME" -f '[l]sphp'; then
+        echo "  lsphp restarted (opcache cleared)"
+    fi
+elif [ -n "$LSPHP" ]; then
+    echo "  Note: lsphp runs as $(ps -o user:32= -p "$LSPHP"), not as ${ME}; restart it as that account, or it keeps running the old code."
 elif sudo -n systemctl reload php8.3-fpm 2>/dev/null; then
     echo "  php-fpm reloaded (opcache cleared)"
+elif pgrep -f '[p]hp-fpm' >/dev/null; then
+    echo "  Note: reload php-fpm yourself, or it keeps running the old code."
 else
-    echo "  Note: restart php under the web server yourself, or it keeps running the old code."
+    echo "  no php running under the web server; the next request starts on the new code"
 fi
 
 step "Check"

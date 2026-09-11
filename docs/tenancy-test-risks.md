@@ -157,7 +157,14 @@ for:
   started by hand survives a `systemctl restart` as well, and keeps writing into
   the same heartbeat. The doctor compares what each process booted with to what is
   here now and names the process; `tenancy:restart-workers` restarts the units,
-  stops what survived and waits for both queues.
+  stops what of ours runs outside them and waits for both queues.
+- **A worker says nothing during a deploy.** In maintenance mode a worker skips
+  its rounds without firing `Looping`, and a deploy restarts the workers exactly
+  then: every deploy ended in "older code", and the stray hunt that followed took
+  the unit's own fresh worker for a leftover -- it went by age -- and stopped it.
+  A worker now reports at start; strays are told by their systemd unit, and a
+  worker of another installation on the server is not counted. **Covered** by
+  `WorkersReportDuringDeployTest`.
 - **A customer whose database is gone.** That took the whole installation down:
   the session pointed at that customer, tenancy switched over without noticing,
   and every page became a 500 -- the login screen too, so there was no getting out.

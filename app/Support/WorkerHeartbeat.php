@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use Illuminate\Queue\Events\WorkerStarting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 
 /**
@@ -14,6 +16,12 @@ use Illuminate\Support\Facades\Queue;
  *
  * Queue::looping fires on every round of the worker, also when there is
  * nothing to do. So this is a heartbeat, not a counter of processed jobs.
+ *
+ * And once at start. While the application is in maintenance mode a worker
+ * skips its rounds without firing Looping at all, and a deploy restarts the
+ * workers exactly then: with only the loop, a freshly started worker said
+ * nothing until the deploy was over, and every deploy ended in "the worker runs
+ * older code".
  */
 final class WorkerHeartbeat
 {
@@ -42,23 +50,26 @@ final class WorkerHeartbeat
             return;
         }
 
+        Event::listen(WorkerStarting::class, fn () => self::beat($queue));
+
         Queue::looping(function () use ($queue) {
-            $now = time();
-
-            if (self::$last_written !== null && $now - self::$last_written < self::EVERY_SECONDS) {
-                return;
+            if (self::$last_written === null || time() - self::$last_written >= self::EVERY_SECONDS) {
+                self::beat($queue);
             }
-
-            self::$last_written = $now;
-
-            self::$code_at_boot ??= self::codeVersion();
-
-            Cache::put(self::key($queue), $now, now()->addHour());
-            Cache::put(self::settingsKey($queue), self::settingsFingerprint(), now()->addHour());
-            Cache::put(self::codeKey($queue), self::$code_at_boot, now()->addHour());
-
-            self::rememberReporter($queue, $now);
         });
+    }
+
+    private static function beat(string $queue): void
+    {
+        $now = self::$last_written = time();
+
+        self::$code_at_boot ??= self::codeVersion();
+
+        Cache::put(self::key($queue), $now, now()->addHour());
+        Cache::put(self::settingsKey($queue), self::settingsFingerprint(), now()->addHour());
+        Cache::put(self::codeKey($queue), self::$code_at_boot, now()->addHour());
+
+        self::rememberReporter($queue, $now);
     }
 
     public static function key(string $queue): string
