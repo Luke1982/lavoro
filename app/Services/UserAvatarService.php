@@ -16,7 +16,6 @@ class UserAvatarService
 
         $dir_name = 'users/' . $user->id . '/avatar';
         Storage::disk('public')->deleteDirectory($dir_name);
-        Storage::disk('public')->makeDirectory($dir_name);
-        $avatar->storeAs($dir_name, $avatar->getClientOriginalName(), 'public');
+        $avatar->store($dir_name, 'public');
     }
 }

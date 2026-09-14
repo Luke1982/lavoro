@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\Image;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Class ImageStoreRequest
@@ -16,7 +17,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * @property UploadedFile[] $images Array of uploaded image files
  * @property int $imageable_id ID of the model to attach images to
  * @property string $imageable_type FQN of the model (e.g. App\Models\Post)
- * @property string[]|null $titles Optional titles, keyed by original filename
+ * @property string[]|null $titles Optional titles, keyed by the index of their image
  *
  * @method \App\Models\User|null user(string $guard = null)
  */
@@ -48,6 +49,7 @@ class ImageStoreRequest extends FormRequest
             'imageable_id' => 'required|integer',
             'imageable_type' => 'required|string',
             'titles' => 'array',
+            'titles.*' => 'nullable|string|max:255',
             'internal' => 'nullable|boolean',
         ];
     }
