@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\DeleteOrphanedImagesJob;
 use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
@@ -45,6 +46,15 @@ Schedule::call(fn () => $forEachTenant(fn () => GenerateMaintenanceContractServi
 
 Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
     ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();
+
+/**
+ * A deletion already clears its photos. This catches the ones deleted without a
+ * signal: a product, a brand, an event type or a check takes records with photos
+ * along in the database, and none of those announce it. It also clears what
+ * deletions left behind before any of this existed.
+ */
+Schedule::call(fn () => $forEachTenant(fn () => DeleteOrphanedImagesJob::dispatch()))
+    ->dailyAt('03:25')->name('delete-orphaned-images')->withoutOverlapping();
 
 Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
     ->dailyAt('07:00')->name('notifications-missing-times')->withoutOverlapping();

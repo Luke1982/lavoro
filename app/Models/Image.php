@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class Image extends Model
@@ -29,26 +27,6 @@ class Image extends Model
                 $image->forgetFile($image->getOriginal('path'));
             }
         });
-    }
-
-    /**
-     * Deletes the images hanging from these records, links and files included. Meant
-     * for records the database cascades away without a model event; an image that is
-     * still linked to something else stays.
-     *
-     * @param  class-string<Model>  $type
-     * @param  array<int>|Builder  $ids
-     */
-    public static function deleteAttachedTo(string $type, array|Builder $ids): void
-    {
-        $links = DB::table('imageables')->where('imageable_type', $type)->whereIn('imageable_id', $ids);
-        $image_ids = $links->pluck('image_id');
-        $links->delete();
-
-        static::whereIn('id', $image_ids)
-            ->whereNotIn('id', DB::table('imageables')->select('image_id'))
-            ->get()
-            ->each->delete();
     }
 
     private function forgetFile(string $path): void
