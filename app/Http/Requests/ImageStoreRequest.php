@@ -4,8 +4,10 @@ namespace App\Http\Requests;
 
 use App\Models\Event;
 use App\Models\Image;
+use App\Rules\WithinStorageQuota;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Class ImageStoreRequest
@@ -16,7 +18,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * @property UploadedFile[] $images Array of uploaded image files
  * @property int $imageable_id ID of the model to attach images to
  * @property string $imageable_type FQN of the model (e.g. App\Models\Post)
- * @property string[]|null $titles Optional titles, keyed by original filename
+ * @property string[]|null $titles Optional titles, keyed by the index of their image
  *
  * @method \App\Models\User|null user(string $guard = null)
  */
@@ -44,11 +46,12 @@ class ImageStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'images' => ['required', 'array', new \App\Rules\WithinStorageQuota()],
+            'images' => ['required', 'array', new WithinStorageQuota],
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'imageable_id' => 'required|integer',
             'imageable_type' => 'required|string',
             'titles' => 'array',
+            'titles.*' => 'nullable|string|max:255',
             'internal' => 'nullable|boolean',
         ];
     }

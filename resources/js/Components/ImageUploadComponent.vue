@@ -330,9 +330,9 @@ const uploadChunk = async (batch, onProgress, signal) => {
 
     const data = new FormData();
 
-    batch.forEach((item) => {
-        data.append('images[]', item.prepared);
-        data.append(`titles[${item.prepared.name}]`, item.title || item.prepared.name);
+    batch.forEach((item, index) => {
+        data.append(`images[${index}]`, item.prepared);
+        data.append(`titles[${index}]`, item.title || item.prepared.name);
     });
 
     data.append('imageable_id', props.imageableId);

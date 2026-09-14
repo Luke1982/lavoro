@@ -13,6 +13,7 @@ use App\Models\Image;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ImageController extends Controller
 {
@@ -46,23 +47,18 @@ class ImageController extends Controller
 
         $imageable_record = new ($request->imageable_type);
         $imageable_record = $imageable_record->find($request->imageable_id);
-        $array = explode('\\', $request->imageable_type);
-        $modelname = strtolower(array_pop($array));
+        $directory = 'uploaded/' . strtolower(class_basename($request->imageable_type)) . '/' . $request->imageable_id;
         $created_images = [];
         /**
+         * The client's filename neither names the file on disk nor keys its title:
+         * iOS calls every camera capture "image.jpg", so each photo would replace the last.
+         *
          * @disregard
          */
-        foreach ($request->file('images') as $image) {
-            $path = 'uploaded/' . $modelname . '/' . $request->imageable_id . '/';
-            $image->storePubliclyAs($path, $image->getClientOriginalName(), 'public');
-            /**
-             * Titles are optional in the rules, so an upload without them must fall
-             * back to the file's own name rather than reading an offset off null.
-             */
-            $original_name = $image->getClientOriginalName();
+        foreach ($request->file('images') as $index => $image) {
             $new_image = Image::create([
-                'name' => $request->input('titles.' . $original_name, $original_name),
-                'path' => $path . $image->getClientOriginalName(),
+                'name' => $request->input('titles.' . $index) ?? $image->getClientOriginalName(),
+                'path' => $image->storePublicly($directory, 'public'),
             ]);
             $imageable_record->images()->attach($new_image->id, [
                 'internal' => $request->boolean('internal', false),
@@ -256,7 +252,7 @@ class ImageController extends Controller
         $array = explode('\\', $imageable_type);
         $modelname = strtolower(array_pop($array));
         $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
-        $filename = 'import-' . time() . '.' . $extension;
+        $filename = 'import-' . Str::random(40) . '.' . $extension;
         Storage::disk('public')->put($path . $filename, $image_data);
 
         $new_image = Image::create([
