@@ -146,8 +146,8 @@ class ServiceOrder extends Model
          * while the order still knows which instances it has. Materials are absent from the
          * pivot list below because they move stock and go through MateriableService instead.
          *
-         * Images are absent from it too, because the photos themselves are deleted, files and
-         * all. So are the photos of the checks, which the same cascade takes along with the jobs.
+         * Images are absent from it too: DeleteOrphanedImagesJob finds the photos of a deleted
+         * order through those links, so they have to outlive it.
          */
         static::deleting(function (ServiceOrder $service_order) {
             $id = $service_order->id;
@@ -172,13 +172,6 @@ class ServiceOrder extends Model
             }
 
             $materiables->release($service_order, 'verwijdering werkbon #' . $id);
-
-            Image::deleteAttachedTo($morph_class, [$id]);
-            Image::deleteAttachedTo(
-                ServiceCheckInstance::class,
-                ServiceCheckInstance::select('id')
-                    ->whereIn('service_job_id', $service_order->serviceJobs()->select('id')),
-            );
 
             foreach ($pivot_tables as $table => $morph) {
                 DB::table($table)

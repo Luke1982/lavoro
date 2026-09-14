@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\DeleteOrphanedImagesJob;
 use App\Jobs\Google\PullCalendarChangesJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
 use App\Models\GoogleSyncedCalendar;
@@ -42,6 +43,17 @@ Schedule::command('maintenancecontracts:generate-serviceorders')
 Schedule::command('assistant:prune')
     ->dailyAt('03:20')
     ->name('assistant-prune-questions')
+    ->withoutOverlapping();
+
+/**
+ * A deletion already clears its photos. This catches the ones deleted without a
+ * signal: a product, a brand, an event type or a check takes records with photos
+ * along in the database, and none of those announce it. It also clears what
+ * deletions left behind before any of this existed.
+ */
+Schedule::job(new DeleteOrphanedImagesJob)
+    ->dailyAt('03:25')
+    ->name('delete-orphaned-images')
     ->withoutOverlapping();
 
 /**

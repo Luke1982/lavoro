@@ -6,8 +6,10 @@ use App\Models\Image;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
+use RuntimeException;
 use Tests\Concerns\AttachesPhotos;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -74,6 +76,21 @@ class RemovedPhotosLeaveNoFileBehindTest extends TestCase
         $this->annotate($annotated)->assertOk();
 
         Storage::disk('public')->assertExists($untouched->path);
+    }
+
+    public function test_a_removal_that_rolls_back_keeps_its_file(): void
+    {
+        $image = $this->photoOn($this->product);
+
+        rescue(fn () => DB::transaction(function () use ($image) {
+            DB::table('imageables')->where('image_id', $image->id)->delete();
+            $image->delete();
+
+            throw new RuntimeException('Teruggedraaid');
+        }), report: false);
+
+        $this->assertModelExists($image);
+        Storage::disk('public')->assertExists($image->path);
     }
 
     private function remove(Image $image): TestResponse
