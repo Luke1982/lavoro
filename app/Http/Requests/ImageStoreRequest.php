@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
+use App\Http\Requests\Concerns\AuthorizesEventFeedbackImages;
 use App\Models\Image;
 use App\Rules\WithinStorageQuota;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -24,15 +24,15 @@ use Illuminate\Http\UploadedFile;
  */
 class ImageStoreRequest extends FormRequest
 {
+    use AuthorizesEventFeedbackImages;
+
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        if (ltrim((string) $this->imageable_type, '\\') === 'App\\Models\\Event') {
-            $event = Event::find($this->imageable_id);
-
-            return $event !== null && $this->user()->can('provideFeedback', $event);
+        if ($this->isEventFeedback()) {
+            return $this->authorizeEventFeedback();
         }
 
         return $this->user()->can('create', Image::class);

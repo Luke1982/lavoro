@@ -9,6 +9,7 @@ use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageImportFromUrlRequest;
 use App\Http\Requests\ImageSetMainRequest;
 use App\Http\Requests\ImageStoreRequest;
+use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -104,45 +105,21 @@ class ImageController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(ImageStoreRequest $request, Image $image)
+    public function update(ImageUpdateRequest $request, Image $image)
     {
-        /**
-         * @disregard
-         */
         if ($request->hasFile('imageToUpdate')) {
-            $time = time();
-            /**
-             * @disregard P1013
-             */
-            $new_image_file = $request->file('imageToUpdate');
-            Storage::delete($image->path);
+            $replaced_path = $image->path;
+            $stored_path = $request->file('imageToUpdate')->storePublicly(dirname($replaced_path), 'public');
+            abort_if($stored_path === false, 500, 'De afbeelding kon niet worden opgeslagen.');
 
-            $path_segments = explode('/', $image->path);
-            array_pop($path_segments);
-            $store_dir = (implode('/', $path_segments));
-
-            [$filename, $extension] = preg_split('/\./', $new_image_file->getClientOriginalName(), 2);
-            $filename = preg_replace('/-TS\d{10}/', '', $filename);
-            $new_filename = $filename . '-TS' . $time . '.' . $extension;
-
-            $new_image_file->storeAs($store_dir, $new_filename, 'public');
-
-            $image->update([
-                'updated_at' => now(),
-                'path' => $store_dir . '/' . $new_filename,
-            ]);
+            $image->update(['path' => $stored_path]);
+            $this->deleteUnreferencedFile($replaced_path);
         }
-        /**
-         * @disregard
-         */
-        if ($request->has('newTitle') && $request->newTitle !== null) {
-            /**
-             * @disregard
-             */
-            $image->update([
-                'name' => $request->newTitle,
-            ]);
+
+        if ($request->filled('newTitle')) {
+            $image->update(['name' => $request->newTitle]);
         }
+
         if ($request->wantsJson()) {
             return response()->json($image);
         }
@@ -171,7 +148,7 @@ class ImageController extends Controller
         Signals::dispatch(new ImageRemoved($imageable_record, $image->id));
 
         $image->delete();
-        Storage::delete($image->path);
+        $this->deleteUnreferencedFile($image->path);
 
         if ($request->wantsJson()) {
             return response()->json(['deleted' => true]);
@@ -277,6 +254,17 @@ class ImageController extends Controller
             ->update(['main' => true]);
 
         return redirect()->back()->with('success', 'Afbeelding geïmporteerd en ingesteld als hoofdafbeelding.');
+    }
+
+    /**
+     * Before uploads got generated names, photos on one record could end up sharing a
+     * file, so a file is only removed once no image points at it any more.
+     */
+    private function deleteUnreferencedFile(string $path): void
+    {
+        if (!Image::where('path', $path)->exists()) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function guardSsrf(string $url): void

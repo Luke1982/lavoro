@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
+use App\Http\Requests\Concerns\AuthorizesEventFeedbackImages;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -14,12 +14,12 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class ImageDestroyRequest extends FormRequest
 {
+    use AuthorizesEventFeedbackImages;
+
     public function authorize(): bool
     {
-        if (ltrim((string) $this->imageable_type, '\\') === 'App\\Models\\Event') {
-            $event = Event::find($this->imageable_id);
-
-            return $event !== null && $this->user()->can('provideFeedback', $event);
+        if ($this->isEventFeedback()) {
+            return $this->authorizeEventFeedback($this->route('image'));
         }
 
         return $this->user()->can('delete', $this->route('image'));
