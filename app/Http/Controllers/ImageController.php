@@ -108,12 +108,10 @@ class ImageController extends Controller
     public function update(ImageUpdateRequest $request, Image $image)
     {
         if ($request->hasFile('imageToUpdate')) {
-            $replaced_path = $image->path;
-            $stored_path = $request->file('imageToUpdate')->storePublicly(dirname($replaced_path), 'public');
+            $stored_path = $request->file('imageToUpdate')->storePublicly(dirname($image->path), 'public');
             abort_if($stored_path === false, 500, 'De afbeelding kon niet worden opgeslagen.');
 
             $image->update(['path' => $stored_path]);
-            $this->deleteUnreferencedFile($replaced_path);
         }
 
         if ($request->filled('newTitle')) {
@@ -148,7 +146,6 @@ class ImageController extends Controller
         Signals::dispatch(new ImageRemoved($imageable_record, $image->id));
 
         $image->delete();
-        $this->deleteUnreferencedFile($image->path);
 
         if ($request->wantsJson()) {
             return response()->json(['deleted' => true]);
@@ -254,17 +251,6 @@ class ImageController extends Controller
             ->update(['main' => true]);
 
         return redirect()->back()->with('success', 'Afbeelding geïmporteerd en ingesteld als hoofdafbeelding.');
-    }
-
-    /**
-     * Before uploads got generated names, photos on one record could end up sharing a
-     * file, so a file is only removed once no image points at it any more.
-     */
-    private function deleteUnreferencedFile(string $path): void
-    {
-        if (!Image::where('path', $path)->exists()) {
-            Storage::disk('public')->delete($path);
-        }
     }
 
     private function guardSsrf(string $url): void
