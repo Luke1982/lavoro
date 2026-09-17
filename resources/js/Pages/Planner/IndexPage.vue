@@ -28,7 +28,8 @@
         </div>
         <div v-if="showSidebar" class="col-span-2 flex flex-col gap-3 min-h-0 overflow-y-auto">
             <BoxComponent v-if="canPlan" padding="p-0">
-                <UnplannedServiceOrdersWidget :service-orders="unplanned" :highlight-id="highlightedServiceOrderId" />
+                <UnplannedServiceOrdersWidget :service-orders="unplanned" :highlight-id="highlightedServiceOrderId"
+                    @delete-service-order="onDeleteServiceOrder" />
             </BoxComponent>
             <PlanGroupsWidget v-if="canManageGroups" :plan-groups="planGroupsRef" :all-users="allPlanUsersRef"
                 @group-created="onGroupCreated" @group-updated="onGroupUpdated" @group-deleted="onGroupDeleted"
@@ -48,6 +49,7 @@ import PlanGroupsWidget from '@/Components/Planner/PlanGroupsWidget.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import MobilePlannerView from '@/Components/Planner/MobilePlannerView.vue'
 import { hasPermission } from '@/Utilities/Utilities'
+import { deleteServiceOrder } from '@/Utilities/serviceOrders'
 import { takeServiceOrderJumpTarget } from '@/Composables/usePlannerJump'
 
 const props = defineProps({
@@ -107,6 +109,18 @@ function onServiceOrderPlanned(id) {
 function onServiceOrderUnplanned(id) {
     const s = new Set(plannedIds.value); s.delete(id); plannedIds.value = s
     reconcileServiceOrders()
+}
+
+/**
+ * De lijst met ongeplande werkbonnen kent geen projectwerkbonnen, dus alleen die
+ * lijst hoeft terug te komen — en de flash, die het antwoord van de backend draagt.
+ * De planning eromheen blijft staan doordat de pagina niet opnieuw opgebouwd wordt.
+ */
+function onDeleteServiceOrder(serviceorder) {
+    deleteServiceOrder(serviceorder, {
+        preserveState: true,
+        only: ['unplannedServiceOrders', 'flash'],
+    })
 }
 
 async function onGroupCreated(data) {
