@@ -16,7 +16,7 @@
 
             <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
                 <div v-for="so in visibleServiceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
-                    @dragend="onDragEnd" :data-so-id="so.id"
+                    @dragend="onDragEnd" @contextmenu="onContextMenu($event, so)" :data-so-id="so.id"
                     class="group cursor-grab active:cursor-grabbing select-none p-3 transition"
                     :class="so.id === highlightId ? 'rounded-md ring-2 ring-inset ring-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/15' : ''"
                     :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
@@ -103,6 +103,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { router } from '@inertiajs/vue3'
+import ContextMenu from '@imengyu/vue3-context-menu'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, DocumentCheckIcon, ExclamationTriangleIcon,
@@ -111,12 +113,15 @@ import {
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
+import { canDeleteServiceOrder, canReadServiceOrders } from '@/Utilities/serviceOrders'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
 const props = defineProps({
     serviceOrders: { type: Array, default: () => [] },
     highlightId: { type: Number, default: null },
 })
+
+const emit = defineEmits(['delete-service-order'])
 
 const maxVisible = 4
 const maxVisibleTasks = 5
@@ -175,6 +180,36 @@ onMounted(() => {
             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     })
 })
+
+/**
+ * Mag er niets, dan houdt het menu van de browser zijn plek. Het verwijderen laat
+ * deze widget aan de pagina: die weet welke props erna opnieuw opgehaald moeten
+ * worden, en dat hoort een lijst die zijn werkbonnen aangereikt krijgt niet te weten.
+ */
+function onContextMenu(e, so) {
+    const items = []
+
+    if (canReadServiceOrders()) {
+        items.push({ label: 'Openen', onClick: () => router.visit(`/serviceorders/${so.id}`) })
+    }
+
+    if (canDeleteServiceOrder(so)) {
+        items.push({
+            label: 'Verwijderen',
+            divided: items.length > 0,
+            onClick: () => emit('delete-service-order', so),
+        })
+    }
+
+    if (!items.length) return
+
+    e.preventDefault()
+    ContextMenu.showContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [{ label: `Werkbon #${so.id}`, disabled: true }, ...items],
+    })
+}
 
 function onDragStart(e, so) {
     setServiceOrderDragData(e, so)

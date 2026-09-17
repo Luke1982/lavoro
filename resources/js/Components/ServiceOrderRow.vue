@@ -100,7 +100,7 @@
             <PlanInPlannerButton :serviceorder="serviceorder" />
             <TrashIcon v-if="canDelete"
                 class="relative z-10 size-4.5 shrink-0 cursor-pointer text-red-500 opacity-70 transition hover:opacity-100 dark:text-red-400"
-                @click.stop="deleteServiceOrder" />
+                @click.stop="deleteServiceOrder(serviceorder)" />
             <ChevronRightIcon class="hidden size-5 shrink-0 text-gray-300 dark:text-slate-600 @2xl:block" />
         </div>
     </div>
@@ -113,10 +113,15 @@ export const serviceOrderGridColumns =
 
 <script setup>
 import { computed, ref } from 'vue';
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import ContextMenu from '@imengyu/vue3-context-menu';
 import { nlDate, nlTime, initials, hasPermission } from '@/Utilities/Utilities';
-import { serviceOrderIsPlannable, patchServiceOrderStage } from '@/Utilities/serviceOrders';
+import {
+    canDeleteServiceOrder,
+    deleteServiceOrder,
+    patchServiceOrderStage,
+    serviceOrderIsPlannable,
+} from '@/Utilities/serviceOrders';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue';
 import {
@@ -213,9 +218,7 @@ const taskCounts = computed(() => {
 
 const allTasksDone = computed(() => taskCounts.value.done >= taskCounts.value.total);
 
-const canDelete = computed(() =>
-    hasPermission('serviceorder.delete') && !props.serviceorder.sent_to_administration
-);
+const canDelete = computed(() => canDeleteServiceOrder(props.serviceorder));
 
 const showPlanButton = computed(() =>
     hasPermission('serviceorder.plan') && serviceOrderIsPlannable(props.serviceorder)
@@ -245,16 +248,4 @@ function onContextMenu(event) {
         ],
     });
 }
-
-const form = useForm({});
-
-const deleteServiceOrder = () => {
-    if (!confirm('Weet je zeker dat je deze werkbon wilt verwijderen? Alle keuringen en gegevens worden ook verwijderd.')) {
-        return;
-    }
-
-    form.delete(`/serviceorders/${props.serviceorder.id}`, {
-        preserveScroll: true,
-    });
-};
 </script>
