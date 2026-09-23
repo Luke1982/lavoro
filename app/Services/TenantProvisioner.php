@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\ProvisionerConnection;
+use App\Support\QueuedWork;
 use Database\Seeders\TenantDatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -240,6 +241,9 @@ class TenantProvisioner
      */
     public function destroy(Tenant $tenant): void
     {
+        /** Before switching over: what is queued for this customer dies with it. */
+        QueuedWork::forget($tenant);
+
         $this->asProvisioner();
 
         $database = $tenant->getInternal('db_name');

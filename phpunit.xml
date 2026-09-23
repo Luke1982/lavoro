@@ -30,6 +30,10 @@
         <env name="DB_PASSWORD" value="lavoro_test"/>
         <env name="DB_PROVISIONER_USERNAME" value="lavoro_test"/>
         <env name="DB_PROVISIONER_PASSWORD" value="lavoro_test"/>
+        <!-- Pinned: without these the developer's own .env decides, and a socket from
+             some earlier setup makes every test that provisions fail on their machine. -->
+        <env name="DB_PROVISIONER_HOST" value="127.0.0.1"/>
+        <env name="DB_PROVISIONER_SOCKET" value=""/>
         <env name="TENANCY_DB_PREFIX" value="lavoro_test_tenant_"/>
         <!-- Dezelfde weg als in productie: de rechten van een klantlogin gaan
              via een procedure. Zie scripts/tenancy/setup-test-db.sh. -->
