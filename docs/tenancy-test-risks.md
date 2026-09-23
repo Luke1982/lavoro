@@ -117,6 +117,14 @@ The rule is: per customer, or nothing. No falling back to `.env`.
   in `IsolationTest`.
 - **Scheduler.** Runs per customer; one customer that breaks must not stop the
   rest of the round. **Covered** by `ScheduledWorkSkipsBrokenTenantsTest`.
+- **A job for a customer that no longer exists.** The tenant travels in the
+  payload and is looked up when the job comes round. Delete the customer in
+  between -- the demo is rebuilt every night -- and the job fails with a message
+  naming no tenant at all: what it could not find is what it looked for.
+  Retrying can never help. Deleting a customer now clears what is still waiting,
+  and a job the worker already had in hand is thrown away instead of failed.
+  **Covered** by `DeletedTenantTakesItsWorkTest`, which fails on stancl's own
+  queue bootstrapper.
 
 ## 6. Creating and deleting customers
 

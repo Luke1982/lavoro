@@ -3,9 +3,9 @@
 use App\Models\Tenant;
 use App\Services\Tenancy\TenantDatabaseManager;
 use App\Tenancy\PrefixCacheBootstrapper;
+use App\Tenancy\QueueTenancyBootstrapper;
 use App\Tenancy\TenantStorageBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
-use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\UUIDGenerator;
 
 return [
@@ -14,6 +14,7 @@ return [
     'central_domains' => [],
     'bootstrappers' => [
         DatabaseTenancyBootstrapper::class,
+        /** Ours: a job whose customer is gone is thrown away, not failed. */
         QueueTenancyBootstrapper::class,
         PrefixCacheBootstrapper::class,
         TenantStorageBootstrapper::class,

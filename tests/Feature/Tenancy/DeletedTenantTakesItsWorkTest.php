@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tenancy;
 
+use App\Jobs\PruneLocationPingsJob;
 use App\Models\Tenant;
 use App\Support\QueuedWork;
 use Illuminate\Support\Facades\DB;
@@ -79,5 +80,28 @@ class DeletedTenantTakesItsWorkTest extends TestCase
             $this->assertSame(0, $this->countFor($table, $leaving->id), "{$table} still holds work for a customer that is gone");
             $this->assertSame(1, $this->countFor($table, $staying), "{$table} lost the work of another customer");
         }
+    }
+
+    /**
+     * What the clearing above cannot reach: between queueing and deleting sits
+     * the worker, and a job it already had in hand carries on. Failing it helps
+     * nobody -- a retry looks for the same customer.
+     */
+    public function test_a_job_whose_tenant_vanished_is_thrown_away_instead_of_failed(): void
+    {
+        config(['queue.default' => 'database']);
+
+        PruneLocationPingsJob::dispatch();
+
+        $queued = DB::connection('central')->table('jobs')->count();
+        $this->assertSame(1, $queued, 'the job should be waiting in the queue');
+
+        /** The customer disappears while the job waits, as the nightly demo rebuild does. */
+        DB::connection('central')->table('tenants')->where('id', tenancy()->tenant->getTenantKey())->delete();
+
+        $this->artisan('queue:work', ['--once' => true, '--queue' => 'default'])->assertExitCode(0);
+
+        $this->assertSame(0, DB::connection('central')->table('jobs')->count(), 'the job should be gone from the queue');
+        $this->assertSame(0, DB::connection('central')->table('failed_jobs')->count(), 'a customer that no longer exists is not a failure');
     }
 }
