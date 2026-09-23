@@ -44,7 +44,7 @@ PROCEDURE_NAME="${PROCEDURE##*.}"
 
 SERVER_PORT="$(sql_root 'SELECT @@port;' 2>/dev/null || echo '')"
 
-info "==> Testomgeving"
+info "==> Test environment"
 info "  account:   ${TEST_USER}@${TEST_HOST}"
 info "  database:  ${TEST_DB}"
 info "  procedure: ${PROCEDURE}"
@@ -104,8 +104,8 @@ SQL
 sql_root "GRANT EXECUTE ON PROCEDURE \`${ADMIN_SCHEMA}\`.\`${PROCEDURE_NAME}\` TO '${TEST_USER}'@'${TEST_HOST}';"
 sql_root "FLUSH PRIVILEGES;"
 
-green "Klaar."
+green "Done."
 info ""
-info "Controleren:"
-info "  php artisan migrate --force --database=mysql   # of gewoon:"
+info "Check:"
+info "  php artisan migrate --force --database=mysql   # or simply:"
 info "  composer test"

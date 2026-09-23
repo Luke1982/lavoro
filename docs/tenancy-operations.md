@@ -10,22 +10,32 @@ nothing to running, in order. Below is the day-to-day work.
 
 ## Working locally
 
-Everything below can be done locally too, without production:
+One command builds a local installation the first time and starts it after
+that:
 
 ```bash
-./scripts/tenancy/dev.sh                 # the app, both workers and vite
-./scripts/tenancy/dev.sh --reset-logins  # every password set to 'testtest'
+./scripts/tenancy/dev.sh                 # build what is missing, start app, workers and vite
+./scripts/tenancy/dev.sh --fresh         # throw the local installation away and build it again
+./scripts/tenancy/dev.sh --reset-logins  # every password back to 'testtest'
 ```
 
-The app is then at http://127.0.0.1:8199, the admin panel at /beheer. On start
-the script lists the customers there are and the address to log in with at
-each.
+When the MySQL account is not there yet -- or its grant procedure -- the script
+runs `sudo scripts/tenancy/setup-test-db.sh` first, which asks for your sudo
+password once per machine. When MySQL itself does not answer, it says so and
+stops.
 
-That runs on `.env.localtest`, with a central database of its own and real
-customer databases next to it -- not on `.env`, which points at a database that
-is not always running. That is why the script sets `APP_ENV` as an environment
-variable: `--env=localtest` only applies to the artisan command itself, while
-the requests the server handles boot again and then simply read `.env`.
+The first run writes `.env.local` and creates the central database, an admin
+for the panel (`admin@lavoro.local` / `testtest`) and the demo company
+(`demo@lavorofsm.nl` / `demo`). The app is then at http://127.0.0.1:8199 and the
+panel at /beheer; on every start the script lists who logs in where. Every run
+migrates the central database and every customer, so after a pull it is up to
+date.
+
+It runs on the MySQL account the tests use, in databases of its own
+(`lavoro_local_landlord`, customers as `lavoro_test_tenant_local_*`), and leaves
+`.env` alone. The environment is `local`, set as a real environment variable:
+`--env` only applies to the artisan command itself, while the requests the
+server handles boot again and would read `.env`.
 
 ## What has to run
 

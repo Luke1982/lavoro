@@ -5,14 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Start de lokale multi-tenant omgeving (app, beide workers, vite) op poort 8199.
-# Draait op .env.localtest; print de klanten en hun inlog. --reset-logins zet
-# alle wachtwoorden terug op 'testtest'.
+# Local multi-tenant install on port 8199: builds it the first time (MySQL account
+# via sudo when missing, .env.local, central database, panel admin, demo company),
+# then starts app, both workers and Vite, and prints who logs in where. --fresh
+# rebuilds it, --reset-logins sets every password back to 'testtest'.
 ./scripts/tenancy/dev.sh
 
-# Start full dev stack (Laravel, queue, log tail, Vite — all at once).
-# Let op: .env wijst naar een database die niet altijd draait; gebruik dan het
-# script hierboven.
+# Start full dev stack on .env (Laravel, queue, log tail, Vite — all at once).
 composer run dev
 
 # Frontend only

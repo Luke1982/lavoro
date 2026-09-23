@@ -4,6 +4,7 @@
 .env.backup
 .env.production
 .env.localtest
+.env.local
 .phpactor.json
 .phpunit.result.cache
 /.fleet

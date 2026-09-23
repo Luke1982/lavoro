@@ -1,104 +1,55 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Lavoro
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Field-service management for installation companies: customers and their
+machines, work orders, planning, inspections, tickets, projects and invoicing.
+Laravel 12 with Inertia and Vue 3. Every customer (tenant) has a database of its
+own; a central database holds the tenants, logins and billing.
 
-## About Laravel
+## Local development
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-## Microsoft Graph Mail Transport
-
-Configure environment for sending mail through Microsoft 365 Graph API using client credentials:
-
-```env
-MAIL_MAILER=graph
-MAIL_FROM_ADDRESS=sender@yourtenant.onmicrosoft.com
-MAIL_FROM_NAME="Lavoro FSM"
-GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
-GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000
-GRAPH_CLIENT_SECRET=your_client_secret
-# Optional: send on behalf of a specific user (UPN or GUID). Defaults to MAIL_FROM_ADDRESS
-GRAPH_USER_ID=
-```
-
-Azure App Registration requirements:
-
-- Application permission Mail.Send (NOT delegated) added
-- Admin consent granted
-- Client secret created
-
-After setting variables run:
+Needs PHP 8.3 (with `pdo_mysql`, `pcntl` and `posix`), Composer, Node 22 and a
+local MySQL 8 or MariaDB 10.11.
 
 ```bash
-php artisan config:clear
+./scripts/tenancy/dev.sh
 ```
 
-Send a test mail (tinker):
+That is all. The first run installs Composer and npm packages when they are
+missing, sets up the MySQL account (asking for your sudo password, once per
+machine), writes `.env.local`, creates the central database, an admin and a demo
+company full of data, and then starts the app, both queue workers and Vite.
+Every later run migrates everything and starts.
 
-```php
-Mail::raw('Graph test', fn($m) => $m->to('you@example.com')->subject('Graph OK'));
+| | Address | Login |
+| --- | --- | --- |
+| App | http://127.0.0.1:8199 | `demo@lavorofsm.nl` / `demo` |
+| Admin panel | http://127.0.0.1:8199/beheer | `admin@lavoro.local` / `testtest` |
+
+```bash
+./scripts/tenancy/dev.sh --fresh          # throw the local installation away and build it again
+./scripts/tenancy/dev.sh --reset-logins   # every password back to 'testtest'
 ```
 
-### Customizing Mail Logo
+Your own `.env` is left alone. More in
+[docs/tenancy-operations.md](docs/tenancy-operations.md#working-locally).
 
-Set a custom logo for outgoing emails:
+## Tests
 
-```env
-MAIL_LOGO_URL=https://yourdomain.tld/path/to/logo.png
+```bash
+composer test
 ```
 
-If unset, the app name text is shown.
+They run on MySQL, not SQLite, against the same MySQL account `dev.sh` sets up.
+Without `dev.sh`, set that up once with `sudo scripts/tenancy/setup-test-db.sh`.
+
+## Servers
+
+| | |
+| --- | --- |
+| A new server, or moving an installation over | [docs/tenancy-production.md](docs/tenancy-production.md) |
+| Deploying, customers, workers, the day-to-day | [docs/tenancy-operations.md](docs/tenancy-operations.md) |
+| Where this can break, and what catches it | [docs/tenancy-test-risks.md](docs/tenancy-test-risks.md) |
+| The user manual the assistant answers from | [docs/handleiding.md](docs/handleiding.md) |
+
+Deploy with `scripts/deploy.sh`; `php artisan tenancy:doctor` checks the whole
+setup and says what to fix.
