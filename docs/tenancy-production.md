@@ -282,8 +282,8 @@ unattended account — through PHP it would amount to giving away the provisione
 entirely, and it proves the rule actually works before it finishes. Skipping it
 is fine; you then keep typing `sudo -u`.
 
-**What that account may do with `sudo`, and nothing else.** Two rules, both
-`NOPASSWD` and both limited to exact commands:
+**What that account may do with `sudo`, and nothing else.** All `NOPASSWD` and
+all limited to exact commands:
 
 - become `lavoro_provisioner`, but only through the PHP binary — that is how
   `tenants:*` commands reach the database and the tenant storage;
@@ -291,9 +291,13 @@ is fine; you then keep typing `sudo -u`.
   code from the moment it starts. Without a restart a worker keeps running the
   previous release after a deploy, the heartbeat carries on as if nothing is
   wrong, and only the work quietly goes wrong. `queue:restart` alone did not
-  do it here, so the deploy restarts the units.
+  do it here, so the deploy restarts the units;
+- `systemctl reload` of the php-fpm units this machine has, for the same reason
+  on the web side. Reload and not restart: a restart drops the requests that are
+  running. Without this rule every deploy ends with a note telling you to do it
+  by hand.
 
-It is not general `sudo`: no shell, no root, nothing outside those two lines.
+It is not general `sudo`: no shell, no root, nothing outside those lines.
 Run `setup-sudoers.sh` again after changing accounts, otherwise the deploy
 falls back to signalling the workers and says so.
 

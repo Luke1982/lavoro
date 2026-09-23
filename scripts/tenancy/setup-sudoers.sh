@@ -274,6 +274,14 @@ ${DEPLOY_ACCOUNT} ALL=(${PROV_ACCOUNT}) NOPASSWD: ${MYSQLDUMP_PATH}"
     if [ -n "$SYSTEMCTL_PATH" ]; then
         DEPLOY_RULE="${DEPLOY_RULE}
 ${DEPLOY_ACCOUNT} ALL=(root) NOPASSWD: ${SYSTEMCTL_PATH} restart lavoro-worker lavoro-provisioning, ${SYSTEMCTL_PATH} restart lavoro-worker, ${SYSTEMCTL_PATH} restart lavoro-provisioning"
+
+        # Php under the web server holds on to the compiled code as well, so the
+        # deploy reloads it. Only reload, only the fpm units this machine has --
+        # restart would drop requests that are running.
+        for FPM_UNIT in $(systemctl list-unit-files --type=service --no-legend 'php*-fpm.service' 2>/dev/null | awk '{print $1}'); do
+            DEPLOY_RULE="${DEPLOY_RULE}
+${DEPLOY_ACCOUNT} ALL=(root) NOPASSWD: ${SYSTEMCTL_PATH} reload ${FPM_UNIT}, ${SYSTEMCTL_PATH} reload ${FPM_UNIT%.service}"
+        done
     fi
 
     install_rule /etc/sudoers.d/lavoro-deploy "$DEPLOY_RULE"

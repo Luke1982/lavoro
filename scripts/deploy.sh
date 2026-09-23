@@ -152,16 +152,26 @@ php artisan tenancy:restart-workers || true
 # Only a php this account cannot restart is worth a note.
 ME=$(id -un)
 LSPHP=$(pgrep -f '[l]sphp' | head -n 1 || true)
+
+# Whatever this machine calls its fpm unit -- php8.3-fpm here, php8.4-fpm on the
+# next server. Hardcoding one name means the reload silently does nothing
+# elsewhere.
+FPM_UNIT=$(systemctl list-units --type=service --state=running --no-legend 'php*-fpm.service' 2>/dev/null \
+    | awk '{print $1}' | head -n 1 || true)
+FPM_UNIT=${FPM_UNIT%.service}
+
 if pgrep -u "$ME" -f '[l]sphp' >/dev/null; then
     if pkill -u "$ME" -f '[l]sphp'; then
         echo "  lsphp restarted (opcache cleared)"
     fi
 elif [ -n "$LSPHP" ]; then
     echo "  Note: lsphp runs as $(ps -o user:32= -p "$LSPHP"), not as ${ME}; restart it as that account, or it keeps running the old code."
-elif sudo -n systemctl reload php8.3-fpm 2>/dev/null; then
-    echo "  php-fpm reloaded (opcache cleared)"
-elif pgrep -f '[p]hp-fpm' >/dev/null; then
-    echo "  Note: reload php-fpm yourself, or it keeps running the old code."
+elif [ -n "$FPM_UNIT" ] && sudo -n systemctl reload "$FPM_UNIT" 2>/dev/null; then
+    echo "  ${FPM_UNIT} reloaded (opcache cleared)"
+elif [ -n "$FPM_UNIT" ]; then
+    echo "  Note: could not reload ${FPM_UNIT} -- it keeps running the old code until you do:"
+    echo "    sudo systemctl reload ${FPM_UNIT}"
+    echo "  Run 'sudo scripts/tenancy/setup-sudoers.sh' once and the deploy does it itself."
 else
     echo "  no php running under the web server; the next request starts on the new code"
 fi
