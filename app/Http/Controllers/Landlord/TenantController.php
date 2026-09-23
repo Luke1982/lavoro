@@ -210,6 +210,8 @@ class TenantController extends Controller
                 'commission_cents' => $subscription->commissionCents(),
             ],
             'billing' => [
+                /** A demo is never invoiced; without this the panel only shows a zero. */
+                'demo' => $tenant->isDemo(),
                 'next_cents' => $invoicer->preview()['total_cents'],
                 'pending' => $invoicer->pendingCharges()
                     ->map(fn ($charge) => [

@@ -7,6 +7,7 @@ import EditPage from '../EditPage.vue'
 import InvoicesPage from '../InvoicesPage.vue'
 import LoginPage from '../LoginPage.vue'
 import ResellersPage from '../ResellersPage.vue'
+import BillingCard from '@/Components/Landlord/BillingCard.vue'
 
 /**
  * <Head> heeft de hoofdmanager van createInertiaApp nodig en usePage() de
@@ -88,5 +89,24 @@ describe('de beheerschermen', () => {
         const wrapper = mount(page, { props, global: { stubs: { Link: true } } })
 
         expect(wrapper.text()).toContain(expected)
+    })
+})
+
+/**
+ * De demo wordt elke nacht opnieuw opgebouwd en dus nooit gefactureerd. De
+ * kaart toonde daar alleen € 0,00, en dat leest als een fout in de prijs.
+ */
+describe('de facturatiekaart', () => {
+    const card = (billing) => mount(BillingCard, { props: { tenant, billing }, global: { stubs: { Link: true } } })
+
+    it('noemt het bedrag van de volgende factuur', () => {
+        expect(card({ demo: false, next_cents: 3328, pending: [] }).text()).toContain('33,28')
+    })
+
+    it('zegt bij de demo waarom er niets te factureren valt', () => {
+        const text = card({ demo: true, next_cents: 0, pending: [] }).text()
+
+        expect(text).toContain('Wordt niet gefactureerd')
+        expect(text).not.toContain('0,00')
     })
 })

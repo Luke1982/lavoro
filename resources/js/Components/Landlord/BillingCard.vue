@@ -1,7 +1,14 @@
 <template>
     <PanelSection title="Facturatie">
 
-        <p>
+        <p v-if="billing.demo">
+            <strong>Wordt niet gefactureerd</strong>
+            <span class="text-slate-500">
+                &mdash; de demo wordt elke nacht opnieuw opgebouwd, en elke factuur kost een
+                nummer uit de doorlopende reeks.
+            </span>
+        </p>
+        <p v-else>
             Volgende factuur: <strong>{{ euro(billing.next_cents) }}</strong>
             <span class="text-slate-500">
                 ({{ tenant.billing_period === 'yearly' ? 'per jaar' : 'per maand' }})

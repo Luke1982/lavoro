@@ -22,6 +22,7 @@ esac
 ENVIRONMENT=local
 ENV_FILE=".env.${ENVIRONMENT}"
 PORT=8199
+VITE_PORT=5173
 ADMIN=admin@lavoro.local
 PASSWORD=testtest
 
@@ -155,7 +156,15 @@ if lsof -i ":${PORT}" >/dev/null 2>&1; then
     echo "  Something is already listening on port ${PORT}. Stop it with: pkill -f 'artisan serve'"
     exit 1
 fi
-echo "  port ${PORT} is free"
+
+# Vite dies quietly when its port is taken, and the app then serves whatever
+# was built last -- so a change you make does not show up and nothing says why.
+if lsof -i ":${VITE_PORT}" >/dev/null 2>&1; then
+    echo "  Something is already listening on port ${VITE_PORT}, where vite belongs. Stop it first,"
+    echo "  or the app keeps serving the last build and your changes do not show."
+    exit 1
+fi
+echo "  ports ${PORT} and ${VITE_PORT} are free"
 
 if [ "$RESET" = true ]; then
     echo
