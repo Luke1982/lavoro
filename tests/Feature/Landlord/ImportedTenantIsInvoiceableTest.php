@@ -6,8 +6,8 @@ use App\Models\Tenant;
 use App\Services\Invoicer;
 use App\Services\TenantDbUserProvisioner;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Mockery;
+use Tests\Concerns\KeepsTheTestTenantIntact;
 use Tests\Concerns\MakesLandlordData;
 use Tests\TestCase;
 
@@ -22,7 +22,22 @@ use Tests\TestCase;
  */
 class ImportedTenantIsInvoiceableTest extends TestCase
 {
+    use KeepsTheTestTenantIntact;
     use MakesLandlordData;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->rememberTheTestTenant();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->putTheTestTenantBack();
+
+        parent::tearDown();
+    }
 
     private function import(string $name): Tenant
     {
@@ -39,11 +54,16 @@ class ImportedTenantIsInvoiceableTest extends TestCase
         config(['database.connections.provisioner' => config('database.connections.central')]);
 
         /** The addresses in the adopted database belong to the test tenant here. */
-        DB::connection('central')->table('user_tenant_lookups')->delete();
+        $this->outsideTheTransaction()->table('user_tenant_lookups')->delete();
+
+        $database = Tenant::on('central')->findOrFail('test-tenant')->getInternal('db_name');
+
+        /** So this is a first import; the second one is walked in ImportedTenantStaysUpToDateTest. */
+        $this->parkTheTestTenantRegistration();
 
         Artisan::call('tenant:setup-existing', [
             'name' => $name,
-            'database' => Tenant::on('central')->findOrFail('test-tenant')->getInternal('db_name'),
+            'database' => $database,
         ]);
 
         return Tenant::on('central')->where('name', $name)->firstOrFail();

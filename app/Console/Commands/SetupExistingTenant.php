@@ -19,7 +19,56 @@ class SetupExistingTenant extends Command
     protected $signature = 'tenant:setup-existing {name} {database}
         {--started-on= : the day billing starts; today by default, "none" to leave it open}';
 
-    protected $description = 'Registers an existing, already migrated database as a tenant';
+    protected $description = 'Registers an existing database as a tenant, or brings a registered one back in step';
+
+    /**
+     * The same customer, with the database underneath it replaced. Everything
+     * that came from the other installation is redone: who may log in, and the
+     * MySQL login on a database that was dropped and built again.
+     *
+     * @param  array<int, string>  $emails
+     */
+    private function update(Tenant $tenant, array $emails, TenantDbUserProvisioner $provisioner): int
+    {
+        $tenant->name = $this->argument('name');
+
+        if (filled($this->option('started-on'))) {
+            $tenant->subscription_started_on = $this->option('started-on') === 'none'
+                ? null
+                : CarbonImmutable::parse($this->option('started-on'))->toDateString();
+        }
+
+        $tenant->save();
+
+        /** Drops the login and makes it again, so the grants follow the new database. */
+        $provisioner->provision($tenant);
+
+        foreach (['public', 'local'] as $disk) {
+            File::ensureDirectoryExists(storage_path("tenant-{$tenant->id}/{$disk}"), 0775);
+        }
+
+        $before = UserTenantLookup::on('central')->where('tenant_id', $tenant->id)->count();
+
+        DB::connection('central')->table('user_tenant_lookups')->where('tenant_id', $tenant->id)->delete();
+        $this->linkUsers($tenant->id, $emails);
+
+        $this->info("Tenant updated: {$tenant->id}");
+        $this->line('  database: ' . $this->argument('database'));
+        $this->line('  users:    ' . count($emails) . ' (was ' . $before . ')');
+        $this->line('  kept:     package, seats, modules, billing, invoices');
+
+        return self::SUCCESS;
+    }
+
+    /** @param  array<int, string>  $emails */
+    private function linkUsers(string $id, array $emails): void
+    {
+        $rows = array_map(fn ($email) => ['email' => $email, 'tenant_id' => $id], $emails);
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::connection('central')->table('user_tenant_lookups')->insert($chunk);
+        }
+    }
 
     public function handle(TenantDbUserProvisioner $provisioner): int
     {
@@ -34,7 +83,15 @@ class SetupExistingTenant extends Command
             return self::FAILURE;
         }
 
-        $id = (string) Str::uuid();
+        /**
+         * A database that is already registered is not an error: importing an
+         * installation again, to pick up what changed at the source, lands
+         * here a second time. Then the customer keeps everything that is ours
+         * -- its id, its package, its seats, the day billing started, its
+         * invoices -- and only what comes from the other side is redone.
+         */
+        $tenant = Tenant::on('central')->where('data->tenancy_db_name', $database)->first();
+        $id = $tenant?->getTenantKey() ?? (string) Str::uuid();
 
         /**
          * 'none' leaves billing open on purpose -- for a takeover where the day
@@ -52,13 +109,20 @@ class SetupExistingTenant extends Command
         );
         $emails = array_map(fn ($row) => $row->email, $emails);
 
-        $conflicts = UserTenantLookup::on('central')->whereIn('email', $emails)->pluck('email');
+        $conflicts = UserTenantLookup::on('central')
+            ->whereIn('email', $emails)
+            ->where('tenant_id', '!=', $id)
+            ->pluck('email');
 
         if ($conflicts->isNotEmpty()) {
             $this->error('These email addresses already exist at another tenant:');
             $conflicts->each(fn ($e) => $this->line("  {$e}"));
 
             return self::FAILURE;
+        }
+
+        if ($tenant) {
+            return $this->update($tenant, $emails, $provisioner);
         }
 
         DB::connection('central')->table('tenants')->insert([
@@ -94,11 +158,7 @@ class SetupExistingTenant extends Command
             );
         }
 
-        $rows = array_map(fn ($e) => ['email' => $e, 'tenant_id' => $id], $emails);
-
-        foreach (array_chunk($rows, 500) as $chunk) {
-            DB::connection('central')->table('user_tenant_lookups')->insert($chunk);
-        }
+        $this->linkUsers($id, $emails);
 
         $this->info("Tenant created: {$id}");
         $this->line('  database: ' . $database);

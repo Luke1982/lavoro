@@ -8,6 +8,12 @@
 #   sudo scripts/tenancy/import-install.sh --from /home/spee/lavorofsm \
 #        --name "Spee Totaaltechniek" --slug spee --package business [--dry-run]
 #
+# Run it again with --refresh to fetch the source again into the customer that
+# is already here: the database is replaced, the schema brought up to date, the
+# files copied over and the logins re-registered, while the customer keeps its
+# id, package, seats, billing and invoices. What was changed on this side since
+# the last import is gone; what is there now is dumped first.
+#
 # Needs root: the other installation lives under another account (its home
 # directory is usually 0750, so even reading it fails), dumping its database
 # needs an account with rights on it, and creating the tenant database is not
@@ -21,7 +27,7 @@ case "$0" in
 esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-FROM=""; NAME=""; SLUG=""; PACKAGE=""; BILLING_FROM=""; DRY=0
+FROM=""; NAME=""; SLUG=""; PACKAGE=""; BILLING_FROM=""; DRY=0; REFRESH=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --from) FROM="$2"; shift 2 ;;
@@ -35,6 +41,7 @@ while [ $# -gt 0 ]; do
         --billing-from) BILLING_FROM="$2"; shift 2 ;;
         --billing-from=*) BILLING_FROM="${1#*=}"; shift ;;
         --dry-run) DRY=1; shift ;;
+        --refresh) REFRESH=1; shift ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -50,6 +57,7 @@ if [ "$(id -u)" -ne 0 ]; then
     [ -n "$PACKAGE" ] && ARGS+=(--package "$PACKAGE")
     [ -n "$BILLING_FROM" ] && ARGS+=(--billing-from "$BILLING_FROM")
     [ "$DRY" -eq 1 ] && ARGS+=(--dry-run)
+    [ "$REFRESH" -eq 1 ] && ARGS+=(--refresh)
 
     # Root is needed for two things: reading an installation that belongs to
     # another account, and a MySQL login that may dump the source database and
@@ -148,8 +156,19 @@ SRC_DB=$(grep -E '^DB_DATABASE=' "$FROM/.env" | tail -1 | cut -d= -f2- | tr -d '
 sql_root "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME='${SRC_DB}'" \
     | grep -q . || die "The source database ${SRC_DB} does not exist on this server."
 
+TENANT_ROW=$(sql_root "SELECT id FROM ${LANDLORD_DB}.tenants
+    WHERE JSON_UNQUOTE(JSON_EXTRACT(data,'\$.tenancy_db_name'))='${DB}'" || true)
+
 if sql_root "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME='${DB}'" | grep -q .; then
-    die "${DB} already exists. Remove it or choose another slug."
+    [ "$REFRESH" -eq 1 ] || die "${DB} already exists.
+Run this again with --refresh to fetch the source again into the customer that is
+already there -- it keeps its id, package, seats and billing, and everything that
+was added on this side since the last import is replaced. Or choose another slug."
+
+    [ -n "$TENANT_ROW" ] || die "${DB} exists but belongs to no customer here, so there is nothing to
+refresh. Drop that database by hand, or choose another slug."
+elif [ "$REFRESH" -eq 1 ]; then
+    die "--refresh, but ${DB} does not exist yet. Run it without --refresh for the first import."
 fi
 
 SRC_MB=$(sql_root "SELECT COALESCE(ROUND(SUM(data_length + index_length) / 1024 / 1024), 0)
@@ -176,6 +195,8 @@ chmod 600 "$DUMP"
 trap 'rm -f "$DUMP"' EXIT
 
 if [ "$DRY" -eq 1 ]; then
+    [ "$REFRESH" -eq 1 ] && info "+ mysqldump ${DB} > storage/backups/before-refresh-${SLUG}-<stamp>.sql.gz"
+    [ "$REFRESH" -eq 1 ] && info "+ DROP DATABASE ${DB}"
     info "+ mysqldump ${SRC_DB} > ${DUMP}"
     info "+ CREATE DATABASE ${DB}"
     info "+ restore ${DUMP} into ${DB}"
@@ -185,6 +206,19 @@ else
     mapfile -t ARGS < <(admin_args)
     MYSQL_PWD="$ADMIN_PASSWORD" mysqldump "${ARGS[@]}" --single-transaction --routines \
         --no-tablespaces "$SRC_DB" > "$DUMP"
+
+    # What is there now, before it is replaced. A refresh throws away whatever
+    # was done on this side since the last import, and "I did not mean that"
+    # arrives after the fact, not before it.
+    if [ "$REFRESH" -eq 1 ]; then
+        ROLLBACK="$PROJECT_ROOT/storage/backups/before-refresh-${SLUG}-$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
+        MYSQL_PWD="$ADMIN_PASSWORD" mysqldump "${ARGS[@]}" --single-transaction --routines \
+            --no-tablespaces "$DB" | gzip > "$ROLLBACK"
+        chmod 600 "$ROLLBACK"
+        green "  kept what was there: ${ROLLBACK#"$PROJECT_ROOT/"}"
+
+        sql_root "DROP DATABASE \`${DB}\`"
+    fi
 
     sql_root "CREATE DATABASE \`${DB}\` CHARACTER SET ${CHARSET} COLLATE ${COLLATION}"
 
@@ -209,6 +243,8 @@ else
 fi
 
 step "Registering the tenant"
+# Idempotent: a database that is already a customer is updated instead of
+# refused, and keeps its id, package, seats, billing and invoices.
 # Checks for email addresses that already belong to another tenant itself, and
 # creates the MySQL login for this database.
 # Billing starts today unless a day was agreed; 'none' leaves it open, and then
@@ -249,9 +285,24 @@ else
     warn "  No files copied: ${FROM}/storage/app does not exist."
 fi
 
-if [ -n "$PACKAGE" ] && [ -n "$TENANT_ID" ]; then
+if [ -n "$PACKAGE" ] && [ "$DRY" -eq 1 ]; then
     step "Package"
-    artisan tenant:package "$TENANT_ID" "$PACKAGE"
+    info "+ artisan tenant:package <new id> ${PACKAGE}"
+elif [ -n "$PACKAGE" ] && [ -n "$TENANT_ID" ]; then
+    step "Package"
+
+    # The package is agreed here, not at the source. Somebody who moved up a
+    # package since the import would be put back on the old one by a re-run of
+    # the same line -- which is the line that gets re-used, out of the history
+    # or out of the note from last time.
+    CURRENT=$(sql_root "SELECT COALESCE(package_key,'') FROM ${LANDLORD_DB}.tenants WHERE id='${TENANT_ID}'")
+
+    if [ "$REFRESH" -eq 1 ] && [ -n "$CURRENT" ] && [ "$CURRENT" != "$PACKAGE" ]; then
+        warn "  Left on ${CURRENT}, not put back to ${PACKAGE}: the package was changed here since the import.
+  To change it anyway: php artisan tenant:package ${TENANT_ID} ${PACKAGE}"
+    else
+        artisan tenant:package "$TENANT_ID" "$PACKAGE"
+    fi
 fi
 
 step "Done"
@@ -259,5 +310,7 @@ if [ "$DRY" -eq 1 ]; then
     info "Nothing was written (--dry-run). Run again without it to do the import."
 else
     green "${NAME} is tenant ${TENANT_ID} on ${DB}"
+    [ "$REFRESH" -eq 1 ] && info "Files removed at the source are still here: a refresh adds and overwrites,
+it does not delete."
     info "Check with: php artisan tenancy:doctor"
 fi
