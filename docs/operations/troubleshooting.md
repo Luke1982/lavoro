@@ -1,49 +1,63 @@
 # When something goes wrong
 
-Start with `php artisan tenancy:doctor`: it names the problem and what to do
-about it, and it is the only check that looks at every part of the setup at
-once. What follows is for the cases where that is not enough.
+Start with:
 
-## During or just after an installation
+```bash
+php artisan tenancy:doctor
+```
 
-| When | What to do |
+It checks every part of the setup and names both the problem and what to do
+about it. The rest of this page is for the cases where that is not enough.
+
+## During or just after installing
+
+| Situation | What to do |
 | --- | --- |
-| Before step 7 | Nothing is at risk, the old installation is still running. Start over. |
-| The `lavoro_app` password is lost | `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new one and writes it to `.env`. |
-| The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
-| After step 9, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
+| You have not gone live yet (before step 7 of the install) | Nothing is at risk. The old installation is still serving users. Start over. |
+| You lost the password of the `lavoro_app` database account | Run `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new password and writes it into `.env`. |
+| Importing an existing installation failed halfway | Remove what was created and run the import again. Either `php artisan tenant:delete <customer id>`, or drop the `lavoro_tenant_<name>` database by hand and delete that customer's rows from the `tenants` and `user_tenant_lookups` tables. |
+| You went live and want to go back, within a week | Start the old installation again and take this one offline. Everything entered since the move is lost. |
 
-## A customer cannot log in
+## Somebody cannot log in
 
-The address decides which customer someone lands in, so the answer is nearly
-always in the central lookup:
-
-```bash
-php artisan tenancy:doctor            # reports users without a central entry
-php artisan tenant:overview           # who exists, and how big they are
-```
-
-An address may belong to one customer only. A user moved between customers, or
-created by hand in a customer database, has no central entry and cannot log in.
-
-## Work that does not happen
-
-Queued work sits in the central database, and two workers take it: the ordinary
-one and the provisioning one. Nothing happening at all is nearly always a worker
-that is not running, or one running old code after a deploy.
+There is one login screen for all companies, so Lavoro has to work out which
+company someone belongs to. It does that by email address: the shared database
+has a table that maps each address to one customer. If an address is not in
+that table, the person cannot log in.
 
 ```bash
-php artisan tenancy:doctor            # names the queue and the process
-php artisan tenancy:restart-workers   # restarts both units and waits for them
-php artisan queue:failed              # what failed, and when
+php artisan tenancy:doctor      # lists users that are missing from that table
+php artisan tenant:overview     # lists the customers and how many users they have
 ```
 
-A job whose customer no longer exists is thrown away rather than failed, so a
-deleted customer does not leave failures behind.
+This usually happens when a user was created directly in a customer database,
+or moved from one customer to another. An address can belong to only one
+customer.
 
-## A customer's database is gone
+## Background work is not happening
 
-The login screen keeps working: the middleware checks the database can be opened
-before it switches over, and forgets the session when it cannot. The customer's
-own page in `/beheer` still opens, so you can delete it or point it at a
-restored database. Restoring is in [backup and restore](backup-restore.md).
+Emails, PDFs and new customer databases are handled in the background. The jobs
+are queued in the shared database and picked up by two background processes
+(workers): a normal one and one that only creates and deletes customers.
+
+If nothing happens at all, usually a worker is not running, or it is still
+running the code from before the last deploy.
+
+```bash
+php artisan tenancy:doctor            # says which worker is not running
+php artisan tenancy:restart-workers   # restarts both and waits until they are up
+php artisan queue:failed              # shows jobs that failed, and when
+```
+
+Jobs belonging to a customer that has since been deleted are discarded instead
+of failing, so a deleted customer does not leave failed jobs behind.
+
+## A customer's database is missing or broken
+
+The rest of the installation keeps working. Lavoro checks that it can open a
+customer's database before switching to it; if it cannot, it logs that person
+out instead of showing an error page. Other customers are unaffected.
+
+That customer's page in the admin panel at `/beheer` still opens, so you can
+either delete the customer or point it at a restored database. See
+[backups and restoring](backup-restore.md).

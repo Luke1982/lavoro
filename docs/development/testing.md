@@ -1,59 +1,73 @@
 # Testing
 
 ```bash
-composer test          # everything
-php artisan test --filter=IsolationTest
-npx vitest run         # the Vue side
+composer test                            # everything
+php artisan test --filter=IsolationTest  # one test or one class
+npx vitest run                           # the Vue component tests
 ```
 
-The MySQL account comes from `sudo scripts/tenancy/setup-test-db.sh`, once per
-machine. `dev.sh` runs it for you when it is missing.
+The tests need a MySQL account, created once per machine by
+`sudo scripts/tenancy/setup-test-db.sh`. `dev.sh` runs that for you if the
+account is missing.
 
-## On MySQL, never SQLite
+## The tests run on MySQL, not SQLite
 
-The suite runs on the real database engine, because the differences are exactly
-where the bugs were: `DROP TABLE` is an implicit commit on MySQL and once
-invalidated the test transaction for 23 other tests; MySQL reorders the keys of
-a JSON object, so a test comparing them in order was green on SQLite and red
-here; index names and key lengths differ.
+The test suite uses a real MySQL server, because the differences between the two
+are where the bugs turned out to be:
 
-Production is MariaDB 10.11 and the development machine is MySQL 8. That
-difference is the biggest thing the suite does not prove.
+- `DROP TABLE` commits the current transaction on MySQL. That once broke the
+  transaction that 23 other tests were relying on.
+- MySQL reorders the keys of a JSON object, so a test that compared them in
+  order passed on SQLite and failed here.
+- Index names and key lengths differ between the two.
+
+Production runs MariaDB 10.11 and development machines run MySQL 8. That
+difference is the biggest thing the test suite does not check.
 
 ## How a test gets a customer
 
-`Tests\TestCase` creates one customer per run and wraps every test in a
-transaction on **both** connections, central and tenant. So:
+`Tests\TestCase` creates one customer for the whole run, and wraps every
+individual test in a database transaction on both connections (`central` and
+`tenant`), which is rolled back afterwards. Because of that:
 
-- do not add `RefreshDatabase`;
-- **switching or ending tenancy throws that transaction away** — the connection
-  is purged, and everything the test made goes with it. Anything that has to
-  survive a switch belongs in `Tests\Concerns\UsesASecondTenant`, whose database
-  is committed and emptied per test instead;
-- `Storage::fake()` does not survive it either: re-initialising a customer calls
-  `Storage::forgetDisk()`.
+- do not add `RefreshDatabase` to a test;
+- **switching to another customer, or ending the customer context, cancels that
+  transaction.** The connection is closed and reopened, and everything the test
+  had written is lost. If a test needs data to survive such a switch, use
+  `Tests\Concerns\UsesASecondTenant`, which uses a database that is committed
+  and emptied per test instead;
+- `Storage::fake()` does not survive it either, because switching customer calls
+  `Storage::forgetDisk()`;
+- **a command that runs as the provisioner account** closes and reopens the
+  central connection, which also cancels the transaction. Everything the test
+  wrote before it is rolled back, and everything the command writes after it is
+  committed for real. Such a test should write what it needs through
+  `Tests\Concerns\OutsideTheTestTransaction`, which uses a separate connection.
+  That is also the only way to read a MySQL account that another connection has
+  just created. Clean up afterwards;
+  `Tests\Concerns\KeepsTheTestTenantIntact` does that for the customer record.
 
-`phpunit.xml` pins every setting the tests depend on, including the
-provisioner's socket. Anything it does not pin falls back to your own `.env`,
-and then a test passes on your machine and nowhere else.
+`phpunit.xml` sets every configuration value the tests depend on, including the
+provisioner's socket. Anything it does not set falls back to your own `.env`,
+and then a test passes on your machine and fails everywhere else.
 
-## What the suite actually walks
+## What the suite checks
 
-`IsolationTest` creates two real customers, through the real provisioning path,
-and proves they cannot see each other: data, cache, files, logins, activity
-trail. Code on that path cannot be judged by reading it — every bug in it so far
-was invisible in the source and obvious on the first run. Run the suite before
-touching anything that creates or deletes a customer.
+`IsolationTest` creates two real customers through the real creation process and
+checks that they cannot reach each other's data, cache, files, logins or
+history. That code cannot be judged by reading it; every bug found in it so far
+was invisible in the source and obvious the first time the test ran. Run the
+suite before changing anything that creates or deletes a customer.
 
-The rest of the map — what is covered, what is deliberately not, and how each
-gap would show itself — is in [risks](risks.md).
+What is covered, what is deliberately not, and how you would notice each gap is
+in [risks](risks.md).
 
-## Writing tests here
+## Writing tests in this project
 
-- A test is named after the behaviour, not the method:
+- Name a test after the behaviour, not the method:
   `test_a_customer_without_a_session_reaches_the_page`.
-- The docblock says what went wrong once, so the next person knows why the test
-  exists.
-- Assertions carry a message that reads as a sentence when it fails.
-- Tests are not written unless asked, but a bug that was invisible in the source
-  gets one.
+- Write in the docblock what went wrong once, so the next person knows why the
+  test exists.
+- Give assertions a message that reads as a sentence when it fails.
+- Do not write tests unless they are asked for, with one exception: a bug that
+  was invisible in the source gets one.

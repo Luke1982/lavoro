@@ -1,65 +1,62 @@
 # Installing Lavoro on a new server
 
-Follow these steps in order.
+Follow these steps in order. Allow about an hour, plus the time a database dump
+takes if you are moving an existing installation in.
 
-After every step, run:
+If you are moving an existing installation in, it keeps running until step 7, so
+everything before that is safe.
+
+These instructions are written for MariaDB 10.11 and PHP 8.3. Where MySQL works
+differently, it says so.
+
+## Check after every step
 
 ```bash
 php artisan tenancy:doctor
 ```
 
-That command is the check. It looks at the database accounts and their
-privileges, the PHP extensions, the `.env`, both background workers, the
-scheduler, your invoice details and every customer database. It prints what is
-wrong and what to do about it, and exits with an error code so a script stops
-on it. If it reports a problem, fix that before moving on.
+This is the check you use throughout. It looks at the database accounts and
+their permissions, the PHP extensions, the `.env` file, both background
+processes, the cron job, your invoicing details and every customer database. It
+prints what is wrong and what to do about it, and exits with an error code so a
+script can stop on it.
 
-It will complain about things that are not set up yet. That is expected — work
-down the list and the complaints disappear one by one.
+While you are working through this page it will complain about things that are
+not set up yet. That is expected; the complaints disappear step by step.
 
-## Which account runs what
+## Three accounts, and which one does what
 
-Three identities, and mixing them up costs an afternoon:
-
-| | Runs |
+| Account | Runs |
 | --- | --- |
-| **root** | Anything with `sudo` in front of it here: creating accounts, `setfacl`, `systemctl`, `crontab`. |
-| **the app account** (the user owning the checkout — `lavoro` in these examples) | `git`, `composer`, `npm`, and every `php artisan` command. No `sudo`: it is deliberately not a sudoer. |
-| **lavoro_provisioner** | Only creates and deletes customer databases. You never log in as this one. Tenant commands become it by themselves once step 6 is done. |
+| **root** | everything with `sudo` in front of it here: creating accounts, `setfacl`, `systemctl`, `crontab` |
+| **the application account** (the Linux user that owns the files; `lavoro` in these examples) | `git`, `composer`, `npm` and every `php artisan` command. Never with `sudo`: this account deliberately has no sudo rights |
+| **lavoro_provisioner** | creating and deleting customer databases, and nothing else. You never log in as this account yourself. After step 6 the relevant commands switch to it automatically |
 
-Why the split exists, and what each account may reach in the database, is
-[multi-tenancy](../development/multi-tenancy.md#three-mysql-accounts).
+If a command asks you for a password, you are running it as the wrong account.
+Logged in as the application account, `php artisan …` needs no `sudo`.
 
-If a command asks for a password, you are running it as the wrong account.
-Logged in as the app account, `php artisan …` needs no `sudo` at all — it is
-already that user.
-
-Written for MariaDB 10.11 and PHP 8.3. Where MySQL differs, it says so.
-
-Budget an hour, plus however long the database dump takes. Your existing
-installation keeps running until step 7, so everything before that is safe.
-
----
+Why these are separate, and what each may reach in the database, is explained in
+[multi-tenancy](../development/multi-tenancy.md#three-kinds-of-mysql-account).
 
 ## Before you start
 
-Have these ready:
+Have ready:
 
-- Root or sudo access on the new server
-- A database account that can create users and grant privileges
-- The company name as it should appear on invoices
+- root or sudo access on the new server;
+- a database account that can create users and grant permissions;
+- the company name as it should appear on invoices.
 
-**Are you moving an existing Lavoro in** — one that serves a single company
-today, and becomes the first customer here? Then also:
+**If you are moving an existing Lavoro installation in** (one that currently
+serves a single company, and will become the first customer here), also have:
 
-- The path to that installation, and a database backup of it that you have
-  restored somewhere and seen working
-- **Its `APP_KEY`, out of its `.env`.** You will paste it in step 4 instead of
-  generating a new one: that key decrypts every stored Google connection and
-  every encrypted field it has. Without it, that data is unreadable.
+- the path to that installation, and a database backup of it that you have
+  restored somewhere and seen working;
+- **its `APP_KEY`, from its `.env` file.** You paste this in step 4 instead of
+  generating a new one. That key decrypts its stored Google connections and all
+  its other encrypted fields. Without it, that data cannot be read.
 
-Starting empty instead? Then none of that applies; step 4 generates a key for
-you, and your first customer is step 8.
+If you are starting empty, none of that applies. Step 4 generates a key for you,
+and you create your first customer in step 8.
 
 ## 1. Get the code
 
@@ -73,10 +70,11 @@ composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 ```
 
-## 2. Check socket login is available
+## 2. Check that socket login is available
 
-Lavoro uses two database accounts. One of them logs in without a password,
-using the Linux user it belongs to. Check the server can do that:
+Lavoro uses a database account that logs in without a password, identified by
+the Linux user it belongs to. This is called socket authentication. Check that
+the database server supports it:
 
 ```sql
 SELECT plugin_name, plugin_status, plugin_library
@@ -84,73 +82,76 @@ SELECT plugin_name, plugin_status, plugin_library
  WHERE plugin_name IN ('unix_socket', 'auth_socket');
 ```
 
-**On MariaDB this is almost always already `ACTIVE`.** Since 10.4 the plugin is
-compiled into the server, so `plugin_library` is NULL and there is nothing to
-install. `INSTALL SONAME 'auth_socket'` then fails with "cannot open shared
-object file" — not because something is missing, but because there is no
-separate file to load. If the query shows `ACTIVE`, this step is done.
+**On MariaDB this is almost always `ACTIVE` already.** Since version 10.4 the
+plugin is built into the server, so `plugin_library` is empty and there is
+nothing to install. Running `INSTALL SONAME 'auth_socket'` then fails with
+"cannot open shared object file", which does not mean anything is missing: there
+is simply no separate file to load. If the query says `ACTIVE`, this step is
+done.
 
-**On MySQL** it usually needs switching on once:
+**On MySQL** it usually has to be switched on once:
 
 ```sql
 INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';
 ```
 
-That survives a restart.
+That setting survives a restart.
 
 If neither server reports the plugin at all, install the matching server
-package — check `SELECT @@plugin_dir` to see where it would live.
+package. `SELECT @@plugin_dir` shows where the plugin files would go.
 
-The next step picks the right syntax for your server by itself: MariaDB wants
-`IDENTIFIED VIA unix_socket`, MySQL wants `IDENTIFIED WITH auth_socket`.
+The next step picks the right syntax for your server automatically: MariaDB
+needs `IDENTIFIED VIA unix_socket`, MySQL needs `IDENTIFIED WITH auth_socket`.
 
 ## 3. Create the database accounts
 
 ```bash
 sudo scripts/tenancy/setup-mysql.sh --dry-run    # prints the SQL, changes nothing
-sudo scripts/tenancy/setup-mysql.sh --write-env  # actually does it
+sudo scripts/tenancy/setup-mysql.sh --write-env  # creates everything
 ```
 
 This creates:
 
-- the central database, `lavoro_landlord`
-- `lavoro_app`, with a password. The website runs as this account and it can
-  only touch that one database.
-- the Linux user `lavoro_provisioner` and a matching database account with no
-  password, tied to that Linux user. This is the only account that can create
+- **the shared database**, `lavoro_landlord`;
+- **`lavoro_app`**, with a password. The website runs as this account, and it
+  can reach only that one database;
+- **the Linux user `lavoro_provisioner`** and a matching database account with
+  no password, tied to that Linux user. This is the only account that can create
   and delete customer databases.
 
-`--write-env` writes the results into `.env` and backs up the old file first.
-It also writes the provisioner's account name and socket, and removes
+`--write-env` writes the results into `.env`, making a backup of the old file
+first. It also writes the provisioner's account name and socket, and removes
 `DB_PROVISIONER_PASSWORD` and `DB_PROVISIONER_HOST` if they are present.
 
-It also creates `lavoro_admin`, holding one stored procedure that hands a new
-customer's login rights on its own database. That indirection is not decoration:
-MySQL and MariaDB weigh a `GRANT` naming one database against an entry matching
-that name exactly, never against the wildcard the provisioner holds. So it can
-create `lavoro_tenant_acme` and cannot grant rights on it, and the only grant
-that would satisfy the check is privileges on every database — precisely what
-this account must never have. The procedure runs as root and refuses any name
-outside the customer namespace. The provisioner holds nothing in `lavoro_admin`
-but permission to call it, so it can never widen it.
+It also creates a small database called `lavoro_admin` containing one stored
+procedure. That procedure gives a new customer's database account permission on
+its own database.
 
-This split is the boundary the whole setup rests on. The doctor tests it by
+This roundabout way is necessary. MySQL and MariaDB check a `GRANT` for one
+specific database against a permission entry for exactly that name, and never
+against a wildcard. The provisioner holds a wildcard permission on
+`lavoro_tenant_%`, so it can create `lavoro_tenant_acme` but cannot grant
+permissions on it. The only grant that would work is permission on every
+database, which is exactly what this account must not have. So the granting is
+done by a stored procedure that runs as root and refuses any database name
+outside the customer range. The provisioner may call that procedure and nothing
+else, so it cannot change it.
+
+This separation is what the whole setup relies on. The doctor tests it by
 actually trying to create a customer database as `lavoro_app` and expecting to
-be refused, and `verify-mysql.sh` calls the procedure with the landlord database
-to confirm it says no.
+be refused.
 
-
-Reading MySQL's privilege tables needs root, which the doctor does not have, so
-that half is checked by a separate script — run it once now:
+Reading MySQL's permission tables requires root, which the doctor does not have,
+so that half is checked by a separate script. Run it once now:
 
 ```bash
 sudo scripts/tenancy/verify-mysql.sh
 ```
 
-It records its result where the doctor can read it, so from then on the doctor
-reports what came out and when. Only a complete run counts: without `sudo` it
-skips most checks and leaves the previous result alone. `scripts/deploy.sh` runs it
-every time.
+It stores its result where the doctor can read it, so from then on the doctor
+reports what that check found and when. Only a complete run counts: without
+`sudo` it skips most checks and leaves the previous result untouched.
+`scripts/deploy.sh` runs it on every deploy.
 
 ## 4. Configure the application
 
@@ -158,21 +159,22 @@ every time.
 scripts/tenancy/setup-env.sh
 ```
 
-It asks three things: the address Lavoro runs on, the `APP_KEY` of your old
-installation, and the mail server you send invoices from. Everything else it
-sets by itself — the queue, session, cache and mail settings that tenancy
-depends on are not preferences, and the script does not offer them as choices.
+It asks three things: the web address Lavoro will run on, the `APP_KEY` of your
+old installation, and the mail server you send your own invoices from.
+Everything else it sets itself. The queue, session, cache and mail settings that
+this setup depends on are not a matter of preference, so the script does not
+offer them as choices.
 
-**Moving an existing installation in? Paste its `APP_KEY` when asked.** It
-decrypts every stored Google connection, every customer database password and
-every encrypted field it has. Press Enter instead and you get a new key, which
-makes all of that unreadable with no way back. The script checks the key you
-paste is a real one before writing it.
+**If you are moving an existing installation in, paste its `APP_KEY` when
+asked.** It decrypts that installation's stored Google connections and other
+encrypted fields. If you press Enter you get a new key, and that data becomes
+permanently unreadable. The script checks that what you paste is a valid key
+before writing it.
 
-Starting empty? Press Enter and take the key it generates.
+If you are starting empty, press Enter and use the key it generates.
 
-Safe to run again; existing values stay unless you overwrite them. To run it
-unattended:
+You can run this script again later; existing values are kept unless you
+overwrite them. To run it without questions:
 
 ```bash
 scripts/tenancy/setup-env.sh --yes \
@@ -180,61 +182,62 @@ scripts/tenancy/setup-env.sh --yes \
     --mail-host=smtp.example --mail-from=info@majorlabel.nl
 ```
 
-Between this and step 3, every setting the doctor looks at is now in place.
-Two of them are worth knowing about:
+Two settings are worth knowing about:
 
-- **The provisioner has no password and no host in `.env`,** and step 3 removes
-  them if they are there. With either one present, anything that can read
-  `.env` — the website included — can delete any customer's database.
-- **`MAIL_MAILER=tenant`** means every customer sends mail with their own
+- **The provisioner has no password and no host in `.env`.** Step 3 removes
+  them if they are there. If either is present, anything that can read `.env` —
+  including the website — could delete any customer's database.
+- **`MAIL_MAILER=tenant`** means each customer sends email using their own mail
   settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
-  invoices you send to customers.
+  invoices you send to your customers.
 
-Then create the tables:
+Then create the tables in the shared database:
 
 ```bash
 php artisan migrate --force
 ```
 
-## 5. Create your admin login
+## 5. Create your own admin login
 
 ```bash
 php artisan landlord:user you@majorlabel.nl
 ```
 
-It prints a generated password. This account lives in the central database and
+It prints a generated password. This account lives in the shared database and
 has nothing to do with any customer's users.
 
-Open `https://your-domain.example/beheer`, log in, and go to
-**Catalogus → Facturatie**. Fill in your address, chamber of commerce number,
-VAT number, IBAN and payment terms. If you will collect by direct debit, add
-the creditor ID your bank issued. The doctor reports these as missing until
-they are filled in.
+Open `https://your-domain.example/beheer`, log in, and go to **Catalogus →
+Facturatie**. Fill in your address, chamber of commerce number, VAT number, IBAN
+and payment terms. If you are going to collect by direct debit, add the creditor
+id your bank gave you. The doctor reports these as missing until they are filled
+in.
 
-## 6. Start the background work
+## 6. Set up the background processes
 
 ```bash
 sudo scripts/tenancy/setup-workers.sh --dry-run   # shows what it will write
 sudo scripts/tenancy/setup-workers.sh
 ```
 
-This sets up three things, none of which happen on their own:
+This sets up three things. None of them happen by themselves:
 
-- **A worker for ordinary jobs,** running as the account that owns the
-  checkout — the one that cannot create databases.
-- **A worker for provisioning,** running as `lavoro_provisioner` — the only
-  account that can. It runs with `--tries=1` deliberately: retrying a
-  half-created customer fails on "database already exists" and hides the real
-  error.
-- **A cron line for the scheduler.** Without it there are no invoices, no
-  Google Calendar sync, and no work orders from maintenance contracts.
+- **a worker for ordinary jobs**, running as the account that owns the files —
+  the account that cannot create databases;
+- **a worker for creating and deleting customers**, running as
+  `lavoro_provisioner`, the only account that can. It runs with `--tries=1`, so
+  a failed job is not retried: retrying a half-created customer fails on
+  "database already exists", which hides the real error;
+- **a cron line** that runs the scheduler. Without it there are no invoices, no
+  Google Calendar synchronisation and no work orders from maintenance contracts.
 
 The script reads the account, the path, the PHP binary and the name of the
-database service off the machine rather than assuming them. An installation in
-a home directory runs as a different account than one in `/var/www`, and a unit
-file naming the wrong account starts happily and does nothing.
+database service from the machine instead of assuming them. An installation in a
+home directory runs as a different account than one in `/var/www`, and a service
+file naming the wrong account starts without error and then does nothing.
 
-The provisioning worker creates folders for new customers, so give it write
+### File permissions
+
+The provisioning worker creates folders for new customers, so it needs write
 access:
 
 ```bash
@@ -243,142 +246,145 @@ sudo setfacl -R -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 sudo setfacl -R -d -m u:lavoro_provisioner:rwX /var/www/lavoro/storage
 ```
 
-The folders the application makes itself are group-writable
-(`config/filesystems.php`), and that matters: on a folder made `0755` these
-lists grant read-only, whatever they say.
+The folders the application creates itself are group-writable (set in
+`config/filesystems.php`). That matters: on a folder with `0755` permissions
+these access lists only grant read access, whatever they say.
 
 **If you installed somewhere under `/home` instead**, permissions on `storage`
-alone are not enough. A home directory is `0750`, so the provisioner cannot
-walk through it to reach anything inside, and no amount of access on `storage`
-changes that. Give it passage on each directory above:
+alone are not enough. A home directory is normally `0750`, so the provisioner
+cannot pass through it to reach anything inside, no matter what permissions
+`storage` has. Give it passage on each folder above:
 
 ```bash
 sudo setfacl -m u:lavoro_provisioner:x /home/youraccount
 sudo setfacl -m u:lavoro_provisioner:x /home/youraccount/lavoro
 ```
 
-The doctor tells the two cases apart and names the exact directories that are
-in the way.
+The doctor tells these two cases apart and names the exact folders that are in
+the way.
 
-**Check which account your web server runs PHP as**, because it is often not
-the one owning the files:
+**Check which account your web server runs PHP as.** It is often not the account
+that owns the files:
 
 ```bash
 ps -eo user,comm | grep -iE 'lsphp|php-fpm'
 ```
 
-LiteSpeed commonly runs as `nobody`, Apache and nginx as `www-data`. Whatever
-it is, it needs to write to `storage` and `bootstrap/cache`:
+LiteSpeed usually runs as `nobody`, Apache and nginx as `www-data`. Whichever it
+is, it needs to write to `storage` and `bootstrap/cache`:
 
 ```bash
 sudo setfacl -R -m u:nobody:rwX storage bootstrap/cache
 sudo setfacl -R -d -m u:nobody:rwX storage bootstrap/cache
 ```
 
-Get this wrong and the application cannot write its own log. Errors from the
-browser then vanish with no page, no entry and nothing to search for — a
-button that appears to do nothing at all. The doctor reads the owner of the
-compiled templates to work out which account that is, and says so if it cannot
-write.
+If this is wrong, the application cannot write its own log file. Errors then
+disappear without a page, without a log entry and with nothing to search for: a
+button that appears to do nothing at all. The application records which account
+it runs as on a normal web request, and the doctor reports that account and
+whether it can write.
 
-Finally, so you do not have to type `sudo -u lavoro_provisioner` in front of
-every tenant command:
+### Letting commands switch to the provisioner
+
+So that you do not have to type `sudo -u lavoro_provisioner` in front of every
+customer command:
 
 ```bash
 sudo scripts/tenancy/setup-sudoers.sh
 ```
 
-That lets your own account become the provisioner without a password, so the
-commands elevate themselves. It refuses to hand that to `www-data` or any
-unattended account — through PHP it would amount to giving away the provisioner
-entirely, and it proves the rule actually works before it finishes. Skipping it
-is fine; you then keep typing `sudo -u`.
+This lets your own account become `lavoro_provisioner` without a password, so
+those commands can switch by themselves. It refuses to grant that to `www-data`
+or any other unattended account, because through PHP that would effectively hand
+over the provisioner account. It also verifies that the rule works before it
+finishes. You can skip this step; you then keep typing `sudo -u`.
 
-**What that account may do with `sudo`, and nothing else.** All `NOPASSWD` and
-all limited to exact commands:
+The rules it writes are limited to exact commands, all without a password
+prompt:
 
-- become `lavoro_provisioner`, but only through the PHP binary — that is how
+- become `lavoro_provisioner`, but only by running the PHP binary. That is how
   `tenant:create`, `tenant:delete`, `tenant:setup-existing` and `demo:install`
-  reach the database and the tenant storage. Stancl's own `tenants:*` commands
-  do not elevate; they run as whoever types them;
-- `systemctl restart lavoro-worker lavoro-provisioning`, because PHP holds all
-  code from the moment it starts. Without a restart a worker keeps running the
-  previous release after a deploy, the heartbeat carries on as if nothing is
-  wrong, and only the work quietly goes wrong. `queue:restart` alone did not
-  do it here, so the deploy restarts the units;
-- `systemctl reload` of the php-fpm units this machine has, for the same reason
-  on the web side. Reload and not restart: a restart drops the requests that are
-  running. Without this rule every deploy ends with a note telling you to do it
-  by hand;
-- `mysqldump` as the provisioner, for the backup the deploy takes before it
-  touches anything. Deliberately no PHP in that rule: PHP can start anything,
-  which would hand the deploy everything the provisioner may do.
+  reach the database and the customer folders. The `tenants:*` commands do not
+  switch account; they run as whoever types them;
+- `systemctl restart lavoro-worker lavoro-provisioning`, because PHP loads all
+  code when it starts. Without a restart a worker keeps running the previous
+  release after a deploy while still reporting that it is alive;
+- `systemctl reload` of the php-fpm services on this machine, for the same
+  reason on the web side. Reload rather than restart, because a restart drops
+  requests that are in progress. Without this rule every deploy ends with a note
+  telling you to do it by hand;
+- `mysqldump` as the provisioner, for the backup the deploy makes before it
+  changes anything. This rule deliberately does not include PHP: PHP can start
+  any program, which would give the deploy account everything the provisioner
+  can do.
 
-The first goes in `/etc/sudoers.d/lavoro-admin`, the rest in
-`/etc/sudoers.d/lavoro-deploy`. Deploying and administering are the same account
-here unless `DEPLOY_ACCOUNT` says otherwise.
+The first rule goes in `/etc/sudoers.d/lavoro-admin`, the rest in
+`/etc/sudoers.d/lavoro-deploy`. Administering and deploying are the same account
+unless `DEPLOY_ACCOUNT` says otherwise. This is not general sudo access: no
+shell, no root, nothing beyond those lines. Run `setup-sudoers.sh` again after
+changing accounts.
 
-It is not general `sudo`: no shell, no root, nothing outside those lines.
-Run `setup-sudoers.sh` again after changing accounts, otherwise the deploy
-falls back to signalling the workers and says so.
+### Restarting workers after changes
 
-**A worker reads `.env` once, when it starts.** Change anything afterwards and
-it keeps running on what it had — the heartbeat carries on as if nothing is
-wrong, and only the work fails, pointing at settings that now look correct. So
-after every `.env` change:
+A worker reads `.env` and the code once, when it starts. If you change either
+afterwards, it keeps running the old version. Nothing looks wrong from the
+outside: it still reports that it is alive, but its work is out of date and the
+errors point at settings that now look correct.
+
+So after every change to `.env` or the code:
 
 ```bash
 sudo systemctl restart lavoro-worker lavoro-provisioning
 ```
 
-The same applies to code: after a `git pull` a worker keeps running the version
-it started with. `scripts/deploy.sh` handles this for you; a manual pull does not.
+`scripts/deploy.sh` does this for you; a manual `git pull` does not.
 
-The doctor compares both the settings and the code a worker started with
-against what is on disk now, and says so when they differ.
+The doctor compares the settings and the code a worker started with against what
+is on disk now, and reports it when they differ.
 
-Each worker reports in every minute while it runs, and the doctor tells you if
-one has stopped. An empty queue looks exactly like a dead worker, so that
-heartbeat is the only thing that can tell them apart. Wait a minute after this
-step before believing the doctor on that point.
+Each worker reports in once a minute while it runs, and the doctor tells you if
+one has stopped. An empty queue looks exactly like a stopped worker, so that
+regular report is the only way to tell them apart. Wait a minute after this step
+before trusting the doctor on this point.
 
-**Everything above should now be clean.** Run the doctor and fix anything it
-reports before continuing. What follows involves real customer data.
+**Everything above should now be clean.** Run the doctor and fix whatever it
+reports before continuing. From here on, real customer data is involved.
 
-## Uploads do not belong in git
+## Uploaded files are not part of the code
 
-`storage/tenant-<id>` holds a customer's files: photos on service orders, pdfs,
-avatars. That is data, exactly like the database is, and it is in `.gitignore`
+`storage/tenant-<customer id>` holds a customer's files: photos on work orders,
+PDFs, avatars. That is data, just like the database, and it is excluded from git
 on purpose.
 
-It was committed for a while -- it came along with an import -- and that nearly
-cost the whole folder twice: a `git reset --hard` onto the wrong branch wiped
-it, and later an `rm -rf` suggested by a check did the same. It has been removed
-from the history.
+For a while it was committed to git, because it came along with an import, and
+that nearly destroyed the folder twice: once through a `git reset --hard` onto
+the wrong branch, and once through an `rm -rf` that a check had suggested. It
+has since been removed from the repository history.
 
 Two things to remember:
 
-- **A pull can delete files.** Once a path is removed from git, the next pull
-  removes it from disk as well, even if it is ignored by then. Move such a
-  folder outside the repository before you update.
-- **The deploy does not back up files**, only databases. The uploads need a
-  backup of their own; git was not that, and should not be.
+- **A `git pull` can delete files.** Once a path has been removed from git, the
+  next pull removes it from disk as well, even if it is ignored by then. Move
+  such a folder outside the repository before updating.
+- **The deploy backs up databases, not files.** The uploaded files need a backup
+  of their own. See [backups and restoring](../operations/backup-restore.md).
 
-Left-over folders of customers that no longer exist show up in the doctor with
-their file count and size. Look inside first, then clear one with
-`php artisan tenancy:prune-storage tenant-<id>`; it prints what it is about to
-delete and asks before it does. Empty left-overs are not reported.
+Folders belonging to customers that no longer exist are reported by the doctor
+with their file count and size. Look inside first, then remove one with
+`php artisan tenancy:prune-storage tenant-<customer id>`, which prints what it
+is about to delete and asks first. Empty leftover folders are not reported.
 
 ## Moving an existing installation in
 
-Doing it now is the easiest moment: nothing else is running here yet, and going
-live below then switches over to a server that already holds the data.
+Now is the easiest moment to do it: nothing else is running on this server yet,
+and going live below then switches over to a server that already holds the data.
 
-[Taking over an existing installation](import-existing.md) is the whole
-procedure — the old one goes offline, its database and files come across, and
-its users keep their own passwords. Come back here for step 7 afterwards.
+[Taking over an existing installation](import-existing.md) describes the whole
+procedure: the old installation goes offline, its database and files are copied
+across, and its users keep their own passwords. Come back here for step 7
+afterwards.
 
-Starting empty? Skip this and carry on.
+Starting empty? Skip this and continue.
 
 ## 7. Go live
 
@@ -390,55 +396,57 @@ sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
 php artisan up
 ```
 
+Use the name of the PHP service on this machine; `php8.3-fpm` is an example.
+
 **If you moved an installation in:** leave the old one in place for a week with
-its web server switched off. Do not delete it — it is the fastest way back if
-something turns up that the checks above did not.
+its web server switched off. Do not delete it. It is the fastest way back if
+something comes up that the checks did not catch.
 
 ## 8. Add a customer
 
-Do this on a quiet day. It is the first time a database gets created for real —
-and if you moved an installation in, the first time you can see two customers
-side by side and prove they cannot reach each other.
+Do this on a quiet day. It is the first time a customer database is created for
+real. If you moved an installation in, it is also the first time you can see two
+customers side by side and check that they cannot reach each other's data.
 
-Either use **Nieuwe tenant** in `/beheer`, or:
+Either use **Nieuwe tenant** in `/beheer`, or run:
 
 ```bash
 php artisan tenant:create "Customer BV" admin@customer.example --package=starter
 ```
 
 Creating one through the panel queues a job for the provisioning worker. If the
-request stays on "in de wacht", that worker is not running — and the doctor
-will say so. While the worker is busy the panel refreshes itself, so the list
-updates without you reloading.
+request stays on "in de wacht", that worker is not running, and the doctor will
+say so. While the worker is busy, the panel refreshes itself, so the list
+updates without you reloading the page.
 
-Removing a customer works the same way: open it with **bewerken** and use the
-red block at the bottom, where the name has to be typed out in full. That
-deletes the database, the login, the files and the central rows, and there is no
-way back.
+Deleting a customer works the same way: open it, choose **bewerken**, and use
+the red block at the bottom, where you have to type the name in full. That
+deletes the database, the database account, the files and the rows in the shared
+database. There is no way back.
 
-Then log in as the new customer. You should see an empty installation. With a
-second customer on the server, check the thing this whole setup is for: logged
-in as one of them, try to open a file belonging to the other. You should get a
-404.
-
----
+Then log in as the new customer. You should see an empty installation. If there
+is a second customer on the server, check the thing this whole setup exists for:
+logged in as one customer, try to open a file belonging to the other. You should
+get a 404.
 
 ## Once you are live
 
-- Back up the central database **and every customer database**. A backup of
-  only the central one is a list of names and nothing else.
-- Put `APP_KEY` somewhere safe. It unlocks every customer database password,
-  and without it none of the encrypted data can be read.
-- For each customer, fill in their mail settings under **Technisch beheer**.
-  Until you do, that customer sends no email at all. That is deliberate:
-  sending from another company's mailbox is worse than not sending.
+- **Set up backups.** Back up the shared database, every customer database, the
+  uploaded files and `APP_KEY`. See
+  [backups and restoring](../operations/backup-restore.md); the command is
+  `scripts/tenancy/backup.sh`.
+- **Store `APP_KEY` somewhere safe.** It decrypts every customer database
+  password. Without it, a restored backup cannot be used.
+- **Fill in each customer's mail settings** under **Technisch beheer**. Until
+  you do, that customer sends no email at all. That is deliberate: sending from
+  the wrong company's mailbox would be worse.
 
-## Then
+## Further reading
 
 | | |
 | --- | --- |
-| [import-existing.md](import-existing.md) | move a single-customer Lavoro in as a customer |
-| [fail2ban.md](fail2ban.md) | lock out password guessing |
-| [../operations/runbook.md](../operations/runbook.md) | running it from here on |
+| [import-existing.md](import-existing.md) | moving an existing Lavoro in as a customer |
+| [fail2ban.md](fail2ban.md) | blocking repeated failed logins |
+| [../operations/runbook.md](../operations/runbook.md) | running the server from here on |
 | [../operations/backup-restore.md](../operations/backup-restore.md) | set up backups before you need them |
 | [../development/multi-tenancy.md](../development/multi-tenancy.md) | why it is built this way |

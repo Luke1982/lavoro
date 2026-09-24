@@ -1,56 +1,77 @@
 # Locking out password guessing
 
-Two things stand between somebody and a list of passwords:
+Somebody who wants into an account will try a lot of passwords. Two things stop
+that.
 
-1. **The application itself.** Both logins — the customers' and the panel at
-   `/beheer` — allow five attempts a minute per address, and twenty a minute
-   from one place. That needs no setup; it is on.
-2. **fail2ban**, which takes the route to the server away from whoever keeps
-   going. That is what this page sets up.
+**1. Lavoro itself.** Both login screens — the one customers use and the admin
+panel at `/beheer` — allow five attempts per minute for one email address, and
+twenty per minute from one IP address. After that the login screen refuses to
+try at all for a while. This needs no setup; it is always on.
 
-Every refused login is written to `storage/logs/auth.log`, and nothing else is:
+**2. fail2ban.** This is a standard Linux tool that watches a log file and
+blocks IP addresses in the firewall when they show up too often. Lavoro writes
+every refused login to a log file for it to read. Setting that up is what this
+page is about.
+
+## The log file
+
+Every refused login is written to `storage/logs/auth.log`. Nothing else is
+written to that file, so every line in it is a failed login attempt:
 
 ```
 [2026-09-24 07:12:44] WARNING: Failed login guard=web email="x@y.nl" ip=203.0.113.9
 [2026-09-24 07:13:02] WARNING: Login blocked after too many attempts guard=landlord email="a@b.nl" ip=203.0.113.9
 ```
 
-`guard=web` is a customer's login, `guard=landlord` the panel. The address is
-stripped of everything an address cannot contain before it is written: it comes
-from whoever is typing, and a newline in it would let them write their own lines
-— a refusal naming any address they like, and fail2ban banning whoever they
-point at.
+`guard=web` means somebody tried to log in as a customer's user.
+`guard=landlord` means the admin panel.
+
+The email address is typed by whoever is trying to log in, so before it is
+written to the file, everything that cannot appear in an email address is
+removed. Without that, somebody could type an address containing a line break
+and write their own fake lines into the log — a fake failed login naming any IP
+address they choose, which fail2ban would then block.
 
 ## Setting it up
 
 ```bash
-sudo apt install fail2ban                              # if it is not there yet
-sudo scripts/tenancy/setup-fail2ban.sh --dry-run       # shows both files, writes nothing
+sudo apt install fail2ban                              # if it is not installed yet
+sudo scripts/tenancy/setup-fail2ban.sh --dry-run       # shows both files, changes nothing
 sudo scripts/tenancy/setup-fail2ban.sh
 ```
 
-It writes a filter (`/etc/fail2ban/filter.d/lavoro-auth.conf`) and a jail
-(`/etc/fail2ban/jail.d/lavoro.conf`), tests the filter against the real log, and
-reloads fail2ban. Ten refusals within ten minutes costs an hour; change it with
-`--maxretry=`, `--findtime=` and `--bantime=`.
+The script writes two files: a filter
+(`/etc/fail2ban/filter.d/lavoro-auth.conf`) that describes what a failed login
+looks like, and a jail (`/etc/fail2ban/jail.d/lavoro.conf`) that says what to do
+about it. It then tests the filter against the real log file and reloads
+fail2ban.
+
+By default, ten refused logins within ten minutes get that IP address blocked
+for an hour. Change those numbers with `--maxretry=`, `--findtime=` and
+`--bantime=`.
+
+Checking and undoing a block:
 
 ```bash
-sudo fail2ban-client status lavoro-auth
-sudo fail2ban-client set lavoro-auth unbanip 203.0.113.9   # let someone back in
+sudo fail2ban-client status lavoro-auth                    # who is blocked
+sudo fail2ban-client set lavoro-auth unbanip 203.0.113.9   # let somebody back in
 ```
 
-## Behind a proxy
+## If the server is behind a proxy
 
-The address in the log is the one the application sees. Put Cloudflare, a load
-balancer or another reverse proxy in front without telling Laravel about it, and
-every line carries the proxy's address — fail2ban then bans the proxy, which
-takes everyone out at once. If you add one, set trusted proxies in
-`bootstrap/app.php` first, and check a line in the log shows a real visitor's
-address before you trust the jail.
+The IP address in the log is the address Lavoro sees. If you put Cloudflare, a
+load balancer or any other reverse proxy in front of the server without
+configuring Laravel for it, every request appears to come from the proxy. Then
+fail2ban blocks the proxy, and nobody can reach the site at all.
 
-## Keeping the file in hand
+If you add a proxy, first set the trusted proxies in `bootstrap/app.php`, then
+check that a line in `auth.log` shows a real visitor's IP address before
+relying on the blocking.
 
-The file grows slowly, but it is never emptied. Hand it to logrotate:
+## Keeping the log file from growing forever
+
+The file grows slowly, but nothing empties it. Let logrotate handle it by
+creating `/etc/logrotate.d/lavoro-auth`:
 
 ```
 /home/lavoro/lavorofsm/storage/logs/auth.log {
@@ -63,6 +84,8 @@ The file grows slowly, but it is never emptied. Hand it to logrotate:
 }
 ```
 
-`copytruncate` keeps fail2ban reading the same file. Twelve weeks is a choice,
-not a rule — the file holds email addresses and visitors' IP addresses, so keep
-it no longer than it is useful to you.
+`copytruncate` is needed so fail2ban keeps reading the same file after a
+rotation.
+
+Twelve weeks is a suggestion. The file contains email addresses and visitors' IP
+addresses, so do not keep it longer than you have a reason to.

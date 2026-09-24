@@ -1,17 +1,22 @@
 # Taking over an existing installation
 
-A Lavoro that serves one company becomes a customer of this one: its database,
-its uploads, its users and its package move across in a single command. Written
-for the step between [installing the server](server.md) and going live, but it
-works just as well on a server that is already running customers.
+Older Lavoro installations serve one company each, on their own server or in
+their own folder. This page is about moving such an installation into this one,
+where it becomes one customer among several.
 
-**The old installation goes offline first.** Everything below assumes nothing is
-writing to it any more.
+One command does the whole move: the database, the uploaded files, the users and
+their passwords, and the subscription.
 
-## 1. Take it down and back it up
+You normally do this between [installing the server](server.md) and going live,
+but it works just as well on a server that is already serving other customers.
 
-Do this outside working hours, and take a fresh dump while nothing is writing
-to it any more:
+**Take the old installation offline first.** Everything below assumes nobody is
+still working in it.
+
+## 1. Take it offline and back it up
+
+Do this outside working hours. Make a fresh database dump once nobody is using
+it any more:
 
 ```bash
 cd /path/to/old/lavoro
@@ -20,7 +25,11 @@ php artisan down
 mysqldump --single-transaction --routines <old_database> > ~/lavoro-before-move.sql
 ```
 
-Keep that dump for at least a week. Then:
+Keep that dump for at least a week, in case you need to go back.
+
+## 2. Run the import
+
+First with `--dry-run`, which changes nothing and only prints what it would do:
 
 ```bash
 cd /var/www/lavoro
@@ -33,52 +42,107 @@ scripts/tenancy/import-install.sh \
     --dry-run
 ```
 
-Read what it says it will do. If that is right, run it again without
-`--dry-run`.
+Read that plan. If it is right, run the same command again without `--dry-run`.
 
-It copies the old database into `lavoro_tenant_<slug>`, drops the tables that
-are now shared (sessions, cache, jobs), registers the customer, updates the
-schema, copies uploaded files into the customer's folder and sets the package.
+What it does:
 
-**Existing users come across with their own passwords.** The command registers
-their email addresses centrally, which is how logging in finds the right
-customer. You do not need to create anyone.
+1. copies the old database into a new one called `lavoro_tenant_<slug>`;
+2. removes the tables that are now shared between all customers (sessions,
+   cache and queued jobs);
+3. registers the company as a customer of this installation;
+4. brings the database tables up to date with the current code;
+5. copies the uploaded files into the customer's own folder;
+6. sets the subscription package.
 
-Run the doctor afterwards. It now also checks this customer: the database, the
-stored password, the login, the required work order stages, that every user has
-a central entry, and that the file folders exist and are writable.
+The existing users come across with the passwords they already had. Their email
+addresses are registered centrally, which is how the login screen knows which
+company somebody belongs to. You do not have to create any users.
 
-## 2. Test the things a program cannot check
+The command needs root, because the old installation belongs to a different
+Linux account and creating a database is not something the application's account
+may do. If it cannot become root by itself, it prints the exact command to run
+in a root shell.
 
-The doctor proves the plumbing. These are the things only a person can see:
+Afterwards, run:
 
-- Log in with an existing account and its old password
-- Open the customer list — is the number right?
-- **Open a photo on a work order.** Files move to a different folder during the
-  import. If that went wrong you get no error, just an empty space.
-- Open the planner and check appointments appear. They load over a different
-  route than the rest of the app.
-- Generate a work order PDF
-- Send a test email under **Technisch beheer**
-- Ask the AI assistant a question, if this customer has it
-- In `/beheer`, check the customer shows the right package, seats and storage
+```bash
+php artisan tenancy:doctor
+```
 
-## The flags, in short
+It now checks this customer too: the database, the stored password, the MySQL
+login, the required work order stages, whether every user is registered
+centrally, and whether the file folders exist and can be written to.
+
+## 3. Check the things a program cannot check
+
+The doctor checks the technical side. Somebody has to look at the rest:
+
+- log in with an existing account and its old password;
+- open the customer list and check the number of customers is right;
+- **open a photo on a work order.** The files moved to a different folder during
+  the import. If that went wrong there is no error message, just a blank space;
+- open the planner and check that appointments appear (they are loaded
+  differently from the rest of the application);
+- create a work order PDF;
+- send a test email under **Technisch beheer**;
+- ask the AI assistant a question, if this customer has it;
+- in `/beheer`, check that the customer shows the right package, number of seats
+  and storage limit.
+
+## 4. Importing the same installation again later
+
+A takeover often happens in steps. The company keeps working in the old
+installation for a while, or something needs correcting. You can then import it
+again, on top of the customer that is already here, by adding `--refresh`:
+
+```bash
+scripts/tenancy/import-install.sh \
+    --from /path/to/old/lavoro \
+    --name "Customer Name BV" \
+    --slug customername \
+    --package business \
+    --refresh
+```
+
+**What it does:** fetches the old database again, brings its tables up to date,
+copies the files across again and re-reads which users may log in.
+
+**What it keeps:** the customer keeps its id, its package, its number of seats,
+its modules, the date its subscription started and all invoices already issued.
+If somebody changed the package here since the first import, that change is kept
+as well, even if the command line still says the old package. The script says so
+and prints the command to change it anyway.
+
+**What it throws away:** anything that was changed on *this* side in that
+customer's database since the last import. The old installation's data replaces
+it. Before replacing anything, the script saves what is there to
+`storage/backups/before-refresh-<slug>-<date>.sql.gz`.
+
+**Files:** anything new at the old installation is copied here, and changed
+files overwrite the ones here. Files deleted at the old installation stay here.
+The import adds and overwrites; it never deletes.
+
+Do the last import after the old installation has been taken offline for good,
+then go through step 3 again.
+
+## All options
 
 ```bash
 bash scripts/tenancy/import-install.sh --from /home/klant/lavorofsm \
      --name "Bedrijf BV" --slug bedrijf --package business --dry-run
 ```
 
-Copies a single-customer installation into a customer of this setup: its
-database, its uploads, a login and the package. It needs root -- the other
-installation belongs to another account, and creating a database is not the app
-account's -- and says exactly what to paste in a root shell when it does not
-have it. `--dry-run` writes nothing and shows the whole plan; `--billing-from`
-sets the day billing starts (a date, or `none`), which on a takeover is an
-agreement rather than automatically today.
+| Option | What it does |
+| --- | --- |
+| `--from` | the folder of the old installation; its `.env` says which database to copy |
+| `--name` | the company name as it will appear in the admin panel |
+| `--slug` | short name used for the new database, `lavoro_tenant_<slug>` |
+| `--package` | the subscription package (`starter`, `team`, `business`, `enterprise`) |
+| `--billing-from` | the date the subscription starts. A date, or `none` to leave it open. Without it, today. On a takeover this is usually something you agreed, not today |
+| `--dry-run` | prints the whole plan and changes nothing |
+| `--refresh` | imports again into a customer that is already here, as described in step 4 |
 
-## Then
+## Next
 
-Back to [installing the server](server.md#7-go-live) for going live, or to the
+Continue with [going live](server.md#7-go-live), or go to the
 [runbook](../operations/runbook.md) if this server was already running.

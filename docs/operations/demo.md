@@ -1,51 +1,68 @@
 # The demo customer
 
-A customer called **Demo** holds a complete, credible installation for showing
-the app: a climate company with thirteen people (one per role, all with a
-face), a product catalogue with a picture on every product, some 150
-customers with their installations, five weeks of planning around today,
-open work waiting for a date, tickets in every state, and five projects --
-running, not started and finished -- with milestones, a budget sheet and a
-work order per phase, whose days show up in the planner.
+There is a customer called **Demo** that contains a complete, realistic company,
+meant for showing the app to people. It is a climate control company with:
 
-```
+- thirteen employees, one for each role, each with a photo;
+- a product catalogue with a picture on every product;
+- around 150 customers with their installations;
+- five weeks of planning around today, plus jobs that still need a date;
+- support tickets in every stage;
+- five projects (running, not started and finished) with milestones, a budget
+  and a work order per phase.
+
+## Creating it
+
+```bash
 php artisan demo:install
 ```
 
-The first time is by hand; it elevates itself to the provisioner, like
-`tenant:create`, and takes a minute or two. After that the scheduler throws it
-away and rebuilds it **every night at 04:00**, on the provisioning worker, so
-every demo starts clean, with the planning around the current week and nothing
-left over from the day before. Delete the Demo tenant in the admin panel and
-the nightly rebuild stops with it.
+Run this once by hand. It takes a minute or two. Like `tenant:create`, it
+switches to the database account that is allowed to create databases, so you do
+not need to do anything else.
 
-| Login | Password | Shows |
+After that it rebuilds itself **every night at 04:00**: the old demo is deleted
+and a new one is built. That way every demonstration starts with clean data and
+with the planning around the current week. If you delete the Demo customer in
+the admin panel, the nightly rebuild stops as well.
+
+## Logging in
+
+| Email | Password | You see |
 |---|---|---|
-| `demo@lavorofsm.nl` | `demo` | Sanne de Vries, admin |
+| `demo@lavorofsm.nl` | `demo` | Sanne de Vries, administrator |
 | `mark@lavorofsm.nl` | `demo` | the planner |
 | `lisa@lavorofsm.nl` | `demo` | the service desk |
 | `jeroen@lavorofsm.nl` | `demo` | a mechanic |
 
-Every other demo user logs in the same way: first name `@lavorofsm.nl`, password
-`demo`. An address points at one tenant, so none of these may be a real login
-elsewhere; the install stops if one is. No mail reaches them: the tenant has no
-mail settings, and without those it sends nothing.
+Every other demo employee logs in the same way: their first name, then
+`@lavorofsm.nl`, with password `demo`.
 
-- **Never invoiced.** The demo gets a fresh start date every night; invoicing
-  it would spend a real number from the invoice series each time.
-- **The AI assistant is on**, as part of the demo. What it can spend is capped
-  by the Business package's monthly allowance.
-- **Faces are photos, of nobody.** They are generated (thispersondoesnotexist)
-  and live in `database/seeders/data/demo/photos/users/<login>.jpg`, named by the
-  part of the login before the `@`: `mark.jpg`, and `demo.jpg` for Sanne.
-  Products are drawn by the seeder unless a photo is put in
-  `database/seeders/data/demo/photos/products/<brand-model>.jpg` (the slug of
-  brand and model, e.g. `daikin-perfera-ftxm25r.jpg`). The next rebuild uses it.
-- **No registered times.** Past appointments are finished on the work order,
-  but nobody has clocked them: a mechanic's registered times grey an
-  appointment out, and a planner full of grey shows nothing.
-- **A real customer called Demo** is never touched: the install refuses to
-  overwrite a tenant of that name that is not the demo.
+An email address can belong to only one customer in the whole installation. So
+none of these addresses may already be in use by a real customer. If one is,
+`demo:install` stops and says so.
 
-The local installation builds the same demo: see
+The demo customer has no mail settings, so it cannot send email to anyone.
+
+## Things to know
+
+- **The demo is never invoiced.** It gets a new start date every night, and
+  invoicing it would use up a real invoice number each time.
+- **The AI assistant is switched on** for the demo. What it may spend per month
+  is limited by the Business package.
+- **The faces are not real people.** They are computer-generated
+  (thispersondoesnotexist) and stored in
+  `database/seeders/data/demo/photos/users/<login>.jpg`, named after the part of
+  the email address before the `@`. So `mark.jpg`, and `demo.jpg` for Sanne.
+- **Product pictures** are drawn automatically unless you put a photo in
+  `database/seeders/data/demo/photos/products/<brand-model>.jpg`, for example
+  `daikin-perfera-ftxm25r.jpg`. The next nightly rebuild picks it up.
+- **Nobody has clocked their hours in the demo.** Appointments in the past are
+  completed on the work order, but without registered times. Registered times
+  turn an appointment grey in the planner, and a fully grey planner is not much
+  of a demonstration.
+- **A real customer named Demo is never touched.** If a customer with that name
+  exists and it is not the demo, `demo:install` refuses to run.
+
+A local development installation builds the same demo; see
 [getting started](../development/getting-started.md).
