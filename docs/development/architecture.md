@@ -43,13 +43,78 @@ action, return a page. Anything that deserves a name lives in `app/Services`,
 | Folder | What is in it |
 | --- | --- |
 | `app/Models` | Eloquent models. Behaviour shared by several models is in `app/Models/Traits`: `HasOwner`, `HasExecutingUsers`, `HasActivities`, `HasCustomFields`, `RemarkableTrait` |
-| `app/Domain/Signals` | events that say something happened, which other code can respond to. For example: a deleted record takes its photos with it, a completed work order writes its history |
+| `app/Domain/Signals` | the signal layer: business facts that have happened, which other code reacts to. Explained below |
 | `app/Domain/Assistant`, `app/Domain/Tools` | the AI assistant: the conversation loop, and the tools it is allowed to call. Each tool is a class with a description that the model reads |
 | `app/Domain/Planning`, `Access`, `Search`, `Tickets` | planning calculations, links for customers without an account, the search bar, ticket handling |
 | `app/Services` | PDFs, email, the SnelStart accounting integration, invoicing, creating customers |
 | `app/Jobs` | everything that runs in the background; per customer unless stated otherwise |
 | `app/Support` | small helpers with no better home: `Tenancy`, `Money`, `PageTitle`, `QueuedWork` |
 | `app/Tenancy` | the code that makes a request, a background job and the file storage belong to one customer |
+
+## The signal layer
+
+This is the main reason controllers here stay short, so it is worth
+understanding before you add one.
+
+A controller does the one thing it is for, and then says what happened:
+
+```php
+$image->delete();
+
+Signals::dispatch(new ImageRemoved($image));
+```
+
+Everything that follows from that fact lives elsewhere, in a listener: writing
+the activity trail, sending mail, syncing an appointment to Google, cleaning up
+files that no record points at any more. The controller does not know those
+exist, and adding another consequence later does not touch the controller again.
+
+**A signal is a fact, not a command.** `ImageRemoved`, `AppointmentRescheduled`,
+`ContractAssetDetached`: something that has already happened, named the way a
+person would say it. If you find yourself naming one `SendInvoiceMail`, that is
+a job, not a signal.
+
+**Writing one.** Extend `BaseSignal` in `app/Domain/Signals/<area>/` and
+implement what the `Signal` interface asks: a `key()` that is stored in the
+activity trail and must never be renamed or reused, the Dutch sentence a person
+reads, and `coveredFields()` for the model fields this signal reports itself —
+without that, the generic trail records the same change a second time.
+
+`ModelChanged` is the generic one: `RecordsHistory` emits it on every create,
+update, delete and restore, with one entry per changed field. Write a signal of
+your own only when the fact has a name of its own.
+
+**Listening.** A listener is a class in `app/Listeners` with a `handle()` method,
+and the type hint decides what it hears. Laravel's listener discovery registers
+it; there is no list to maintain:
+
+```php
+public function handle(ImageRemoved $signal): void    // this one signal
+public function handle(Signal $signal): void          // every signal there is
+```
+
+The second form is how `RecordActivity` writes the trail for every present and
+future signal without being touched.
+
+**When they run.** A signal fires immediately, inside the transaction that
+caused it, so a listener that writes to the database is atomic with the work it
+reacts to: a rollback takes its rows with it. A listener that leaves the
+database — mail, a queued job, an API — implements
+`ShouldHandleEventsAfterCommit`, because an email cannot be rolled back.
+
+**Failure.** A listener carrying a business rule lets its exceptions escape, so
+the whole operation fails with it. The audit trail is the exception: it catches
+and logs its own errors, because a broken trail must not break the work it
+describes.
+
+**The one door.** Always raise through `Signals::dispatch()`, never `event()`.
+That class is what makes the layer safe to use: a listener may cause further
+signals, which is the point, but that also means a cascade can loop back into
+itself. It refuses a repeat of the same fact about the same record in one chain,
+caps the chain at ten deep and a thousand signals per request, and reports each
+of those loudly instead of failing silently. It also gives every signal in one
+cascade the same correlation id, so an entire chain of consequences can be read
+back as one story.
 
 ## The front end
 

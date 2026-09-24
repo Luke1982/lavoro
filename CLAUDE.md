@@ -48,6 +48,18 @@ npm run fix:eslint
 -   String concatenation should always be done with spaces: $string . ' some other string'
 -   `docs/guide/handleiding.md` is the user manual the AI assistant answers from (`read_manual` tool). When user-facing behavior changes, update the relevant chapter in the same change.
 
+## Signals
+
+The layer that keeps controllers thin. A controller, action or service does the one thing it is for and announces the fact; everything that follows from that fact is a listener. See `docs/development/architecture.md#the-signal-layer`.
+
+-   Don't chain side effects in a controller. Do the work, then `Signals::dispatch(new ImageRemoved($image))`. The activity trail, mail, Google sync and cleaning up files are listeners in `app/Listeners`, not lines in the controller.
+-   Listeners subscribe by type hint and are found by Laravel's discovery — nothing is registered by hand. `handle(ImageRemoved $signal)` reacts to one signal, `handle(Signal $signal)` to every one there will ever be (that is how `RecordActivity` writes the trail).
+-   A new signal extends `BaseSignal` in `app/Domain/Signals/<area>/`. Its `key()` is stored in the activity trail: never rename it, never reuse it. Whatever fields it reports itself go in `coveredFields()`, or the generic model trail logs the same change a second time.
+-   Raise everything through `Signals::dispatch()`. It breaks signal loops, caps chain depth and per-request volume, and gives one cascade a single correlation id. Never `event()` a signal directly.
+-   Signals fire immediately, inside the transaction that caused them, so a listener that writes to the database rolls back with it. A listener that leaves the database — mail, a queued job, an API — implements `ShouldHandleEventsAfterCommit`.
+-   A listener may raise further signals; that is the point of the layer. A listener carrying a business rule lets its exceptions escape, so the whole operation fails with it. Only the audit trail swallows its own errors: a broken trail must not break the work it describes.
+-   `ModelChanged` is the generic "this record changed", emitted by `RecordsHistory` on every create, update, delete and restore. Write a signal of your own when the fact has a name a person would use ("appointment rescheduled", "contract asset detached"), not for an ordinary column change.
+
 ## Multi-tenancy
 
 -   Two databases: central (`lavoro_landlord`) and one per customer. `App\Models\Central\*` set `protected $connection = 'central'`; every other model uses the default connection, which is switched per request.
