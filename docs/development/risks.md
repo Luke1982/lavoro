@@ -194,7 +194,7 @@ This is new code, and deleting cannot be undone.
   checking, and every page returned a 500 error, including the login screen, so
   there was no way back in. The middleware now checks that the database can be
   opened and discards the session if it cannot. That company's edit screen keeps
-  working, because that is where the button to remove it is.
+  working, because that page holds the button to delete the customer.
 - **A question nobody could see.** In production, `tenants:seed` asks for
   confirmation, and creating a company runs it through `Artisan::call`, where
   that question goes into a buffer nobody reads. From a terminal it waited
@@ -297,3 +297,11 @@ spaces being written without them.
 3. **An invoice appearing in a direct debit file only once**, a test on
    `collected_at`.
 4. **A test run against MariaDB** instead of MySQL.
+
+## Next
+
+- [How one installation serves several companies](multi-tenancy.md) — the model
+  these risks come from
+- [Testing](testing.md) — how to run the tests named on this page
+- [Troubleshooting](../operations/troubleshooting.md) — the shorter list, for
+  whoever is running the server

@@ -1,9 +1,15 @@
 # How the application is put together
 
-Lavoro is a Laravel 12 application that serves Inertia pages rendered by Vue 3.
-There is one application and no separate API for the front end. It currently
-holds about 840 PHP classes, 220 Vue components, 270 migrations and 150 test
-files.
+Lavoro is a Laravel 12 application with a Vue 3 front end, connected by Inertia.
+
+Inertia means there is no separate API: a controller returns a page name and an
+array of data, and Inertia renders the matching Vue component with that data as
+its props. So routes, permissions and validation all stay in PHP, and the Vue
+side only renders it. If you have worked with Laravel and Vue separately,
+this is the part to read up on first.
+
+The application currently holds about 840 PHP classes, 220 Vue components, 270
+migrations and 150 test files.
 
 How one installation serves several companies is described separately in
 [multi-tenancy](multi-tenancy.md). This page covers everything else.
@@ -88,3 +94,10 @@ repository. These are the ones people most often get wrong:
 - The `userables` table with its `type` column holds every link between a person
   and a record (`owner`, `executing`). Do not add separate tables for that.
 - Permissions are named `{resource}.{action}` and are created in migrations.
+
+## Next
+
+- [How one installation serves several companies](multi-tenancy.md) — read this
+  before changing anything that queues a job, stores a file or signs a link
+- [Testing](testing.md) — how the suite works and what it covers
+- [What can go wrong](risks.md) — the parts that fail without an error message

@@ -13,6 +13,36 @@ but it works just as well on a server that is already serving other customers.
 **Take the old installation offline first.** Everything below assumes nobody is
 still working in it.
 
+## What you need before you start
+
+**The old installation has to be on this server**, both its folder and its
+database. The import reads its `.env` from a path on this machine, and copies
+its database from the MySQL server running here.
+
+If it is still on another machine, bring it over first:
+
+```bash
+# On the new server, as root: copy the folder across
+rsync -a old-server:/home/customer/lavorofsm/ /home/customer/lavorofsm/
+
+# Copy its database dump across and load it into a database here
+scp old-server:~/lavoro-before-move.sql .
+mysql -e "CREATE DATABASE old_customer_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+mysql old_customer_db < lavoro-before-move.sql
+```
+
+Then make sure the `DB_DATABASE` line in the copied `.env` names the database
+you just loaded, because that is the line the import reads to find it.
+
+**The import needs root**, because the old installation belongs to a different
+Linux account and creating a database is not something the application account
+may do. Run it with `sudo`, or as root. If it cannot become root by itself, it
+stops and prints the exact command to run in a root shell.
+
+**Pick a slug**: a short name for this customer, used for the new database name
+`lavoro_tenant_<slug>`. Use lowercase letters, digits and underscores only, and
+keep it recognisable: `spee`, `vandermeulen`.
+
 ## 1. Take it offline and back it up
 
 Do this outside working hours. Make a fresh database dump once nobody is using
@@ -55,13 +85,14 @@ What it does:
 6. sets the subscription package.
 
 The existing users come across with the passwords they already had. Their email
-addresses are registered centrally, which is how the login screen knows which
-company somebody belongs to. You do not have to create any users.
+addresses are registered in the shared database, which is how the login screen
+knows which company somebody belongs to. You do not have to create any users,
+and nobody has to choose a new password.
 
-The command needs root, because the old installation belongs to a different
-Linux account and creating a database is not something the application's account
-may do. If it cannot become root by itself, it prints the exact command to run
-in a root shell.
+If one of those addresses is already in use by another customer of this
+installation, the import stops and names it. An address can belong to only one
+company, so that has to be sorted out first: change it in the old installation,
+or in the other company.
 
 Afterwards, run:
 
@@ -77,15 +108,17 @@ centrally, and whether the file folders exist and can be written to.
 
 The doctor checks the technical side. Somebody has to look at the rest:
 
-- log in with an existing account and its old password;
+- log in as one of that company's own users, with the password they already
+  had;
 - open the customer list and check the number of customers is right;
 - **open a photo on a work order.** The files moved to a different folder during
   the import. If that went wrong there is no error message, just a blank space;
 - open the planner and check that appointments appear (they are loaded
   differently from the rest of the application);
 - create a work order PDF;
-- send a test email under **Technisch beheer**;
-- ask the AI assistant a question, if this customer has it;
+- send a test email under **Technisch beheer** (Dutch for "technical
+  management"), inside that company;
+- ask the AI assistant a question, if this customer's package includes it;
 - in `/beheer`, check that the customer shows the right package, number of seats
   and storage limit.
 
@@ -144,5 +177,5 @@ bash scripts/tenancy/import-install.sh --from /home/klant/lavorofsm \
 
 ## Next
 
-Continue with [going live](server.md#7-go-live), or go to the
+Continue with [going live](server.md#8-go-live), or go to the
 [runbook](../operations/runbook.md) if this server was already running.

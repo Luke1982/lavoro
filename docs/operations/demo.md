@@ -13,18 +13,25 @@ meant for showing the app to people. It is a climate control company with:
 
 ## Creating it
 
+Run this once by hand, from the folder Lavoro is installed in:
+
 ```bash
 php artisan demo:install
 ```
 
-Run this once by hand. It takes a minute or two. Like `tenant:create`, it
-switches to the database account that is allowed to create databases, so you do
-not need to do anything else.
+It takes a minute or two. Like `tenant:create`, it switches to the database
+account that is allowed to create databases, so there is nothing else to set up.
+It counts as a customer like any other, with its own database
+`lavoro_tenant_demo`, so it uses storage and shows up in `tenants:list`.
 
-After that it rebuilds itself **every night at 04:00**: the old demo is deleted
-and a new one is built. That way every demonstration starts with clean data and
-with the planning around the current week. If you delete the Demo customer in
-the admin panel, the nightly rebuild stops as well.
+After that it rebuilds itself **every night at 04:00**: the existing demo is
+deleted and a new one is built, which takes a minute or two. Every
+demonstration therefore starts with clean data and with the planning around the
+current week.
+
+The nightly rebuild depends on the cron line that runs the scheduler; see
+[the runbook](../operations/runbook.md#what-has-to-be-running). If you delete the
+Demo customer in the admin panel, the rebuild stops with it.
 
 ## Logging in
 
@@ -48,8 +55,9 @@ The demo customer has no mail settings, so it cannot send email to anyone.
 
 - **The demo is never invoiced.** It gets a new start date every night, and
   invoicing it would use up a real invoice number each time.
-- **The AI assistant is switched on** for the demo. What it may spend per month
-  is limited by the Business package.
+- **The AI assistant is switched on** for the demo, so you can show it. What it
+  may spend per month is limited by the Business package, like any customer on
+  that package.
 - **The faces are not real people.** They are computer-generated
   (thispersondoesnotexist) and stored in
   `database/seeders/data/demo/photos/users/<login>.jpg`, named after the part of
@@ -62,7 +70,8 @@ The demo customer has no mail settings, so it cannot send email to anyone.
   turn an appointment grey in the planner, and a fully grey planner is not much
   of a demonstration.
 - **A real customer named Demo is never touched.** If a customer with that name
-  exists and it is not the demo, `demo:install` refuses to run.
+  exists and it is not the demo, `demo:install` stops and says so, rather than
+  deleting a real company's data.
 
 A local development installation builds the same demo; see
 [getting started](../development/getting-started.md).

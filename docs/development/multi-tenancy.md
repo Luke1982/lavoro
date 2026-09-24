@@ -140,3 +140,11 @@ Each of these has caused a real problem at least once, and each now has a test:
 | `app/Http/Middleware/InitializeTenancyBySession.php` | how a request finds its company |
 | `config/tenancy.php` | which bootstrappers run, the database prefix, the grant procedure |
 | `docs/archive/plans/2026-06-09-multi-database-tenancy.md` | the original build plan, task by task |
+
+## Next
+
+- [What can go wrong](risks.md) — every failure mode of this setup, and which
+  test catches it
+- [Testing](testing.md) — why the suite runs on MySQL and how a test gets a
+  customer
+- [The runbook](../operations/runbook.md) — the same setup seen from the server

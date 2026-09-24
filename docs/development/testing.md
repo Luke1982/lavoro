@@ -1,5 +1,8 @@
 # Testing
 
+This page is about the automated test suite: how to run it, why it needs a real
+MySQL server, and what it does and does not check.
+
 ```bash
 composer test                            # everything
 php artisan test --filter=IsolationTest  # one test or one class

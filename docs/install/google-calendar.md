@@ -129,3 +129,10 @@ To force-disconnect a user as admin:
 php artisan tinker
 >>> App\Jobs\Google\TeardownIntegrationJob::dispatch(App\Models\User::find($id)->googleCalendarIntegration->id);
 ```
+
+## Next
+
+- [The runbook](../operations/runbook.md) — the cron job and the workers this
+  synchronisation depends on
+- [Troubleshooting](../operations/troubleshooting.md) — when background work is
+  not happening

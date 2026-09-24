@@ -1,28 +1,76 @@
 # Installing Lavoro on a new server
 
-Follow these steps in order. Allow about an hour, plus the time a database dump
+Lavoro is a field service application. One installation serves several
+companies, each with its own database. By the end of this page you have a
+working installation on your own server, with your admin login, and one company
+in it.
+
+Follow the steps in order. Allow about an hour, plus the time a database dump
 takes if you are moving an existing installation in.
 
-If you are moving an existing installation in, it keeps running until step 7, so
-everything before that is safe.
+If you are moving an existing installation in, that one keeps running until step
+7, so everything before that is safe.
 
-These instructions are written for MariaDB 10.11 and PHP 8.3. Where MySQL works
-differently, it says so.
+These instructions are written for Ubuntu or Debian with MariaDB 10.11 and PHP
+8.3. Where MySQL works differently, it says so.
 
-## Check after every step
+## What the server needs first
+
+Lavoro is a PHP application with a MySQL database. Install these before you
+start:
+
+```bash
+sudo apt update
+sudo apt install -y git curl acl \
+    mariadb-server \
+    php8.3-fpm php8.3-cli php8.3-mysql php8.3-mbstring php8.3-xml \
+    php8.3-curl php8.3-zip php8.3-gd php8.3-bcmath php8.3-intl
+```
+
+You also need:
+
+- **Composer**, the PHP package manager: https://getcomposer.org/download/
+- **Node 22 and npm**, to build the front end:
+  `curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs`
+- **a web server**, nginx or Apache, or LiteSpeed. Step 5 sets it up.
+- **a domain name pointing at this server, with an HTTPS certificate**. Lavoro
+  sends links by email that have to work from outside.
+
+The `pcntl` and `posix` PHP extensions have to be available to the command line
+PHP, which they are in `php8.3-cli` by default. `php artisan tenancy:doctor`
+checks for every extension it needs and names any that are missing.
+
+## A Linux account to own the files
+
+Do not install Lavoro as root. Create an account for it, and use that account
+for every command on this page that does not start with `sudo`:
+
+```bash
+sudo adduser --disabled-password --gecos "" lavoro
+sudo su - lavoro
+```
+
+Whichever name you choose, this page calls it the **application account**. Its
+name matters later: the background processes and the file permissions are set up
+for exactly this account.
+
+## The check you use throughout
 
 ```bash
 php artisan tenancy:doctor
 ```
 
-This is the check you use throughout. It looks at the database accounts and
-their permissions, the PHP extensions, the `.env` file, both background
-processes, the cron job, your invoicing details and every customer database. It
-prints what is wrong and what to do about it, and exits with an error code so a
-script can stop on it.
+Run it from the installation folder, as the application account. It looks at the
+database accounts and their permissions, the PHP extensions, the `.env` file,
+both background processes, the cron job, your invoicing details and every
+customer database. It prints one line per check (`OK`, `FAIL` or `SKIP`), says
+what to do about each failure, and exits with code 1 if anything failed.
 
-While you are working through this page it will complain about things that are
-not set up yet. That is expected; the complaints disappear step by step.
+It only works from step 4 onwards, because before that there is no `.env` file
+for it to read. Until then it stops with an error instead of a report.
+
+While you work through this page it will complain about things you have not set
+up yet. That is expected; the complaints disappear step by step.
 
 ## Three accounts, and which one does what
 
@@ -30,7 +78,7 @@ not set up yet. That is expected; the complaints disappear step by step.
 | --- | --- |
 | **root** | everything with `sudo` in front of it here: creating accounts, `setfacl`, `systemctl`, `crontab` |
 | **the application account** (the Linux user that owns the files; `lavoro` in these examples) | `git`, `composer`, `npm` and every `php artisan` command. Never with `sudo`: this account deliberately has no sudo rights |
-| **lavoro_provisioner** | creating and deleting customer databases, and nothing else. You never log in as this account yourself. After step 6 the relevant commands switch to it automatically |
+| **lavoro_provisioner** | creating and deleting customer databases, and nothing else. You never log in as this account yourself. After step 7 the relevant commands switch to it automatically |
 
 If a command asks you for a password, you are running it as the wrong account.
 Logged in as the application account, `php artisan …` needs no `sudo`.
@@ -56,13 +104,15 @@ serves a single company, and will become the first customer here), also have:
   its other encrypted fields. Without it, that data cannot be read.
 
 If you are starting empty, none of that applies. Step 4 generates a key for you,
-and you create your first customer in step 8.
+and you create your first customer in step 9.
 
 ## 1. Get the code
 
+As the application account:
+
 ```bash
 sudo mkdir -p /var/www/lavoro
-sudo chown "$USER" /var/www/lavoro
+sudo chown lavoro /var/www/lavoro
 git clone <repository-url> /var/www/lavoro
 cd /var/www/lavoro
 
@@ -70,11 +120,19 @@ composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 ```
 
+`<repository-url>` is the Git repository you were given access to. `npm run
+build` compiles the front end into `public/build`; the site shows an error page
+without it.
+
 ## 2. Check that socket login is available
 
 Lavoro uses a database account that logs in without a password, identified by
-the Linux user it belongs to. This is called socket authentication. Check that
-the database server supports it:
+the Linux user it belongs to. This is called socket authentication, and the
+account that creates customer databases uses it, so that no password for it
+exists anywhere on disk.
+
+Check that your database server supports it. Open the database client as root
+(`sudo mysql`) and run:
 
 ```sql
 SELECT plugin_name, plugin_status, plugin_library
@@ -179,7 +237,7 @@ overwrite them. To run it without questions:
 ```bash
 scripts/tenancy/setup-env.sh --yes \
     --url=https://your-domain.example \
-    --mail-host=smtp.example --mail-from=info@majorlabel.nl
+    --mail-host=smtp.example --mail-from=facturen@your-company.example
 ```
 
 Two settings are worth knowing about:
@@ -197,22 +255,99 @@ Then create the tables in the shared database:
 php artisan migrate --force
 ```
 
-## 5. Create your own admin login
+`--force` is needed because Laravel asks for confirmation before changing a
+database in production, and there is nobody to ask in a script.
+
+## 5. Point your web server at Lavoro
+
+The web server has to serve the `public` folder inside the installation, and
+nothing above it. If you point it at `/var/www/lavoro` instead, anyone can
+download your `.env` file, and with it every password on this server.
+
+PHP allows 2 MB uploads by default, while Lavoro accepts documents of up to
+100 MB. Raise both PHP and the web server, or uploads fail with an error that
+does not mention a size:
 
 ```bash
-php artisan landlord:user you@majorlabel.nl
+sudo tee /etc/php/8.3/fpm/conf.d/99-lavoro.ini <<'EOF'
+upload_max_filesize = 100M
+post_max_size = 105M
+EOF
+sudo systemctl restart php8.3-fpm
 ```
 
-It prints a generated password. This account lives in the shared database and
-has nothing to do with any customer's users.
+For nginx, a site file such as `/etc/nginx/sites-available/lavoro`:
 
-Open `https://your-domain.example/beheer`, log in, and go to **Catalogus →
-Facturatie**. Fill in your address, chamber of commerce number, VAT number, IBAN
-and payment terms. If you are going to collect by direct debit, add the creditor
-id your bank gave you. The doctor reports these as missing until they are filled
-in.
+```nginx
+server {
+    listen 443 ssl;
+    server_name your-domain.example;
 
-## 6. Set up the background processes
+    root /var/www/lavoro/public;
+    index index.php;
+
+    client_max_body_size 105M;
+
+    ssl_certificate     /etc/letsencrypt/live/your-domain.example/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.example/privkey.pem;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+```
+
+Then enable it and reload:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/lavoro /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+On Apache, set `DocumentRoot /var/www/lavoro/public`, allow `.htaccess`
+(`AllowOverride All`) for that folder, and set `LimitRequestBody 110100480`. The
+`.htaccess` file that Laravel ships handles the rest. On LiteSpeed, set the
+document root the same way in its control panel.
+
+Get a certificate with `sudo certbot --nginx -d your-domain.example` if you do
+not have one yet, and make sure plain HTTP redirects to HTTPS.
+
+Now open `https://your-domain.example` in a browser. You should see Lavoro's
+login screen. You cannot log in yet: that is the next step.
+
+If you get a 500 error instead, look in `storage/logs/laravel.log`. If that file
+is empty or missing, the web server's account cannot write there, which step 7
+fixes.
+
+## 6. Create your own admin login
+
+```bash
+php artisan landlord:user you@your-company.example
+```
+
+It prints a generated password. Write it down; it is not shown again. This
+account lives in the shared database and is only for the admin panel, so it
+cannot log in to any company's own screens.
+
+Now open `https://your-domain.example/beheer` and log in. This is the admin
+panel, where you manage companies, subscriptions and invoices.
+
+Go to **Catalogus → Facturatie** (Dutch for "catalogue" and "invoicing") and
+fill in your own company details: address, chamber of commerce number, VAT
+number, IBAN and payment terms. These end up on the invoices you send to your
+customers. If you are going to collect by direct debit, add the creditor id your
+bank gave you. The doctor reports these as missing until they are filled in.
+
+## 7. Set up the background processes
 
 ```bash
 sudo scripts/tenancy/setup-workers.sh --dry-run   # shows what it will write
@@ -234,6 +369,16 @@ The script reads the account, the path, the PHP binary and the name of the
 database service from the machine instead of assuming them. An installation in a
 home directory runs as a different account than one in `/var/www`, and a service
 file naming the wrong account starts without error and then does nothing.
+
+Check that both are running:
+
+```bash
+systemctl status lavoro-worker lavoro-provisioning
+```
+
+Each worker reports in once a minute, so wait a minute before asking the doctor
+about them. An empty queue looks exactly like a stopped worker, and that regular
+report is the only way to tell the two apart.
 
 ### File permissions
 
@@ -270,13 +415,17 @@ that owns the files:
 ps -eo user,comm | grep -iE 'lsphp|php-fpm'
 ```
 
-LiteSpeed usually runs as `nobody`, Apache and nginx as `www-data`. Whichever it
-is, it needs to write to `storage` and `bootstrap/cache`:
+LiteSpeed usually runs as `nobody`, Apache and nginx as `www-data`. Whichever
+name that command printed, put it in the two lines below in place of `nobody`.
+That account has to be able to write to `storage` and `bootstrap/cache`:
 
 ```bash
 sudo setfacl -R -m u:nobody:rwX storage bootstrap/cache
 sudo setfacl -R -d -m u:nobody:rwX storage bootstrap/cache
 ```
+
+The second line is not a repeat of the first: `-d` sets the default for files
+created later, so new folders inherit the same access.
 
 If this is wrong, the application cannot write its own log file. Errors then
 disappear without a page, without a log entry and with nothing to search for: a
@@ -381,12 +530,12 @@ and going live below then switches over to a server that already holds the data.
 
 [Taking over an existing installation](import-existing.md) describes the whole
 procedure: the old installation goes offline, its database and files are copied
-across, and its users keep their own passwords. Come back here for step 7
+across, and its users keep their own passwords. Come back here for step 8
 afterwards.
 
 Starting empty? Skip this and continue.
 
-## 7. Go live
+## 8. Go live
 
 ```bash
 php artisan config:cache
@@ -396,38 +545,54 @@ sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
 php artisan up
 ```
 
-Use the name of the PHP service on this machine; `php8.3-fpm` is an example.
+The three `:cache` commands compile the settings, the routes and the templates
+into files, which makes every request faster. **From then on, changing `.env`
+has no effect until you run `php artisan config:cache` again**, so remember this
+when you change a setting later. `php artisan config:clear` undoes it.
+
+`php8.3-fpm` is an example; use the name of the PHP service on this machine.
+
+`php artisan up` takes the installation out of maintenance mode. On a fresh
+install it was never in it, and the command does no harm.
 
 **If you moved an installation in:** leave the old one in place for a week with
 its web server switched off. Do not delete it. It is the fastest way back if
 something comes up that the checks did not catch.
 
-## 8. Add a customer
+## 9. Add a customer
 
 Do this on a quiet day. It is the first time a customer database is created for
 real. If you moved an installation in, it is also the first time you can see two
 customers side by side and check that they cannot reach each other's data.
 
-Either use **Nieuwe tenant** in `/beheer`, or run:
+Either use **Nieuwe tenant** (Dutch for "new customer") in `/beheer`, or run:
 
 ```bash
 php artisan tenant:create "Customer BV" admin@customer.example --package=starter
 ```
 
-Creating one through the panel queues a job for the provisioning worker. If the
-request stays on "in de wacht", that worker is not running, and the doctor will
-say so. While the worker is busy, the panel refreshes itself, so the list
-updates without you reloading the page.
+`--package` is the subscription package: `starter`, `team`, `business` or
+`enterprise`. The email address becomes the first administrator of that company,
+and the command prints a generated password for them.
 
-Deleting a customer works the same way: open it, choose **bewerken**, and use
-the red block at the bottom, where you have to type the name in full. That
-deletes the database, the database account, the files and the rows in the shared
-database. There is no way back.
+Creating one through the panel writes a request that the provisioning worker
+picks up, so it takes a few seconds. If it stays on "in de wacht" (Dutch for
+"waiting"), that worker is not running, and the doctor will say so. While the
+worker is busy the panel refreshes itself, so the list updates without you
+reloading the page.
 
-Then log in as the new customer. You should see an empty installation. If there
-is a second customer on the server, check the thing this whole setup exists for:
-logged in as one customer, try to open a file belonging to the other. You should
-get a 404.
+Deleting a customer is done in the same screen: open it, choose **bewerken**
+(Dutch for "edit"), and use the red block at the bottom, where you have to type
+the company name in full. That deletes the database, its database account, the
+files and the rows in the shared database. There is no way back except a backup.
+
+Then log in as the new customer's administrator. You should see an empty
+installation.
+
+If there is a second customer on this server, check the thing this whole setup
+exists for: while logged in as one company, open a file belonging to the other,
+for example `https://your-domain.example/files/images/1`. You should get a 404,
+not the file.
 
 ## Once you are live
 
@@ -437,9 +602,13 @@ get a 404.
   `scripts/tenancy/backup.sh`.
 - **Store `APP_KEY` somewhere safe.** It decrypts every customer database
   password. Without it, a restored backup cannot be used.
-- **Fill in each customer's mail settings** under **Technisch beheer**. Until
-  you do, that customer sends no email at all. That is deliberate: sending from
-  the wrong company's mailbox would be worse.
+- **Block password guessing.** Lavoro writes every refused login to a file;
+  `sudo scripts/tenancy/setup-fail2ban.sh` makes fail2ban act on it. Until you
+  run that, nobody is ever blocked. See [fail2ban](fail2ban.md).
+- **Fill in each customer's mail settings**, inside that company under
+  **Technisch beheer** (Dutch for "technical management"). Until somebody does,
+  that company sends no email at all. That is deliberate: sending from the wrong
+  company's mail server would be worse than not sending.
 
 ## Further reading
 

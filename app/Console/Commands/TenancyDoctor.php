@@ -442,7 +442,10 @@ class TenancyDoctor extends Command
 
             $orphan->isEmpty()
                 ? $this->pass("{$users->count()} users in the central list")
-                : $this->bad($orphan->count() . ' user(s) without a central row -- they cannot log in');
+                : $this->bad($orphan->count() . ' user(s) without a central row -- they cannot log in.'
+                    . ' Register every address of this tenant again with:' . "\n"
+                    . '         php artisan tenant:setup-existing "' . $tenant->name . '" '
+                    . $tenant->getInternal('db_name'));
 
             /**
              * Write access is checked for the account the web server runs as,

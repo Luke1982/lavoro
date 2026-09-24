@@ -23,10 +23,17 @@ The first time you run it, it:
 Every later run updates the database tables (the shared one and every customer)
 and then starts everything. Your own `.env` file is never touched.
 
+When it is ready it keeps running in the foreground and prints the output of the
+application, both workers and Vite together. Stop it with Ctrl-C.
+
 | | Address | Login |
 | --- | --- | --- |
 | The application | http://127.0.0.1:8199 | `demo@lavorofsm.nl` / `demo` |
 | The admin panel | http://127.0.0.1:8199/beheer | `admin@lavoro.local` / `testtest` |
+
+If it stops with an error, it says which step failed. The usual causes are MySQL
+not running, or a PHP extension missing (`pdo_mysql`, `pcntl`, `posix`). Fix
+that and run it again; it continues from where it can.
 
 Every user in the demo company logs in with the password `demo`. `mark@` is the
 planner, `lisa@` the service desk, `jeroen@` a mechanic. What the demo contains

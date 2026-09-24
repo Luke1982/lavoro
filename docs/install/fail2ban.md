@@ -34,11 +34,15 @@ address they choose, which fail2ban would then block.
 
 ## Setting it up
 
+Run these from the folder Lavoro is installed in:
+
 ```bash
 sudo apt install fail2ban                              # if it is not installed yet
 sudo scripts/tenancy/setup-fail2ban.sh --dry-run       # shows both files, changes nothing
 sudo scripts/tenancy/setup-fail2ban.sh
 ```
+
+Until you run this, `storage/logs/auth.log` fills up and nobody is ever blocked.
 
 The script writes two files: a filter
 (`/etc/fail2ban/filter.d/lavoro-auth.conf`) that describes what a failed login
@@ -74,7 +78,7 @@ The file grows slowly, but nothing empties it. Let logrotate handle it by
 creating `/etc/logrotate.d/lavoro-auth`:
 
 ```
-/home/lavoro/lavorofsm/storage/logs/auth.log {
+/var/www/lavoro/storage/logs/auth.log {
     weekly
     rotate 12
     compress
@@ -84,8 +88,14 @@ creating `/etc/logrotate.d/lavoro-auth`:
 }
 ```
 
-`copytruncate` is needed so fail2ban keeps reading the same file after a
-rotation.
+Use the real path of your installation on the first line. `copytruncate` is
+needed so that fail2ban keeps reading the same file after a rotation.
 
 Twelve weeks is a suggestion. The file contains email addresses and visitors' IP
 addresses, so do not keep it longer than you have a reason to.
+
+## Next
+
+- [The runbook](../operations/runbook.md) — running the server day to day
+- [Troubleshooting](../operations/troubleshooting.md) — if somebody is locked
+  out and you are not sure why
