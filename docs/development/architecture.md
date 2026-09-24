@@ -107,6 +107,33 @@ the whole operation fails with it. The audit trail is the exception: it catches
 and logs its own errors, because a broken trail must not break the work it
 describes.
 
+**Why the trail matters more than an audit log.** `RecordActivity` turns every
+signal into rows in `activities`, linked to the record through the
+`activityables` pivot. Those rows are not just for accountability:
+
+- the timeline component on a customer, work order, asset or contract renders
+  them, so they are the history a user reads on screen;
+- the AI assistant reads them through `SearchActivityTool`, which is how it
+  answers "who last changed this work order and what did they change", "what was
+  this price before it was corrected", or "what happened at this customer this
+  week". Because every change is stored per field, with the raw value and the
+  readable label both before and after, it can answer questions no summary
+  sentence could.
+
+An action that changes a record without raising a signal is invisible to both.
+There is no timeline entry, and the assistant will correctly say it does not
+know — which is worse than it sounds, because the user cannot tell the
+difference between "that never happened" and "that was not recorded".
+
+So a signal is only finished when the trail can use it: `subject()` is the
+record the fact is about (an entry whose subject cannot be resolved is never
+shown), `activityDescription()` is the Dutch sentence a person reads,
+`changes()` carries the values before and after, `activityContext()` names the
+other records the fact belongs on, and `requiredPermission()` keeps sensitive
+values from readers who may not see them. The assistant inherits that permission
+boundary automatically: it may read an entry exactly when the user asking may
+read its subject.
+
 **The one door.** Always raise through `Signals::dispatch()`, never `event()`.
 That class is what makes the layer safe to use: a listener may cause further
 signals, which is the point, but that also means a cascade can loop back into
