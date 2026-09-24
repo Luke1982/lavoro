@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -65,6 +66,32 @@ return [
             'replace_placeholders' => true,
         ],
 
+        /*
+        | Refused logins, and nothing else, so a line in this file means one
+        | thing and fail2ban can act on it. One file and not a daily one: a
+        | jail watches a path, and a path with today's date in it stops being
+        | the file tomorrow. Rotation belongs to logrotate; see
+        | docs/install/fail2ban.md.
+        */
+        'auth' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/auth.log'),
+            'level' => 'info',
+            'permission' => 0660,   // written by the web account, sometimes by the console one
+            'replace_placeholders' => false,
+            /*
+            | Our own line, not Laravel's default: that one ends in the room
+            | left for context and extra, so every line carries trailing
+            | spaces a filter then has to know about. This shape is the one
+            | the fail2ban filter matches, and a test holds them together.
+            */
+            'formatter' => LineFormatter::class,
+            'formatter_with' => [
+                'format' => "[%datetime%] %level_name%: %message%\n",
+                'dateFormat' => 'Y-m-d H:i:s',
+            ],
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
@@ -89,7 +116,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],

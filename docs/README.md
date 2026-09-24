@@ -26,6 +26,7 @@ Find yourself in the first column.
   becomes a customer of this one
 - [google-calendar.md](install/google-calendar.md) — the Google project, once
   per installation
+- [fail2ban.md](install/fail2ban.md) — locking out password guessing
 - [android.md](install/android.md) — building and releasing the app
 
 **operations** — running it

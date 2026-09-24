@@ -305,5 +305,6 @@ maintenance page still goes off.
 | [backup-restore.md](backup-restore.md) | what to keep, and how to put it back |
 | [troubleshooting.md](troubleshooting.md) | when the doctor is not enough |
 | [demo.md](demo.md) | the demo customer |
+| [../install/fail2ban.md](../install/fail2ban.md) | refused logins, and who gets locked out |
 | [import-existing.md](../install/import-existing.md) | take over a single-customer Lavoro |
 | [../development/risks.md](../development/risks.md) | where this breaks and how you notice |

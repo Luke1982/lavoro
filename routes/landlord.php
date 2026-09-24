@@ -27,7 +27,7 @@ Route::prefix('beheer')
     ])
     ->group(function () {
         Route::get('login', [AuthController::class, 'showLogin'])->name('landlord.login');
-        Route::post('login', [AuthController::class, 'login'])->name('landlord.login.post');
+        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('landlord.login.post');
 
         Route::middleware('auth:landlord')->group(function () {
             Route::post('logout', [AuthController::class, 'logout'])->name('landlord.logout');

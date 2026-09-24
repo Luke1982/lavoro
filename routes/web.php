@@ -600,7 +600,7 @@ Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->grou
 });
 
 Route::get('login', [AuthController::class, 'create'])->name('login');
-Route::post('login', [AuthController::class, 'store'])->name('login.store');
+Route::post('login', [AuthController::class, 'store'])->middleware('throttle:login')->name('login.store');
 Route::get('logout', [AuthController::class, 'destroy'])->name('logout');
 
 Route::get('password/forgot', [PasswordResetController::class, 'create'])->name('password.request');
