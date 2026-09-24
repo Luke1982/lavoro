@@ -31,7 +31,7 @@ return [
     /*
     | Group-writable, because two accounts work in the same folders: the web
     | server puts uploads down, the provisioner seeds and deletes customers.
-    | The access control lists in docs/tenancy-production.md name both, but
+    | The access control lists in docs/install/server.md name both, but
     | a folder made 0755 caps what they grant at read-only, and 0700 (the
     | default for the local disk) at nothing.
     */

@@ -27,6 +27,9 @@ Three identities, and mixing them up costs an afternoon:
 | **the app account** (the user owning the checkout — `lavoro` in these examples) | `git`, `composer`, `npm`, and every `php artisan` command. No `sudo`: it is deliberately not a sudoer. |
 | **lavoro_provisioner** | Only creates and deletes customer databases. You never log in as this one. Tenant commands become it by themselves once step 6 is done. |
 
+Why the split exists, and what each account may reach in the database, is
+[multi-tenancy](../development/multi-tenancy.md#three-mysql-accounts).
+
 If a command asks for a password, you are running it as the wrong account.
 Logged in as the app account, `php artisan …` needs no `sudo` at all — it is
 already that user.
@@ -333,7 +336,6 @@ step before believing the doctor on that point.
 **Everything above should now be clean.** Run the doctor and fix anything it
 reports before continuing. What follows involves real customer data.
 
-
 ## Uploads do not belong in git
 
 `storage/tenant-<id>` holds a customer's files: photos on service orders, pdfs,
@@ -358,63 +360,7 @@ their file count and size. Look inside first, then clear one with
 `php artisan tenancy:prune-storage tenant-<id>`; it prints what it is about to
 delete and asks before it does. Empty left-overs are not reported.
 
-## 7. Move your existing installation in
-
-From here the old installation is offline. Do this outside working hours.
-
-Take it down and take a fresh backup while nothing is writing to it:
-
-```bash
-cd /path/to/old/lavoro
-php artisan down
-
-mysqldump --single-transaction --routines <old_database> > ~/lavoro-before-move.sql
-```
-
-Keep that dump for at least a week. Then:
-
-```bash
-cd /var/www/lavoro
-
-scripts/tenancy/import-install.sh \
-    --from /path/to/old/lavoro \
-    --name "Customer Name BV" \
-    --slug customername \
-    --package business \
-    --dry-run
-```
-
-Read what it says it will do. If that is right, run it again without
-`--dry-run`.
-
-It copies the old database into `lavoro_tenant_<slug>`, drops the tables that
-are now shared (sessions, cache, jobs), registers the customer, updates the
-schema, copies uploaded files into the customer's folder and sets the package.
-
-**Existing users come across with their own passwords.** The command registers
-their email addresses centrally, which is how logging in finds the right
-customer. You do not need to create anyone.
-
-Run the doctor afterwards. It now also checks this customer: the database, the
-stored password, the login, the required work order stages, that every user has
-a central entry, and that the file folders exist and are writable.
-
-## 8. Test the things a program cannot check
-
-The doctor proves the plumbing. These are the things only a person can see:
-
-- Log in with an existing account and its old password
-- Open the customer list — is the number right?
-- **Open a photo on a work order.** Files move to a different folder during the
-  import. If that went wrong you get no error, just an empty space.
-- Open the planner and check appointments appear. They load over a different
-  route than the rest of the app.
-- Generate a work order PDF
-- Send a test email under **Technisch beheer**
-- Ask the AI assistant a question, if this customer has it
-- In `/beheer`, check the customer shows the right package, seats and storage
-
-## 9. Go live
+## 7. Go live
 
 ```bash
 php artisan config:cache
@@ -427,7 +373,7 @@ php artisan up
 Leave the old installation in place for a week with its web server switched
 off. Do not delete it.
 
-## 10. Add a second customer
+## 8. Add a second customer
 
 Do this on a quiet day. It is the first time a database gets created for real.
 
@@ -453,64 +399,6 @@ customer, try to open a file belonging to the first: you should get a 404.
 
 ---
 
-## The demo tenant
-
-A tenant called **Demo** holds a complete, credible installation for showing
-the app: a climate company with thirteen people (one per role, all with a
-face), a product catalogue with a picture on every product, some 150
-customers with their installations, five weeks of planning around today,
-open work waiting for a date, tickets in every state, and five projects --
-running, not started and finished -- with milestones, a budget sheet and a
-work order per phase, whose days show up in the planner.
-
-```
-php artisan demo:install
-```
-
-The first time is by hand; it elevates itself to the provisioner, like
-`tenant:create`, and takes a minute or two. After that the scheduler throws it
-away and rebuilds it **every night at 04:00**, on the provisioning worker, so
-every demo starts clean, with the planning around the current week and nothing
-left over from the day before. Delete the Demo tenant in the admin panel and
-the nightly rebuild stops with it.
-
-| Login | Password | Shows |
-|---|---|---|
-| `demo@lavorofsm.nl` | `demo` | Sanne de Vries, admin |
-| `mark@lavorofsm.nl` | `demo` | the planner |
-| `lisa@lavorofsm.nl` | `demo` | the service desk |
-| `jeroen@lavorofsm.nl` | `demo` | a mechanic |
-
-Every other demo user logs in the same way: first name `@lavorofsm.nl`, password
-`demo`. An address points at one tenant, so none of these may be a real login
-elsewhere; the install stops if one is. No mail reaches them: the tenant has no
-mail settings, and without those it sends nothing.
-
-- **Never invoiced.** The demo gets a fresh start date every night; invoicing
-  it would spend a real number from the invoice series each time.
-- **The AI assistant is on**, as part of the demo. What it can spend is capped
-  by the Business package's monthly allowance.
-- **Faces are photos, of nobody.** They are generated (thispersondoesnotexist)
-  and live in `database/seeders/data/demo/photos/users/<login>.jpg`, named by the
-  part of the login before the `@`: `mark.jpg`, and `demo.jpg` for Sanne.
-  Products are drawn by the seeder unless a photo is put in
-  `database/seeders/data/demo/photos/products/<brand-model>.jpg` (the slug of
-  brand and model, e.g. `daikin-perfera-ftxm25r.jpg`). The next rebuild uses it.
-- **No registered times.** Past appointments are finished on the work order,
-  but nobody has clocked them: a mechanic's registered times grey an
-  appointment out, and a planner full of grey shows nothing.
-- **A real customer called Demo** is never touched: the install refuses to
-  overwrite a tenant of that name that is not the demo.
-
-## If something goes wrong
-
-| When | What to do |
-| --- | --- |
-| Before step 7 | Nothing is at risk, the old installation is still running. Start over. |
-| The `lavoro_app` password is lost | `sudo scripts/tenancy/setup-mysql.sh --write-env --rotate-app-password`. It sets a new one and writes it to `.env`. |
-| The import fails halfway | `php artisan tenant:delete <id>`, or drop `lavoro_tenant_<slug>` by hand and remove the rows from `tenants` and `user_tenant_lookups`. Then run it again. |
-| After step 9, within a week | Bring the old installation back up and take the new one down. Anything entered since the move is lost. |
-
 ## Once you are live
 
 - Back up the central database **and every customer database**. A backup of
@@ -521,10 +409,11 @@ mail settings, and without those it sends nothing.
   Until you do, that customer sends no email at all. That is deliberate:
   sending from another company's mailbox is worse than not sending.
 
-## Related documents
+## Then
 
 | | |
 | --- | --- |
-| `tenancy-operations.md` | day to day commands |
-| `tenancy-test-risks.md` | where this breaks and how you would notice |
-| `superpowers/plans/2026-06-09-multi-database-tenancy.md` | why it is built this way |
+| [import-existing.md](import-existing.md) | move a single-customer Lavoro in as a customer |
+| [../operations/runbook.md](../operations/runbook.md) | running it from here on |
+| [../operations/backup-restore.md](../operations/backup-restore.md) | set up backups before you need them |
+| [../development/multi-tenancy.md](../development/multi-tenancy.md) | why it is built this way |

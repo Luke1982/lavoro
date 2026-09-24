@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
  */
 class ApplicationManual
 {
-    private const PATH = 'docs/handleiding.md';
+    private const PATH = 'docs/guide/handleiding.md';
 
     /**
      * Words that carry no topic. A model searches with whatever the user said,

@@ -7,13 +7,18 @@ gaat, niet of je twee andere hebt gesloopt.
 Draaien:
 
 ```bash
-php artisan assistant:ask "<vraag>"            # als de eerste gebruiker
-php artisan assistant:ask "<vraag>" --user=2   # als een monteur
-php artisan assistant:ask "<vraag>" --show-results   # toon ook wat de tool teruggaf
+php artisan assistant:ask "<vraag>" --tenant=Demo
+php artisan assistant:ask "<vraag>" --tenant=Demo --user=2        # als een monteur
+php artisan assistant:ask "<vraag>" --tenant=Demo --show-results  # ook wat de tool teruggaf
 ```
 
-Klant- en werkbonnummers hieronder zijn van de ontwikkeldatabase. Pas ze aan als
-je ergens anders test.
+De assistent leest de gegevens van één klant, dus `--tenant` (een id of een
+naam, `php artisan tenants:list` toont ze) is verplicht. Lokaal is dat de
+demo-klant; die wordt elke nacht opnieuw opgebouwd, dus nummers hieronder
+kloppen morgen niet meer.
+
+Klant- en werkbonnummers hieronder komen uit de database waarin je test. Pas ze
+aan als ze daar niet bestaan.
 
 ## Één tool
 

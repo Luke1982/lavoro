@@ -2,6 +2,10 @@
 
 This document is for **developers and operators**. End users never see any of this — they just click "Connect Google Calendar".
 
+One Google project serves the whole installation: the credentials below live in
+`.env` and are shared by every customer. The connection itself is personal —
+each user connects their own calendar, inside their own customer.
+
 ## 1. Create a Google Cloud project
 
 1. Go to https://console.cloud.google.com.
@@ -36,7 +40,7 @@ While the screen is in **Testing** mode, only test users (max ~100) can connect.
 1. APIs & Services → Credentials → Create credentials → OAuth client ID.
 2. Application type: **Web application**.
 3. Authorized redirect URIs:
-   - `http://localhost:8000/google/oauth/callback` (local dev)
+   - `http://127.0.0.1:8199/google/oauth/callback` (local development, the port `dev.sh` uses)
    - `https://<your-prod-domain>/google/oauth/callback` (production, once known)
 4. Save. Note the Client ID and Client Secret.
 
@@ -47,7 +51,7 @@ In `.env`:
 ```
 GOOGLE_CLIENT_ID=<client id from step 4>
 GOOGLE_CLIENT_SECRET=<client secret from step 4>
-GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8000/google/oauth/callback
+GOOGLE_OAUTH_REDIRECT_URI=http://127.0.0.1:8199/google/oauth/callback
 GOOGLE_WEBHOOK_ENABLED=false
 GOOGLE_WEBHOOK_URL=
 GOOGLE_SYNC_LOOKBACK_DAYS=365
@@ -58,18 +62,18 @@ Run `php artisan config:clear`.
 
 ## 6. Run the supporting processes
 
-In development:
+The sync is queued work and scheduled work, so both have to be running.
 
-```
-php artisan serve
-php artisan queue:work
-php artisan schedule:work
-```
+In development, `./scripts/tenancy/dev.sh` starts the app, both workers and Vite
+together — see [getting started](../development/getting-started.md).
 
-In production:
+In production they are systemd units and a cron line, installed by
+`sudo scripts/tenancy/setup-workers.sh`: an ordinary worker, a second one for
+provisioning, and `* * * * * php artisan schedule:run`. What they are and how to
+check them is in [the runbook](../operations/runbook.md#what-has-to-run).
 
-- Queue worker as a supervised process (Supervisor or systemd).
-- Scheduler via cron: `* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1`.
+The scheduler pulls changes per customer: one round every five minutes that
+dispatches a job per customer, never a query across all of them.
 
 ## 7. Enable webhooks (optional, for near-real-time sync)
 

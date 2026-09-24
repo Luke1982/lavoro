@@ -1,14 +1,16 @@
 # Where this setup breaks, and how you notice
 
-A risk list for the move to multi-tenancy: which places can go wrong, how that
-failure shows itself, and what catches it.
+Where this setup can go wrong, how that failure shows itself, and what catches
+it. Written during the move to one database per customer and kept as the map of
+what the suite does and does not prove.
 
-Sorted by what it costs when it goes wrong, not by how likely it is. Operations
-are in [tenancy-operations.md](tenancy-operations.md).
+Sorted by what it costs when it goes wrong, not by how likely it is. How it all
+works is [multi-tenancy](multi-tenancy.md); running it is
+[the runbook](../operations/runbook.md).
 
 **What drives this list:** nearly everything below fails *silently*. Everyone
 finds a 500 within a day. Nobody finds a service order that lands in the wrong
-customer's database, and that is exactly what can go wrong in this move. So
+customer's database, and that is exactly what can go wrong here. So
 every line below is written as "what would this look like if it were already
 broken".
 

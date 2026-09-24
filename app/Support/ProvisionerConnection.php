@@ -107,7 +107,7 @@ final class ProvisionerConnection
             . " Run this as: sudo -u {$name} php artisan <command>, or run"
             . ' sudo scripts/tenancy/setup-sudoers.sh once so it elevates itself.'
             . ' The admin panel\'s worker should already run as this user;'
-            . ' see docs/tenancy-operations.md.';
+            . ' see docs/operations/runbook.md.';
     }
 
     /**

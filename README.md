@@ -30,8 +30,8 @@ Every later run migrates everything and starts.
 ./scripts/tenancy/dev.sh --reset-logins   # the panel and the first user of each customer back to 'testtest'
 ```
 
-Your own `.env` is left alone. More in
-[docs/tenancy-operations.md](docs/tenancy-operations.md#working-locally).
+Your own `.env` is left alone. The longer version, and what to read next, is in
+[docs/development/getting-started.md](docs/development/getting-started.md).
 
 ## Tests
 
@@ -42,14 +42,16 @@ composer test
 They run on MySQL, not SQLite, against the same MySQL account `dev.sh` sets up.
 Without `dev.sh`, set that up once with `sudo scripts/tenancy/setup-test-db.sh`.
 
-## Servers
+## Documentation
+
+Everything lives in [docs/](docs/README.md), grouped by who is reading:
 
 | | |
 | --- | --- |
-| A new server, or moving an installation over | [docs/tenancy-production.md](docs/tenancy-production.md) |
-| Deploying, customers, workers, the day-to-day | [docs/tenancy-operations.md](docs/tenancy-operations.md) |
-| Where this can break, and what catches it | [docs/tenancy-test-risks.md](docs/tenancy-test-risks.md) |
-| The user manual the assistant answers from | [docs/handleiding.md](docs/handleiding.md) |
+| [guide/](docs/guide/handleiding.md) | the user manual (Dutch), which the assistant answers from |
+| [install/](docs/install/server.md) | a new server, taking over an existing installation, Google, Android |
+| [operations/](docs/operations/runbook.md) | running it: deploys, customers, invoices, backups, troubleshooting |
+| [development/](docs/development/getting-started.md) | local install, architecture, tenancy, testing, risks |
 
 Deploy with `scripts/deploy.sh`; `php artisan tenancy:doctor` checks the whole
 setup and says what to fix.

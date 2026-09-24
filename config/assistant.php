@@ -113,7 +113,7 @@ return [
     | conversation needs is the one that answers it.
     |
     | These are estimates, not measurements. Correct them against
-    | docs/assistant-testvragen.md: a model that keeps choosing the wrong tool is
+    | docs/development/assistant-tests.md: a model that keeps choosing the wrong tool is
     | rated too high, and fixing that is a config change.
     */
 

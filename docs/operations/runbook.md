@@ -1,41 +1,11 @@
-# Running Lavoro — operations
+# Running Lavoro — the runbook
 
-Everything you do on a server. For the reasoning behind the setup:
-`superpowers/plans/2026-06-09-multi-database-tenancy.md`.
+Everything you do on a server that is already installed. Putting a new one up is
+[installing a server](../install/server.md); taking over an existing Lavoro is
+[import-existing](../install/import-existing.md). How the whole thing hangs
+together is [multi-tenancy](../development/multi-tenancy.md).
 
-**Setting up a new server, or moving the existing installation over?**
-Follow [tenancy-production.md](tenancy-production.md) — that is the list from
-nothing to running, in order. Below is the day-to-day work.
-
-
-## Working locally
-
-One command builds a local installation the first time and starts it after
-that:
-
-```bash
-./scripts/tenancy/dev.sh                 # build what is missing, start app, workers and vite
-./scripts/tenancy/dev.sh --fresh         # throw the local installation away and build it again
-./scripts/tenancy/dev.sh --reset-logins  # the panel and the first user of each customer back to 'testtest'
-```
-
-When the MySQL account is not there yet -- or its grant procedure -- the script
-runs `sudo scripts/tenancy/setup-test-db.sh` first, which asks for your sudo
-password once per machine. When MySQL itself does not answer, it says so and
-stops.
-
-The first run writes `.env.local` and creates the central database, an admin
-for the panel (`admin@lavoro.local` / `testtest`) and the demo company
-(`demo@lavorofsm.nl` / `demo`). The app is then at http://127.0.0.1:8199 and the
-panel at /beheer; on every start the script lists who logs in where. Every run
-migrates the central database and every customer, so after a pull it is up to
-date.
-
-It runs on the MySQL account the tests use, in databases of its own
-(`lavoro_local_landlord`, customers as `lavoro_test_tenant_local_*`), and leaves
-`.env` alone. The environment is `local`, set as a real environment variable:
-`--env` only applies to the artisan command itself, while the requests the
-server handles boot again and would read `.env`.
+Working on the code instead? [Getting started](../development/getting-started.md).
 
 ## What has to run
 
@@ -115,14 +85,20 @@ with 1 on a problem, and says per finding what to do about it.
 
 | Account | May | For |
 | --- | --- | --- |
-| `lavoro_app` | only the landlord database | the application itself |
+| `lavoro_app` | only the central database | the application itself |
 | `lavoro_provisioner` | only `lavoro_tenant_%` | creating and dropping customers |
 | one per customer | only its own database | the connection during a request |
 
 `lavoro_app` deliberately cannot create or drop a customer database, and the
 provisioner deliberately reaches nothing outside the customer namespace. Those
-are the two boundaries the whole setup leans on; `verify-mysql.sh` tries to
-cross both and expects a refusal.
+two boundaries are what the separation rests on, and
+[multi-tenancy](../development/multi-tenancy.md#three-mysql-accounts) explains
+why a stored procedure hands out each customer's rights. `verify-mysql.sh` tries
+to cross both and expects a refusal:
+
+```bash
+sudo scripts/tenancy/verify-mysql.sh
+```
 
 ### Setting up (once, per server)
 
@@ -131,26 +107,9 @@ sudo scripts/tenancy/setup-mysql.sh --dry-run    # shows the SQL, changes nothin
 sudo scripts/tenancy/setup-mysql.sh --write-env  # does it, and fixes .env
 ```
 
-That creates the Linux user, the accounts, the right rights and the procedure
-below. By hand it cannot be done without breaking something; the complete
-installation is in `tenancy-production.md`.
-
-### Why a procedure hands out the rights
-
-Every customer gets a MySQL login of its own that may only reach its own
-database. Creating it is the provisioner's work, but MySQL and MariaDB weigh a
-`GRANT` naming a database against a row for exactly that name, and never against
-the wildcard `lavoro\_tenant\_%`. So the provisioner can create
-`lavoro_tenant_acme` but cannot grant rights on it: error 1044.
-
-The temptation is then to give the account `ALL PRIVILEGES ON *.*`. Don't — that
-makes it as powerful as root and leaves nothing of the separation.
-
-Instead the procedure `lavoro_admin.grant_tenant_access` hands out the rights.
-It lives in a database of its own, runs as whoever created it (root) and refuses
-every name outside the customer namespace. The provisioner has nothing in that
-database except the right to call it, so it cannot replace it with a broader
-version. See `scripts/tenancy/setup-mysql.sh`.
+That creates the Linux user, the accounts, their rights and the procedure. By
+hand it cannot be done without breaking something; the complete installation is
+in [installing a server](../install/server.md).
 
 ### After every change: restart the workers
 
@@ -158,31 +117,10 @@ version. See `scripts/tenancy/setup-mysql.sh`.
 php artisan tenancy:restart-workers
 ```
 
-That restarts both units, stops any worker that survived the restart -- one
-started by hand at some point keeps running old code otherwise -- and waits
-until both queues report in with the code that is checked out. `scripts/deploy.sh`
-runs it for you; a manual pull does not.
-
-The same goes for php under the web server: it holds on to the compiled code
-(opcache). `view:clear` does not touch that, so after a pull the web server keeps
-running the old classes while the templates are already new -- a combination
-that does strange things, such as a screen that keeps reloading itself because
-the controller does not send a value yet that the template already expects.
-
-```bash
-pkill -f lsphp                      # LiteSpeed: the processes come back by themselves
-sudo systemctl reload php8.3-fpm    # Apache or nginx with php-fpm
-```
-
-With `-f`: `pkill` compares the exact process name by default, and that is
-`lsphp8.3`, so a plain `pkill lsphp` finds nothing. lsphp has no systemd unit;
-LiteSpeed starts the processes again as soon as they are gone.
-
-A worker reads `.env` and the code once, at boot, and holds on to it. After a
-`git pull` or a change in `.env` it keeps running what it had, while the
-heartbeat keeps coming in and everything looks healthy. The doctor compares what
-each worker booted with to what is here now, names the process when they differ,
-and says so when more than one process serves the same queue.
+A worker reads `.env` and the code once, when it starts, and keeps running what
+it had. The heartbeat carries on as if nothing is wrong; only the work goes
+quietly wrong. The command restarts both units, stops anything of ours running
+outside them, and waits until both queues report the code that is checked out.
 
 ## Customers
 
@@ -360,31 +298,12 @@ migrations, caches, restarting the workers and php, the checks, maintenance page
 off. It stops as soon as something goes wrong, says on which line, and the
 maintenance page still goes off.
 
-## Taking over an existing installation
-
-```bash
-bash scripts/tenancy/import-install.sh --from /home/klant/lavorofsm \
-     --name "Bedrijf BV" --slug bedrijf --package business --dry-run
-```
-
-Copies a single-customer installation into a customer of this setup: its
-database, its uploads, a login and the package. It needs root -- the other
-installation belongs to another account, and creating a database is not the app
-account's -- and says exactly what to paste in a root shell when it does not
-have it. `--dry-run` writes nothing and shows the whole plan; `--billing-from`
-sets the day billing starts (a date, or `none`), which on a takeover is an
-agreement rather than automatically today.
-
-## The demo
-
-`php artisan demo:install` builds a Demo customer with a complete set of
-credible data, and the scheduler rebuilds it every night. Logins, what is in it
-and how to put real photos in: see *The demo tenant* in `tenancy-production.md`.
-
-## Further reading
+## Also here
 
 | | |
 | --- | --- |
-| `tenancy-test-risks.md` | where this setup breaks and how you notice |
-| `../CLAUDE.md` | rules for whoever writes code |
-| `handleiding.md` | for the people who work with it |
+| [backup-restore.md](backup-restore.md) | what to keep, and how to put it back |
+| [troubleshooting.md](troubleshooting.md) | when the doctor is not enough |
+| [demo.md](demo.md) | the demo customer |
+| [import-existing.md](../install/import-existing.md) | take over a single-customer Lavoro |
+| [../development/risks.md](../development/risks.md) | where this breaks and how you notice |
