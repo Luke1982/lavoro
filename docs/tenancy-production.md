@@ -286,7 +286,9 @@ is fine; you then keep typing `sudo -u`.
 all limited to exact commands:
 
 - become `lavoro_provisioner`, but only through the PHP binary — that is how
-  `tenants:*` commands reach the database and the tenant storage;
+  `tenant:create`, `tenant:delete`, `tenant:setup-existing` and `demo:install`
+  reach the database and the tenant storage. Stancl's own `tenants:*` commands
+  do not elevate; they run as whoever types them;
 - `systemctl restart lavoro-worker lavoro-provisioning`, because PHP holds all
   code from the moment it starts. Without a restart a worker keeps running the
   previous release after a deploy, the heartbeat carries on as if nothing is
@@ -295,7 +297,14 @@ all limited to exact commands:
 - `systemctl reload` of the php-fpm units this machine has, for the same reason
   on the web side. Reload and not restart: a restart drops the requests that are
   running. Without this rule every deploy ends with a note telling you to do it
-  by hand.
+  by hand;
+- `mysqldump` as the provisioner, for the backup the deploy takes before it
+  touches anything. Deliberately no PHP in that rule: PHP can start anything,
+  which would hand the deploy everything the provisioner may do.
+
+The first goes in `/etc/sudoers.d/lavoro-admin`, the rest in
+`/etc/sudoers.d/lavoro-deploy`. Deploying and administering are the same account
+here unless `DEPLOY_ACCOUNT` says otherwise.
 
 It is not general `sudo`: no shell, no root, nothing outside those lines.
 Run `setup-sudoers.sh` again after changing accounts, otherwise the deploy
@@ -408,7 +417,9 @@ The doctor proves the plumbing. These are the things only a person can see:
 ## 9. Go live
 
 ```bash
-php artisan config:cache route:cache view:cache
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
 php artisan up
 ```

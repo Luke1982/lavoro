@@ -16,7 +16,7 @@ that:
 ```bash
 ./scripts/tenancy/dev.sh                 # build what is missing, start app, workers and vite
 ./scripts/tenancy/dev.sh --fresh         # throw the local installation away and build it again
-./scripts/tenancy/dev.sh --reset-logins  # every password back to 'testtest'
+./scripts/tenancy/dev.sh --reset-logins  # the panel and the first user of each customer back to 'testtest'
 ```
 
 When the MySQL account is not there yet -- or its grant procedure -- the script

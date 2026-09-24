@@ -7,8 +7,8 @@ own; a central database holds the tenants, logins and billing.
 
 ## Local development
 
-Needs PHP 8.3 (with `pdo_mysql`, `pcntl` and `posix`), Composer, Node 22 and a
-local MySQL 8 or MariaDB 10.11.
+Needs PHP 8.2 or newer with `pdo_mysql`, `pcntl` and `posix` (the server runs
+8.3), Composer, Node 22 and a local MySQL 8 or MariaDB 10.11.
 
 ```bash
 ./scripts/tenancy/dev.sh
@@ -27,7 +27,7 @@ Every later run migrates everything and starts.
 
 ```bash
 ./scripts/tenancy/dev.sh --fresh          # throw the local installation away and build it again
-./scripts/tenancy/dev.sh --reset-logins   # every password back to 'testtest'
+./scripts/tenancy/dev.sh --reset-logins   # the panel and the first user of each customer back to 'testtest'
 ```
 
 Your own `.env` is left alone. More in

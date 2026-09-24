@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Local multi-tenant install on port 8199: builds it the first time (MySQL account
 # via sudo when missing, .env.local, central database, panel admin, demo company),
 # then starts app, both workers and Vite, and prints who logs in where. --fresh
-# rebuilds it, --reset-logins sets every password back to 'testtest'.
+# rebuilds it, --reset-logins sets the panel and the first user of each customer
+# back to 'testtest' (the demo keeps its own).
 ./scripts/tenancy/dev.sh
 
 # Start full dev stack on .env (Laravel, queue, log tail, Vite — all at once).
@@ -96,7 +97,7 @@ Laravel 12 + Inertia + Vue 3 field-service management app (in Dutch, "Lavoro"). 
 -   Roles → permissions via `permissions` and `permissionables` (polymorphic). User → roles via `roleables`.
 -   `User::hasPermission(name)` returns true for admins or when granted via any role.
 -   Convention: `{resource}.{action}` — e.g. `event.read`, `serviceorder.see_financials`.
--   Permissions are seeded in migrations (under `2025_09_*` and `2026_*`).
+-   Permissions are seeded in migrations (`2025_09_*`, `2025_10_*` and `2026_*`).
 
 ### Polymorphic patterns
 
