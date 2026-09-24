@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\ProvisionerConnection;
+use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
 use App\Support\WorkerProcesses;
 use Carbon\CarbonImmutable;
@@ -1099,6 +1100,7 @@ class TenancyDoctor extends Command
         $this->checkElevation($username);
         $this->checkProvisionerCanWriteStorage($username);
         $this->checkWebServerCanLog();
+        $this->checkRefusedLoginsAreWatched();
     }
 
     /**
@@ -1148,16 +1150,46 @@ class TenancyDoctor extends Command
      * Who that account is can be read from the compiled templates: the web
      * server writes those itself, on the first page it renders.
      */
+    /**
+     * Refused logins land in storage/logs/auth.log for fail2ban to act on. A
+     * jail pointed at a path that is not this one reads an empty file forever
+     * and bans nobody, and nothing about that looks broken.
+     */
+    private function checkRefusedLoginsAreWatched(): void
+    {
+        if (!is_dir('/etc/fail2ban')) {
+            return;
+        }
+
+        $jail = '/etc/fail2ban/jail.d/lavoro.conf';
+        $log = storage_path('logs/auth.log');
+
+        if (!is_readable($jail)) {
+            $this->bad('fail2ban is installed but reads nothing of ours: refused logins go into'
+                . " {$log} and nobody acts on them.\n"
+                . '         sudo scripts/tenancy/setup-fail2ban.sh');
+
+            return;
+        }
+
+        str_contains((string) file_get_contents($jail), $log)
+            ? $this->pass('fail2ban watches the refused logins')
+            : $this->bad("fail2ban has a jail for us, but not on {$log}. It is reading a file that"
+                . " never fills.\n         sudo scripts/tenancy/setup-fail2ban.sh");
+    }
+
     private function checkWebServerCanLog(): void
     {
         $account = $this->webAccount();
 
         if ($account === null) {
-            $this->skip('Which account the web server runs as cannot be seen yet: there are no'
-                . ' compiled templates. Open a page and run this again.');
+            $this->skip('No web request has said which account it runs as yet. Open a page and run'
+                . ' this again; until then the storage checks above judge nothing.');
 
             return;
         }
+
+        $this->reportOpcache();
 
         $log = storage_path('logs/laravel.log');
 
@@ -1181,9 +1213,15 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * The account php runs as under the web server, read from the compiled
-     * templates: the web server writes those itself. Null when there are none
-     * yet.
+     * The account php runs as under the web server, as written down by the web
+     * server itself on a real request. Null when no request has come in since
+     * this was added -- then it is not known, and guessing is how this went
+     * wrong before.
+     *
+     * It used to read the owner of the compiled templates. A deploy runs
+     * `view:cache`, so from then on those belong to the deploy account: on
+     * production it reported `lavoro` while php really ran as `nobody`, and
+     * every storage check below was testing an account that serves nothing.
      */
     private function webAccount(): ?string
     {
@@ -1193,9 +1231,9 @@ class TenancyDoctor extends Command
             return $account;
         }
 
-        $compiled = glob(storage_path('framework/views/*.php')) ?: [];
+        $facts = WebServerFacts::read();
 
-        return $account = $compiled === [] ? null : $this->ownerOf($compiled[0]);
+        return $account = is_string($facts['account'] ?? null) ? $facts['account'] : null;
     }
 
     private function ownerOf(string $path): ?string
@@ -1216,6 +1254,32 @@ class TenancyDoctor extends Command
      * An ACL can grant write access where the permission bits know nothing of
      * it, so that is laid next to it before anything is reported.
      */
+    /**
+     * Php holds every file it read at boot. With opcache checking timestamps it
+     * notices a deploy by itself within revalidate_freq seconds; without, it
+     * serves the previous release until someone restarts it -- and nothing on
+     * the page says so.
+     */
+    private function reportOpcache(): void
+    {
+        $opcache = WebServerFacts::read()['opcache'] ?? null;
+
+        if (!is_array($opcache) || !($opcache['enabled'] ?? false)) {
+            return;
+        }
+
+        if ($opcache['validates_timestamps'] ?? false) {
+            $this->pass('the web server picks up new code by itself (opcache checks timestamps every '
+                . max(1, (int) ($opcache['revalidate_seconds'] ?? 0)) . 's)');
+
+            return;
+        }
+
+        $this->bad('The web server\'s opcache does not check timestamps, so php keeps serving the'
+            . ' release it started with. Restart it after every deploy, or set'
+            . ' opcache.validate_timestamps=1 in the php.ini the web server uses.');
+    }
+
     private function userCanWrite(string $account, string $path): bool
     {
         /** root does not care about permission bits. */

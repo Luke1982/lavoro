@@ -17,6 +17,7 @@ use App\Exceptions\GraphNotConfigured;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
 use App\Listeners\ApplyTenantSender;
+use App\Listeners\Auth\RecordAuthFailure;
 use App\Listeners\CopyMailToSentFolder;
 use App\Mail\Transports\GraphTransport;
 use App\Models\Assistant;
@@ -45,8 +46,12 @@ use App\Support\ForgetsTenantState;
 use App\Support\MailerState;
 use App\Support\TenantMailTransport;
 use App\Support\TenantState;
+use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\ServeCommand;
+use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +60,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -276,11 +283,47 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        /** A running worker reports in every minute; the doctor looks at that. */
         /** @euro(1250) becomes "EUR 12,50"; the formatting lives in one place. */
         Blade::directive('euro', fn ($expression) => "<?php echo '€ ' . \App\Support\Money::human($expression); ?>");
 
+        /** A running worker reports in every minute; the doctor looks at that. */
         WorkerHeartbeat::listen();
+
+        /**
+         * And a web request writes down which account serves the pages, so the
+         * doctor does not have to guess it from a file a deploy wrote.
+         */
+        if (!$this->app->runningInConsole()) {
+            WebServerFacts::record();
+        }
+
+        /**
+         * Guessing passwords costs five tries a minute, per address and per
+         * place it comes from. Neither login had a limit at all, so nothing but
+         * the network stood between someone and an endless list of passwords.
+         * The sixth try fires Lockout, which is written down like a refusal.
+         */
+        RateLimiter::for('login', function (Request $request) {
+            /**
+             * Written down here and not in a middleware of its own: the
+             * throttle stands high in the priority list, so anything wrapped
+             * around it is moved out of the way and never sees the refusal.
+             * This runs where the refusal is made.
+             */
+            $refuse = function (Request $request, array $headers) {
+                app(RecordAuthFailure::class)->blocked($request);
+
+                return response('Too Many Attempts.', 429, $headers);
+            };
+
+            return [
+                Limit::perMinute(5)->by(Str::lower((string) $request->input('email')) . '|' . $request->ip())->response($refuse),
+                Limit::perMinute(20)->by($request->ip())->response($refuse),
+            ];
+        });
+
+        /** Both login doors, in one file fail2ban reads. */
+        Event::listen(Failed::class, [RecordAuthFailure::class, 'failed']);
 
         Event::listen(MessageSending::class, ApplyTenantSender::class);
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
