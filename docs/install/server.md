@@ -47,12 +47,19 @@ Have these ready:
 
 - Root or sudo access on the new server
 - A database account that can create users and grant privileges
-- The path to your existing Lavoro installation
-- **The `APP_KEY` from the old installation's `.env`.** Copy it, do not
-  generate a new one. That key decrypts every stored Google connection and
-  every encrypted field. Without it that data is unreadable.
 - The company name as it should appear on invoices
-- A database backup you have restored somewhere and seen working
+
+**Are you moving an existing Lavoro in** — one that serves a single company
+today, and becomes the first customer here? Then also:
+
+- The path to that installation, and a database backup of it that you have
+  restored somewhere and seen working
+- **Its `APP_KEY`, out of its `.env`.** You will paste it in step 4 instead of
+  generating a new one: that key decrypts every stored Google connection and
+  every encrypted field it has. Without it, that data is unreadable.
+
+Starting empty instead? Then none of that applies; step 4 generates a key for
+you, and your first customer is step 8.
 
 ## 1. Get the code
 
@@ -156,11 +163,13 @@ installation, and the mail server you send invoices from. Everything else it
 sets by itself — the queue, session, cache and mail settings that tenancy
 depends on are not preferences, and the script does not offer them as choices.
 
-**Have the old `APP_KEY` ready and paste it when asked.** It decrypts every
-stored Google connection, every customer database password and every encrypted
-field. Press Enter instead and you get a new key, which makes all of that
-unreadable with no way back. The script checks the key you paste is a real one
-before writing it.
+**Moving an existing installation in? Paste its `APP_KEY` when asked.** It
+decrypts every stored Google connection, every customer database password and
+every encrypted field it has. Press Enter instead and you get a new key, which
+makes all of that unreadable with no way back. The script checks the key you
+paste is a real one before writing it.
+
+Starting empty? Press Enter and take the key it generates.
 
 Safe to run again; existing values stay unless you overwrite them. To run it
 unattended:
@@ -360,6 +369,17 @@ their file count and size. Look inside first, then clear one with
 `php artisan tenancy:prune-storage tenant-<id>`; it prints what it is about to
 delete and asks before it does. Empty left-overs are not reported.
 
+## Moving an existing installation in
+
+Doing it now is the easiest moment: nothing else is running here yet, and going
+live below then switches over to a server that already holds the data.
+
+[Taking over an existing installation](import-existing.md) is the whole
+procedure — the old one goes offline, its database and files come across, and
+its users keep their own passwords. Come back here for step 7 afterwards.
+
+Starting empty? Skip this and carry on.
+
 ## 7. Go live
 
 ```bash
@@ -370,17 +390,20 @@ sudo systemctl restart lavoro-worker lavoro-provisioning php8.3-fpm
 php artisan up
 ```
 
-Leave the old installation in place for a week with its web server switched
-off. Do not delete it.
+**If you moved an installation in:** leave the old one in place for a week with
+its web server switched off. Do not delete it — it is the fastest way back if
+something turns up that the checks above did not.
 
-## 8. Add a second customer
+## 8. Add a customer
 
-Do this on a quiet day. It is the first time a database gets created for real.
+Do this on a quiet day. It is the first time a database gets created for real —
+and if you moved an installation in, the first time you can see two customers
+side by side and prove they cannot reach each other.
 
 Either use **Nieuwe tenant** in `/beheer`, or:
 
 ```bash
-php artisan tenant:create "Second Customer BV" admin@second.example --package=starter
+php artisan tenant:create "Customer BV" admin@customer.example --package=starter
 ```
 
 Creating one through the panel queues a job for the provisioning worker. If the
@@ -393,9 +416,10 @@ red block at the bottom, where the name has to be typed out in full. That
 deletes the database, the login, the files and the central rows, and there is no
 way back.
 
-Then log in as the new customer. You should see an empty installation and,
-above all, *not* the first customer's data. Still logged in as the second
-customer, try to open a file belonging to the first: you should get a 404.
+Then log in as the new customer. You should see an empty installation. With a
+second customer on the server, check the thing this whole setup is for: logged
+in as one of them, try to open a file belonging to the other. You should get a
+404.
 
 ---
 
@@ -414,6 +438,7 @@ customer, try to open a file belonging to the first: you should get a 404.
 | | |
 | --- | --- |
 | [import-existing.md](import-existing.md) | move a single-customer Lavoro in as a customer |
+| [fail2ban.md](fail2ban.md) | lock out password guessing |
 | [../operations/runbook.md](../operations/runbook.md) | running it from here on |
 | [../operations/backup-restore.md](../operations/backup-restore.md) | set up backups before you need them |
 | [../development/multi-tenancy.md](../development/multi-tenancy.md) | why it is built this way |
