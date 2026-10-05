@@ -85,6 +85,7 @@ class ServiceOrderController extends Controller
         $user = Auth::user();
         $query = ServiceOrder::with([
             'customer',
+            'project:id,location',
             'serviceOrderStage',
             'events' => fn ($q) => $q->orderBy('start'),
             'events.executingUsers:id,name',
@@ -122,7 +123,8 @@ class ServiceOrderController extends Controller
         return inertia('ServiceOrders/IndexPage', [
             'serviceOrders' => $query->orderByDesc($only_closed_stage ? 'closed_on' : 'order_date')
                 ->orderByDesc('id')
-                ->paginate($per_page)->withQueryString(),
+                ->paginate($per_page)->withQueryString()
+                ->through(fn (ServiceOrder $service_order) => $service_order->append('resolved_location')),
             'stages' => ServiceOrderStage::orderBy('order')->get(),
             'search' => $search,
             'onlyStage' => $only_stages,

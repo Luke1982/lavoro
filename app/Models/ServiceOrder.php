@@ -236,10 +236,13 @@ class ServiceOrder extends Model
     /**
      * Werkbonnen waarvan het adres op de zoekterm past.
      *
-     * Waar een werkbon uitgevoerd wordt staat op twee plekken: als gekoppelde
-     * locatie van de klant, of als los ingetypt uitvoeringsadres. Wie op een
-     * straat zoekt hoort ze allebei te vinden, anders bepaalt de manier van
-     * invoeren of een werkbon boven komt.
+     * Waar een werkbon uitgevoerd wordt staat op drie plekken: als gekoppelde
+     * locatie van de klant, als los ingetypt uitvoeringsadres, of — als de
+     * werkbon zelf geen adres heeft — op het project waar hij onder valt. Wie op
+     * een straat zoekt hoort ze alle drie te vinden, anders bepaalt de manier van
+     * invoeren of een werkbon boven komt. Het project telt alleen mee waar
+     * locationWithSource() er ook op terugvalt, zodat een werkbon met een eigen
+     * adres niet gevonden wordt op het adres van zijn project.
      *
      * @param  string  $like  Patroon uit SearchTerm::like(), dus met de jokertekens er al uit.
      */
@@ -247,7 +250,11 @@ class ServiceOrder extends Model
     {
         return $query->where(fn ($q) => $q
             ->whereHas('linkedLocation', fn ($lq) => $lq->matchesText($like))
-            ->orWhere('execution_location', 'like', $like));
+            ->orWhere('execution_location', 'like', $like)
+            ->orWhere(fn ($pq) => $pq
+                ->whereNull('location_id')
+                ->where(fn ($nq) => $nq->whereNull('execution_location')->orWhere('execution_location', ''))
+                ->whereHas('project', fn ($prq) => $prq->where('location', 'like', $like))));
     }
 
     /**

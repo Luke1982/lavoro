@@ -77,8 +77,8 @@
                             <Link :href="`/serviceorders/${so.id}`" class="font-bold">
                                 {{ so.customer?.name ?? '—' }}
                             </Link>
-                            <span v-if="so.customer?.city" class="text-slate-600 text-xs mb-1">
-                                {{ so.customer.city }}
+                            <span v-if="so.resolved_location || so.customer?.city" class="text-slate-600 text-xs mb-1">
+                                {{ so.resolved_location || so.customer.city }}
                             </span>
                             <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
                                 Inkoopordernr.: {{ so.external_purchaseorder_no }}
