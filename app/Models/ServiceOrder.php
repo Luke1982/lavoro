@@ -61,6 +61,7 @@ class ServiceOrder extends Model
     protected array $activity_relations = [
         'service_order_stage_id' => ['serviceOrderStage', 'name'],
         'customer_id' => ['customer', 'name'],
+        'location_id' => ['linkedLocation', 'title'],
         'project_id' => ['project', 'title'],
     ];
 

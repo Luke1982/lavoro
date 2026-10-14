@@ -26,7 +26,7 @@
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
             <button v-if="canClear" type="button" @click.stop="clear" v-tooltip="clearTooltip"
                 :aria-label="clearTooltip" class="px-2 py-1 cursor-pointer">
-                <XMarkIcon class="w-5 h-5 text-gray-500 dark:text-gray-200 hover:text-red-500" />
+                <component :is="clearIcon" class="w-5 h-5 text-gray-500 dark:text-gray-200 hover:text-red-500" />
             </button>
             <button v-if="!$slots.open && inErrorState" @click.stop="revert"
                 class="px-3 py-1 text-white rounded-r cursor-pointer" v-tooltip="'Wijzigingen ongedaan maken'">
@@ -55,14 +55,14 @@
         <button v-if="showClosedClearButton" type="button" @click.stop="clear" v-tooltip="clearTooltip"
             :aria-label="clearTooltip"
             class="absolute right-8 top-4 -translate-y-1/2 cursor-pointer text-gray-400 dark:text-gray-300 hover:text-red-500 invisible opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
-            <XMarkIcon class="size-4 stroke-2" />
+            <component :is="clearIcon" class="size-4 stroke-2" />
         </button>
     </div>
 </template>
 
 <script setup>
 import { computed, onUnmounted, ref, useSlots, watch, watchEffect } from 'vue';
-import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, ChevronUpDownIcon, PencilSquareIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { ArrowUpRightIcon, ArrowUturnLeftIcon, BanknotesIcon, CalendarDaysIcon, ChevronUpDownIcon, PencilSquareIcon, XCircleIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue';
@@ -143,16 +143,14 @@ const indicatorMeta = computed(() => {
 const isEmpty = (value) => value === null || value === undefined || value === '';
 
 /**
- * Comboboxes and fields with their own `open` editor are excluded on purpose: a
- * combobox clears by clicking its selected option again, and a custom editor owns
- * its own controls. Both would otherwise get the closed-state cross without a
+ * Fields with their own `open` editor are excluded on purpose: a custom editor owns
+ * its own controls, and would otherwise get the closed-state cross without a
  * matching one in the open state.
  */
 const canClear = computed(() =>
     props.clearable
     && !props.readonly
     && !props.disabled
-    && props.type !== 'combobox'
     && !slots.open
     && !isEmpty(editing.value ? local.value : model.value)
 );
@@ -160,6 +158,8 @@ const canClear = computed(() =>
 // The closed-state button rides along with the pencil, so it follows the same
 // decoration switch — a field that hides its affordances hides this one too.
 const showClosedClearButton = computed(() => !editing.value && props.decoration && canClear.value);
+
+const clearIcon = computed(() => props.type === 'combobox' ? XCircleIcon : XMarkIcon);
 
 const clearTooltip = computed(() =>
     props.inputType === 'date' ? 'Datum wissen' : 'Veld leegmaken'

@@ -183,7 +183,6 @@ class ComboSearchController extends Controller
         $results = $customer->locations()
             ->when($term !== '', fn ($query) => $query->matchesText(SearchTerm::like($term)))
             ->orderBy('title')
-            ->limit(50)
             ->get(['id', 'title', 'address', 'postal_code', 'city'])
             ->map(fn ($l) => [
                 'id' => $l->id,
