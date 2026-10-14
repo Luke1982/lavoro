@@ -38,7 +38,7 @@ class Asset extends Model
 
     protected array $activity_relations = [
         'customer_id' => ['customer', 'name'],
-        'location_id' => ['location', 'name'],
+        'location_id' => ['linkedLocation', 'title'],
     ];
 
     protected $fillable = [

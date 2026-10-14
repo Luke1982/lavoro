@@ -100,7 +100,7 @@
                                     <EditableTextField v-if="showLocationPicker"
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         type="combobox" label="Locatie" v-model="form.location_id"
-                                        :options="locationOptions" :error="form.errors.location_id"
+                                        :options="locationOptions" :error="form.errors.location_id" clearable
                                         @update="onLocationChange" @revert="form.clearErrors('location_id')">
                                         <template #display>
                                             <Link v-if="selectedLocation" :href="`/locations/${selectedLocation.id}`"

@@ -38,6 +38,10 @@ class Event extends Model
         'is_preliminary' => 'Voorlopig',
     ];
 
+    protected array $activity_relations = [
+        'location_id' => ['linkedLocation', 'title'],
+    ];
+
     protected array $activity_ignore = [
         'origin',
     ];
