@@ -271,6 +271,14 @@ backup_status() {
 # Whether refused logins are actually acted on. The application writes them
 # down on its own, so the file filling up proves nothing: without the jail
 # reading it, nobody is ever blocked.
+#
+# Carefully split into three questions, because they have different answers and
+# only the first two can be asked without root: is fail2ban installed, is
+# Lavoro's jail configured, and who is banned right now. Reaching fail2ban's
+# socket needs root, and "I may not ask" was reported here as "it is not there"
+# -- on a server where it had just been set up.
+FAIL2BAN_JAIL="${LAVORO_FAIL2BAN_JAIL:-/etc/fail2ban/jail.d/lavoro.conf}"
+
 fail2ban_status() {
     local log="$ROOT/storage/logs/auth.log" banned
 
@@ -282,26 +290,40 @@ fail2ban_status() {
 
     if ! quietly command -v fail2ban-client; then
         bad_line "fail2ban" "not installed"
-        todo "sudo apt install fail2ban && sudo lavoro setup fail2ban" "nothing blocks somebody trying passwords all night"
+        todo "sudo apt install fail2ban && sudo lavoro setup fail2ban" \
+            "nothing blocks somebody trying passwords all night"
         return
     fi
 
-    if ! sudo -n fail2ban-client status lavoro-auth >/dev/null 2>&1; then
-        if fail2ban-client status lavoro-auth >/dev/null 2>&1; then
-            : # readable without sudo, fall through to the count below
-        else
-            bad_line "fail2ban" "installed, but no lavoro-auth jail"
-            todo "sudo lavoro setup fail2ban" "refused logins are written down but nobody is ever blocked"
-            return
-        fi
+    if [ ! -f "$FAIL2BAN_JAIL" ]; then
+        bad_line "fail2ban" "installed, but Lavoro's jail was never set up"
+        todo "sudo lavoro setup fail2ban" "refused logins are written down but nobody is ever blocked"
+        return
     fi
 
-    banned="$(fail2ban-client status lavoro-auth 2>/dev/null | grep -oP 'Currently banned:\s*\K[0-9]+' | head -1)"
-    ok "fail2ban" "lavoro-auth active, ${banned:-0} address(es) banned now"
+    if quietly command -v systemctl && [ "$(systemctl is-active fail2ban 2>/dev/null)" != "active" ]; then
+        bad_line "fail2ban" "jail is configured, but fail2ban itself is not running"
+        todo "sudo systemctl start fail2ban" "the jail exists on disk but nothing is reading the log"
+        return
+    fi
+
+    # Live numbers, if this account may ask for them. Root can; the application
+    # account normally cannot, and that is not a problem to report.
+    banned="$(fail2ban-client status lavoro-auth 2>/dev/null \
+        | grep -oP 'Currently banned:\s*\K[0-9]+' | head -1)"
+
+    if [ -z "$banned" ] && [ "$(id -u)" -ne 0 ]; then
+        banned="$(sudo -n fail2ban-client status lavoro-auth 2>/dev/null \
+            | grep -oP 'Currently banned:\s*\K[0-9]+' | head -1)"
+    fi
+
+    if [ -n "$banned" ]; then
+        ok "fail2ban" "watching auth.log, ${banned} address(es) banned right now"
+    else
+        ok "fail2ban" "jail installed, fail2ban running (who is banned needs root)"
+    fi
 }
 
-# Counted off the table tenants:list prints: every row but the header carries a
-# database name in the customer namespace.
 tenant_count() {
     # Rows of the table tenants:list prints, minus its header. Counting the rows
     # rather than matching a database name keeps this working whatever the
