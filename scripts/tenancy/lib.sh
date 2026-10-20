@@ -80,6 +80,78 @@ argument; these scripts assume GNU sed (Linux)."
     rm -f "$probe"
 }
 
+# ---------------------------------------------------------------------------
+# Saying what is happening while it happens
+# ---------------------------------------------------------------------------
+#
+# A step that takes four seconds and prints nothing looks the same as one that
+# has hung. These show the work as it runs, and leave one line behind saying
+# how it went -- but only on a terminal. Through a pipe, in cron or in a deploy
+# log, the animation would be thousands of carriage returns in a file nobody can
+# read, so there it prints the plain line and nothing else.
+
+is_tty() { [ -t 1 ]; }
+
+SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+
+step_ok()   { printf '  \033[32m✔\033[0m %s\n' "$*"; }
+step_fail() { printf '  \033[31m✘\033[0m %s\n' "$*"; }
+step_skip() { printf '  \033[33m-\033[0m %s\n' "$*"; }
+
+# spinner_run "What it is doing" command args...
+#
+# Keeps the command's own output back: on success nobody wants it, and on
+# failure it is printed in full, indented, where it is the only thing that
+# matters. Returns the command's exit code, so a caller can still stop on it.
+#
+# Two switches for callers that want to do their own reporting:
+#   SPINNER_OUTPUT=<path>  leave the command's output there to be read
+#   SPINNER_QUIET=1        leave no line behind, print nothing on failure
+spinner_run() {
+    local label="$1"; shift
+    local output status pid i=0 frame
+
+    output="${SPINNER_OUTPUT:-$(mktemp)}"
+
+    if ! is_tty; then
+        [ -n "${SPINNER_QUIET:-}" ] || printf '  %s\n' "$label"
+        "$@" >"$output" 2>&1
+        status=$?
+        [ "$status" -eq 0 ] || [ -n "${SPINNER_QUIET:-}" ] || sed 's/^/      /' "$output"
+        [ -n "${SPINNER_OUTPUT:-}" ] || rm -f "$output"
+
+        return "$status"
+    fi
+
+    "$@" >"$output" 2>&1 &
+    pid=$!
+
+    printf '\033[?25l'
+    while kill -0 "$pid" 2>/dev/null; do
+        frame="${SPINNER_FRAMES:$(( i % ${#SPINNER_FRAMES} )):1}"
+        printf '\r  \033[36m%s\033[0m %s' "$frame" "$label"
+        i=$(( i + 1 ))
+        sleep 0.08
+    done
+    printf '\033[?25h\r\033[K'
+
+    wait "$pid"
+    status=$?
+
+    if [ -n "${SPINNER_QUIET:-}" ]; then
+        :
+    elif [ "$status" -eq 0 ]; then
+        step_ok "$label"
+    else
+        step_fail "$label"
+        sed 's/^/      /' "$output"
+    fi
+
+    [ -n "${SPINNER_OUTPUT:-}" ] || rm -f "$output"
+
+    return "$status"
+}
+
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 warn()  { printf '\033[33m%s\033[0m\n' "$*"; }

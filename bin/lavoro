@@ -105,11 +105,20 @@ current_commit() { git -C "$ROOT" log -1 --format='%h %cd %s' --date=short 2>/de
 # How far behind origin this checkout is. Fetches first, because a checkout that
 # never fetches is always "up to date". Never fails the caller: a server without
 # a network should still report everything else.
+#
+# Nothing here may ask a question. A deploy key with a passphrase, or a host that
+# is not in known_hosts, otherwise leaves 'lavoro status' waiting on a prompt
+# forever -- which is what a hung status command looks like from the outside. So
+# ssh is told to fail instead of asking, git is told not to prompt for a
+# password, and the whole thing is given twenty seconds.
 behind_count() {
     local branch
     branch="$(current_branch)"
 
-    quietly git -C "$ROOT" fetch --quiet origin "$branch" || return 1
+    quietly env GIT_TERMINAL_PROMPT=0 \
+        GIT_SSH_COMMAND='ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new -oConnectTimeout=10' \
+        timeout 20 git -C "$ROOT" fetch --quiet origin "$branch" || return 1
+
     git -C "$ROOT" rev-list --count "HEAD..origin/${branch}" 2>/dev/null
 }
 
@@ -141,6 +150,7 @@ cmd_status() {
     behind="$(behind_count)"
     if [ -z "$behind" ]; then
         warn_line "origin" "could not be reached"
+        todo "git -C ${ROOT} fetch origin" "run it by hand to see why: no network, or a key that wants a passphrase"
     elif [ "$behind" -eq 0 ]; then
         ok "origin" "up to date"
     else
@@ -310,10 +320,22 @@ tenant_count() {
 # The doctor's own summary line, so status says whether anything is wrong
 # without printing fifty lines of its own.
 doctor_summary() {
-    local output tail_line
+    local output tail_line report
 
-    output="$(artisan tenancy:doctor 2>&1)"
-    tail_line="$(printf '%s' "$output" | grep -E '[0-9]+ problem\(s\), [0-9]+ fine' | tail -1)"
+    # The doctor walks every customer and takes a few seconds, so say so while
+    # it runs. Its own output is read here rather than shown: the summary and
+    # the failing lines are what belong in a status report.
+    report="$(mktemp)"
+    SPINNER_OUTPUT="$report" SPINNER_QUIET=1 spinner_run "asking the doctor about every customer" \
+        artisan tenancy:doctor
+    output="$(cat "$report")"
+    rm -f "$report"
+
+    # Two possible last words: "All fine (74 checks)." when nothing is wrong, and
+    # "6 problem(s), 56 fine." when something is. Looking for only one of them
+    # made a healthy installation report that the check had not finished.
+    tail_line="$(printf '%s' "$output" \
+        | grep -E 'All fine \([0-9]+ checks\)|[0-9]+ problem\(s\), [0-9]+ fine' | tail -1)"
 
     # No summary line means it stopped somewhere, which is itself the finding.
     # Printing its last words beats "did not finish", which sends you to run the
@@ -325,7 +347,7 @@ doctor_summary() {
         return
     fi
 
-    if printf '%s' "$tail_line" | grep -q '^0 problem'; then
+    if printf '%s' "$tail_line" | grep -qE '^All fine|^0 problem'; then
         ok "doctor" "$tail_line"
         return
     fi
@@ -351,7 +373,10 @@ cmd_update() {
     behind="$(behind_count)"
 
     if [ -z "$behind" ]; then
-        die "Could not reach origin. Check the network or the deploy key."
+        die "Could not reach origin within twenty seconds.
+Run 'git -C ${ROOT} fetch origin' by hand to see why. A deploy key with a
+passphrase is the usual reason: nothing here may stop to ask for one, because a
+status command that waits for an answer looks exactly like one that has hung."
     fi
 
     if [ "$behind" -eq 0 ]; then
