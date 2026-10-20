@@ -602,6 +602,9 @@ not the file.
   `scripts/tenancy/backup.sh`.
 - **Store `APP_KEY` somewhere safe.** It decrypts every customer database
   password. Without it, a restored backup cannot be used.
+- **Put the `lavoro` command on PATH**: `sudo /var/www/lavoro/bin/lavoro setup cli`.
+  From then on `lavoro status` answers in one screen whether this installation
+  is healthy and current. See [the `lavoro` command](../operations/lavoro-command.md).
 - **Block password guessing.** Lavoro writes every refused login to a file;
   `sudo scripts/tenancy/setup-fail2ban.sh` makes fail2ban act on it. Until you
   run that, nobody is ever blocked. See [fail2ban](fail2ban.md).

@@ -1,0 +1,513 @@
+#!/usr/bin/env bash
+#
+# One command for everything you do to a Lavoro installation.
+#
+#   lavoro status                  is this installation healthy, and is it current
+#   lavoro update                  fetch and deploy the new version
+#   lavoro help                    every command
+#
+# This is a front door, not a rewrite: deploying, backing up, importing and the
+# setup scripts still live in scripts/, and still run on their own. What this
+# adds is one place to look, one spelling to remember, and the checks nobody
+# runs because they are four separate commands.
+#
+# It works out where the installation is from its own path, so it can be
+# symlinked onto PATH and run from anywhere.
+set -uo pipefail
+
+case "$(readlink -f "${BASH_SOURCE[0]}")" in
+    */*) SELF="$(readlink -f "${BASH_SOURCE[0]}")" ;;
+    *)   SELF="$PWD/${BASH_SOURCE[0]}" ;;
+esac
+ROOT="$(cd "${SELF%/bin/*}" && pwd)"
+
+# shellcheck source=../scripts/tenancy/lib.sh
+source "$ROOT/scripts/tenancy/lib.sh"
+
+BACKUP_DIR="${LAVORO_BACKUP_DIR:-$ROOT/storage/backups}"
+
+# ---------------------------------------------------------------------------
+# Running things as the right account
+# ---------------------------------------------------------------------------
+
+# The account the installation belongs to, read from the files rather than
+# assumed. Artisan as root leaves root-owned caches and logs behind, and the
+# next web request cannot write them.
+APP_ACCOUNT="$(stat -c %U "$ROOT/artisan" 2>/dev/null || echo "$USER")"
+
+artisan() {
+    if [ "$(id -un)" = "$APP_ACCOUNT" ]; then
+        (cd "$ROOT" && php artisan "$@")
+    else
+        (cd "$ROOT" && sudo -u "$APP_ACCOUNT" php artisan "$@")
+    fi
+}
+
+# Everything that only reads. Used by status, where one unreachable thing must
+# not stop the rest of the report.
+quietly() { "$@" >/dev/null 2>&1; }
+
+heading() { printf '\n\033[1m%s\033[0m\n' "$1"; }
+
+# A fixed-width label so the answers line up, whatever the question was.
+line() { printf '  %-22s %s\n' "$1" "$2"; }
+
+ok()    { line "$1" "$(printf '\033[32m%s\033[0m' "$2")"; }
+warn_line() { line "$1" "$(printf '\033[33m%s\033[0m' "$2")"; }
+bad_line()  { line "$1" "$(printf '\033[31m%s\033[0m' "$2")"; }
+
+confirm() {
+    local answer
+    printf '%s [y/N] ' "$1"
+    read -r answer
+    [ "$answer" = "y" ] || [ "$answer" = "Y" ]
+}
+
+# ---------------------------------------------------------------------------
+# What is installed here
+# ---------------------------------------------------------------------------
+
+current_branch() { git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null; }
+
+current_commit() { git -C "$ROOT" log -1 --format='%h %cd %s' --date=short 2>/dev/null; }
+
+# How far behind origin this checkout is. Fetches first, because a checkout that
+# never fetches is always "up to date". Never fails the caller: a server without
+# a network should still report everything else.
+behind_count() {
+    local branch
+    branch="$(current_branch)"
+
+    quietly git -C "$ROOT" fetch --quiet origin "$branch" || return 1
+    git -C "$ROOT" rev-list --count "HEAD..origin/${branch}" 2>/dev/null
+}
+
+uncommitted() { git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null; }
+
+# ---------------------------------------------------------------------------
+# status
+# ---------------------------------------------------------------------------
+
+cmd_status() {
+    local branch commit behind dirty
+
+    heading "Installation"
+    line "folder" "$ROOT"
+    line "account" "$APP_ACCOUNT"
+
+    branch="$(current_branch)"
+    commit="$(current_commit)"
+    line "branch" "${branch:-not a git checkout}"
+    line "version" "${commit:-unknown}"
+
+    dirty="$(uncommitted)"
+    if [ -n "$dirty" ]; then
+        warn_line "local changes" "$(printf '%s' "$dirty" | wc -l) file(s) changed here -- a deploy will refuse"
+    fi
+
+    heading "Updates"
+    behind="$(behind_count)"
+    if [ -z "$behind" ]; then
+        warn_line "origin" "could not be reached"
+    elif [ "$behind" -eq 0 ]; then
+        ok "origin" "up to date"
+    else
+        warn_line "origin" "${behind} commit(s) behind -- run: lavoro update"
+        git -C "$ROOT" log --oneline --no-decorate "HEAD..origin/${branch}" 2>/dev/null \
+            | head -5 | sed 's/^/      /'
+    fi
+
+    heading "Services"
+    local unit
+    for unit in lavoro-worker lavoro-provisioning; do
+        if ! quietly command -v systemctl; then
+            line "$unit" "no systemd here"
+        elif [ "$(systemctl is-active "$unit" 2>/dev/null)" = "active" ]; then
+            ok "$unit" "running"
+        else
+            bad_line "$unit" "not running -- lavoro workers restart"
+        fi
+    done
+
+    if crontab -l -u "$APP_ACCOUNT" 2>/dev/null | grep -q 'schedule:run'; then
+        ok "cron" "scheduler installed"
+    else
+        bad_line "cron" "no schedule:run -- no invoices, no sync, no demo"
+    fi
+
+    heading "Room"
+    local free_mb used
+    free_mb="$(df -Pm "$ROOT" | awk 'NR == 2 { print $4 }')"
+    used="$(df -Ph "$ROOT" | awk 'NR == 2 { print $5 }')"
+
+    if [ "${free_mb:-0}" -lt 2048 ]; then
+        bad_line "disk" "${free_mb} MB free (${used} used)"
+    elif [ "${free_mb:-0}" -lt 10240 ]; then
+        warn_line "disk" "${free_mb} MB free (${used} used)"
+    else
+        ok "disk" "$(( free_mb / 1024 )) GB free (${used} used)"
+    fi
+
+    heading "Backups"
+    backup_status
+
+    heading "Security"
+    fail2ban_status
+
+    heading "Customers and checks"
+    tenant_count
+    doctor_summary
+    printf '\n'
+}
+
+# The newest dump, and how old it is. A backup nobody looks at is the normal way
+# to find out, months later, that it stopped working.
+backup_status() {
+    local newest age_days count
+
+    if [ ! -d "$BACKUP_DIR" ]; then
+        warn_line "backups" "no folder ${BACKUP_DIR}"
+        return
+    fi
+
+    newest="$(find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' -printf '%T@ %p\n' 2>/dev/null \
+        | sort -rn | head -1 | cut -d' ' -f2-)"
+
+    if [ -z "$newest" ]; then
+        bad_line "backups" "none in ${BACKUP_DIR}"
+        return
+    fi
+
+    count="$(find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' | wc -l)"
+    age_days=$(( ( $(date +%s) - $(stat -c %Y "$newest") ) / 86400 ))
+
+    if [ "$age_days" -ge 7 ]; then
+        bad_line "newest dump" "${age_days} days old -- lavoro backup"
+    elif [ "$age_days" -ge 2 ]; then
+        warn_line "newest dump" "${age_days} days old"
+    else
+        ok "newest dump" "$(date -d "@$(stat -c %Y "$newest")" '+%Y-%m-%d %H:%M')"
+    fi
+
+    line "dumps kept" "${count} file(s), $(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1)"
+
+    if [ "$BACKUP_DIR" = "$ROOT/storage/backups" ]; then
+        warn_line "where" "inside the installation -- same disk as the databases"
+    fi
+}
+
+# Whether refused logins are actually acted on. The application writes them
+# down on its own, so the file filling up proves nothing: without the jail
+# reading it, nobody is ever blocked.
+fail2ban_status() {
+    local log="$ROOT/storage/logs/auth.log" banned
+
+    if [ -f "$log" ]; then
+        ok "refused logins" "$(wc -l < "$log") line(s) in storage/logs/auth.log"
+    else
+        line "refused logins" "no file yet (nobody has been refused since this was installed)"
+    fi
+
+    if ! quietly command -v fail2ban-client; then
+        bad_line "fail2ban" "not installed -- sudo apt install fail2ban, then: sudo lavoro setup fail2ban"
+        return
+    fi
+
+    if ! sudo -n fail2ban-client status lavoro-auth >/dev/null 2>&1; then
+        if fail2ban-client status lavoro-auth >/dev/null 2>&1; then
+            : # readable without sudo, fall through to the count below
+        else
+            bad_line "fail2ban" "no lavoro-auth jail -- sudo lavoro setup fail2ban"
+            return
+        fi
+    fi
+
+    banned="$(fail2ban-client status lavoro-auth 2>/dev/null | grep -oP 'Currently banned:\s*\K[0-9]+' | head -1)"
+    ok "fail2ban" "lavoro-auth active, ${banned:-0} address(es) banned now"
+}
+
+# Counted off the table tenants:list prints: every row but the header carries a
+# database name in the customer namespace.
+tenant_count() {
+    # Rows of the table tenants:list prints, minus its header. Counting the rows
+    # rather than matching a database name keeps this working whatever the
+    # prefix is on this installation.
+    local count rows
+    rows="$(artisan tenants:list 2>/dev/null | grep -c '^| ' || true)"
+    count=$(( rows > 0 ? rows - 1 : 0 ))
+
+    if [ "${count:-0}" -eq 0 ]; then
+        warn_line "customers" "none, or the list could not be read"
+    else
+        ok "customers" "$count"
+    fi
+}
+
+# The doctor's own summary line, so status says whether anything is wrong
+# without printing fifty lines of its own.
+doctor_summary() {
+    local output tail_line
+
+    output="$(artisan tenancy:doctor 2>&1)"
+    tail_line="$(printf '%s' "$output" | grep -E '[0-9]+ problem\(s\), [0-9]+ fine' | tail -1)"
+
+    if [ -z "$tail_line" ]; then
+        bad_line "doctor" "did not finish -- run: lavoro doctor"
+        return
+    fi
+
+    if printf '%s' "$tail_line" | grep -q '^0 problem'; then
+        ok "doctor" "$tail_line"
+        return
+    fi
+
+    bad_line "doctor" "$tail_line"
+    printf '%s' "$output" | grep -E '^\s*FAIL' | head -8 | sed 's/^ */      /'
+    line "" "all of it: lavoro doctor"
+}
+
+# ---------------------------------------------------------------------------
+# update
+# ---------------------------------------------------------------------------
+
+cmd_update() {
+    local branch behind dirty check_only=0
+
+    [ "${1:-}" = "--check" ] && check_only=1
+
+    branch="$(current_branch)"
+    [ -n "$branch" ] || die "This is not a git checkout, so there is nothing to update."
+
+    info "Fetching origin/${branch}..."
+    behind="$(behind_count)"
+
+    if [ -z "$behind" ]; then
+        die "Could not reach origin. Check the network or the deploy key."
+    fi
+
+    if [ "$behind" -eq 0 ]; then
+        green "Already on the newest version ($(current_commit))."
+        return 0
+    fi
+
+    info ""
+    info "${behind} commit(s) waiting:"
+    git -C "$ROOT" log --oneline --no-decorate "HEAD..origin/${branch}" | sed 's/^/  /'
+    info ""
+
+    if git -C "$ROOT" diff --quiet "HEAD..origin/${branch}" -- database/migrations; then
+        info "  No database changes."
+    else
+        warn "  Includes database changes:"
+        git -C "$ROOT" diff --name-only "HEAD..origin/${branch}" -- database/migrations | sed 's/^/    /'
+    fi
+
+    if [ "$check_only" -eq 1 ]; then
+        info ""
+        info "Run 'lavoro update' to install this."
+        return 0
+    fi
+
+    dirty="$(uncommitted)"
+    if [ -n "$dirty" ]; then
+        red "Files have been changed on this server:"
+        printf '%s\n' "$dirty" | sed 's/^/  /'
+        die "The deploy pulls with --ff-only and would stop here. Put these back first."
+    fi
+
+    info ""
+    warn "Deploying takes the installation offline for everyone while it runs."
+    confirm "Deploy now?" || { info "Nothing done."; return 1; }
+
+    bash "$ROOT/scripts/deploy.sh"
+}
+
+# ---------------------------------------------------------------------------
+# tenants
+# ---------------------------------------------------------------------------
+
+cmd_tenants() {
+    case "${1:-list}" in
+        list|"")   artisan tenants:list ;;
+        overview)  artisan tenant:overview ;;
+        create)    shift; artisan tenant:create "$@" ;;
+        delete)    shift; artisan tenant:delete "$@" ;;
+        admin)     shift; artisan tenant:admin "$@" ;;
+        import)
+            shift
+            [ "$(id -u)" -eq 0 ] || die "Importing an installation needs root: sudo lavoro tenants import ..."
+            bash "$ROOT/scripts/tenancy/import-install.sh" "$@" ;;
+        *) die "Unknown: lavoro tenants $1. Try: list, overview, create, delete, admin, import" ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
+# backup and restore
+# ---------------------------------------------------------------------------
+
+cmd_backup() {
+    case "${1:-run}" in
+        run|"")
+            shift 2>/dev/null || true
+            bash "$ROOT/scripts/tenancy/backup.sh" --to="$BACKUP_DIR" "$@" ;;
+        list)
+            [ -d "$BACKUP_DIR" ] || die "No backup folder: ${BACKUP_DIR}"
+            info "In ${BACKUP_DIR}, newest first:"
+            find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' -printf '%T@ %TY-%Tm-%Td %TH:%TM  %10s  %f\n' \
+                | sort -rn | cut -d' ' -f2- | head -40 ;;
+        *) die "Unknown: lavoro backup $1. Try: run, list" ;;
+    esac
+}
+
+# Putting one customer's database back. The dangerous one, so it asks for the
+# customer's name in full and says what it is about to replace.
+cmd_restore() {
+    local database="${1:-}" dump="${2:-}" defaults="${LAVORO_MYSQL_DEFAULTS:-/root/backup.cnf}"
+
+    [ -n "$database" ] && [ -n "$dump" ] || die "Usage: sudo lavoro restore <database> <dump.sql.gz>
+Example: sudo lavoro restore lavoro_tenant_acme ${BACKUP_DIR}/lavoro_tenant_acme-2026-09-20_04-00-01.sql.gz
+See which database belongs to which customer with: lavoro tenants"
+
+    [ "$(id -u)" -eq 0 ] || die "Restoring needs root: sudo lavoro restore ..."
+    [ -f "$dump" ] || die "No such dump: ${dump}"
+    [ -f "$defaults" ] || die "No MySQL credentials at ${defaults}.
+Create it (user and password of an account that may write to ${database}), chmod 600,
+or point LAVORO_MYSQL_DEFAULTS at another file. See docs/operations/backup-restore.md."
+
+    require_commands mysql gunzip
+
+    info "About to replace the contents of ${database}"
+    info "  from: ${dump}"
+    info "  made: $(date -d "@$(stat -c %Y "$dump")" '+%Y-%m-%d %H:%M')"
+    info ""
+    warn "Everything now in ${database} is gone, and the installation goes offline while this runs."
+    confirm "Continue?" || { info "Nothing done."; return 1; }
+
+    artisan app:maintenance --message="Bezig met herstel."
+
+    if gunzip -c "$dump" | mysql --defaults-extra-file="$defaults" "$database"; then
+        green "  loaded"
+    else
+        red "  the restore failed -- the installation is still offline on purpose"
+        red "  put it back online yourself with: lavoro maintenance off"
+        return 1
+    fi
+
+    artisan tenants:migrate
+    artisan tenancy:doctor
+    artisan app:maintenance
+
+    green "Done. Restore this customer's files from the same moment as well:"
+    info "  rsync -a ${BACKUP_DIR}/files/tenant-<customer id>/ ${ROOT}/storage/tenant-<customer id>/"
+}
+
+# ---------------------------------------------------------------------------
+# logs, workers, maintenance, setup
+# ---------------------------------------------------------------------------
+
+cmd_logs() {
+    local what="${1:-app}" follow="${2:-}"
+    local args=()
+
+    [ "$follow" = "-f" ] || [ "$follow" = "--follow" ] && args=(-f)
+
+    case "$what" in
+        app)          tail -n 100 "${args[@]}" "$ROOT/storage/logs/laravel.log" ;;
+        auth)         tail -n 100 "${args[@]}" "$ROOT/storage/logs/auth.log" ;;
+        worker)       journalctl -u lavoro-worker -n 100 "${args[@]/-f/--follow}" ;;
+        provisioning) journalctl -u lavoro-provisioning -n 100 "${args[@]/-f/--follow}" ;;
+        *) die "Unknown log: $what. Try: app, auth, worker, provisioning" ;;
+    esac
+}
+
+cmd_workers() {
+    case "${1:-status}" in
+        status|"")
+            if quietly command -v systemctl; then
+                systemctl status lavoro-worker lavoro-provisioning --no-pager | sed -n '1,12p'
+            else
+                warn "No systemd here."
+            fi
+            artisan queue:failed ;;
+        restart) artisan tenancy:restart-workers ;;
+        failed)  artisan queue:failed ;;
+        retry)   artisan queue:retry all ;;
+        flush)   artisan queue:flush ;;
+        *) die "Unknown: lavoro workers $1. Try: status, restart, failed, retry, flush" ;;
+    esac
+}
+
+cmd_maintenance() {
+    case "${1:-}" in
+        on)  shift; artisan app:maintenance --message="${1:-Onderhoud, we zijn zo terug.}" ;;
+        off) artisan app:maintenance ;;
+        *)   artisan app:maintenance ;;
+    esac
+}
+
+cmd_setup() {
+    local what="${1:-}"
+    shift 2>/dev/null || true
+
+    case "$what" in
+        mysql)    sudo "$ROOT/scripts/tenancy/setup-mysql.sh" "$@" ;;
+        workers)  sudo "$ROOT/scripts/tenancy/setup-workers.sh" "$@" ;;
+        sudoers)  sudo "$ROOT/scripts/tenancy/setup-sudoers.sh" "$@" ;;
+        fail2ban) sudo "$ROOT/scripts/tenancy/setup-fail2ban.sh" "$@" ;;
+        env)      bash "$ROOT/scripts/tenancy/setup-env.sh" "$@" ;;
+        verify)   sudo "$ROOT/scripts/tenancy/verify-mysql.sh" "$@" ;;
+        cli)
+            [ "$(id -u)" -eq 0 ] || die "Putting lavoro on PATH needs root: sudo lavoro setup cli"
+            ln -sf "$ROOT/bin/lavoro" /usr/local/bin/lavoro
+            green "ln -s ${ROOT}/bin/lavoro /usr/local/bin/lavoro" ;;
+        *) die "Unknown: lavoro setup $what
+Try: mysql, workers, sudoers, fail2ban, env, verify, cli" ;;
+    esac
+}
+
+usage() {
+    cat <<USAGE
+lavoro -- one command for a Lavoro installation
+
+  lavoro status                     is it healthy, is it current, when was the last backup
+  lavoro doctor                     the full check, every customer
+  lavoro update [--check]           see what is waiting, or fetch and deploy it
+
+  lavoro tenants                    list the customers
+  lavoro tenants overview           seats, storage, price, what is due
+  lavoro tenants create "Name BV" admin@example.nl
+  lavoro tenants delete <id>
+  lavoro tenants admin <id> them@example.nl
+  sudo lavoro tenants import --from /path/to/old --name "Name BV" --slug name [--refresh]
+
+  lavoro backup [--keep-days=14]    dump every database
+  lavoro backup list                what is in the backup folder
+  sudo lavoro restore <database> <dump.sql.gz>
+
+  lavoro logs [app|auth|worker|provisioning] [-f]
+  lavoro workers [status|restart|failed|retry|flush]
+  lavoro maintenance [on|off]
+
+  lavoro setup <mysql|workers|sudoers|fail2ban|env|verify|cli>
+
+Where things are:
+  installation  ${ROOT}
+  backups       ${BACKUP_DIR}   (set LAVORO_BACKUP_DIR to change)
+USAGE
+}
+
+case "${1:-status}" in
+    status)      shift 2>/dev/null || true; cmd_status "$@" ;;
+    doctor)      shift 2>/dev/null || true; artisan tenancy:doctor "$@" ;;
+    update)      shift 2>/dev/null || true; cmd_update "$@" ;;
+    tenants)     shift 2>/dev/null || true; cmd_tenants "$@" ;;
+    backup)      shift 2>/dev/null || true; cmd_backup "$@" ;;
+    restore)     shift 2>/dev/null || true; cmd_restore "$@" ;;
+    logs)        shift 2>/dev/null || true; cmd_logs "$@" ;;
+    workers)     shift 2>/dev/null || true; cmd_workers "$@" ;;
+    maintenance) shift 2>/dev/null || true; cmd_maintenance "$@" ;;
+    setup)       shift 2>/dev/null || true; cmd_setup "$@" ;;
+    artisan)     shift 2>/dev/null || true; artisan "$@" ;;
+    help|-h|--help) usage ;;
+    *) printf 'Unknown command: %s\n\n' "$1" >&2; usage >&2; exit 2 ;;
+esac

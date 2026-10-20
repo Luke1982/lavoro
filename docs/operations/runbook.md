@@ -9,6 +9,11 @@ how the whole thing is put together, see
 Working on the code instead? See
 [getting started](../development/getting-started.md).
 
+Most of what follows also has a shorter spelling through the `lavoro` command:
+`lavoro status`, `lavoro update`, `lavoro tenants`, `lavoro backup`. See
+[the `lavoro` command](lavoro-command.md). This page is what those commands do
+underneath, and what to do when you need the parts they do not cover.
+
 Run the commands on this page from the folder Lavoro is installed in
 (`/var/www/lavoro` in these examples), logged in as the Linux account that owns
 those files, unless the command starts with `sudo`. Running `php artisan …` as
@@ -419,6 +424,7 @@ PHP by hand.
 
 | | |
 | --- | --- |
+| [lavoro-command.md](lavoro-command.md) | one command for status, updates, customers, backups and logs |
 | [backup-restore.md](backup-restore.md) | what to back up, and how to restore it |
 | [troubleshooting.md](troubleshooting.md) | when the doctor is not enough |
 | [demo.md](demo.md) | the demo customer |

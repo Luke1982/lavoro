@@ -11,7 +11,7 @@ installation serves several companies at once, each with its own database.
 | use the application | [the user manual](guide/handleiding.md) (Dutch) |
 | install it on a new server | [installing a server](install/server.md) |
 | move an existing Lavoro installation into this one | [taking over an installation](install/import-existing.md) |
-| run and maintain a server | [the runbook](operations/runbook.md) |
+| run and maintain a server | [the `lavoro` command](operations/lavoro-command.md), then [the runbook](operations/runbook.md) |
 | work on the code | [getting started](development/getting-started.md) |
 
 ## All pages
@@ -35,6 +35,8 @@ installation serves several companies at once, each with its own database.
 
 ### operations — running it day to day
 
+- [lavoro-command.md](operations/lavoro-command.md) — the `lavoro` command: one
+  entry point for status, updates, customers, backups and logs
 - [runbook.md](operations/runbook.md) — what has to be running, managing
   customers and subscriptions, invoices, migrations, deploying
 - [backup-restore.md](operations/backup-restore.md) — what to back up, and how

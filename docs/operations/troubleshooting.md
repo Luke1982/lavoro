@@ -7,8 +7,12 @@ those files, unless the command starts with `sudo`.
 ## Always start here
 
 ```bash
+lavoro status      # the short answer: version, services, disk, backups, doctor
 php artisan tenancy:doctor
 ```
+
+`lavoro status` is the overview and quotes the failing checks; the doctor is the
+full report. See [the `lavoro` command](lavoro-command.md).
 
 This goes through the whole installation and prints one line per check, marked
 `OK`, `FAIL` or `SKIP`, with a short explanation and what to do about it. A
