@@ -49,12 +49,43 @@ quietly() { "$@" >/dev/null 2>&1; }
 
 heading() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
+# What a stopped worker actually costs, per unit, so the reason is worth reading.
+what_stops() {
+    case "$1" in
+        lavoro-worker)       printf 'no mail, no pdfs, no Google sync' ;;
+        lavoro-provisioning) printf 'no customer can be created or deleted' ;;
+        *)                   printf 'queued work is not being done' ;;
+    esac
+}
+
 # A fixed-width label so the answers line up, whatever the question was.
 line() { printf '  %-22s %s\n' "$1" "$2"; }
 
 ok()    { line "$1" "$(printf '\033[32m%s\033[0m' "$2")"; }
 warn_line() { line "$1" "$(printf '\033[33m%s\033[0m' "$2")"; }
 bad_line()  { line "$1" "$(printf '\033[31m%s\033[0m' "$2")"; }
+
+# What the reader should do about what was just printed. Collected while the
+# checks run and listed at the end, because a report that names a problem and
+# not its remedy sends people looking through documentation for a command this
+# tool already knows.
+TODO_COMMANDS=()
+TODO_REASONS=()
+
+todo() {
+    local existing
+
+    # One command, once: two stopped workers are one restart, not two. Guarded
+    # because an empty array under 'set -u' is an error in older bash.
+    if [ "${#TODO_COMMANDS[@]}" -gt 0 ]; then
+        for existing in "${TODO_COMMANDS[@]}"; do
+            [ "$existing" = "$1" ] && return 0
+        done
+    fi
+
+    TODO_COMMANDS+=("$1")
+    TODO_REASONS+=("$2")
+}
 
 confirm() {
     local answer
@@ -103,6 +134,7 @@ cmd_status() {
     dirty="$(uncommitted)"
     if [ -n "$dirty" ]; then
         warn_line "local changes" "$(printf '%s' "$dirty" | wc -l) file(s) changed here -- a deploy will refuse"
+        todo "git -C ${ROOT} status" "see what was changed by hand; a deploy stops until it is put back"
     fi
 
     heading "Updates"
@@ -112,7 +144,8 @@ cmd_status() {
     elif [ "$behind" -eq 0 ]; then
         ok "origin" "up to date"
     else
-        warn_line "origin" "${behind} commit(s) behind -- run: lavoro update"
+        warn_line "origin" "${behind} commit(s) behind"
+        todo "lavoro update --check" "see what is in those ${behind} commit(s), then: lavoro update"
         git -C "$ROOT" log --oneline --no-decorate "HEAD..origin/${branch}" 2>/dev/null \
             | head -5 | sed 's/^/      /'
     fi
@@ -125,14 +158,16 @@ cmd_status() {
         elif [ "$(systemctl is-active "$unit" 2>/dev/null)" = "active" ]; then
             ok "$unit" "running"
         else
-            bad_line "$unit" "not running -- lavoro workers restart"
+            bad_line "$unit" "not running"
+            todo "lavoro workers restart" "a background process is down: $(what_stops "$unit")"
         fi
     done
 
     if crontab -l -u "$APP_ACCOUNT" 2>/dev/null | grep -q 'schedule:run'; then
         ok "cron" "scheduler installed"
     else
-        bad_line "cron" "no schedule:run -- no invoices, no sync, no demo"
+        bad_line "cron" "no schedule:run"
+        todo "sudo lavoro setup workers" "without the cron line: no invoices, no Google sync, no demo rebuild"
     fi
 
     heading "Room"
@@ -142,6 +177,7 @@ cmd_status() {
 
     if [ "${free_mb:-0}" -lt 2048 ]; then
         bad_line "disk" "${free_mb} MB free (${used} used)"
+        todo "lavoro backup list" "almost full; old dumps are usually the cause (delete with --keep-days)"
     elif [ "${free_mb:-0}" -lt 10240 ]; then
         warn_line "disk" "${free_mb} MB free (${used} used)"
     else
@@ -157,7 +193,30 @@ cmd_status() {
     heading "Customers and checks"
     tenant_count
     doctor_summary
-    printf '\n'
+
+    next_steps
+}
+
+# Everything the checks above flagged, as commands you can paste, in the order
+# they were found.
+next_steps() {
+    local i
+
+    if [ "${#TODO_COMMANDS[@]}" -eq 0 ]; then
+        heading "Nothing to do"
+        line "" "This installation is healthy and up to date."
+        printf '\n  All commands: \033[1mlavoro help\033[0m\n\n'
+        return
+    fi
+
+    heading "What to do (${#TODO_COMMANDS[@]})"
+
+    for i in "${!TODO_COMMANDS[@]}"; do
+        printf '  %d. \033[1m%s\033[0m\n     %s\n' \
+            "$(( i + 1 ))" "${TODO_COMMANDS[$i]}" "${TODO_REASONS[$i]}"
+    done
+
+    printf '\n  All commands: \033[1mlavoro help\033[0m\n\n'
 }
 
 # The newest dump, and how old it is. A backup nobody looks at is the normal way
@@ -175,6 +234,7 @@ backup_status() {
 
     if [ -z "$newest" ]; then
         bad_line "backups" "none in ${BACKUP_DIR}"
+        todo "lavoro backup --keep-days=14" "there is no backup of any database at all"
         return
     fi
 
@@ -182,7 +242,8 @@ backup_status() {
     age_days=$(( ( $(date +%s) - $(stat -c %Y "$newest") ) / 86400 ))
 
     if [ "$age_days" -ge 7 ]; then
-        bad_line "newest dump" "${age_days} days old -- lavoro backup"
+        bad_line "newest dump" "${age_days} days old"
+        todo "lavoro backup --keep-days=14" "the newest backup is ${age_days} days old"
     elif [ "$age_days" -ge 2 ]; then
         warn_line "newest dump" "${age_days} days old"
     else
@@ -193,6 +254,7 @@ backup_status() {
 
     if [ "$BACKUP_DIR" = "$ROOT/storage/backups" ]; then
         warn_line "where" "inside the installation -- same disk as the databases"
+        todo "LAVORO_BACKUP_DIR=/backups/lavoro lavoro backup" "a copy on this disk is gone when this server is; then rsync it off the machine"
     fi
 }
 
@@ -209,7 +271,8 @@ fail2ban_status() {
     fi
 
     if ! quietly command -v fail2ban-client; then
-        bad_line "fail2ban" "not installed -- sudo apt install fail2ban, then: sudo lavoro setup fail2ban"
+        bad_line "fail2ban" "not installed"
+        todo "sudo apt install fail2ban && sudo lavoro setup fail2ban" "nothing blocks somebody trying passwords all night"
         return
     fi
 
@@ -217,7 +280,8 @@ fail2ban_status() {
         if fail2ban-client status lavoro-auth >/dev/null 2>&1; then
             : # readable without sudo, fall through to the count below
         else
-            bad_line "fail2ban" "no lavoro-auth jail -- sudo lavoro setup fail2ban"
+            bad_line "fail2ban" "installed, but no lavoro-auth jail"
+            todo "sudo lavoro setup fail2ban" "refused logins are written down but nobody is ever blocked"
             return
         fi
     fi
@@ -251,8 +315,13 @@ doctor_summary() {
     output="$(artisan tenancy:doctor 2>&1)"
     tail_line="$(printf '%s' "$output" | grep -E '[0-9]+ problem\(s\), [0-9]+ fine' | tail -1)"
 
+    # No summary line means it stopped somewhere, which is itself the finding.
+    # Printing its last words beats "did not finish", which sends you to run the
+    # same command again by hand to find out what this already knows.
     if [ -z "$tail_line" ]; then
-        bad_line "doctor" "did not finish -- run: lavoro doctor"
+        bad_line "doctor" "stopped before it was done"
+        printf '%s' "$output" | tail -5 | sed 's/^/      /'
+        todo "lavoro doctor" "the check itself fails; the lines above are where it stopped"
         return
     fi
 
@@ -263,7 +332,7 @@ doctor_summary() {
 
     bad_line "doctor" "$tail_line"
     printf '%s' "$output" | grep -E '^\s*FAIL' | head -8 | sed 's/^ */      /'
-    line "" "all of it: lavoro doctor"
+    todo "lavoro doctor" "$tail_line Each line says what to do about it"
 }
 
 # ---------------------------------------------------------------------------

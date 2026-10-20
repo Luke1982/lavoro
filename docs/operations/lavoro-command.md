@@ -30,6 +30,10 @@ watching refused logins, how many customers there are, and what
 `php artisan tenancy:doctor` says — with the failing lines quoted, not just a
 count.
 
+It ends with **What to do**: one numbered command per thing it found, with the
+reason underneath, in the order they came up. Nothing found means it says so.
+Either way the last line points at `lavoro help` for everything else.
+
 Run it when something is reported, and once in a while when nothing is.
 
 ## Updating
