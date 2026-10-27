@@ -426,9 +426,29 @@ status command that waits for an answer looks exactly like one that has hung."
 
     dirty="$(uncommitted)"
     if [ -n "$dirty" ]; then
-        red "Files have been changed on this server:"
+        red "Files have been changed on this server, so the deploy would stop halfway:"
         printf '%s\n' "$dirty" | sed 's/^/  /'
-        die "The deploy pulls with --ff-only and would stop here. Put these back first."
+        info ""
+        info "  See what changed:   git -C ${ROOT} diff -- <file>"
+        info "  Throw it away:      git -C ${ROOT} checkout -- <file>"
+        info ""
+        info "  A file under storage/ is almost always a placeholder that only exists to"
+        info "  keep an empty folder in git. Those are safe to throw away. A file under"
+        info "  app/, config/ or resources/ is somebody's change: look at it first."
+        info ""
+
+        if printf '%s' "$dirty" | grep -qvE '^\s*M\s+storage/'; then
+            die "Nothing was deployed."
+        fi
+
+        warn "  All of these are under storage/."
+        confirm "  Throw those changes away and carry on?" || { info "Nothing done."; return 1; }
+
+        printf '%s' "$dirty" | awk '{ print $2 }' | while read -r path; do
+            git -C "$ROOT" checkout -- "$path"
+        done
+
+        green "  put back"
     fi
 
     info ""

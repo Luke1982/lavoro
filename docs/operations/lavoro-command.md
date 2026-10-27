@@ -47,8 +47,14 @@ lavoro update             # fetch it and deploy it
 separately whether any of them change the database structure, because those are
 the ones that need the maintenance window.
 
-`lavoro update` refuses if files on the server were changed by hand — the deploy
-pulls with `--ff-only` and would stop halfway. It warns that the installation
+`lavoro update` stops if files on the server were changed by hand, because the
+deploy pulls with `--ff-only` and would strand halfway. It names them and prints
+the two commands to look at a change or throw it away.
+
+If every changed file is under `storage/`, it offers to throw those away for
+you. Those are placeholders that exist only to keep an empty folder in git, and
+a deploy should not stop for one. Anything under `app/`, `config/` or
+`resources/` is somebody's work, and then it refuses and leaves it to you. It warns that the installation
 goes offline, asks once, and then runs `scripts/deploy.sh`, which takes the
 backup, pulls, migrates, rebuilds caches, restarts the workers and runs the
 checks.
