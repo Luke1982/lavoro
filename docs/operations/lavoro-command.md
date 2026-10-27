@@ -87,6 +87,33 @@ Once the tree is clean it warns that the installation goes offline, asks once,
 and then runs `scripts/deploy.sh`, which takes the backup, pulls, migrates,
 rebuilds caches, restarts the workers and runs the checks.
 
+### Which branch it deploys, and moving to another one
+
+`lavoro update` and the deploy pull **whatever branch is checked out on the
+server**. No branch name appears anywhere in the code or the scripts.
+
+The multi-tenancy work was merged into `master` on 27 October 2026, so a server
+that still follows `feature/multi-tenancy` is moved over once:
+
+```bash
+lavoro status
+sudo -u lavoro git -C /home/lavoro/lavorofsm fetch origin
+sudo -u lavoro git -C /home/lavoro/lavorofsm switch -C master --track origin/master
+lavoro deploy
+```
+
+`lavoro status` first because the switch refuses while files on the server are
+changed by hand — the same ones `update` names. `switch -C` points the server's
+`master` at `origin/master` and makes it follow that from now on, whether the
+server had a `master` already or not.
+
+`lavoro deploy`, not `lavoro update`: the switch already put the new code on
+disk, so `update` would fetch, find nothing waiting and deploy nothing. The
+site would then run new code on the packages, assets and database schema of the
+old branch. `lavoro deploy` is the second half of `lavoro update` on its own —
+backup, packages, migrations, caches, workers, checks — and it asks before
+taking the site offline.
+
 ## Customers
 
 ```bash
@@ -190,6 +217,7 @@ along, which is how a working setup quietly becomes one where uploads fail.
 
 ```bash
 lavoro doctor                  # the full check, every customer
+lavoro deploy                  # deploy what is on disk, without fetching
 lavoro artisan <command>       # any artisan command, as the right account
 lavoro help
 ```

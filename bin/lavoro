@@ -488,7 +488,22 @@ status command that waits for an answer looks exactly like one that has hung."
     fi
 
     info ""
-    warn "Deploying takes the installation offline for everyone while it runs."
+    cmd_deploy
+}
+
+# ---------------------------------------------------------------------------
+# deploy
+# ---------------------------------------------------------------------------
+
+# The deploy on its own, without asking origin whether anything is new.
+#
+# For when the files changed but the commits did not: switching the installation
+# to another branch replaces the code on disk, while 'lavoro update' then sees
+# nothing waiting and deploys nothing -- so composer, the build and the
+# migrations never run, and the site serves the new code on the old packages.
+cmd_deploy() {
+    info "Deploying ${ROOT}, branch $(current_branch)."
+    warn "That takes the installation offline for everyone while it runs."
     confirm "Deploy now?" || { info "Nothing done."; return 1; }
 
     # As the owning account, whoever started this: the deploy pulls, writes the
@@ -709,6 +724,8 @@ lavoro -- one command for a Lavoro installation
   lavoro status                     is it healthy, is it current, when was the last backup
   lavoro doctor                     the full check, every customer
   lavoro update [--check]           see what is waiting, or fetch and deploy it
+  lavoro deploy                     deploy the code that is on disk, without
+                                    fetching -- after switching branch
 
   lavoro tenants                    list the customers
   lavoro tenants overview           seats, storage, price, what is due
@@ -739,6 +756,7 @@ case "${1:-status}" in
     status)      shift 2>/dev/null || true; cmd_status "$@" ;;
     doctor)      shift 2>/dev/null || true; artisan tenancy:doctor "$@" ;;
     update)      shift 2>/dev/null || true; cmd_update "$@" ;;
+    deploy)      shift 2>/dev/null || true; cmd_deploy "$@" ;;
     tenants)     shift 2>/dev/null || true; cmd_tenants "$@" ;;
     backup)      shift 2>/dev/null || true; cmd_backup "$@" ;;
     restore)     shift 2>/dev/null || true; cmd_restore "$@" ;;
