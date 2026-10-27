@@ -54,6 +54,7 @@ use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
@@ -75,6 +76,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ActivityBuffer::class);
         $this->app->singleton(Signals::class);
+
+        /**
+         * Every job starts counting signals again. A worker stays up for days,
+         * and without this the signals of every job it ever ran are weighed
+         * against one ceiling: at some point the next job gets no history at
+         * all, for no reason it can see.
+         */
+        Event::listen(JobProcessing::class, fn () => app(Signals::class)->startFresh());
 
         $this->app->singleton(AssistantContext::class);
 

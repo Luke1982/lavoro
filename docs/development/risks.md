@@ -117,6 +117,15 @@ fall back to the settings in `.env`.
 
 ## 5. Background jobs
 
+- **A ceiling meant for one web request, applied to a whole command.** The
+  signal layer stops at a thousand signals, which is generous for a request and
+  nothing for a command that seeds a company: the nightly demo rebuild hit it
+  within seconds, and from there every record was created without any history at
+  all, while writing one error line per skipped signal. The ceiling now depends
+  on where the work runs (`config/signals.php`), it is reported once instead of
+  per signal, and every queued job starts counting again. **Covered** by
+  `SignalsKeepCountingPerUnitOfWorkTest`.
+
 - **A job without its company.** A job queued while no company is active runs
   against the shared database. The specific trap that made every scheduled job do
   this: `Job::dispatch()` only queues the job when the object is destroyed, and an
@@ -201,6 +210,14 @@ This is new code, and deleting cannot be undone.
   forever, so `demo:install` appeared to hang. From a worker the answer was no,
   so the step was silently skipped. `config/tenancy.php` now passes `--force` to
   both commands.
+- **A copied file brings its old rights with it.** Importing a customer's
+  installation copies their files in with the modes of that installation, and a
+  mode sets the ACL mask: a folder arriving as `0755` turns "the web server may
+  write here" into read-only without removing the entry. The repair
+  (`setfacl`) works because it recalculates the mask, and the next import undoes
+  it again -- which reads as rights that will not stay put. The import now makes
+  what it copied group-writable, and `lavoro setup permissions` does both halves
+  at once.
 - **Two accounts writing in one folder.** The web server stores uploads and the
   provisioner creates and deletes company folders, in the same place. The access
   lists name both accounts, but on a folder with `0755` permissions those lists

@@ -168,6 +168,23 @@ delete button sits, so you can remove a customer whose database is beyond
 repair. To put the data back instead, see
 [backups and restoring](backup-restore.md#restoring-one-customer).
 
+## Uploads fail, or the doctor says storage is not writable
+
+```bash
+sudo lavoro setup permissions
+```
+
+Two things have to be true, and the second is the one that gets undone. The
+access list on `storage/` has to name the account the web server runs as, and
+the files have to be group-writable, because the mode sets that list's mask: on
+a `0755` folder an entry saying "may write" grants read-only, and `getfacl`
+marks it `#effective:r--`.
+
+Importing a customer's installation copies that installation's files with its
+modes, so a customer whose files were just imported can end up read-only for the
+web server while every other customer is fine. The import makes them
+group-writable again; `sudo lavoro setup permissions` repairs it afterwards.
+
 ## A customer sends no email
 
 Each company sends mail with its own settings, filled in under **Technisch

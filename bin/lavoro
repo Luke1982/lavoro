@@ -561,11 +561,73 @@ cmd_maintenance() {
     esac
 }
 
+# Who the web server runs as, out of what the application wrote down on a real
+# request. Guessing it from `ps` finds any php-fpm on the machine, including one
+# belonging to another site.
+web_account() {
+    local facts="$ROOT/storage/framework/web-server.json" account
+
+    account="$(grep -oP '"account"\s*:\s*"\K[^"]+' "$facts" 2>/dev/null | head -1)"
+
+    printf '%s' "${account:-}"
+}
+
+# Everything the two accounts that write in storage/ need, in one go.
+#
+# Two separate things, and the second is the one people miss. The access lists
+# say who may write; the mode sets the list's mask, and a mask of r-x turns
+# "may write" into read-only without removing the entry. Copying a customer's
+# files in from their old installation brings that installation's modes along,
+# which is how a working setup quietly becomes an unwritable one.
+cmd_fix_permissions() {
+    local account provisioner="lavoro_provisioner"
+
+    [ "$(id -u)" -eq 0 ] || die "Repairing rights needs root: sudo lavoro setup permissions"
+
+    require_commands setfacl getfacl
+
+    account="$(web_account)"
+
+    if [ -z "$account" ]; then
+        die "This installation has not recorded which account the web server runs as.
+Open any page once, then run this again. Without that, setting rights for the
+wrong account looks like it worked and changes nothing."
+    fi
+
+    info ""
+    info "  web server runs as  ${account}"
+    info "  provisioner         ${provisioner}"
+    info ""
+
+    spinner_run "access lists for ${account}" bash -c "
+        setfacl -R -m u:${account}:rwX '${ROOT}/storage' '${ROOT}/bootstrap/cache' &&
+        setfacl -R -d -m u:${account}:rwX '${ROOT}/storage' '${ROOT}/bootstrap/cache'" \
+        || die "Could not set the access lists."
+
+    if id "$provisioner" >/dev/null 2>&1; then
+        spinner_run "access lists for ${provisioner}" bash -c "
+            setfacl -R -m u:${provisioner}:rwX '${ROOT}/storage' &&
+            setfacl -R -d -m u:${provisioner}:rwX '${ROOT}/storage'" \
+            || die "Could not set the access lists for ${provisioner}."
+    else
+        step_skip "no ${provisioner} account on this machine"
+    fi
+
+    spinner_run "modes, so the lists actually grant" \
+        chmod -R u+rwX,g+rwX "$ROOT/storage" "$ROOT/bootstrap/cache" \
+        || die "Could not set the modes."
+
+    printf '\n'
+    green "  Done. Check with: lavoro doctor"
+    info ""
+}
+
 cmd_setup() {
     local what="${1:-}"
     shift 2>/dev/null || true
 
     case "$what" in
+        permissions) cmd_fix_permissions "$@" ;;
         mysql)    sudo "$ROOT/scripts/tenancy/setup-mysql.sh" "$@" ;;
         workers)  sudo "$ROOT/scripts/tenancy/setup-workers.sh" "$@" ;;
         sudoers)  sudo "$ROOT/scripts/tenancy/setup-sudoers.sh" "$@" ;;
@@ -577,7 +639,7 @@ cmd_setup() {
             ln -sf "$ROOT/bin/lavoro" /usr/local/bin/lavoro
             green "ln -s ${ROOT}/bin/lavoro /usr/local/bin/lavoro" ;;
         *) die "Unknown: lavoro setup $what
-Try: mysql, workers, sudoers, fail2ban, env, verify, cli" ;;
+Try: mysql, workers, sudoers, fail2ban, permissions, env, verify, cli" ;;
     esac
 }
 
@@ -605,6 +667,8 @@ lavoro -- one command for a Lavoro installation
   lavoro maintenance [on|off]
 
   lavoro setup <mysql|workers|sudoers|fail2ban|env|verify|cli>
+  sudo lavoro setup permissions     give the web server and the provisioner their
+                                    rights on storage/ again, masks included
 
 Where things are:
   installation  ${ROOT}

@@ -137,12 +137,20 @@ sudo lavoro setup mysql        # the database accounts and the grant procedure
 sudo lavoro setup workers      # both background processes and the cron line
 sudo lavoro setup sudoers      # let commands switch to the provisioner account
 sudo lavoro setup fail2ban     # block repeated failed logins
+sudo lavoro setup permissions  # rights on storage/ for the web server and the provisioner
 sudo lavoro setup verify       # try to cross the account boundaries; expects refusal
 lavoro setup env               # write .env (asks three questions)
 sudo lavoro setup cli          # put lavoro on PATH
 ```
 
 The order and the reasoning are in [installing a server](../install/server.md).
+
+`setup permissions` is the one you reach for again later. It gives both accounts
+their access lists on `storage/` **and** makes the files group-writable, which is
+the half people miss: the mode sets the access list's mask, so a folder that
+arrives as `0755` reduces "may write here" to read-only while still listing the
+entry. Importing a customer's installation brings that installation's modes
+along, which is how a working setup quietly becomes one where uploads fail.
 
 ## Anything else
 

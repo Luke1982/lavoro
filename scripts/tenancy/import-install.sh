@@ -284,6 +284,17 @@ if [ -n "$TENANT_ID" ] && [ -d "$FROM/storage/app" ]; then
     # photos but writes nothing next to them, and the first upload fails.
     run chown -R "$APP_ACCOUNT" "$TARGET"
 
+    # And copied with the modes of the old installation, which is the quiet one.
+    # A folder that arrives as 0755 sets the access list's mask to r-x, so the
+    # entry that says the web server may write here grants read-only -- the
+    # entry is still listed, and getfacl marks it #effective:r--. The doctor
+    # then reports that uploads fail, setfacl fixes it because it works the mask
+    # out again, and the next import puts the old modes back. That is the loop.
+    #
+    # Group-writable is what the disks create themselves; see
+    # config/filesystems.php.
+    run chmod -R u+rwX,g+rwX "$TARGET"
+
     green "  files under storage/tenant-${TENANT_ID}"
     info "  the originals in ${FROM}/storage stay where they are"
 elif [ "$DRY" -eq 1 ]; then
