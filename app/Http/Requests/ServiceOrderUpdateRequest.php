@@ -64,6 +64,7 @@ class ServiceOrderUpdateRequest extends FormRequest
                 'nullable',
                 Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
             ],
+            'project_id' => 'nullable|exists:projects,id',
             'order_date' => 'nullable|date',
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',
