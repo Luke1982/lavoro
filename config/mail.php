@@ -40,6 +40,36 @@ return [
             'transport' => 'graph',
         ],
 
+        /**
+         * The customer's post. Which server sits behind it is per tenant in
+         * general_settings, not here: one server in .env would have every
+         * customer's mail leave from the first one's mailbox.
+         */
+        'tenant' => [
+            'transport' => 'tenant',
+        ],
+
+        /**
+         * Our own post: invoices to the tenants. Deliberately separate from the
+         * customer's mailer, so a customer who breaks their mail server does
+         * not hold up our invoices.
+         */
+        'landlord' => [
+            'transport' => 'smtp',
+            'scheme' => env('LANDLORD_MAIL_SCHEME'),
+            'url' => env('LANDLORD_MAIL_URL'),
+            'host' => env('LANDLORD_MAIL_HOST', '127.0.0.1'),
+            'port' => env('LANDLORD_MAIL_PORT', 2525),
+            'username' => env('LANDLORD_MAIL_USERNAME'),
+            'password' => env('LANDLORD_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'from' => [
+                'address' => env('LANDLORD_MAIL_FROM_ADDRESS', 'info@majorlabel.nl'),
+                'name' => env('LANDLORD_MAIL_FROM_NAME', 'MajorLabel'),
+            ],
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'scheme' => env('MAIL_SCHEME'),

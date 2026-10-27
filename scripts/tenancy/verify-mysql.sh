@@ -14,15 +14,26 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
+preflight_common
+
 PASSED=0
+SKIPPED=0
+NOT_APPLICABLE=0
 FAILED=0
 SCRATCH_DB="${TENANT_PREFIX}verify_$$"
 OUTSIDE_DB="lavoro_notatenant_$$"
+SCRATCH_USER="lavoro_verify_$$"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -45,7 +56,11 @@ done
 
 pass() { green "  PASS  $*"; PASSED=$((PASSED + 1)); }
 fail() { red   "  FAIL  $*"; FAILED=$((FAILED + 1)); }
-skip() { warn  "  SKIP  $*"; }
+# Two kinds of skipping, and the difference matters. Not being able to check
+# something leaves a hole; checking something that does not exist yet does not.
+# Only the first makes the verdict incomplete.
+skip() { warn  "  SKIP  $*"; SKIPPED=$((SKIPPED + 1)); }
+skip_na() { warn  "  SKIP  $*"; NOT_APPLICABLE=$((NOT_APPLICABLE + 1)); }
 
 detect_client
 
@@ -87,7 +102,14 @@ else
     if [ "$ACTIVE" = "1" ]; then
         pass "${SOCKET_PLUGIN} is loaded"
     else
-        fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate"
+        if [ "$DB_FLAVOUR" = "mariadb" ]; then
+            fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate.
+          On MariaDB it is normally built in and active without installing anything;
+          'INSTALL SONAME' fails there because there is no separate library file."
+        else
+            fail "${SOCKET_PLUGIN} is not loaded — the provisioner account cannot authenticate.
+          Switch it on with: INSTALL PLUGIN auth_socket SONAME 'auth_socket.so';"
+        fi
     fi
 fi
 
@@ -103,32 +125,104 @@ if ! id -u "$PROV_USER" >/dev/null 2>&1; then
 elif [ "$(id -u)" -ne 0 ]; then
     skip "provisioner checks need root to switch user — re-run with sudo"
 else
-    CURRENT="$(sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -N -B -e "SELECT current_user();" 2>/dev/null || true)"
+    # Everything in this block runs as the provisioner itself. One place where
+    # that is written, instead of the same line five times with another command.
+    as_provisioner() {
+        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket -e "$1" 2>&1
+    }
+
+    CURRENT="$(as_provisioner "SELECT current_user();" | tail -1 || true)"
+
     if [ "$CURRENT" = "${PROV_USER}@${PROV_HOST}" ]; then
         pass "authenticates as ${PROV_USER}@${PROV_HOST} without a password"
     else
         fail "expected ${PROV_USER}@${PROV_HOST}, got '${CURRENT:-<connection failed>}'"
     fi
 
-    if sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-        -e "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
+    # Whatever goes wrong, the probe database and the probe account go away
+    # again. If they stay, every following check carries the previous one's
+    # leftovers -- and a checking script of all things should leave nothing.
+    clean_probe() {
+        as_provisioner "DROP USER IF EXISTS \`${SCRATCH_USER}\`@\`%\`;" >/dev/null 2>&1 || true
+        as_provisioner "DROP DATABASE IF EXISTS \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
+    }
+
+    trap clean_probe EXIT
+
+    # Clean up leftovers from an earlier run. A check that breaks off halfway
+    # leaves its probe database behind, and that then shows up as "database
+    # without a tenant" in the doctor -- a finding about a problem this script
+    # heeft gemaakt.
+    if [ "$HAVE_ROOT_DB" -eq 1 ]; then
+        while IFS= read -r statement; do
+            [ -n "$statement" ] && sql_root "$statement" >/dev/null 2>&1
+        done < <(sql_root "
+            SELECT CONCAT('DROP DATABASE IF EXISTS \`', schema_name, '\`;')
+              FROM information_schema.schemata
+             WHERE schema_name LIKE '${TENANT_PREFIX}verify\\_%'
+             UNION ALL
+            SELECT CONCAT('DROP USER IF EXISTS \`', user, '\`@\`', host, '\`;')
+              FROM mysql.user
+             WHERE user LIKE 'lavoro\\_verify\\_%';" 2>/dev/null || true)
+    fi
+
+    if as_provisioner "CREATE DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1; then
         pass "can create a database inside the ${TENANT_PREFIX} namespace"
-        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-            -e "DROP DATABASE \`${SCRATCH_DB}\`;" >/dev/null 2>&1 || true
+
+        # Creating a database is half the work. Every customer also gets a
+        # MySQL login of its own that may only reach that one database. Handing
+        # that out is done by a procedure running as root, because a GRANT with
+        # a database name in it cannot be satisfied by the wildcard this account
+        # holds. Checking only the creating let exactly this break in
+        # production, leaving a half created customer behind.
+        #
+        # '|| true' belongs here: without it a failed statement under 'set -e'
+        # takes the whole script with it, and then there is nothing left to
+        # report.
+        USER_ERROR="$(as_provisioner "CREATE USER \`${SCRATCH_USER}\`@\`%\` IDENTIFIED BY 'verify-only';" || true)"
+
+        if [ -n "$USER_ERROR" ]; then
+            fail "cannot create a MySQL account for a tenant:
+        ${USER_ERROR}"
+        else
+            GRANT_ERROR="$(as_provisioner "CALL \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`('${SCRATCH_DB}', '${SCRATCH_USER}');" || true)"
+
+            if [ -z "$GRANT_ERROR" ]; then
+                pass "can give a tenant login rights on its own database"
+            else
+                fail "cannot give a tenant login its rights, so creating a tenant fails halfway:
+        ${GRANT_ERROR}
+        Re-run: sudo scripts/tenancy/setup-mysql.sh"
+            fi
+
+            # The procedure is the only hole in the separation, so that hole
+            # has to be as narrow as intended: outside the customer namespace it
+            # should refuse. If it does not, the provisioner can hand out rights
+            # on every database there is through this road.
+            if as_provisioner "CALL \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`('${LANDLORD_DB}', '${SCRATCH_USER}');" >/dev/null 2>&1; then
+                fail "the grant procedure accepted ${LANDLORD_DB} — it must refuse anything
+        outside the ${TENANT_PREFIX} namespace"
+            else
+                pass "the grant procedure refuses databases outside the ${TENANT_PREFIX} namespace"
+            fi
+        fi
+
     else
         fail "cannot create ${SCRATCH_DB} — tenant creation will fail"
     fi
 
-    # The point of the namespace: everything outside it is off limits, so a
-    # provisioning mistake cannot reach a pre-tenancy or unrelated database.
-    if sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-        -e "CREATE DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1; then
+    # The namespace is the whole point: everything outside it should be
+    # unreachable, so that a mistake in provisioning cannot touch another
+    # database.
+    if as_provisioner "CREATE DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1; then
         fail "created ${OUTSIDE_DB} outside the tenant namespace — the grant is too wide"
-        sudo -u "$PROV_USER" "$MYSQL_CLIENT" --protocol=socket \
-            -e "DROP DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1 || true
+        as_provisioner "DROP DATABASE \`${OUTSIDE_DB}\`;" >/dev/null 2>&1 || true
     else
         pass "refused to create a database outside the ${TENANT_PREFIX} namespace"
     fi
+
+    clean_probe
+    trap - EXIT
 fi
 
 # A password must not work for this account from any OS user. Only meaningful
@@ -213,7 +307,7 @@ fi
 if [ "$HAVE_ROOT_DB" -eq 0 ]; then
     skip "cannot read mysql.user without a privileged connection"
 elif [ -z "$TENANT_USERS" ]; then
-    skip "no tenant accounts yet (expected before the first tenant:create)"
+    skip_na "no tenant accounts yet (expected before the first tenant:create)"
 else
     while IFS= read -r tenant_user; do
         [ -n "$tenant_user" ] || continue
@@ -229,12 +323,61 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Leaving a trace
+# ---------------------------------------------------------------------------
+#
+# This script needs root, the doctor runs as the site's account. So it can
+# never reach this itself and had to say "cannot be seen from here" until now.
+# By writing the verdict down here the doctor does know what came out,
+# and when.
+#
+# Only a complete run is recorded: without root this script skips most of it,
+# and that is not approval.
+
+record_outcome() {
+    local file="$PROJECT_ROOT/storage/app/tenancy-privileges.json"
+
+    [ -d "${file%/*}" ] || return 0
+
+    # Half a run must not overwrite a whole one. Without root most of it is
+    # skipped, and that would replace the verdict of an earlier complete check
+    # with something that proves nothing.
+    #
+    # Checks that do not apply are not counted here: that there are no customer
+    # accounts yet is not a hole in the check, that is the situation.
+    if [ "$SKIPPED" -ne 0 ]; then
+        return 0
+    fi
+
+    printf '{"checked_at":"%s","passed":%d,"failed":%d,"skipped":%d,"not_applicable":%d,"by":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PASSED" "$FAILED" "$SKIPPED" "$NOT_APPLICABLE" "$(id -un)" \
+        > "$file" 2>/dev/null || return 0
+
+    chmod 0644 "$file" 2>/dev/null || true
+}
+
+record_outcome
 
 info ""
-if [ "$FAILED" -eq 0 ]; then
-    green "All ${PASSED} checks passed."
+
+# Name skipped checks separately. "All 4 checks passed" under a list where half
+# was skipped reads as approval, while precisely the checks that need root --
+# the rights of the accounts -- have not
+# gedaan.
+if [ "$FAILED" -eq 0 ] && [ "$SKIPPED" -eq 0 ]; then
+    if [ "$NOT_APPLICABLE" -eq 0 ]; then
+        green "All ${PASSED} checks passed."
+    else
+        green "All ${PASSED} applicable checks passed (${NOT_APPLICABLE} did not apply yet)."
+    fi
     exit 0
 fi
 
-red "${FAILED} check(s) failed, ${PASSED} passed."
+if [ "$FAILED" -eq 0 ]; then
+    warn "${PASSED} passed, ${SKIPPED} could not be checked -- this was not a full check."
+    warn "Re-run with sudo to include the ones that need a privileged connection."
+    exit 0
+fi
+
+red "${FAILED} check(s) failed, ${PASSED} passed, ${SKIPPED} not checked."
 exit 1

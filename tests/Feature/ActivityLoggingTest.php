@@ -5,12 +5,10 @@ namespace Tests\Feature;
 use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ActivityLoggingTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_service_order_can_log_activity(): void
     {

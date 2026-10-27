@@ -35,7 +35,7 @@ class RenewWatchChannelsJob implements ShouldQueue
             }
 
             $channel_id = (string) Str::uuid();
-            $token = Str::random(40);
+            $token = tenancy()->tenant->getTenantKey() . '|' . Str::random(40);
             $ttl = 7 * 24 * 60 * 60;
             $result = $api->watchCalendar(
                 $cal->integration,

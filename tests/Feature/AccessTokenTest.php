@@ -9,7 +9,6 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -21,8 +20,6 @@ use Tests\TestCase;
  */
 class AccessTokenTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,7 +31,7 @@ class AccessTokenTest extends TestCase
             ->middleware('accesstoken:ticket.customer_upload')
             ->name('public.ticket.upload');
 
-        /** Routes die na het opstarten bijkomen staan pas na een verversing onder hun naam. */
+        /** Routes added after boot only sit under their name after a refresh. */
         Route::getRoutes()->refreshNameLookups();
     }
 
@@ -83,7 +80,7 @@ class AccessTokenTest extends TestCase
     {
         $issued = AccessToken::issue($this->ticket(), AccessTokenPurpose::ticket_customer_upload);
 
-        /** Rechtstreeks, want de cast laat een doel dat nog niet bestaat er niet in. */
+        /** Directly, because the cast does not let a target that does not exist yet in. */
         DB::table('access_tokens')->where('id', $issued->token->id)->update(['purpose' => 'something.else']);
 
         $this->assertNull(AccessToken::resolve($issued->plaintext, AccessTokenPurpose::ticket_customer_upload));

@@ -78,6 +78,7 @@ final class ConfirmationToken
     public function encoded(): string
     {
         return Crypt::encryptString(json_encode([
+            'tenant' => tenancy()->initialized ? (string) tenancy()->tenant->getTenantKey() : null,
             'tool' => $this->tool,
             'arguments' => $this->arguments,
             'user_id' => $this->user_id,
@@ -107,6 +108,18 @@ final class ConfirmationToken
         }
 
         if ((int) $payload['user_id'] !== $user->id) {
+            return null;
+        }
+
+        /**
+         * APP_KEY is for the whole installation and user ids are per tenant, so
+         * without this check a token from one tenant is valid in another.
+         * Compared strictly: a token from before this change does not have the
+         * key and should be refused.
+         */
+        $tenant = tenancy()->initialized ? (string) tenancy()->tenant->getTenantKey() : null;
+
+        if (($payload['tenant'] ?? null) !== $tenant) {
             return null;
         }
 

@@ -6,7 +6,6 @@ use App\Models\Event;
 use App\Models\Image;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\AttachesPhotos;
@@ -24,7 +23,6 @@ class PhotoPermissionsTest extends TestCase
 {
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private Product $product;
 

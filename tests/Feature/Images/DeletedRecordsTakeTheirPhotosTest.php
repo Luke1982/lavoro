@@ -15,7 +15,6 @@ use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use Illuminate\Contracts\Bus\Dispatcher;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +35,6 @@ class DeletedRecordsTakeTheirPhotosTest extends TestCase
 {
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

@@ -21,6 +21,7 @@ use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EventExportController;
 use App\Http\Controllers\EventTypeController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\FreeformMaterialController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GlobalSearchController;
@@ -77,6 +78,11 @@ use Illuminate\Support\Facades\Route;
 Route::group(
     ['middleware' => 'auth'],
     function () {
+
+        Route::get('files/images/{image}', [FileController::class, 'image'])->name('files.image');
+        Route::get('files/avatars/{user}', [FileController::class, 'avatar'])->name('files.avatar');
+        Route::get('files/companies/{company}/logo/{variant?}', [FileController::class, 'companyLogo'])->name('files.companyLogo');
+
         Route::get('/', DashboardController::class);
 
         /**
@@ -89,7 +95,8 @@ Route::group(
          */
         Route::post('assistant/ask', [AssistantController::class, 'ask'])
             ->middleware('throttle:20,1')
-            ->name('assistant.ask');
+            ->name('assistant.ask')
+            ->middleware('tenant.module:assistant');
 
         /**
          * Throttled like the rest. It costs nothing at a supplier, but it hands
@@ -104,10 +111,14 @@ Route::group(
             ->middleware('throttle:60,1')
             ->name('assistant.history');
 
-        /** Picks the conversation up again after a button was clicked. */
+        /**
+         * Picks the conversation up again after a button was clicked. Gated
+         * like ask: it spends the same money at the same supplier.
+         */
         Route::post('assistant/continue', [AssistantController::class, 'proceed'])
             ->middleware('throttle:20,1')
-            ->name('assistant.continue');
+            ->name('assistant.continue')
+            ->middleware('tenant.module:assistant');
 
         /**
          * Writes a conversation out to a file so it can be handed over for
@@ -146,7 +157,8 @@ Route::group(
         /** Carries out something already agreed to; no model runs here. */
         Route::post('assistant/confirm', [AssistantController::class, 'confirm'])
             ->middleware('throttle:20,1')
-            ->name('assistant.confirm');
+            ->name('assistant.confirm')
+            ->middleware('tenant.module:assistant');
         /**
          * Feeds the navigation spotlight. Every signed-in user may search; the
          * searchers behind it each apply their own scope, so what comes back is
@@ -438,8 +450,8 @@ Route::group(
             ->except(['show', 'create', 'edit']);
         Route::resource('internalannouncements', InternalAnnouncementController::class)
             ->except(['create', 'edit']);
-        // Buiten de resource om, want bevestigen vraagt geen recht op de
-        // aankondiging: iedereen die hem kreeg mag het, en niemand anders.
+        // Outside the resource, because acknowledging asks no right on the
+        // announcement: everyone who got it may, and nobody else.
         Route::post(
             'internalannouncements/{internalannouncement}/acknowledge',
             [InternalAnnouncementController::class, 'acknowledge']
@@ -499,6 +511,10 @@ Route::group(
             ->name('technical-management.index');
         Route::post('technical-management/test-mail', [TechnicalManagementController::class, 'sendTestMail'])
             ->name('technical-management.sendTestMail');
+        Route::put('technical-management/integrations', [TechnicalManagementController::class, 'updateIntegrations'])
+            ->name('technical-management.integrations');
+        Route::delete('technical-management/integrations/secrets/{key}', [TechnicalManagementController::class, 'forgetSecret'])
+            ->name('technical-management.forgetSecret');
 
         Route::middleware('admin')->group(function () {
             Route::patch('companies/{company}/inline', [CompanyController::class, 'inline'])
@@ -573,8 +589,8 @@ Route::get('download/lavoro.apk', function () {
 })->name('app.download');
 
 /**
- * De aanleverpagina voor klanten. Geen inlog: de link uit de mail is de sleutel,
- * en de middleware wisselt hem in voor het token voordat er iets gebeurt.
+ * The upload page for customers. No login: the link from the mail is the key,
+ * and the middleware exchanges it for the token before anything happens.
  */
 Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->group(function () {
     Route::get('storing/informatie/{token}', [CustomerUploadController::class, 'show'])
@@ -584,7 +600,7 @@ Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->grou
 });
 
 Route::get('login', [AuthController::class, 'create'])->name('login');
-Route::post('login', [AuthController::class, 'store'])->name('login.store');
+Route::post('login', [AuthController::class, 'store'])->middleware('throttle:login')->name('login.store');
 Route::get('logout', [AuthController::class, 'destroy'])->name('logout');
 
 Route::get('password/forgot', [PasswordResetController::class, 'create'])->name('password.request');

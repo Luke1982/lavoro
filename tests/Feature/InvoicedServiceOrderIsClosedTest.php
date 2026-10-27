@@ -6,13 +6,10 @@ use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InvoicedServiceOrderIsClosedTest extends TestCase
 {
-    use RefreshDatabase;
-
     private ServiceOrderStage $open_stage;
 
     private ServiceOrderStage $closed_stage;
@@ -22,6 +19,14 @@ class InvoicedServiceOrderIsClosedTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /**
+         * The test tenant is seeded and therefore already has a closed and an
+         * invoiced stage. This test is about the ordering rules between those
+         * flags and counts on exactly one of each, so it starts with an empty
+         * table; the transaction around every test rolls it back.
+         */
+        ServiceOrderStage::query()->delete();
 
         $this->open_stage = ServiceOrderStage::create(['name' => 'Open', 'order' => 1]);
         $this->closed_stage = ServiceOrderStage::create([

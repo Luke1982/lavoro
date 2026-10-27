@@ -3,7 +3,6 @@
 namespace Tests\Feature\Assistant;
 
 use App\Domain\Tools\ToolRegistry;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -24,7 +23,6 @@ use Tests\TestCase;
 class ToolSchemaBudgetTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /**
      * Seventeen tools. Raised four times now — 12000, 14000, 16000, 18000,

@@ -6,7 +6,6 @@ use App\Models\Image;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\UserAvatarService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class PhotosKeepTheirOwnFileTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private Product $product;
 

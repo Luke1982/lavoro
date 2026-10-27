@@ -10,7 +10,6 @@ use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
 use App\Models\Customer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class UsageCostTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

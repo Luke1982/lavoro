@@ -12,7 +12,9 @@ class RoleController extends Controller
     public function index()
     {
         return inertia('Roles/IndexPage', [
-            'roles' => Role::with(['users:id,name,email', 'permissions:id'])
+            /** Our own role does not belong in a customer's roles screen. */
+            'roles' => Role::assignable()
+                ->with(['users:id,name,email', 'permissions:id'])
                 ->orderBy('name')
                 ->get(),
             'allUsers' => User::orderBy('name')->get(['id', 'name', 'email']),
@@ -24,7 +26,12 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            /**
+             * The name of our own role is forbidden. Without this a customer's
+             * admin creates a role 'superadmin' themselves and has everything,
+             * because the gate looks at the name.
+             */
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name', 'not_in:' . Role::SUPERADMIN],
         ]);
 
         $role = Role::create($data);
@@ -36,6 +43,9 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+        /** Whoever may not see it may not fill it with users either. */
+        abort_if($role->name === Role::SUPERADMIN, 404);
+
         $data = $request->validate([
             'user_ids' => ['nullable', 'array'],
             'user_ids.*' => ['integer', 'exists:users,id'],

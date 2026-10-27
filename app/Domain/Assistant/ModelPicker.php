@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  * expensive answer that clears that bar.
  *
  * Both numbers are judgement, not measurement. They are a starting point to be
- * corrected against docs/assistant-testvragen.md — if a model keeps picking the
+ * corrected against docs/development/assistant-tests.md — if a model keeps picking the
  * wrong tool, its rating is too high, and that is a config change rather than a
  * code one.
  */

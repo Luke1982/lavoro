@@ -9,7 +9,6 @@ use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -25,7 +24,6 @@ use Tests\TestCase;
 class QuestionSorterTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function sorterSaying(string $text): QuestionSorter
     {

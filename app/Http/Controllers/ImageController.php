@@ -13,6 +13,7 @@ use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ImageController extends Controller
@@ -225,14 +226,8 @@ class ImageController extends Controller
         $array = explode('\\', $imageable_type);
         $modelname = strtolower(array_pop($array));
         $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
-        $real_path = storage_path('app/public/' . $path);
-
-        if (!file_exists($real_path)) {
-            mkdir($real_path, 0755, true);
-        }
-
         $filename = 'import-' . Str::random(40) . '.' . $extension;
-        file_put_contents($real_path . $filename, $image_data);
+        Storage::disk('public')->put($path . $filename, $image_data);
 
         $new_image = Image::create([
             'name' => $name,

@@ -13,7 +13,6 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -27,7 +26,6 @@ use Tests\TestCase;
 class CreateRecordToolsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

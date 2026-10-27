@@ -6,7 +6,6 @@ use App\Domain\Planning\TechnicianAvailability;
 use App\Models\User;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -22,7 +21,6 @@ use Tests\TestCase;
  */
 class UnavailabilityTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function mechanic(): User
     {

@@ -734,7 +734,7 @@ const internalAssets = props.customerAssets.slice().sort((a, b) =>
     return {
         id: asset.id,
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
-        image_url: asset.product.images.length > 0 ? `/storage/${asset.product.images[0]?.path}` : null,
+        image_url: asset.product.images.length > 0 ? `/files/images/${asset.product.images[0]?.id}` : null,
     };
 });
 const internalTickets = ref([]);

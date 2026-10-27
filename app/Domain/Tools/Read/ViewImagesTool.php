@@ -161,7 +161,7 @@ class ViewImagesTool implements Tool
                 'image_id' => $image->id,
                 /** So a finding can point back at the photo it came from. */
                 'url' => Storage::disk('public')->exists($image->path)
-                    ? Storage::disk('public')->url($image->path)
+                    ? route('files.image', $image)
                     : null,
                 'name' => $image->name,
                 /** Internal ones are the monteur's own working photos — usually the plates. */

@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
 use App\Models\User;
+use App\Rules\SeatAvailable;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UserStoreRequest extends FormRequest
 {
@@ -16,15 +19,34 @@ class UserStoreRequest extends FormRequest
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'seat_type' => ['required', 'in:field,office', new SeatAvailable],
+            'email' => ['required', 'email', 'unique:users,email', Rule::unique('central.user_tenant_lookups', 'email')],
             'password' => 'required|string|min:8',
             'avatar' => 'nullable|image|max:3072',
             'plannable' => 'sometimes|boolean',
         ];
 
-        if ($this->user()->can('assignRoles', User::class)) {
+        $request_user = $this->user();
+
+        if ($request_user->can('assignRoles', User::class)) {
             $rules['role_ids'] = 'sometimes|array';
-            $rules['role_ids.*'] = 'integer|exists:roles,id';
+            /**
+             * Only roles a customer may grant. Without this limit a doctored
+             * request adds the id of our own role and that user has
+             * everything.
+             *
+             * A super admin does not fall under it: they have to be able to
+             * keep their own role, otherwise their own profile cannot be
+             * saved.
+             */
+            $rules['role_ids.*'] = [
+                'integer',
+                $request_user?->isSuperAdmin()
+                    ? Rule::exists('roles', 'id')
+                    : Rule::exists('roles', 'id')->where(
+                        fn ($query) => $query->where('name', '!=', Role::SUPERADMIN)
+                    ),
+            ];
         }
 
         return $rules;

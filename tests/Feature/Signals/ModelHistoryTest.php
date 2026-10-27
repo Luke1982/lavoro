@@ -7,7 +7,6 @@ use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -19,7 +18,6 @@ use Tests\TestCase;
 class ModelHistoryTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

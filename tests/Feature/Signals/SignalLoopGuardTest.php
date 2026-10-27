@@ -8,7 +8,6 @@ use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
@@ -65,7 +64,6 @@ class DeepeningProbeSignal extends BaseSignal
  */
 class SignalLoopGuardTest extends TestCase
 {
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

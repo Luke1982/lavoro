@@ -13,7 +13,6 @@ use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Notifications\NewServiceOrderAssigned;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -25,7 +24,6 @@ use Tests\TestCase;
 class DomainSignalListenersTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {
@@ -52,6 +50,9 @@ class DomainSignalListenersTest extends TestCase
 
     public function test_recording_an_invoice_number_moves_the_order_to_the_invoiced_stage(): void
     {
+        /** Same story as above: the seeded stages go, this test wants exactly one with the flag. */
+        ServiceOrderStage::query()->delete();
+
         ServiceOrderStage::create(['name' => 'Open', 'order' => 1]);
         $invoiced = ServiceOrderStage::create([
             'name' => 'Gefactureerd',

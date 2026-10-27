@@ -98,11 +98,7 @@
 <body>
     <div class="wrapper">
         <div class="logo">
-            @if ($company?->logo_path)
-                <img src="{{ asset('storage/' . $company->logo_path) }}" alt="{{ $company->name }}">
-            @elseif ($company?->name)
-                <span style="font-size:20px;font-weight:600;color:#2d3748;">{{ $company->name }}</span>
-            @endif
+            @include('emails.partials.company-logo')
         </div>
         <div class="container">
             <h1>Afspraakbevestiging</h1>

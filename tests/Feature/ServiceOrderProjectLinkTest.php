@@ -8,13 +8,10 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ServiceOrderProjectLinkTest extends TestCase
 {
-    use RefreshDatabase;
-
     private Customer $customer;
 
     private User $user;

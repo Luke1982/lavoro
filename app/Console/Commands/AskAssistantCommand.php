@@ -11,6 +11,7 @@ use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\AssistantUsage;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Console\Command;
 use RuntimeException;
@@ -27,6 +28,7 @@ class AskAssistantCommand extends Command
 {
     protected $signature = 'assistant:ask
         {question : The question, in Dutch}
+        {--tenant= : Id or name of the customer to ask it in}
         {--user= : Id of the user to act as}
         {--steps=6 : How many tool rounds to allow before giving up}
         {--show-results : Print what each tool returned, not just what was asked}
@@ -36,6 +38,10 @@ class AskAssistantCommand extends Command
 
     public function handle(AssistantLoop $loop, ToolRegistry $registry): int
     {
+        if (!$this->inACustomer()) {
+            return self::FAILURE;
+        }
+
         $user = $this->resolveUser();
 
         if (!$user) {
@@ -144,6 +150,39 @@ class AskAssistantCommand extends Command
     private function userContext(User $user): string
     {
         return 'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.';
+    }
+
+    /**
+     * The assistant reads one customer's data, so it needs to know whose. On
+     * an installation with customers there is no default: asking the question
+     * in the wrong company is worse than not asking it.
+     */
+    private function inACustomer(): bool
+    {
+        $wanted = (string) $this->option('tenant');
+
+        if ($wanted === '') {
+            if (tenancy()->initialized) {
+                return true;
+            }
+
+            $this->error('Geen klant gekozen. Geef --tenant=<id of naam> mee; php artisan tenants:list toont ze.');
+
+            return false;
+        }
+
+        $tenant = Tenant::on('central')->find($wanted)
+            ?? Tenant::on('central')->where('name', $wanted)->first();
+
+        if (!$tenant) {
+            $this->error('Geen klant gevonden voor "' . $wanted . '".');
+
+            return false;
+        }
+
+        tenancy()->initialize($tenant);
+
+        return true;
     }
 
     private function resolveUser(): ?User

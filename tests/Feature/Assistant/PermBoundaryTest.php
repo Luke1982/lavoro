@@ -7,14 +7,12 @@ use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 class PermBoundaryTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_a_user_with_nothing_gets_nothing_from_any_tool(): void
     {

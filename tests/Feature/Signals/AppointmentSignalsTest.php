@@ -9,7 +9,6 @@ use App\Models\Event;
 use App\Models\EventType;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -19,8 +18,6 @@ use Tests\TestCase;
  */
 class AppointmentSignalsTest extends TestCase
 {
-    use RefreshDatabase;
-
     private function appointment(): Event
     {
         return Event::create([
@@ -55,6 +52,13 @@ class AppointmentSignalsTest extends TestCase
 
     public function test_cancelling_an_appointment_releases_its_werkbonnen_back_to_planning(): void
     {
+        /**
+         * The seeded test tenant already has a cancelled stage of its own, and
+         * the listener picks "the" stage with that flag. This test counts on
+         * exactly one, so it starts empty; the transaction rolls it back.
+         */
+        ServiceOrderStage::query()->delete();
+
         $planned = ServiceOrderStage::create([
             'name' => 'Ingepland', 'order' => 2, 'is_planned_state' => true,
         ]);

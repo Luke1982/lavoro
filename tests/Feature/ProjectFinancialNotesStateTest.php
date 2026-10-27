@@ -7,14 +7,12 @@ use App\Models\Permission;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 class ProjectFinancialNotesStateTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function accountant(string $name = 'Boekhouder'): User
     {

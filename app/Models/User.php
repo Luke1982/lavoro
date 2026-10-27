@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\HidesSuperAdmins;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,14 @@ class User extends Authenticatable
     use Notifiable;
     use SoftDeletes;
 
+    private ?bool $is_super_admin = null;
+
+    /** MajorLabel's own accounts stay out of sight at the customer. */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new HidesSuperAdmins);
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -28,6 +37,13 @@ class User extends Authenticatable
         'email',
         'password',
         'plannable',
+        /**
+         * Field or office staff. Without it here it fell away silently on
+         * creation -- the form asked for it, the validation approved it and
+         * everyone ended up on the default, which meant the field seats never
+         * filled up.
+         */
+        'seat_type',
     ];
 
     /**
@@ -83,7 +99,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return Storage::url($files[0]);
+        return url("/files/avatars/{$this->id}");
     }
 
     /**
@@ -119,10 +135,48 @@ class User extends Authenticatable
 
     /**
      * Whether the user has the admin role.
+     *
+     * The super admin counts: by definition they may do everything an admin
+     * may, and more.
      */
     public function isAdmin(): bool
     {
-        return $this->roles()->where('name', 'admin')->exists();
+        return $this->roles()->whereIn('name', ['admin', Role::SUPERADMIN])->exists();
+    }
+
+    /**
+     * The users occupying a seat from the subscription.
+     *
+     * Our own super admin does not count: that account belongs to MajorLabel
+     * and the customer should not pay a seat for it. Soft deleted users already
+     * fall outside the default scope.
+     */
+    public function scopeOccupyingSeat($query, string $seat_type)
+    {
+        return $query->where('seat_type', $seat_type)->withoutSuperAdmins();
+    }
+
+    /**
+     * The one place that knows how to keep a super admin out of a query. The
+     * global scope, the seat count and everything that comes later go through
+     * here, so there is only one definition.
+     */
+    public function scopeWithoutSuperAdmins($query)
+    {
+        return $query->whereDoesntHave('roles', fn ($role) => $role->where('name', Role::SUPERADMIN));
+    }
+
+    /**
+     * MajorLabel itself, inside a customer's database.
+     *
+     * Remembered per instance: the global scope asks this on every query for
+     * users, and that is one extra query each time for an answer that does not
+     * change within a request. A ->fresh() gives a new instance and therefore a
+     * new answer.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->is_super_admin ??= $this->roles()->where('name', Role::SUPERADMIN)->exists();
     }
 
     /**
@@ -148,8 +202,8 @@ class User extends Authenticatable
     }
 
     /**
-     * Alle rechten uit de lijst, niet een ervan. Een lege lijst is geen drempel:
-     * wie niets hoeft te mogen, mag.
+     * Every permission from the list, not one of them. An empty list is no
+     * barrier: whoever needs no permission, passes.
      *
      * @param  array<int, string>  $names
      */

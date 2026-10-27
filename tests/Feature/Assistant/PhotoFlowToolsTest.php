@@ -14,7 +14,6 @@ use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductType;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class PhotoFlowToolsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function maker(): User
     {

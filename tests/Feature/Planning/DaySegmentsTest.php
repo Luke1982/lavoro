@@ -10,7 +10,6 @@ use App\Models\Event;
 use App\Models\EventType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -24,7 +23,6 @@ use Tests\TestCase;
  */
 class DaySegmentsTest extends TestCase
 {
-    use RefreshDatabase;
 
     /** @return array<string, array{0: array<string, mixed>, 1: int}> */
     public static function sharedCases(): array

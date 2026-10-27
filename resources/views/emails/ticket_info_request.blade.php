@@ -17,8 +17,8 @@
                            font-family:Arial,Helvetica,sans-serif; color:#1f2933; font-size:15px; line-height:1.6;">
                     @php
                         /**
-                         * Meegestuurd waar dat kan. $message bestaat alleen tijdens het
-                         * echte versturen; een voorbeeldweergave valt terug op de url.
+                         * Embedded where possible. $message only exists while actually
+                         * sending; a preview falls back on the url.
                          */
                         $logo_src = isset($message) && $logo_file
                             ? $message->embed($logo_file)

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesEventFeedbackImages;
 use App\Models\Image;
+use App\Rules\WithinStorageQuota;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -45,6 +46,7 @@ class ImageStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'images' => ['required', 'array', new WithinStorageQuota],
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'imageable_id' => 'required|integer',
             'imageable_type' => 'required|string',

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Anthropic\Client as AnthropicClient;
+use App\Domain\Assistant\AllowanceGate;
 use App\Domain\Assistant\AssistantContext;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
@@ -12,36 +13,59 @@ use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
+use App\Exceptions\GraphNotConfigured;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
+use App\Listeners\ApplyTenantSender;
+use App\Listeners\Auth\RecordAuthFailure;
 use App\Listeners\CopyMailToSentFolder;
 use App\Mail\Transports\GraphTransport;
 use App\Models\Assistant;
 use App\Models\CalendarGrant;
 use App\Models\Company;
 use App\Models\Event as EventModel;
+use App\Models\GeneralSetting;
 use App\Models\GoogleSyncedEvent;
 use App\Models\StandardAttachment;
 use App\Models\StandardEmail;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Models\UserUnavailability;
 use App\Observers\EventObserver;
+use App\Observers\PersonalAccessTokenObserver;
 use App\Observers\TicketObserver;
+use App\Observers\UserObserver;
 use App\Policies\AssistantPolicy;
 use App\Policies\CalendarGrantPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\StandardAttachmentPolicy;
 use App\Policies\StandardEmailPolicy;
 use App\Policies\UserUnavailabilityPolicy;
+use App\Services\AssistantAllowance;
+use App\Support\ForgetsTenantState;
+use App\Support\MailerState;
+use App\Support\TenantMailTransport;
+use App\Support\TenantState;
+use App\Support\WebServerFacts;
+use App\Support\WorkerHeartbeat;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\ServeCommand;
+use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,6 +76,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ActivityBuffer::class);
         $this->app->singleton(Signals::class);
+
+        /**
+         * Every job starts counting signals again. A worker stays up for days,
+         * and without this the signals of every job it ever ran are weighed
+         * against one ceiling: at some point the next job gets no history at
+         * all, for no reason it can see.
+         */
+        Event::listen(JobProcessing::class, fn () => app(Signals::class)->startFresh());
 
         $this->app->singleton(AssistantContext::class);
 
@@ -64,6 +96,14 @@ class AppServiceProvider extends ServiceProvider
          * from the one it read this morning.
          */
         $this->app->scoped(TechnicianAvailability::class);
+
+        $this->app->tag([
+            ActivityBuffer::class,
+            Signals::class,
+            AssistantContext::class,
+            TechnicianAvailability::class,
+            MailerState::class,
+        ], ForgetsTenantState::class);
 
         $this->app->singleton(
             ToolRegistry::class,
@@ -133,6 +173,33 @@ class AppServiceProvider extends ServiceProvider
             ServeCommand::$passthroughVariables[] = 'PHP_INI_SCAN_DIR';
         }
 
+        User::observe(UserObserver::class);
+        PersonalAccessToken::observe(PersonalAccessTokenObserver::class);
+
+        /**
+         * No model to hang a policy on, but something to shield all the same:
+         * the integration keys sit behind the same permission as the rest of
+         * technical management.
+         */
+        /**
+         * The gate deciding whether the assistant may still answer. Bound as an
+         * interface so a test can replace it without touching the real counter.
+         */
+        $this->app->bind(
+            AllowanceGate::class,
+            AssistantAllowance::class,
+        );
+
+        /**
+         * The super admin passes every policy. Gate::before runs before every
+         * can() check in the application, so this is the only place where "may
+         * do everything" really means everything -- a list of permissions would
+         * always miss something added later.
+         */
+        Gate::before(fn ($user) => $user instanceof User && $user->isSuperAdmin() ? true : null);
+
+        Gate::define('technical.management', fn ($user) => $user->hasPermission('technical.management'));
+
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);
         Gate::policy(CalendarGrant::class, CalendarGrantPolicy::class);
@@ -151,10 +218,7 @@ class AppServiceProvider extends ServiceProvider
              */
             Auth::forgetUser();
 
-            app(ActivityBuffer::class)->reset();
-            app(Signals::class)->reset();
-
-            app(AssistantContext::class)->reset();
+            TenantState::flush();
         });
 
         Event::listen('eloquent.attached: App\Models\Event', function ($event_class, $payload) {
@@ -189,31 +253,112 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        /**
+         * The customer's mailer. Which server sits behind it -- Microsoft 365
+         * or an SMTP of their own -- is in that customer's settings. Built
+         * lazily, so only at the moment of sending, when the tenant is fixed.
+         */
+        Mail::extend('tenant', fn () => app(TenantMailTransport::class)->make());
+
         Mail::extend('graph', function () {
+            $setting = fn (string $key) => tenancy()->initialized
+                ? GeneralSetting::get($key)
+                : null;
+
+            $azure_tenant = $setting('graph_azure_tenant_id');
+            $client_id = $setting('graph_client_id');
+            $secret = $setting('graph_client_secret');
+            $user_id = $setting('graph_user_id');
+
+            /**
+             * All four or nothing, and no falling back to .env. Sending mail
+             * from another company's mailbox puts the wrong sender on a
+             * customer's post, and that is worse than not sending: there is no
+             * error, the message simply comes from someone else.
+             */
+            if (!filled($azure_tenant) || !filled($client_id) || !filled($secret) || !filled($user_id)) {
+                throw new GraphNotConfigured;
+            }
+
             return new GraphTransport(
-                tenantId: config('services.graph.tenant_id'),
-                clientId: config('services.graph.client_id'),
-                clientSecret: config('services.graph.client_secret'),
-                fromAddress: config('mail.from.address'),
-                userId: config('services.graph.user_id'),
+                tenantId: $azure_tenant,
+                clientId: $client_id,
+                clientSecret: $secret,
+                fromAddress: GeneralSetting::get('mail_from_address', $user_id),
+                userId: $user_id,
                 graphEndpoint: config('services.graph.endpoint'),
                 dispatcher: app('events'),
                 logger: app('log')->channel()
             );
         });
 
+        /** @euro(1250) becomes "EUR 12,50"; the formatting lives in one place. */
+        Blade::directive('euro', fn ($expression) => "<?php echo '€ ' . \App\Support\Money::human($expression); ?>");
+
+        /** A running worker reports in every minute; the doctor looks at that. */
+        WorkerHeartbeat::listen();
+
+        /**
+         * And a web request writes down which account serves the pages, so the
+         * doctor does not have to guess it from a file a deploy wrote.
+         */
+        if (!$this->app->runningInConsole()) {
+            WebServerFacts::record();
+        }
+
+        /**
+         * Guessing passwords costs five tries a minute, per address and per
+         * place it comes from. Neither login had a limit at all, so nothing but
+         * the network stood between someone and an endless list of passwords.
+         * The sixth try fires Lockout, which is written down like a refusal.
+         */
+        RateLimiter::for('login', function (Request $request) {
+            /**
+             * Written down here and not in a middleware of its own: the
+             * throttle stands high in the priority list, so anything wrapped
+             * around it is moved out of the way and never sees the refusal.
+             * This runs where the refusal is made.
+             */
+            $refuse = function (Request $request, array $headers) {
+                app(RecordAuthFailure::class)->blocked($request);
+
+                return response('Too Many Attempts.', 429, $headers);
+            };
+
+            return [
+                Limit::perMinute(5)->by(Str::lower((string) $request->input('email')) . '|' . $request->ip())->response($refuse),
+                Limit::perMinute(20)->by($request->ip())->response($refuse),
+            ];
+        });
+
+        /** Both login doors, in one file fail2ban reads. */
+        Event::listen(Failed::class, [RecordAuthFailure::class, 'failed']);
+
+        Event::listen(MessageSending::class, ApplyTenantSender::class);
         Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
+        /**
+         * The file route sits behind the login, so a customer on a public page
+         * gets the logo inline: without a session there is no tenant to fetch
+         * it from.
+         */
         Inertia::share('company', function () {
-            $company = Company::where('is_main', true)->first();
+            if (!tenancy()->initialized) {
+                return null;
+            }
+
+            $company = Company::main();
             if (!$company) {
                 return null;
             }
-            $logo_url = $company->logo_path ? asset('storage/' . $company->logo_path) : null;
 
             return [
                 'name' => $company->name,
-                'logo_url' => $logo_url,
+                'logo_url' => match (true) {
+                    !$company->logo_path => null,
+                    auth()->check() => route('files.companyLogo', $company),
+                    default => $company->logoDataUri(),
+                },
             ];
         });
     }

@@ -9,7 +9,6 @@ use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -27,7 +26,6 @@ use Tests\TestCase;
 class SearchWildcardTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     protected function setUp(): void
     {

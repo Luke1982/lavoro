@@ -229,7 +229,7 @@
                             @if (count($item['images']) > 0)
                                 <div style="margin-top:6px;">
                                     @foreach ($item['images'] as $img)
-                                        <img src="{{ storage_path('app/public/' . $img['path']) }}"
+                                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->path($img['path']) }}"
                                             style="width: 100%; max-width: 100%; margin-bottom:4px;" />
                                     @endforeach
                                 </div>

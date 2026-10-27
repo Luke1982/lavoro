@@ -3,6 +3,7 @@
 namespace Tests\Feature\Assistant;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
@@ -13,7 +14,6 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -32,7 +32,6 @@ use Tests\TestCase;
 class WriteToolGateTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /**
      * The tables a write tool can reach. Counted before and after rather than
@@ -49,6 +48,37 @@ class WriteToolGateTest extends TestCase
             'tasks' => ServiceOrderTask::count(),
             'activities' => DB::table('activities')->count(),
         ];
+    }
+
+    /**
+     * A token is encrypted with APP_KEY and there is only one APP_KEY for the
+     * whole installation, so without the tenant check an approval from one
+     * tenant is an approval in every other -- the first admin is user 1
+     * everywhere. The check sits in decode(); here the replay attack itself is
+     * acted out instead of only asserting that "something" is refused.
+     */
+    public function test_a_confirmation_token_dies_with_its_tenant(): void
+    {
+        $user = $this->admin();
+
+        $token = ConfirmationToken::for('create_ticket', ['title' => 'x'], $user)->encoded();
+
+        $this->assertNotNull(
+            ConfirmationToken::decode($token, $user),
+            'Een token hoort geldig te zijn in de tenant die hem uitgaf.',
+        );
+
+        $home = tenancy()->tenant;
+        tenancy()->end();
+
+        try {
+            $this->assertNull(
+                ConfirmationToken::decode($token, $user),
+                'Een token uit een tenant mag buiten die tenant niets waard zijn.',
+            );
+        } finally {
+            tenancy()->initialize($home);
+        }
     }
 
     public function test_no_argument_gets_a_write_past_the_gate(): void

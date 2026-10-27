@@ -4,7 +4,7 @@ namespace Tests\Feature\Images;
 
 use App\Models\Image;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\StorageQuota;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -15,14 +15,14 @@ use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * Photos live on the public disk, but removing or annotating one deleted from the
- * default disk, so the file stayed behind for good.
+ * Photos live on the tenant's public disk, but removing or annotating one deleted
+ * from the default disk, so the file stayed behind for good and kept counting
+ * against the customer's storage limit.
  */
 class RemovedPhotosLeaveNoFileBehindTest extends TestCase
 {
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private Product $product;
 
@@ -76,6 +76,19 @@ class RemovedPhotosLeaveNoFileBehindTest extends TestCase
         $this->annotate($annotated)->assertOk();
 
         Storage::disk('public')->assertExists($untouched->path);
+    }
+
+    /** The nightly reconcile measures what is on the tenant's disks, so a file left behind is billed. */
+    public function test_a_removed_photo_stops_counting_against_the_storage_limit(): void
+    {
+        Storage::fake('local');
+        $image = $this->photoOn($this->product);
+
+        $this->assertGreaterThan(0, (new StorageQuota)->reconcile());
+
+        $this->remove($image)->assertOk();
+
+        $this->assertSame(0, (new StorageQuota)->reconcile());
     }
 
     public function test_a_removal_that_rolls_back_keeps_its_file(): void

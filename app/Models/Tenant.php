@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Models;
+
+use Stancl\Tenancy\Contracts\TenantWithDatabase;
+use Stancl\Tenancy\Database\Concerns\HasDatabase;
+use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
+
+class Tenant extends BaseTenant implements TenantWithDatabase
+{
+    use HasDatabase;
+
+    protected $connection = 'central';
+
+    protected $casts = [
+        'data' => 'array',
+        'modules' => 'array',
+        'module_prices' => 'array',
+        'module_started_on' => 'array',
+        'extra_field_seats' => 'integer',
+        'extra_office_seats' => 'integer',
+        'price_override_cents' => 'integer',
+        'storage_limit_gb' => 'integer',
+        'ai_allowance_micros' => 'integer',
+        'discount_cents' => 'integer',
+        'discount_percent' => 'integer',
+        'tenancy_db_password' => 'encrypted',
+    ];
+
+    /**
+     * The demo tenant is rebuilt every night and is never a paying customer.
+     * The flag lives in data: it is set once by DemoInstaller and read in a
+     * handful of places, which is not worth a column.
+     */
+    public function isDemo(): bool
+    {
+        return (bool) ($this->getAttribute('demo') ?? false);
+    }
+
+    public static function getCustomColumns(): array
+    {
+        return [
+            'id', 'name', 'package_key',
+            'subscription_started_on',
+            'subscription_ends_on',
+            'billing_period',
+            'billing_period_started_on',
+            'payment_method',
+            'iban',
+            'bic',
+            'account_holder',
+            'mandate_reference',
+            'mandate_signed_on',
+            'invoice_email',
+            'invoice_address',
+            'invoice_postcode',
+            'invoice_city',
+            'invoice_country',
+            'vat_number',
+            'coc_number', 'extra_field_seats', 'extra_office_seats',
+            'modules', 'module_prices', 'module_started_on', 'price_override_cents', 'storage_limit_gb',
+            'ai_allowance_micros',
+            'discount_cents',
+            'discount_percent',
+            'coupon_discount_percent',
+            'coupon_discount_until',
+            'reseller_id',
+            'tenancy_db_username', 'tenancy_db_password',
+        ];
+    }
+
+    public function hasModule(string $module): bool
+    {
+        return in_array($module, $this->modules ?? [], true);
+    }
+}

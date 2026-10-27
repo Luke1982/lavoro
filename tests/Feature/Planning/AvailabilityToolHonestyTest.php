@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Models\UserPlanGroup;
 use App\Models\UserUnavailability;
 use Carbon\CarbonImmutable;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -25,7 +24,6 @@ use Tests\TestCase;
 class AvailabilityToolHonestyTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ask(array $arguments): ToolResult
     {

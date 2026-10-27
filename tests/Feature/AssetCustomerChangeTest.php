@@ -10,12 +10,10 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AssetCustomerChangeTest extends TestCase
 {
-    use RefreshDatabase;
 
     private Customer $old_customer;
 

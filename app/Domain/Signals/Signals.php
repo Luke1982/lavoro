@@ -2,6 +2,7 @@
 
 namespace App\Domain\Signals;
 
+use App\Support\ForgetsTenantState;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -25,16 +26,33 @@ use Illuminate\Support\Str;
  * Every signal in one chain also shares a correlation id, so the whole cascade
  * from a single user action can be read back as one story.
  */
-class Signals
+class Signals implements ForgetsTenantState
 {
     public const MAX_DEPTH = 10;
 
     public const MAX_PER_REQUEST = 1000;
 
+    /**
+     * Outside a web request the unit of work is a whole command or a whole job,
+     * and that is a different order of magnitude: rebuilding the demo customer
+     * creates a company with everything in it, and every record it writes
+     * announces itself. Against the web limit that run hit the ceiling within
+     * seconds, and everything after it silently got no history at all -- while
+     * writing one error line per skipped signal, thousands of them, into the
+     * log.
+     *
+     * Loops are still caught: that is what the chain and MAX_DEPTH are for.
+     * This number is only a backstop against something running away.
+     */
+    public const MAX_PER_CONSOLE_RUN = 250_000;
+
     /** @var array<int, string> The chain currently being dispatched. */
     private array $chain = [];
 
     private int $raised = 0;
+
+    /** The ceiling is reported once, not once per signal it then skips. */
+    private bool $ceiling_reported = false;
 
     private ?string $correlation_id = null;
 
@@ -59,8 +77,11 @@ class Signals
             return;
         }
 
-        if ($this->raised >= self::MAX_PER_REQUEST) {
-            $this->report('Te veel signalen in één verzoek, afgebroken', $fingerprint);
+        if ($this->raised >= $this->ceiling()) {
+            if (!$this->ceiling_reported) {
+                $this->ceiling_reported = true;
+                $this->report('Te veel signalen in één eenheid werk, de rest wordt overgeslagen', $fingerprint);
+            }
 
             return;
         }
@@ -82,11 +103,30 @@ class Signals
         }
     }
 
-    public function reset(): void
+    /** Configurable so a test does not have to raise a quarter of a million signals. */
+    private function ceiling(): int
+    {
+        return app()->runningInConsole()
+            ? (int) config('signals.max_per_console_run', self::MAX_PER_CONSOLE_RUN)
+            : (int) config('signals.max_per_request', self::MAX_PER_REQUEST);
+    }
+
+    /**
+     * A new unit of work: a queued job that is about to run, or a customer that
+     * is being switched to. Without this a worker that stays up for days counts
+     * every signal of every job it ever ran against one ceiling.
+     */
+    public function startFresh(): void
     {
         $this->chain = [];
         $this->raised = 0;
         $this->correlation_id = null;
+        $this->ceiling_reported = false;
+    }
+
+    public function forgetTenantState(): void
+    {
+        $this->startFresh();
     }
 
     public function currentCorrelationId(): ?string
@@ -112,7 +152,8 @@ class Signals
         Log::error($problem, [
             'signal' => $fingerprint,
             'chain' => $this->chain,
-            'raised_this_request' => $this->raised,
+            'raised_in_this_unit_of_work' => $this->raised,
+            'ceiling' => $this->ceiling(),
         ]);
     }
 }

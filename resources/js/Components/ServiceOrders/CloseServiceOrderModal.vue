@@ -10,9 +10,9 @@
             <div>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Foto's</h3>
                 <div v-if="serviceOrder.images.length > 0" class="grid grid-cols-4 gap-2">
-                    <a v-for="image in serviceOrder.images" :key="image.id" :href="`/storage/${image.path}`"
+                    <a v-for="image in serviceOrder.images" :key="image.id" :href="`/files/images/${image.id}`"
                         class="close-modal-lightbox block aspect-square overflow-hidden rounded-md ring-1 ring-gray-200 dark:ring-slate-700">
-                        <img :src="`/storage/${image.path}`" :alt="image.name" class="w-full h-full object-cover" />
+                        <img :src="`/files/images/${image.id}`" :alt="image.name" class="w-full h-full object-cover" />
                     </a>
                 </div>
                 <p v-else class="text-sm text-gray-400 dark:text-slate-500">Geen foto's</p>

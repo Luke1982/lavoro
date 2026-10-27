@@ -6,7 +6,6 @@ use App\Domain\Assistant\AssistantContext;
 use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -19,7 +18,6 @@ use Tests\TestCase;
 class AssistantAttributionTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

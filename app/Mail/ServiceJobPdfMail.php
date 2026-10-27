@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\ShowsCompanyLogo;
 use App\Models\ServiceJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,6 +12,7 @@ class ServiceJobPdfMail extends Mailable
 {
     use Queueable;
     use SerializesModels;
+    use ShowsCompanyLogo;
 
     public function __construct(public ServiceJob $serviceJob, private string $pdfBinary)
     {
@@ -24,6 +26,7 @@ class ServiceJobPdfMail extends Mailable
         return $this->subject('Keuring #' . $this->serviceJob->id)
             ->view('emails.servicejob.pdf_html', [
                 'serviceJob' => $this->serviceJob,
+                ...$this->companyLogo(),
             ])
             ->attachData($this->pdfBinary, $filename, [
                 'mime' => 'application/pdf',

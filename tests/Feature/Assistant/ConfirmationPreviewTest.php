@@ -11,7 +11,6 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class ConfirmationPreviewTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /** The machine factory picks an existing product, before any override lands. */
     protected function setUp(): void

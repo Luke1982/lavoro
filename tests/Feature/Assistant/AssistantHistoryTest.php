@@ -5,7 +5,6 @@ namespace Tests\Feature\Assistant;
 use App\Models\AssistantQuestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class AssistantHistoryTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ask(string $question, ?int $user_id = null, ?string $conversation = null): AssistantQuestion
     {
@@ -300,7 +298,14 @@ class AssistantHistoryTest extends TestCase
     {
         $scheduled = collect(app(Schedule::class)->events())
             ->map(fn ($event) => $event->command ?? $event->description ?? '')
-            ->filter(fn (string $command) => str_contains($command, 'assistant:prune'));
+            /**
+             * Since tenancy it is no longer an artisan call but a closure that
+             * queues a job per tenant; the schedule item is called
+             * assistant-prune-questions. Both spellings count, so the test is
+             * about it happening and not about the form.
+             */
+            ->filter(fn (string $command) => str_contains($command, 'assistant:prune')
+                || str_contains($command, 'assistant-prune'));
 
         $this->assertNotEmpty($scheduled, 'nothing invokes assistant:prune, so nothing is ever pruned');
     }

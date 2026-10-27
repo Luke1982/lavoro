@@ -4,11 +4,10 @@ namespace Tests\Feature\Signals;
 
 use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Models\Activity;
+use App\Models\ActivityChange;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -21,7 +20,6 @@ use Tests\TestCase;
 class ResilienceTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function orders(int $count): array
     {
@@ -41,10 +39,23 @@ class ResilienceTest extends TestCase
             'customer_id' => Customer::factory()->create()->id,
         ]);
 
-        /** A column that cannot hold what we are about to give it. */
-        DB::statement('DROP TABLE activity_changes');
+        /**
+         * The failure sits at model level and no longer in the schema. The old
+         * version dropped the table, and on MySQL DROP TABLE is an implicit
+         * commit: the table stayed gone for every test after it, and the
+         * enclosing test transaction had quietly been committed already. A
+         * creating listener that throws simulates the same failure without
+         * breaking anything.
+         */
+        ActivityChange::creating(function () {
+            throw new \RuntimeException('activity_changes is stuk (testinjectie)');
+        });
 
-        $order->update(['external_invoice_no' => 'F-STILL-SAVES']);
+        try {
+            $order->update(['external_invoice_no' => 'F-STILL-SAVES']);
+        } finally {
+            ActivityChange::flushEventListeners();
+        }
 
         $this->assertSame('F-STILL-SAVES', $order->fresh()->external_invoice_no);
         Log::shouldHaveReceived('error')->once();

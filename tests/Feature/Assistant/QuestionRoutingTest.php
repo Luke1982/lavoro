@@ -12,7 +12,6 @@ use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -28,7 +27,6 @@ use Tests\TestCase;
 class QuestionRoutingTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     public function test_the_rating_of_the_question_is_what_picks_the_model(): void
     {

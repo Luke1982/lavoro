@@ -6,6 +6,11 @@ TENANT_PREFIX="${TENANT_PREFIX:-lavoro_tenant_}"
 APP_USER="${APP_USER:-lavoro_app}"
 APP_HOST="${APP_HOST:-127.0.0.1}"
 PROV_USER="${PROV_USER:-lavoro_provisioner}"
+# A database of its own for the procedure that hands out rights. Deliberately
+# outside the customer namespace: the provisioner has nothing to do there except
+# call that one procedure, and so cannot replace it with a broader version.
+ADMIN_DB="${ADMIN_DB:-lavoro_admin}"
+GRANT_PROCEDURE="${GRANT_PROCEDURE:-grant_tenant_access}"
 PROV_HOST="${PROV_HOST:-localhost}"
 TEST_USER="${TEST_USER:-lavoro_test}"
 TEST_DB="${TEST_DB:-lavoro_test_landlord}"
@@ -17,6 +22,135 @@ TEST_PASSWORD="${TEST_PASSWORD:-lavoro_test}"
 
 COLLATION="utf8mb4_unicode_ci"
 CHARSET="utf8mb4"
+
+# ---------------------------------------------------------------------------
+# Can this script run here at all?
+# ---------------------------------------------------------------------------
+#
+# Every assumption these scripts make is untrue somewhere: a minimal image
+# without getent, a server without openssl, busybox instead of GNU sed, an old
+# bash without mapfile. Breaking halfway on a program that is not there costs
+# more time than checking beforehand.
+
+require_bash() {
+    if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+        die "This script needs bash 4 or newer (now: ${BASH_VERSION:-unknown}).
+mapfile and 'printf -v' do not exist below that."
+    fi
+}
+
+require_commands() {
+    local missing=() name
+
+    for name in "$@"; do
+        if ! command -v "$name" >/dev/null 2>&1; then
+            missing+=("$name")
+        fi
+    done
+
+    if [ "${#missing[@]}" -gt 0 ]; then
+        die "These programs are missing on this server: ${missing[*]}
+Install them and run again."
+    fi
+}
+
+# What every one of these scripts uses in any case, directly or through this file.
+preflight_common() {
+    require_bash
+    require_commands sed grep awk cut tr mktemp date cp id
+    require_gnu_sed
+}
+
+# GNU sed and BSD sed both have -i but mean something different by it: on BSD
+# the argument after it is the suffix for a backup, so 'sed -i "s|a|b|" file'
+# eats the pattern there. Everything that changes .env goes through sed, so that
+# has to be established up front.
+require_gnu_sed() {
+    local probe
+    probe="$(mktemp)"
+
+    printf 'a\n' > "$probe"
+
+    if ! sed -i 's|a|b|' "$probe" 2>/dev/null || [ "$(cat "$probe")" != "b" ]; then
+        rm -f "$probe"
+        die "sed does not behave like GNU sed here. On BSD and macOS -i needs an
+argument; these scripts assume GNU sed (Linux)."
+    fi
+
+    rm -f "$probe"
+}
+
+# ---------------------------------------------------------------------------
+# Saying what is happening while it happens
+# ---------------------------------------------------------------------------
+#
+# A step that takes four seconds and prints nothing looks the same as one that
+# has hung. These show the work as it runs, and leave one line behind saying
+# how it went -- but only on a terminal. Through a pipe, in cron or in a deploy
+# log, the animation would be thousands of carriage returns in a file nobody can
+# read, so there it prints the plain line and nothing else.
+
+is_tty() { [ -t 1 ]; }
+
+SPINNER_FRAMES='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+
+step_ok()   { printf '  \033[32m✔\033[0m %s\n' "$*"; }
+step_fail() { printf '  \033[31m✘\033[0m %s\n' "$*"; }
+step_skip() { printf '  \033[33m-\033[0m %s\n' "$*"; }
+
+# spinner_run "What it is doing" command args...
+#
+# Keeps the command's own output back: on success nobody wants it, and on
+# failure it is printed in full, indented, where it is the only thing that
+# matters. Returns the command's exit code, so a caller can still stop on it.
+#
+# Two switches for callers that want to do their own reporting:
+#   SPINNER_OUTPUT=<path>  leave the command's output there to be read
+#   SPINNER_QUIET=1        leave no line behind, print nothing on failure
+spinner_run() {
+    local label="$1"; shift
+    local output status pid i=0 frame
+
+    output="${SPINNER_OUTPUT:-$(mktemp)}"
+
+    if ! is_tty; then
+        [ -n "${SPINNER_QUIET:-}" ] || printf '  %s\n' "$label"
+        "$@" >"$output" 2>&1
+        status=$?
+        [ "$status" -eq 0 ] || [ -n "${SPINNER_QUIET:-}" ] || sed 's/^/      /' "$output"
+        [ -n "${SPINNER_OUTPUT:-}" ] || rm -f "$output"
+
+        return "$status"
+    fi
+
+    "$@" >"$output" 2>&1 &
+    pid=$!
+
+    printf '\033[?25l'
+    while kill -0 "$pid" 2>/dev/null; do
+        frame="${SPINNER_FRAMES:$(( i % ${#SPINNER_FRAMES} )):1}"
+        printf '\r  \033[36m%s\033[0m %s' "$frame" "$label"
+        i=$(( i + 1 ))
+        sleep 0.08
+    done
+    printf '\033[?25h\r\033[K'
+
+    wait "$pid"
+    status=$?
+
+    if [ -n "${SPINNER_QUIET:-}" ]; then
+        :
+    elif [ "$status" -eq 0 ]; then
+        step_ok "$label"
+    else
+        step_fail "$label"
+        sed 's/^/      /' "$output"
+    fi
+
+    [ -n "${SPINNER_OUTPUT:-}" ] || rm -f "$output"
+
+    return "$status"
+}
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -230,6 +364,88 @@ env_value() {
     line="${line%\"}"
     line="${line#\"}"
     printf '%s' "$line"
+}
+
+# Sets one key in .env. If the line exists it is replaced; if not, it is added.
+# Idempotent, so the scripts can be run again.
+#
+# The value can contain / and &, so a separator that cannot occur in a key, with
+# an escape for the replacement. Values with a space or a # are quoted, otherwise
+# Laravel reads them in half.
+# The port the server listens on. Not every installation runs on 3306, and a
+# wrong number in .env gives "connection refused" without further explanation.
+detect_port() {
+    local found
+
+    if found="$(sql_root "SELECT @@port;" 2>/dev/null)" && [ -n "$found" ]; then
+        printf '%s' "$found"
+    else
+        printf '3306'
+    fi
+}
+
+# Where the database server puts its socket. The path differs per distribution,
+# and the provisioner account can only get in through the socket: with the wrong
+# path here, no customer can be created at all.
+#
+# Ask the server itself first; if that fails, walk the places the common
+# packages put it.
+detect_socket() {
+    local found candidate
+
+    if found="$(sql_root "SELECT @@socket;" 2>/dev/null)" && [ -n "$found" ]; then
+        printf '%s' "$found"
+        return 0
+    fi
+
+    for candidate in /var/run/mysqld/mysqld.sock /run/mysqld/mysqld.sock \
+                     /var/lib/mysql/mysql.sock /tmp/mysql.sock; do
+        if [ -S "$candidate" ]; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+
+    printf '/var/run/mysqld/mysqld.sock'
+}
+
+env_set() {
+    local file="$1" key="$2" value="$3" escaped
+
+    case "$value" in
+        *[[:space:]#]*) value="\"${value}\"" ;;
+    esac
+
+    escaped="$(printf '%s' "$value" | sed -e 's/[\&|]/\\&/g')"
+
+    if grep -qE "^${key}=" "$file"; then
+        sed -i "s|^${key}=.*|${key}=${escaped}|" "$file"
+    else
+        printf '%s=%s\n' "$key" "$value" >> "$file"
+    fi
+}
+
+# Removes a key entirely. For DB_PROVISIONER_PASSWORD and DB_PROVISIONER_HOST:
+# leaving them empty works too, but an empty line invites someone to put
+# something in it one day, and that is exactly what must never happen.
+env_remove() {
+    local file="$1" key="$2"
+    sed -i "/^${key}=/d" "$file"
+}
+
+# One backup per run of a script, not per key.
+ENV_BACKUP_MADE=0
+env_backup() {
+    local file="$1" backup
+
+    if [ "$ENV_BACKUP_MADE" -eq 1 ]; then
+        return 0
+    fi
+
+    backup="${file}.backup-$(date +%Y-%m-%d_%H-%M-%S)"
+    cp "$file" "$backup"
+    ENV_BACKUP_MADE=1
+    info "  Reservekopie: ${backup##*/}"
 }
 
 generate_password() {

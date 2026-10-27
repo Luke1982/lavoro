@@ -8,7 +8,6 @@ use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -24,7 +23,6 @@ use Tests\TestCase;
 class ActivitySearchScopeTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

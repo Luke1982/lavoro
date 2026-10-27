@@ -31,6 +31,7 @@ class DocumentStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'documents' => ['required', 'array', new \App\Rules\WithinStorageQuota()],
             'documents.*' => 'required|file|mimes:' . self::ALLOWED_MIMES . '|max:102400',
             'documentable_id' => 'required|integer',
             'documentable_type' => 'required|string',

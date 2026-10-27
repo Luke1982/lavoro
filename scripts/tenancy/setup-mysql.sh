@@ -15,10 +15,19 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
+
+preflight_common
+require_commands openssl
 
 WITH_TEST=0
 WRITE_ENV=0
@@ -91,6 +100,25 @@ fi
 
 detect_flavour
 
+# ---------------------------------------------------------------------------
+# Vroeg falen als er straks niets weggeschreven kan worden
+# ---------------------------------------------------------------------------
+#
+# Without this check --write-env first created the account with a generated
+# password and only then discovered there was no .env to put it in. At that
+# point the password was nowhere to be found and the account unusable; only
+# --rotate-app-password could still put that right.
+
+if [ "$WRITE_ENV" -eq 1 ] && [ ! -f "$PROJECT_ROOT/.env" ]; then
+    if [ -f "$PROJECT_ROOT/.env.example" ]; then
+        cp "$PROJECT_ROOT/.env.example" "$PROJECT_ROOT/.env"
+        green "Created .env from .env.example"
+    else
+        die "No .env at $PROJECT_ROOT/.env and no .env.example to start from.
+Create the file first, or drop --write-env and copy the credentials by hand."
+    fi
+fi
+
 info "==> Detected database server"
 print_flavour
 info ""
@@ -141,7 +169,22 @@ fi
 # Underscores are escaped in every GRANT pattern. An unescaped _ is a
 # single-character wildcard, so `lavoro\_tenant\_%` matches only the tenant
 # namespace, while lavoro_tenant_% would also match lavoroXtenantY.
-
+#
+# Why a stored procedure hands out the tenant grants
+# --------------------------------------------------
+# Every tenant gets its own MySQL login, restricted to its own database, so one
+# tenant's connection cannot reach another's data. Creating those logins is the
+# provisioner's job -- but MySQL and MariaDB weigh a GRANT naming one database
+# against an entry matching that name exactly, and never against the wildcard
+# this account holds. Creating lavoro_tenant_acme therefore works while granting
+# rights on it fails with 1044, and the only grant that would satisfy the check
+# is privileges on every database: exactly what this account must never have.
+#
+# So the grant is issued by a procedure that runs as its creator (root) and
+# refuses any name outside the tenant namespace. It lives in its own database,
+# where the provisioner holds nothing but EXECUTE, so it can call the procedure
+# and never rewrite it into a wider one.
+#
 build_sql() {
     cat <<SQL
 CREATE DATABASE IF NOT EXISTS \`${LANDLORD_DB}\`
@@ -154,6 +197,40 @@ CREATE USER IF NOT EXISTS '${PROV_USER}'@'${PROV_HOST}' ${IDENTIFIED_CLAUSE};
 GRANT ALL PRIVILEGES ON \`${TENANT_PREFIX//_/\\_}%\`.* TO '${PROV_USER}'@'${PROV_HOST}' WITH GRANT OPTION;
 GRANT ALL PRIVILEGES ON \`${LANDLORD_DB//_/\\_}\`.* TO '${PROV_USER}'@'${PROV_HOST}';
 GRANT CREATE USER ON *.* TO '${PROV_USER}'@'${PROV_HOST}';
+
+CREATE DATABASE IF NOT EXISTS \`${ADMIN_DB}\`
+    CHARACTER SET ${CHARSET} COLLATE ${COLLATION};
+DROP PROCEDURE IF EXISTS \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`;
+
+DELIMITER //
+CREATE PROCEDURE \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\`(
+    IN tenant_db VARCHAR(64),
+    IN tenant_user VARCHAR(64)
+)
+    SQL SECURITY DEFINER
+    COMMENT 'Grants a customer login rights on its own database only'
+BEGIN
+    IF tenant_db NOT LIKE '${TENANT_PREFIX//_/\\_}%'
+        OR tenant_db REGEXP '[^a-zA-Z0-9_]'
+        OR tenant_user REGEXP '[^a-zA-Z0-9_]' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Only names inside the customer namespace, and without special characters.';
+    END IF;
+
+    SET @grant_statement = CONCAT(
+        'GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, ',
+        'CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, ',
+        'REFERENCES, SELECT, SHOW VIEW, TRIGGER, UPDATE',
+        ' ON \`', tenant_db, '\`.* TO \`', tenant_user, '\`@\`%\`'
+    );
+
+    PREPARE granting FROM @grant_statement;
+    EXECUTE granting;
+    DEALLOCATE PREPARE granting;
+END//
+DELIMITER ;
+
+GRANT EXECUTE ON PROCEDURE \`${ADMIN_DB}\`.\`${GRANT_PROCEDURE}\` TO '${PROV_USER}'@'${PROV_HOST}';
 
 FLUSH PRIVILEGES;
 SQL
@@ -233,45 +310,65 @@ fi
 # .env
 # ---------------------------------------------------------------------------
 
+DB_PORT="$(detect_port)"
+
+# The keys belonging to the accounts this script creates, and only those. The
+# rest of .env belongs to setup-env.sh.
 ENV_BLOCK="DB_CONNECTION=mysql
 DB_HOST=${APP_HOST}
-DB_PORT=3306
+DB_PORT=${DB_PORT}
 DB_DATABASE=${LANDLORD_DB}
 DB_USERNAME=${APP_USER}
-DB_PASSWORD=\"${APP_PASSWORD}\"
-DB_SOCKET=/var/run/mysqld/mysqld.sock
-SESSION_CONNECTION=central"
+DB_PASSWORD=${APP_PASSWORD}
+SESSION_CONNECTION=central
+DB_PROVISIONER_USERNAME=${PROV_USER}
+DB_PROVISIONER_SOCKET=$(detect_socket)"
 
 if [ "$WRITE_ENV" -eq 1 ]; then
     ENV_FILE="$PROJECT_ROOT/.env"
-    [ -f "$ENV_FILE" ] || die ".env not found at $ENV_FILE"
 
-    BACKUP="$ENV_FILE.backup-$(date +%Y-%m-%d_%H-%M-%S)"
-    cp "$ENV_FILE" "$BACKUP"
-    info "==> Patching .env (backup at $(basename "$BACKUP"))"
+    # A new password exists only here at this moment. If writing it fails, the
+    # account is unusable and the password is gone; show it then instead of
+    # letting it evaporate.
+    trap 'if [ "$APP_PASSWORD_IS_NEW" -eq 1 ]; then
+        red "Could not update .env. Save this password now, it is nowhere else:"
+        red "  DB_PASSWORD=\"$APP_PASSWORD\""
+    fi' ERR
+
+    info "==> .env bijwerken"
+    env_backup "$ENV_FILE"
 
     while IFS= read -r line; do
-        key="${line%%=*}"
-        value="${line#*=}"
-        if grep -qE "^${key}=" "$ENV_FILE"; then
-            # The value can contain / and &, so use a delimiter that cannot
-            # appear in an env key and escape the replacement.
-            escaped="$(printf '%s' "$value" | sed -e 's/[\&|]/\\&/g')"
-            sed -i "s|^${key}=.*|${key}=${escaped}|" "$ENV_FILE"
-        else
-            printf '%s\n' "$line" >> "$ENV_FILE"
-        fi
+        env_set "$ENV_FILE" "${line%%=*}" "${line#*=}"
     done <<< "$ENV_BLOCK"
 
-    green "  .env updated."
+    # With a password or a network address for the provisioner, everything that
+    # can read .env -- the website included -- can drop every customer database.
+    # The account should only be reachable through the socket, as a Linux user.
+    env_remove "$ENV_FILE" DB_PROVISIONER_PASSWORD
+    env_remove "$ENV_FILE" DB_PROVISIONER_HOST
+
+    # DB_SOCKET applies to the connection the application's account runs on,
+    # and that account exists only on 127.0.0.1. A socket connection arrives at
+    # MySQL as 'localhost', for which there is no account: migrate then gives
+    # "Access denied" with a host name that appears nowhere in the settings. The
+    # provisioner has a socket key of its own and that one does stay -- that
+    # account hangs on the Linux user precisely.
+    env_remove "$ENV_FILE" DB_SOCKET
+
+    trap - ERR
+    green "  .env bijgewerkt."
+
     if [ "$APP_PASSWORD_IS_NEW" -eq 0 ] && [ -z "$APP_PASSWORD" ]; then
-        warn "  DB_PASSWORD was left as-is; the existing account's password is unknown to this script."
+        warn "  DB_PASSWORD was not touched; this script does not know the existing account's password."
     fi
 else
-    info "==> Add this to .env"
+    info "==> Zet dit in .env"
     info ""
     printf '%s\n' "$ENV_BLOCK"
+    info ""
+    info "En haal DB_PROVISIONER_PASSWORD en DB_PROVISIONER_HOST weg als ze er staan."
 fi
 
 info ""
-info "Next: scripts/tenancy/verify-mysql.sh"
+info "Hierna: scripts/tenancy/setup-env.sh, daarna php artisan tenancy:doctor"

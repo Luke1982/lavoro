@@ -10,7 +10,6 @@ use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\Contracts\UserTurn;
 use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Assistant\ModelPicker;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -25,7 +24,6 @@ use Tests\TestCase;
 class AskWithFilesTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     /** The smallest thing that is really a pdf. */
     private function pdf(): array

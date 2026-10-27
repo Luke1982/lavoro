@@ -15,9 +15,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class AssistantUsage extends Model
 {
+    /**
+     * Central and not in the customer's database. The allowance is measured off
+     * here and management adds it up across all customers; that cannot come
+     * from a table that sits separately per customer. The customer does not
+     * reach it.
+     */
+    protected $connection = 'central';
+
     protected $table = 'assistant_usage';
 
     protected $fillable = [
+        'tenant_id',
         'user_id',
         'model',
         'input_tokens',
@@ -39,6 +48,27 @@ class AssistantUsage extends Model
         'eur_per_usd' => 'float',
     ];
 
+    protected static function booted(): void
+    {
+        /**
+         * Adding the customer and filtering on it as well, so that no count
+         * ever accidentally covers another company's usage.
+         */
+        static::creating(function (self $usage) {
+            $usage->tenant_id ??= static::tenantKey();
+        });
+
+        static::addGlobalScope('tenant', function (Builder $query) {
+            $query->where('assistant_usage.tenant_id', static::tenantKey());
+        });
+    }
+
+    public static function tenantKey(): string
+    {
+        return (string) (tenancy()->initialized ? tenancy()->tenant->getTenantKey() : '');
+    }
+
+    /** The user lives in the customer's database, the usage centrally. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

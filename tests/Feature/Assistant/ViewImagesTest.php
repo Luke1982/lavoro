@@ -14,7 +14,6 @@ use App\Models\Customer;
 use App\Models\Image;
 use App\Models\Product;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -30,7 +29,6 @@ use Tests\TestCase;
 class ViewImagesTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function seeing(bool $sees = true): void
     {

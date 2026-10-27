@@ -16,7 +16,6 @@ use App\Http\Controllers\AssistantController;
 use App\Models\AssistantConversationFact;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -31,7 +30,6 @@ use Tests\TestCase;
 class ConversationFactsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private const THREAD = '3f9a1c52-0000-4000-8000-00000000abcd';
 

@@ -16,6 +16,7 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Domain\Tools\ToolResult;
+use App\Exceptions\AssistantAllowanceSpent;
 use App\Models\AssistantUsage;
 use App\Models\User;
 use Closure;
@@ -64,6 +65,16 @@ class AssistantLoop
         bool $needs_vision = false,
         bool $needs_documents = false,
     ): AssistantAnswer {
+        /**
+         * The meter first, only then the model. The question costs nothing as
+         * long as it has not been asked, and a customer without allowance
+         * should get a polite message instead of an answer that quietly cost
+         * money anyway.
+         */
+        if (tenancy()->initialized && !app(AllowanceGate::class)->hasRoom()) {
+            throw new AssistantAllowanceSpent;
+        }
+
         $tools = $this->registry->definitionsFor($user);
 
         /**
@@ -259,11 +270,11 @@ class AssistantLoop
                 'eur_per_usd' => $cost->eur_per_usd,
             ]);
         } catch (Throwable $e) {
-            Log::error('Kon assistentverbruik niet vastleggen', ['model' => $cost->model, 'exception' => $e]);
+            Log::error('Could not record assistant usage', ['model' => $cost->model, 'exception' => $e]);
         }
 
         if (!$cost->isPriced()) {
-            Log::warning('Geen prijs bekend voor model, verbruik geteld als nul', ['model' => $cost->model]);
+            Log::warning('No price known for the model; usage counted as zero', ['model' => $cost->model]);
         }
 
         return $cost->cost_micros;

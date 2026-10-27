@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ForgetIntegrationSecretRequest;
+use App\Http\Requests\UpdateIntegrationSettingsRequest;
 use App\Mail\TestMail;
+use App\Models\GeneralSetting;
 use App\Services\ImapSentCopier;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSent;
@@ -12,20 +15,77 @@ use Throwable;
 
 class TechnicalManagementController extends Controller
 {
+    /** Fields that may simply go back into the screen. */
+    private const PLAIN_KEYS = [
+        'mail_transport', 'mail_from_address', 'mail_from_name',
+        'graph_azure_tenant_id', 'graph_client_id', 'graph_user_id',
+        'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_scheme', 'mail_smtp_username',
+    ];
+
+    /** Fields the screen only gets to see as "is filled in". */
+    private const SECRET_KEYS = [
+        'graph_client_secret', 'mail_smtp_password',
+        'snelstart_client_key', 'snelstart_subscription_key',
+    ];
+
     public function index(Request $request)
     {
-        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
-            abort(403);
+        abort_unless($request->user()?->isSuperAdmin() ?? false, 403);
+
+        $settings = [];
+
+        foreach (self::PLAIN_KEYS as $key) {
+            $settings[$key] = GeneralSetting::get($key, '');
         }
 
-        return inertia('TechnischBeheer/IndexPage');
+        /** Whoever chose nothing mails through Microsoft 365; that is what was there. */
+        $settings['mail_transport'] = $settings['mail_transport'] ?: 'graph';
+
+        $stored = [];
+
+        foreach (self::SECRET_KEYS as $key) {
+            $stored[$key] = filled(GeneralSetting::get($key));
+        }
+
+        return inertia('TechnischBeheer/IndexPage', [
+            'settings' => $settings,
+            'storedSecrets' => $stored,
+        ]);
+    }
+
+    public function updateIntegrations(UpdateIntegrationSettingsRequest $request)
+    {
+        $data = $request->validated();
+
+        foreach (self::PLAIN_KEYS as $key) {
+            GeneralSetting::set($key, $data[$key] ?? '');
+        }
+
+        /**
+         * An empty secret means "leave it". Otherwise every visit to the screen
+         * wiped the keys, because they are not in it.
+         */
+        foreach (self::SECRET_KEYS as $key) {
+            if (filled($data[$key] ?? null)) {
+                GeneralSetting::set($key, $data[$key]);
+            }
+        }
+
+        return back()->with('success', 'Koppelingen opgeslagen.');
+    }
+
+    public function forgetSecret(ForgetIntegrationSecretRequest $request, string $key)
+    {
+        abort_unless(in_array($key, self::SECRET_KEYS, true), 404);
+
+        GeneralSetting::set($key, '');
+
+        return back()->with('success', 'Sleutel gewist.');
     }
 
     public function sendTestMail(Request $request)
     {
-        if (!in_array('technical.management', $request->user()?->permissionNames() ?? [], true)) {
-            abort(403);
-        }
+        abort_unless($request->user()?->isSuperAdmin() ?? false, 403);
 
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
@@ -46,7 +106,7 @@ class TechnicalManagementController extends Controller
         });
 
         try {
-            Mail::to($data['email'])->send(new TestMail());
+            Mail::to($data['email'])->send(new TestMail);
         } catch (Throwable $e) {
             $detail = $e->getMessage();
             if ($e->getPrevious()) {

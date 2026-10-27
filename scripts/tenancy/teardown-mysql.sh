@@ -10,10 +10,18 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Without dirname: this sits above the sourcing of lib.sh, so an error here
+# comes out as a complaint about a file that cannot be found. The shell can do
+# this itself, and then nothing has to exist to get here.
+case "${BASH_SOURCE[0]}" in
+    */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+    *)   SCRIPT_DIR="$PWD" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
+
+preflight_common
 
 CONFIRMED=0
 DROP_TEST=0
@@ -89,6 +97,10 @@ if [ -n "$TENANT_USERS" ]; then
 fi
 
 sql_root "DROP DATABASE IF EXISTS \`${LANDLORD_DB}\`;"
+# The database holding the procedure that grants customer logins their rights
+# goes as well. If it stays, a next installation looks clean while a procedure
+# from the previous one is still standing by.
+sql_root "DROP DATABASE IF EXISTS \`${ADMIN_DB}\`;"
 sql_root "DROP USER IF EXISTS '${APP_USER}'@'${APP_HOST}';"
 sql_root "DROP USER IF EXISTS '${PROV_USER}'@'${PROV_HOST}';"
 

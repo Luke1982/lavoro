@@ -6,6 +6,7 @@ use App\Http\Requests\UserDeleteRequest;
 use App\Http\Requests\UserRestoreRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\Central\Package;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\UserAvatarService;
@@ -33,6 +34,8 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => null,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
+            'occupiesSeat' => true,
         ]);
     }
 
@@ -44,12 +47,34 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
+            /** A super admin occupies no seat; they should not see that choice. */
+            'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')
                 ->orderBy('date')
                 ->get(),
         ]);
+    }
+
+    /**
+     * How many seats there are per kind and how many are still free. The form
+     * shows it; the validation guards it.
+     */
+    private function seats(): array
+    {
+        if (!tenancy()->initialized) {
+            return [];
+        }
+
+        $tenant = tenancy()->tenant;
+        $package = Package::on('central')->where('key', $tenant->package_key)->first();
+
+        return collect([
+            'field' => ['label' => 'Buitendienst', 'limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats],
+            'office' => ['label' => 'Binnendienst', 'limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats],
+        ])->map(fn ($seat, $type) => $seat + ['used' => User::occupyingSeat($type)->count()])->all();
     }
 
     public function store(UserStoreRequest $request)
@@ -102,7 +127,7 @@ class UserController extends Controller
     private function assignableRoles()
     {
         return auth()->user()?->can('assignRoles', User::class)
-            ? Role::orderBy('name')->get(['id', 'name'])
+            ? Role::assignable()->orderBy('name')->get(['id', 'name'])
             : [];
     }
 
@@ -118,6 +143,9 @@ class UserController extends Controller
         return inertia('Users/EditPage', [
             'user' => $user,
             'allRoles' => $this->assignableRoles(),
+            'seats' => $this->seats(),
+            /** A super admin occupies no seat; they should not see that choice. */
+            'occupiesSeat' => !$user->isSuperAdmin(),
             'unavailabilities' => $user->unavailabilities()
                 ->orderBy('type')
                 ->orderBy('day_of_week')

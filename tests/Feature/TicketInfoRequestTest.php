@@ -14,20 +14,18 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
 /**
- * De aanvraag zelf: wat er in de mail staat, welke link eronder hangt en wat de
- * storing ervan merkt.
+ * The request itself: what the mail says, which link hangs under it and what
+ * the incident notices of it.
  */
 class TicketInfoRequestTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function ticket(string $customer_email = 'klant@example.nl'): Ticket
     {
@@ -167,9 +165,9 @@ class TicketInfoRequestTest extends TestCase
     }
 
     /**
-     * Het logo hoort mee te reizen en niet vanaf onze server opgehaald te worden:
-     * bijna elk mailprogramma laat externe afbeeldingen pas toe als de lezer erom
-     * vraagt, en tot dat moment kijkt een klant naar een kapot plaatje.
+     * The logo should travel along and not be fetched from our server: almost
+     * every mail client only allows external images once the reader asks for
+     * them, and until then a customer looks at a broken picture.
      */
     public function test_the_company_logo_travels_with_the_mail(): void
     {

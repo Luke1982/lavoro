@@ -59,6 +59,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ServiceOrderController extends Controller
@@ -110,7 +111,7 @@ class ServiceOrderController extends Controller
         $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');
         $only_closed_stage = $only_stages === [$closed_stage_id];
 
-        /** Een fase kiezen levert die ene fase op, ook al geldt de gefactureerde ook als gesloten. */
+        /** Picking a stage yields that one stage, even though the invoiced one also counts as closed. */
         if (count($only_stages)) {
             $query->whereIn('service_order_stage_id', $only_stages);
         }
@@ -331,7 +332,7 @@ class ServiceOrderController extends Controller
             'incompleteStageId' => ServiceOrderStage::where('is_incomplete_state', true)->value('id'),
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
-            'snelStartEnabled' => filled(config('services.snelstart.client_key')),
+            'snelStartEnabled' => SnelStartClient::isConfigured(),
             'products' => Product::withAttributeData()
                 ->orderBy('model')
                 ->get()
@@ -533,7 +534,7 @@ class ServiceOrderController extends Controller
     }
 
     /**
-     * Stuur een serviceorder naar SnelStart als verkooporder.
+     * Sends a service order to SnelStart as a sales order.
      */
     public function sendToSnelStart(ServiceOrder $serviceorder, SnelStartClient $client)
     {
@@ -816,7 +817,7 @@ class ServiceOrderController extends Controller
             'imageGroups' => $serviceorder->images
                 ->sortBy('created_at')
                 ->map(function ($image) use ($display_timezone) {
-                    $path = storage_path('app/public/' . $image->path);
+                    $path = Storage::disk('public')->path($image->path);
                     if (!file_exists($path)) {
                         return null;
                     }

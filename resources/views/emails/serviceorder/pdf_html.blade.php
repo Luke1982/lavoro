@@ -74,18 +74,7 @@
 <body>
     <div class="wrapper">
         <div class="logo">
-            @php($logo = config('app.mail_logo_url'))
-            @if (!$logo)
-                @php($publicStorageLogo = public_path('storage/logo.png'))
-                @if (file_exists($publicStorageLogo))
-                    @php($logo = asset('storage/logo.png'))
-                @endif
-            @endif
-            @if ($logo)
-                <img src="{{ $logo }}" alt="{{ config('app.name') }}">
-            @else
-                <span style="font-size:20px;font-weight:600;color:#2d3748;">{{ config('app.name') }}</span>
-            @endif
+            @include('emails.partials.company-logo')
         </div>
         <div class="container">
             <h1>Werkbon #{{ $serviceOrder->id }}</h1>
@@ -100,9 +89,9 @@
                 <span class="desc">{{ $desc !== '' ? $desc : 'Geen omschrijving opgegeven.' }}</span>
             </p>
             <p>Met vriendelijke groet,</p>
-            <p>{{ config('app.name') }}</p>
+            <p>{{ $company_name ?? config('app.name') }}</p>
         </div>
-        <div class="footer">&copy; {{ date('Y') }} {{ config('app.name') }}. Alle rechten voorbehouden.</div>
+        <div class="footer">&copy; {{ date('Y') }} {{ $company_name ?? config('app.name') }}. Alle rechten voorbehouden.</div>
     </div>
 </body>
 

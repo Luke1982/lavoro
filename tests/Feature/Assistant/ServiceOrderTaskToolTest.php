@@ -12,7 +12,6 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTaskInstance;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -26,7 +25,6 @@ use Tests\TestCase;
 class ServiceOrderTaskToolTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private function order(): ServiceOrder
     {

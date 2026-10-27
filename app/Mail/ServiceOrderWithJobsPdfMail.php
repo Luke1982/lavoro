@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\ShowsCompanyLogo;
 use App\Models\ServiceOrder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,16 +12,16 @@ class ServiceOrderWithJobsPdfMail extends Mailable
 {
     use Queueable;
     use SerializesModels;
+    use ShowsCompanyLogo;
 
-    public function __construct(public ServiceOrder $serviceOrder, private string $orderPdf, private array $jobPdfs)
-    {
-    }
+    public function __construct(public ServiceOrder $serviceOrder, private string $orderPdf, private array $jobPdfs) {}
 
     public function build(): self
     {
         $mail = $this->subject('Werkbon #' . $this->serviceOrder->id . ' + keuringen')
             ->view('emails.serviceorder.pdf_with_jobs_html', [
                 'serviceOrder' => $this->serviceOrder,
+                ...$this->companyLogo(),
             ])
             ->attachData($this->orderPdf, 'werkbon-' . $this->serviceOrder->id . '.pdf', [
                 'mime' => 'application/pdf',
@@ -30,6 +31,7 @@ class ServiceOrderWithJobsPdfMail extends Mailable
                 'mime' => 'application/pdf',
             ]);
         }
+
         return $mail;
     }
 }

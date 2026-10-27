@@ -12,7 +12,6 @@ use App\Models\Image;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
@@ -24,7 +23,6 @@ use Tests\TestCase;
 class ConversationPhotosTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
-    use RefreshDatabase;
 
     private const THREAD = '9d2f1a33-5555-4666-8777-888888888888';
 

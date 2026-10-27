@@ -7,7 +7,6 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -17,7 +16,6 @@ use Tests\TestCase;
  */
 class ServiceOrderDeleteRedirectTest extends TestCase
 {
-    use RefreshDatabase;
 
     public function test_deleting_from_the_detail_page_lands_on_the_index(): void
     {
