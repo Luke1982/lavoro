@@ -43,6 +43,48 @@ class InitializeTenancyBySession
         }
     }
 
+    /**
+     * A session that points at a user who is no longer in the database.
+     *
+     * The guard looks the id up in the customer's database, finds nothing and
+     * returns null -- but leaves the id in the session, because only logging
+     * out takes it out. The session is written again after this middleware has
+     * ended tenancy, and the database session driver asks the guard for that id
+     * one more time to store it. That second lookup lands on the central
+     * database, which has no users table at all: a 500 on every page, for as
+     * long as that session lives, and the login screen is no way out because it
+     * happens there too.
+     *
+     * So the id goes now, while the customer's database is still open and the
+     * answer means something. Deleting a user leaves such a session behind, and
+     * so does importing a customer's installation again: the database is
+     * replaced and whoever was logged in is no longer in it.
+     */
+    private function forgetAVanishedUser(Request $request): void
+    {
+        $guard = Auth::guard();
+
+        if (!$request->hasSession() || !$guard instanceof SessionGuard) {
+            return;
+        }
+
+        if (!$request->session()->has($guard->getName())) {
+            return;
+        }
+
+        /** Resolved against the tenant connection, which is still the open one. */
+        if ($guard->user() !== null) {
+            return;
+        }
+
+        $request->session()->forget($guard->getName());
+
+        $recaller = $guard->getRecallerName();
+
+        $request->cookies->remove($recaller);
+        cookie()->queue(cookie()->forget($recaller));
+    }
+
     public function handle(Request $request, Closure $next): mixed
     {
         $initialized_here = false;
@@ -93,6 +135,17 @@ class InitializeTenancyBySession
 
             $request->cookies->remove($recaller);
             cookie()->queue(cookie()->forget($recaller));
+        }
+
+        /**
+         * Before the request, not after it: a request whose user is gone ends
+         * in an AuthenticationException, and the pipeline then unwinds without
+         * running anything that sits after $next(). Checking here also means
+         * the request itself carries on as a guest, which is a login screen
+         * rather than an error.
+         */
+        if (tenancy()->initialized) {
+            $this->forgetAVanishedUser($request);
         }
 
         $response = $next($request);

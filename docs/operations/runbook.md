@@ -244,6 +244,23 @@ resets their password **and gives them the administrator role**. Do not use it
 on an ordinary user just to reset a password; ask an administrator of that
 company to do it from inside the application instead.
 
+### Your own account inside a customer
+
+Super admin accounts let MajorLabel into a customer's own screens. Hand them out
+in the admin panel, on the customer's page; the customer cannot see them, create
+them or grant them.
+
+They are stored in the shared database, and copied into the customer's own
+database. Replacing that database -- importing their installation again,
+restoring a backup -- removes the copy, and the import puts it back by itself.
+To do it by hand, or to check who has one:
+
+```bash
+php artisan tenant:superadmins                       # all customers
+php artisan tenant:superadmins "Bedrijf BV"          # one customer
+php artisan tenant:superadmins "Bedrijf BV" --sync   # write them into its database again
+```
+
 ### An account for the admin panel itself
 
 ```bash

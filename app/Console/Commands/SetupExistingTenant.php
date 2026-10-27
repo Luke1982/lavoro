@@ -6,6 +6,7 @@ use App\Console\Commands\Concerns\RunsAsProvisioner;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use App\Services\TenantDbUserProvisioner;
+use App\Services\TenantSuperAdmins;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -52,9 +53,28 @@ class SetupExistingTenant extends Command
         DB::connection('central')->table('user_tenant_lookups')->where('tenant_id', $tenant->id)->delete();
         $this->linkUsers($tenant->id, $emails);
 
+        /**
+         * Our own accounts, written into the replaced database again. They are
+         * kept in the landlord database precisely so this is possible: the copy
+         * in the customer's database went down with it, and without this step
+         * whoever ran the import has locked themselves out.
+         */
+        try {
+            $restored = app(TenantSuperAdmins::class)->sync($tenant) . ' super admin(s) written back';
+        } catch (\Throwable $e) {
+            /**
+             * The database that was just restored can still be on the schema of
+             * the installation it came from, and the migrations run after this.
+             * Not a reason to fail the import: the import script writes them
+             * back again once the tables are up to date.
+             */
+            $restored = 'not yet -- repair with: php artisan tenant:superadmins "' . $tenant->name . '" --sync';
+        }
+
         $this->info("Tenant updated: {$tenant->id}");
         $this->line('  database: ' . $this->argument('database'));
         $this->line('  users:    ' . count($emails) . ' (was ' . $before . ')');
+        $this->line('  super:    ' . $restored);
         $this->line('  kept:     package, seats, modules, billing, invoices');
 
         return self::SUCCESS;

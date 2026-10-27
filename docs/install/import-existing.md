@@ -142,6 +142,8 @@ copies the files across again and re-reads which users may log in.
 
 **What it keeps:** the customer keeps its id, its package, its number of seats,
 its modules, the date its subscription started and all invoices already issued.
+Your own super admin accounts are written back into the replaced database as
+well: they are kept in the shared database for exactly this reason.
 If somebody changed the package here since the first import, that change is kept
 as well, even if the command line still says the old package. The script says so
 and prints the command to change it anyway.

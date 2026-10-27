@@ -258,6 +258,13 @@ fi
 step "Updating the schema"
 artisan tenants:migrate
 
+# Our own accounts, written into the replaced database again now that its
+# tables are up to date. They live in the landlord database for this reason:
+# the copy inside the customer's database went down with it, and whoever ran
+# this import would otherwise have locked themselves out.
+step "Our own accounts"
+artisan tenant:superadmins "$NAME" --sync
+
 step "Copying the files"
 
 TENANT_ID=""

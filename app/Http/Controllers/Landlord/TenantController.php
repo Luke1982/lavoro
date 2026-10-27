@@ -130,13 +130,20 @@ class TenantController extends Controller
          * button that clears such a customer away.
          */
         $unreachable = null;
-        $superadmins = [];
 
+        /**
+         * Asked on its own, because the super admins are read from the landlord
+         * database now and would no longer notice. Without this probe the
+         * screen quietly stopped saying that a customer's database is gone --
+         * while that is exactly what this screen is for in that case.
+         */
         try {
-            $superadmins = app(TenantSuperAdmins::class)->all($tenant);
+            Tenancy::within($tenant, fn () => DB::connection('tenant')->select('SELECT 1'));
         } catch (\Throwable $e) {
             $unreachable = $e->getMessage();
         }
+
+        $superadmins = app(TenantSuperAdmins::class)->all($tenant);
 
         $subscription = new TenantSubscription($tenant);
         $invoicer = new Invoicer($tenant);

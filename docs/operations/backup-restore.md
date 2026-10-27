@@ -325,6 +325,10 @@ This is the full recovery: a new machine, from backups only.
    again so they can log in. The subscription, the package and the invoices are
    left as they are.
 
+   It also writes your own super admin accounts back into that customer's
+   database. If the dump you restored predates them, run
+   `php artisan tenant:superadmins "Acme BV" --sync` afterwards to be sure.
+
 5. Copy the uploaded files back, and make sure they end up owned by the account
    that runs Lavoro. Restored as root they are unreadable to the web server:
 
