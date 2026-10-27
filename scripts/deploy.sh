@@ -103,6 +103,23 @@ for GENERATED in public/service-worker.js; do
     fi
 done
 
+# The .gitignore files under storage/ are placeholders. They are in git for one
+# reason -- to keep an otherwise empty folder in it -- and their entire content
+# is '*' plus an exception for themselves. Nobody edits one on purpose, and a
+# changed one is still enough to stop the pull: a deploy came to a halt over
+# storage/fonts/.gitignore, which is written by nothing anybody can point at.
+# So put them back, and say which, rather than refuse over them.
+PLACEHOLDERS=$(git status --porcelain --untracked-files=no -- storage \
+    | awk '$2 ~ /\/\.gitignore$/ { print $2 }')
+
+if [ -n "$PLACEHOLDERS" ]; then
+    while read -r PLACEHOLDER; do
+        [ -n "$PLACEHOLDER" ] || continue
+        git checkout -- "$PLACEHOLDER" 2>/dev/null || true
+        echo "  put back ${PLACEHOLDER} (a placeholder for an empty folder, not somebody's change)"
+    done <<< "$PLACEHOLDERS"
+fi
+
 # A pull with --ff-only refuses as soon as a tracked file is locally modified.
 # That is right, but the bare git message does not say which file it is.
 DIRTY=$(git status --porcelain --untracked-files=no)

@@ -196,6 +196,44 @@ The invoices you send to your own customers are separate. They go through the
 mail server in `LANDLORD_MAIL_*` in `.env`, so they keep working even if a
 customer breaks their own settings.
 
+## The update refuses: "files have been changed on this server"
+
+`lavoro update` stops before it pulls when a file that is in git has been
+changed on the server. The deploy pulls with `--ff-only`, which refuses a
+locally changed file, and it would refuse halfway — with the installation
+already offline.
+
+Look at what changed:
+
+```bash
+sudo -u lavoro git -C /home/lavoro/lavorofsm diff -- <file>
+```
+
+A `.gitignore` under `storage/` is a placeholder. It is in git for one reason,
+to keep an otherwise empty folder in it, and its whole content is `*` plus an
+exception for itself. Nobody edits one on purpose and throwing it away costs
+nothing:
+
+```bash
+sudo -u lavoro git -C /home/lavoro/lavorofsm checkout -- <file>
+```
+
+`lavoro update` offers to do that for you when everything that changed is under
+`storage/`, and `scripts/deploy.sh` puts those placeholders back by itself. A
+file under `app/`, `config/` or `resources/` is somebody's change: read it
+first, then commit it or throw it away on purpose.
+
+Run those git commands **as the account the installation belongs to** — `lavoro`
+on this server — and not as root. Git refuses to work in a checkout that belongs
+to somebody else:
+
+```
+fatal: detected dubious ownership in repository at '/home/lavoro/lavorofsm'
+```
+
+As root the command does nothing at all: the file stays changed, the update
+keeps refusing, and nothing says the two are connected.
+
 ## The disk is full
 
 The most common cause is dumps piling up in `storage/backups`. The deploy script

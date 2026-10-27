@@ -35,11 +35,39 @@ BACKUP_DIR="${LAVORO_BACKUP_DIR:-$ROOT/storage/backups}"
 # next web request cannot write them.
 APP_ACCOUNT="$(stat -c %U "$ROOT/artisan" 2>/dev/null || echo "$USER")"
 
-artisan() {
+# Everything that has to run as that account, and not as whoever is reading.
+#
+# Root is the normal way to run this tool, and root is exactly who may not run
+# these two. Artisan as root leaves root-owned caches and logs behind, and the
+# next web request cannot write them. Git refuses outright: it will not work in
+# a checkout that belongs to somebody else ("detected dubious ownership"), so
+# 'sudo lavoro status' used to report an installation that was not a git
+# checkout at all -- while the only thing wrong was who was asking.
+#
+# With 'sudo -n', which fails instead of asking: nothing here may stop for a
+# password, because a command waiting for an answer nobody is there to give
+# looks exactly like one that has hung.
+as_owner() {
     if [ "$(id -un)" = "$APP_ACCOUNT" ]; then
-        (cd "$ROOT" && php artisan "$@")
+        "$@"
     else
-        (cd "$ROOT" && sudo -u "$APP_ACCOUNT" php artisan "$@")
+        sudo -n -u "$APP_ACCOUNT" "$@"
+    fi
+}
+
+artisan() { (cd "$ROOT" && as_owner php artisan "$@"); }
+
+git_here() { as_owner git -C "$ROOT" "$@"; }
+
+# The same git command, written out so the reader can paste it. It has to run as
+# the account the files belong to, so when that is not the reader, the line
+# carries the sudo that makes it work -- otherwise they get the ownership
+# refusal and nothing happens.
+git_command() {
+    if [ "$(id -un)" = "$APP_ACCOUNT" ]; then
+        printf 'git -C %s %s' "$ROOT" "$*"
+    else
+        printf 'sudo -u %s git -C %s %s' "$APP_ACCOUNT" "$ROOT" "$*"
     fi
 }
 
@@ -98,9 +126,9 @@ confirm() {
 # What is installed here
 # ---------------------------------------------------------------------------
 
-current_branch() { git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null; }
+current_branch() { git_here rev-parse --abbrev-ref HEAD 2>/dev/null; }
 
-current_commit() { git -C "$ROOT" log -1 --format='%h %cd %s' --date=short 2>/dev/null; }
+current_commit() { git_here log -1 --format='%h %cd %s' --date=short 2>/dev/null; }
 
 # How far behind origin this checkout is. Fetches first, because a checkout that
 # never fetches is always "up to date". Never fails the caller: a server without
@@ -115,14 +143,14 @@ behind_count() {
     local branch
     branch="$(current_branch)"
 
-    quietly env GIT_TERMINAL_PROMPT=0 \
+    quietly as_owner env GIT_TERMINAL_PROMPT=0 \
         GIT_SSH_COMMAND='ssh -oBatchMode=yes -oStrictHostKeyChecking=accept-new -oConnectTimeout=10' \
         timeout 20 git -C "$ROOT" fetch --quiet origin "$branch" || return 1
 
-    git -C "$ROOT" rev-list --count "HEAD..origin/${branch}" 2>/dev/null
+    git_here rev-list --count "HEAD..origin/${branch}" 2>/dev/null
 }
 
-uncommitted() { git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null; }
+uncommitted() { git_here status --porcelain --untracked-files=no 2>/dev/null; }
 
 # ---------------------------------------------------------------------------
 # status
@@ -137,26 +165,34 @@ cmd_status() {
 
     branch="$(current_branch)"
     commit="$(current_commit)"
-    line "branch" "${branch:-not a git checkout}"
+
+    if [ -z "$branch" ] && [ -d "$ROOT/.git" ]; then
+        bad_line "branch" "git will not read this checkout as $(id -un)"
+        todo "sudo -u ${APP_ACCOUNT} lavoro status" \
+            "the files belong to ${APP_ACCOUNT}, and git refuses a checkout owned by somebody else"
+    else
+        line "branch" "${branch:-not a git checkout}"
+    fi
+
     line "version" "${commit:-unknown}"
 
     dirty="$(uncommitted)"
     if [ -n "$dirty" ]; then
         warn_line "local changes" "$(printf '%s' "$dirty" | wc -l) file(s) changed here -- a deploy will refuse"
-        todo "git -C ${ROOT} status" "see what was changed by hand; a deploy stops until it is put back"
+        todo "$(git_command status)" "see what was changed by hand; a deploy stops until it is put back"
     fi
 
     heading "Updates"
     behind="$(behind_count)"
     if [ -z "$behind" ]; then
         warn_line "origin" "could not be reached"
-        todo "git -C ${ROOT} fetch origin" "run it by hand to see why: no network, or a key that wants a passphrase"
+        todo "$(git_command fetch origin)" "run it by hand to see why: no network, or a key that wants a passphrase"
     elif [ "$behind" -eq 0 ]; then
         ok "origin" "up to date"
     else
         warn_line "origin" "${behind} commit(s) behind"
         todo "lavoro update --check" "see what is in those ${behind} commit(s), then: lavoro update"
-        git -C "$ROOT" log --oneline --no-decorate "HEAD..origin/${branch}" 2>/dev/null \
+        git_here log --oneline --no-decorate "HEAD..origin/${branch}" 2>/dev/null \
             | head -5 | sed 's/^/      /'
     fi
 
@@ -396,7 +432,7 @@ cmd_update() {
 
     if [ -z "$behind" ]; then
         die "Could not reach origin within twenty seconds.
-Run 'git -C ${ROOT} fetch origin' by hand to see why. A deploy key with a
+Run '$(git_command fetch origin)' by hand to see why. A deploy key with a
 passphrase is the usual reason: nothing here may stop to ask for one, because a
 status command that waits for an answer looks exactly like one that has hung."
     fi
@@ -408,14 +444,14 @@ status command that waits for an answer looks exactly like one that has hung."
 
     info ""
     info "${behind} commit(s) waiting:"
-    git -C "$ROOT" log --oneline --no-decorate "HEAD..origin/${branch}" | sed 's/^/  /'
+    git_here log --oneline --no-decorate "HEAD..origin/${branch}" | sed 's/^/  /'
     info ""
 
-    if git -C "$ROOT" diff --quiet "HEAD..origin/${branch}" -- database/migrations; then
+    if git_here diff --quiet "HEAD..origin/${branch}" -- database/migrations; then
         info "  No database changes."
     else
         warn "  Includes database changes:"
-        git -C "$ROOT" diff --name-only "HEAD..origin/${branch}" -- database/migrations | sed 's/^/    /'
+        git_here diff --name-only "HEAD..origin/${branch}" -- database/migrations | sed 's/^/    /'
     fi
 
     if [ "$check_only" -eq 1 ]; then
@@ -429,8 +465,8 @@ status command that waits for an answer looks exactly like one that has hung."
         red "Files have been changed on this server, so the deploy would stop halfway:"
         printf '%s\n' "$dirty" | sed 's/^/  /'
         info ""
-        info "  See what changed:   git -C ${ROOT} diff -- <file>"
-        info "  Throw it away:      git -C ${ROOT} checkout -- <file>"
+        info "  See what changed:   $(git_command 'diff -- <file>')"
+        info "  Throw it away:      $(git_command 'checkout -- <file>')"
         info ""
         info "  A file under storage/ is almost always a placeholder that only exists to"
         info "  keep an empty folder in git. Those are safe to throw away. A file under"
@@ -445,7 +481,7 @@ status command that waits for an answer looks exactly like one that has hung."
         confirm "  Throw those changes away and carry on?" || { info "Nothing done."; return 1; }
 
         printf '%s' "$dirty" | awk '{ print $2 }' | while read -r path; do
-            git -C "$ROOT" checkout -- "$path"
+            git_here checkout -- "$path"
         done
 
         green "  put back"
@@ -455,7 +491,10 @@ status command that waits for an answer looks exactly like one that has hung."
     warn "Deploying takes the installation offline for everyone while it runs."
     confirm "Deploy now?" || { info "Nothing done."; return 1; }
 
-    bash "$ROOT/scripts/deploy.sh"
+    # As the owning account, whoever started this: the deploy pulls, writes the
+    # caches and runs the build, and all of that has to end up belonging to the
+    # account the web server runs php as.
+    as_owner bash "$ROOT/scripts/deploy.sh"
 }
 
 # ---------------------------------------------------------------------------

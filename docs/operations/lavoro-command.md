@@ -17,6 +17,30 @@ That makes a symlink in `/usr/local/bin`, so `lavoro` works from any folder and
 finds the installation by itself. Without it, run `bin/lavoro` from the
 installation folder.
 
+## Which account to run it as
+
+Root, or the account the installation belongs to — `lavoro` on
+app.lavorofsm.nl. The tool works out which account that is from the files
+themselves and switches to it wherever it matters, so both work. The commands
+that genuinely need root are written with `sudo` in this page.
+
+One thing it cannot do for you: git commands you run by hand. Git refuses to
+work in a checkout that belongs to another account, so as root you get
+
+```
+fatal: detected dubious ownership in repository at '/home/lavoro/lavorofsm'
+```
+
+and nothing happened — no change to the file, and no message about the file
+either. Run it as the owning account:
+
+```bash
+sudo -u lavoro git -C /home/lavoro/lavorofsm checkout -- storage/fonts/.gitignore
+```
+
+That is why `lavoro` prints its git suggestions with that `sudo -u` in front
+when you are not already that account.
+
 ## The one to remember
 
 ```bash
@@ -54,10 +78,14 @@ the two commands to look at a change or throw it away.
 If every changed file is under `storage/`, it offers to throw those away for
 you. Those are placeholders that exist only to keep an empty folder in git, and
 a deploy should not stop for one. Anything under `app/`, `config/` or
-`resources/` is somebody's work, and then it refuses and leaves it to you. It warns that the installation
-goes offline, asks once, and then runs `scripts/deploy.sh`, which takes the
-backup, pulls, migrates, rebuilds caches, restarts the workers and runs the
-checks.
+`resources/` is somebody's work: then it refuses and leaves it to you.
+
+`scripts/deploy.sh` puts those same `storage/` placeholders back by itself, so
+running the deploy the long way does not strand on one either.
+
+Once the tree is clean it warns that the installation goes offline, asks once,
+and then runs `scripts/deploy.sh`, which takes the backup, pulls, migrates,
+rebuilds caches, restarts the workers and runs the checks.
 
 ## Customers
 
