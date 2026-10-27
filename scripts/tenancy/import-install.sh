@@ -265,6 +265,30 @@ artisan tenants:migrate
 step "Our own accounts"
 artisan tenant:superadmins "$NAME" --sync
 
+# What a dedicated installation keeps in its .env and this one keeps per
+# customer: the mail server, the Microsoft 365 registration, the SnelStart
+# keys. Importing copies a database, and these were never in one -- so without
+# this the customer arrives with an empty Technisch beheer screen and sends no
+# mail at all.
+#
+# Through a copy: this script runs as root, artisan runs as the application
+# account, and the other installation's .env is usually readable by neither
+# anyone nor that account. The copy carries its secrets, so it is readable only
+# by that account and is removed again straight away.
+step "Settings from the old installation"
+if [ "$DRY" -eq 1 ]; then
+    info "+ artisan tenant:import-settings ${DB} --from=${FROM}/.env"
+else
+    SETTINGS_COPY=$(mktemp)
+    chmod 600 "$SETTINGS_COPY"
+    cp "$FROM/.env" "$SETTINGS_COPY"
+    chown "$APP_ACCOUNT" "$SETTINGS_COPY"
+
+    artisan tenant:import-settings "$DB" --from="$SETTINGS_COPY" || true
+
+    rm -f "$SETTINGS_COPY"
+fi
+
 step "Copying the files"
 
 TENANT_ID=""

@@ -5,9 +5,13 @@ namespace App\Console\Commands;
 use App\Http\Middleware\TenancyForStatefulApi;
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
+use App\Models\Document;
+use App\Models\GeneralSetting;
+use App\Models\Image;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Demo\DemoInstaller;
 use App\Support\ProvisionerConnection;
 use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
@@ -18,6 +22,8 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
@@ -472,8 +478,12 @@ class TenancyDoctor extends Command
                     ? $this->pass("storage {$disk}")
                     : $this->bad("storage {$disk} is not writable for "
                         . ($account ?? 'this account') . ', so uploads fail. Repair with:'
-                        . "\n         sudo setfacl -R -m u:{$account}:rwX " . storage_path());
+                        . "\n         sudo lavoro setup permissions"
+                        . "\n         (that sets the access lists and the modes; a mode sets the list's mask)");
             }
+
+            $this->filesAreWhereTheRowsSayTheyAre();
+            $this->canSendMail($tenant);
 
             tenancy()->end();
         } catch (\Throwable $e) {
@@ -1226,6 +1236,94 @@ class TenancyDoctor extends Command
      * production it reported `lavoro` while php really ran as `nobody`, and
      * every storage check below was testing an account that serves nothing.
      */
+    /**
+     * The rows point at files on disk. After a move those files have to have
+     * come along, and nothing says when they have not: a photo that is not
+     * there is a blank space on a work order, never an error.
+     *
+     * Sampled, not counted in full: a customer with forty thousand photos would
+     * turn this into a disk scan.
+     */
+    private function filesAreWhereTheRowsSayTheyAre(): void
+    {
+        $disk = Storage::disk('public');
+
+        foreach (['images' => Image::class, 'documents' => Document::class] as $table => $model) {
+            if (!Schema::connection('tenant')->hasTable($table)) {
+                continue;
+            }
+
+            $total = $model::query()->count();
+
+            if ($total === 0) {
+                continue;
+            }
+
+            $sample = $model::query()->inRandomOrder()->limit(20)->pluck('path')->filter();
+            $missing = $sample->reject(fn (string $path) => $disk->exists($path));
+
+            $missing->isEmpty()
+                ? $this->pass("{$table}: {$sample->count()} of {$total} checked, all on disk")
+                : $this->bad("{$table}: {$missing->count()} of {$sample->count()} checked are not on disk,"
+                    . " out of {$total}. Those show as a blank space, not as an error."
+                    . "\n         the first one missing: " . $missing->first());
+        }
+    }
+
+    /**
+     * Every customer sends with their own settings, and without them they send
+     * nothing at all. That is deliberate, but on a customer that was just moved
+     * in it is usually an oversight: a dedicated installation keeps these in
+     * its .env, and importing copies a database.
+     */
+    private function canSendMail(Tenant $tenant): void
+    {
+        if (!Schema::connection('tenant')->hasTable('general_settings')) {
+            return;
+        }
+
+        $transport = GeneralSetting::get('mail_transport');
+
+        /**
+         * The demo has none on purpose: it is rebuilt every night with made-up
+         * addresses, and sending anything from it would reach real people.
+         */
+        if (blank($transport) && $tenant->name === DemoInstaller::NAME) {
+            $this->skip('the demo sends no mail, which is deliberate');
+
+            return;
+        }
+
+        if (blank($transport)) {
+            $this->bad('no mail settings, so this customer sends nothing at all.'
+                . ' Fill them in under Technisch beheer, or take them from the installation'
+                . ' it came from:'
+                . "\n         php artisan tenant:import-settings <database> --from=/path/to/old/.env");
+
+            return;
+        }
+
+        /**
+         * A secret that is there but cannot be deciphered reads everywhere as
+         * "not filled in yet", because that is the only way to keep the screens
+         * working after a key change. Here it has to be said out loud: it is
+         * what happens to a customer imported from an installation that had its
+         * own APP_KEY.
+         */
+        $secret = $transport === 'graph' ? 'graph_client_secret' : 'mail_smtp_password';
+        $stored = GeneralSetting::where('key', $secret)->first();
+
+        if ($stored && filled($stored->value) && blank(GeneralSetting::get($secret))) {
+            $this->bad("the {$secret} cannot be deciphered -- encrypted with another APP_KEY, so"
+                . ' sending fails while the screen looks filled in.'
+                . "\n         Enter it again under Technisch beheer.");
+
+            return;
+        }
+
+        $this->pass("sends mail over {$transport}");
+    }
+
     private function webAccount(): ?string
     {
         static $account = false;

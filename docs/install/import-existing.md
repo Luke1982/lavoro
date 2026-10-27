@@ -143,7 +143,9 @@ copies the files across again and re-reads which users may log in.
 **What it keeps:** the customer keeps its id, its package, its number of seats,
 its modules, the date its subscription started and all invoices already issued.
 Your own super admin accounts are written back into the replaced database as
-well: they are kept in the shared database for exactly this reason.
+well: they are kept in the shared database for exactly this reason. The mail,
+Microsoft 365 and SnelStart settings are read from the old installation's `.env`
+again, and settings this customer already has are left alone.
 If somebody changed the package here since the first import, that change is kept
 as well, even if the command line still says the old package. The script says so
 and prints the command to change it anyway.
@@ -159,6 +161,72 @@ The import adds and overwrites; it never deletes.
 
 Do the last import after the old installation has been taken offline for good,
 then go through step 3 again.
+
+## The night of the move
+
+The order that leaves the least to go wrong, with what to check after each step.
+
+**1. Before you start, on the new server**
+
+```bash
+lavoro status
+```
+
+Everything green, or at least nothing you do not recognise. A problem that was
+already there is harder to see once a customer has been moved on top of it.
+
+**2. Take the old installation offline**
+
+On the old server: `php artisan down`, and switch its web server off. From this
+moment nobody can add anything there that the import would not carry across.
+
+**3. Import, for the last time**
+
+```bash
+sudo scripts/tenancy/import-install.sh --from /path/to/old/lavoro \
+    --name "Company BV" --slug company --refresh
+```
+
+Watch for the steps named **Our own accounts** and **Settings from the old
+installation**: those write your super admins back and take the mail,
+Microsoft 365 and SnelStart settings out of the old `.env`. If the settings step
+says it found nothing, that installation kept them somewhere else and you fill
+them in by hand under Technisch beheer.
+
+**4. Check what a program can check**
+
+```bash
+php artisan tenancy:doctor
+```
+
+For this customer you want to see: the database opens with its own login, every
+user is in the central list, `storage public` and `storage local` are writable,
+`images: N of M checked, all on disk`, and `sends mail over graph` (or `smtp`).
+
+If storage is not writable: `sudo lavoro setup permissions`. That happens because
+the copy brings the old installation's modes along, and a mode sets the access
+list's mask.
+
+**5. Check what only a person can check**
+
+Go through [step 3 above](#3-check-the-things-a-program-cannot-check), and add
+two that matter most on the night:
+
+- **upload a photo to a work order**, so you know writing works and not just
+  reading;
+- **send a test mail** under Technisch beheer, to yourself.
+
+**6. Send everybody to the new address**
+
+Point the old hostname at this installation, or redirect it. Then the phones:
+each Android install stores its own server address and talks to `/api` directly,
+where a redirect does not carry the session. Every technician sets the new
+address in the launcher once.
+
+**7. Leave the old installation alone for a week**
+
+Switched off, not deleted. It is the fastest way back if something turns up that
+none of the checks caught.
 
 ## All options
 
