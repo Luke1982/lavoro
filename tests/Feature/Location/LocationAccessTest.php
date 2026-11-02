@@ -47,6 +47,33 @@ class LocationAccessTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * The picker fetches the whole list once and filters it in the browser, so
+     * what you may search a location by has to be in the payload.
+     */
+    public function test_the_picker_carries_the_address_and_code_to_search_on(): void
+    {
+        $customer = Customer::factory()->create();
+        Location::factory()->create([
+            'customer_id' => $customer->id,
+            'title' => 'Vestiging Noord',
+            'location_code' => 'VN-01',
+            'address' => 'Rustenburg 24',
+            'postal_code' => '6702 AE',
+            'city' => 'Wageningen',
+        ]);
+
+        $option = $this->actingAs($this->userWith('customer.read'))
+            ->getJson("/combo/customers/{$customer->id}/locations")
+            ->assertOk()
+            ->json('0');
+
+        $this->assertSame('Vestiging Noord – Wageningen', $option['name']);
+        $this->assertStringContainsString('Rustenburg 24', $option['search']);
+        $this->assertStringContainsString('6702 AE', $option['search']);
+        $this->assertStringContainsString('VN-01', $option['search']);
+    }
+
     public function test_the_picker_only_returns_that_customers_locations(): void
     {
         $customer = Customer::factory()->create();

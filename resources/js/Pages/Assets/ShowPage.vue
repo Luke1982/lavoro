@@ -85,7 +85,7 @@
                         </EditableTextField>
                         <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
                             :readonly="!canUpdate" label="Locatie" indicator="link" :error="form.errors.location_id"
-                            :emptyMessage="locationMessage"
+                            :empty-message="locationMessage"
                             @revert="form.clearErrors('location_id')">
                             <template #display>
                                 <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"

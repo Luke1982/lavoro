@@ -14,17 +14,17 @@
                 ref="inputRef" :default-value="filteredOptions[0]?.name" :placeholder="effectivePlaceholder"
                 :disabled="props.disabled" />
             <ComboboxButton class="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none"
-                v-if="!internalSearching || !hasExternalSearching">
+                v-if="!searchingExternally">
                 <MagnifyingGlassIcon v-if="showSearchHint" class="h-5 w-5 text-gray-400 dark:text-slate-400"
                     aria-hidden="true" />
                 <ChevronUpDownIcon v-else class="h-5 w-5 text-gray-400 dark:text-slate-400" aria-hidden="true" />
             </ComboboxButton>
-            <ArrowPathIcon v-if="internalSearching && hasExternalSearching"
+            <ArrowPathIcon v-if="searchingExternally"
                 class="absolute inset-y-0 right-0 h-5 w-5 text-gray-400 dark:text-slate-400 animate-spin mr-2 mt-2"
                 aria-hidden="true" />
 
             <Teleport to="body">
-                <div v-if="open && (filteredOptions.length > 0 || listMessage)" ref="floatingRef"
+                <div v-if="open && hasPanelContent" ref="floatingRef"
                     data-combobox-dropdown :style="dropdownStyle">
                     <ComboboxOptions v-if="filteredOptions.length > 0"
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
@@ -51,7 +51,7 @@
                             </li>
                         </ComboboxOption>
                     </ComboboxOptions>
-                    <div v-else
+                    <div v-else role="status"
                         class="rounded-md bg-white dark:bg-slate-900 py-3 px-3 text-sm text-gray-500 dark:text-slate-400 shadow-lg ring-1 ring-black/5 dark:ring-slate-500 sm:text-sm">
                         {{ listMessage }}
                     </div>
@@ -245,29 +245,9 @@ watch(() => props.modelValue, (newVal) => {
 })
 
 const showSearchHint = computed(() => props.hasExternalSearching && props.options.length === 0)
-/**
- * The sentence in the box when there is nothing to pick. Without it the panel
- * simply did not render: you typed, the list filtered down to nothing, and the
- * box closed as if the field were broken. Typing something a stored title does
- * not literally contain is enough to land here -- one of their locations is
- * called 'Rustenburg 24  - Wageningen', with two spaces, and typing it the way
- * you would write it matches nothing at all.
- */
-const listMessage = computed(() => {
-    if (filteredOptions.value.length > 0) return ''
 
-    /** A search that is still running speaks for itself through the spinner. */
-    if (internalSearching.value) return ''
-
-    if (props.options.length === 0 && query.value === '') return props.emptyMessage
-
-    /** An externally searched box waits for a term before it has anything to say. */
-    if (props.hasExternalSearching && query.value === '') return ''
-
-    return query.value === ''
-        ? props.emptyMessage
-        : `Geen resultaten voor ‘${query.value}’`
-})
+/** The spinner's own state: a parent that searches for us, still busy. */
+const searchingExternally = computed(() => internalSearching.value && props.hasExternalSearching)
 
 const effectivePlaceholder = computed(() => {
     if (showSearchHint.value && props.placeholder.startsWith('Selecteer ')) {
@@ -280,23 +260,18 @@ const effectivePlaceholder = computed(() => {
 const query = ref('')
 
 /**
- * Both sides of the comparison are flattened to letters, digits and single
- * spaces before they are matched: accents off, every dash, comma, slash and run
- * of spaces reduced to one space.
- *
- * What people type is what they would write, and what is stored is what someone
- * once typed. A location called 'Rustenburg 24  - Wageningen' -- two spaces, a
- * hyphen -- could not be found by typing 'Rustenburg 24 - Wageningen', and the
- * box then closed without a word, which reads as a location you are not allowed
- * to pick. Matching on the letters only costs nothing and ends that whole class
- * of complaint.
+ * Reduces both sides of a comparison to letters and digits: accents off, every
+ * space, dash, comma and slash gone. What people type is what they would write,
+ * and what is stored is what someone once typed -- a location called
+ * 'Rustenburg 24  - Wageningen' (two spaces) could not be found by typing it the
+ * way you would write it, and a postcode typed as '6702AE' missed '6702 AE'.
+ * Dropping the separators can only widen a match, never narrow one.
  */
 const forMatching = (text) => String(text ?? '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
+    .replace(/[^a-z0-9]+/g, '')
 
 const filteredOptions = computed(() => {
     if (query.value === '' || props.disableInternalFilter) {
@@ -313,6 +288,22 @@ const filteredOptions = computed(() => {
         (option) => forMatching(`${option.name} ${option.search ?? ''}`).includes(term)
     )
 })
+
+/**
+ * The sentence in the box when there is nothing to pick. Without one the panel
+ * does not render at all: you typed, the list filtered down to nothing, and the
+ * box closed as if the field were broken.
+ */
+const listMessage = computed(() => {
+    if (filteredOptions.value.length > 0) return ''
+    if (searchingExternally.value) return ''
+
+    return query.value === ''
+        ? props.emptyMessage
+        : `Geen resultaten voor ‘${query.value}’`
+})
+
+const hasPanelContent = computed(() => filteredOptions.value.length > 0 || listMessage.value !== '')
 
 // display logic
 const isFocused = ref(false)

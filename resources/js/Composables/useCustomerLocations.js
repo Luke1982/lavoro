@@ -2,46 +2,39 @@ import { computed, ref } from 'vue';
 import axios from 'axios';
 
 /**
- * Fetches a customer's locations for a picker, with an out-of-order guard so
- * that rapidly switching customers can never leave stale options bound.
- * Returns raw location objects ({ id, name, address, postal_code, city }); each
- * consumer maps them as needed (ComboBox uses id + name).
- *
- * `message` is what the picker says when it has nothing to offer, and it is
- * owned here rather than at every call site: an empty list and a refused
- * request look identical to the person staring at the box, and this is the only
- * place that knows which of the two it was. A picker that goes quiet instead of
- * saying so cost us a customer report about a location they could not select --
- * the request was refused for want of a permission, and nothing said a word.
+ * What the picker says when it has nothing to offer. The wording lives here
+ * because this is the only place that can tell an empty list from a refused
+ * request, and to the person at the box the two look the same -- a picker that
+ * went quiet about a refusal cost us a customer report. 'ready' has no entry: a
+ * list with something in it says nothing.
+ */
+const messages = {
+    idle: 'Kies eerst een klant.',
+    loading: 'Locaties worden geladen…',
+    empty: 'Deze klant heeft nog geen locaties. Je maakt ze aan bij de klant, onder Locaties.',
+    forbidden: 'Je mag de locaties van deze klant niet opvragen. Vraag een beheerder om het recht ‘Locaties bekijken’.',
+    failed: 'De locaties konden niet worden opgehaald. Probeer het opnieuw of herlaad de pagina.',
+};
+
+/**
+ * Fetches a customer's locations for a picker. Returns the options as the
+ * endpoint hands them over ({ id, name, address, postal_code, city, search });
+ * each consumer maps them as needed (ComboBox matches on name + search).
  */
 export function useCustomerLocations() {
     const locations = ref([]);
     const state = ref('idle');
-    let request_seq = 0;
+    const message = computed(() => messages[state.value] ?? '');
 
-    const message = computed(() => {
-        if (state.value === 'loading') return 'Locaties worden geladen…';
-
-        if (state.value === 'forbidden') {
-            return 'Je mag de locaties van deze klant niet opvragen. Vraag een beheerder om het recht ‘Locaties bekijken’.';
-        }
-
-        if (state.value === 'failed') {
-            return 'De locaties konden niet worden opgehaald. Probeer het opnieuw of herlaad de pagina.';
-        }
-
-        if (state.value === 'idle') return 'Kies eerst een klant.';
-
-        return locations.value.length === 0
-            ? 'Deze klant heeft nog geen locaties. Je maakt ze aan bij de klant, onder Locaties.'
-            : '';
-    });
+    let requestSeq = 0;
 
     const load = async (customerId) => {
-        const seq = ++request_seq;
+        const seq = ++requestSeq;
+
+        /** Never leave the previous customer's locations on offer. */
+        locations.value = [];
 
         if (!customerId) {
-            locations.value = [];
             state.value = 'idle';
 
             return;
@@ -52,17 +45,16 @@ export function useCustomerLocations() {
         try {
             const { data } = await axios.get(`/combo/customers/${customerId}/locations`);
 
-            if (seq === request_seq) {
-                locations.value = data;
-                state.value = 'ready';
-            }
-        } catch (error) {
-            if (seq !== request_seq) return;
+            if (seq !== requestSeq) return;
 
-            locations.value = [];
+            locations.value = data;
+            state.value = data.length === 0 ? 'empty' : 'ready';
+        } catch (error) {
+            if (seq !== requestSeq) return;
+
             state.value = error?.response?.status === 403 ? 'forbidden' : 'failed';
         }
     };
 
-    return { locations, load, message, state };
+    return { locations, load, message };
 }

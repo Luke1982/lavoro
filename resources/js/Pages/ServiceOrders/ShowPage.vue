@@ -97,11 +97,14 @@
                                         label="Extern factuurnummer" v-model="form.external_invoice_no"
                                         @update="val => { form.external_invoice_no = val; }"
                                         placeholder="Extern factuurnummer" />
-                                    <EditableTextField v-if="showLocationPicker"
+                                    <!-- Never hidden when there is nothing to pick: the box says why itself.
+                                         Hiding it was how a refused request came out as a werkbon with no
+                                         Locatie row at all, and nothing to say that one was missing. -->
+                                    <EditableTextField
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         type="combobox" label="Locatie" v-model="form.location_id"
                                         :options="locationOptions" :error="form.errors.location_id"
-                                        :emptyMessage="locationMessage" clearable
+                                        :empty-message="locationMessage" clearable
                                         @update="onLocationChange" @revert="form.clearErrors('location_id')">
                                         <template #display>
                                             <Link v-if="selectedLocation" :href="`/locations/${selectedLocation.id}`"
@@ -822,16 +825,6 @@ const form = useForm({
 });
 
 const { locations: locationOptions, load: loadLocations, message: locationMessage } = useCustomerLocations();
-
-/**
- * Shown even with nothing to pick, because the box itself now says why: this
- * customer has no locations yet, or the list could not be fetched. Hiding the
- * field was how a refused request came out as a werkbon that simply had no
- * Locatie row, with nothing to tell anyone that one was missing.
- */
-const showLocationPicker = computed(() =>
-    locationOptions.value.length > 0 || !!form.location_id || !!locationMessage.value
-);
 
 const selectedLocation = computed(() => {
     if (!form.location_id) return null;

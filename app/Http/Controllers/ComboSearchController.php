@@ -176,6 +176,12 @@ class ComboSearchController extends Controller
         return response()->json($results);
     }
 
+    /**
+     * The whole list goes out at once and the picker filters it in the browser,
+     * so everything you may search a location by has to travel with it. The
+     * name carries only the title and the city; without `search` an address or
+     * a location code could not be found, which is what the manual promises.
+     */
     public function locationsForCustomer(LocationSearchRequest $request, Customer $customer): JsonResponse
     {
         $term = trim((string) $request->query('q', ''));
@@ -183,13 +189,19 @@ class ComboSearchController extends Controller
         $results = $customer->locations()
             ->when($term !== '', fn ($query) => $query->matchesText(SearchTerm::like($term)))
             ->orderBy('title')
-            ->get(['id', 'title', 'address', 'postal_code', 'city'])
+            ->get(['id', 'title', 'location_code', 'address', 'postal_code', 'city', 'country'])
             ->map(fn ($l) => [
                 'id' => $l->id,
                 'name' => $l->city ? "{$l->title} – {$l->city}" : $l->title,
                 'address' => $l->address,
                 'postal_code' => $l->postal_code,
                 'city' => $l->city,
+                'search' => implode(' ', array_filter([
+                    $l->location_code,
+                    $l->address,
+                    $l->postal_code,
+                    $l->country,
+                ])),
             ]);
 
         return response()->json($results);
