@@ -21,7 +21,7 @@
                 :class="['flex-grow p-2 border rounded-l-md', error ? 'border-red-500' : 'border-gray-300']"
                 rows="8"></textarea>
             <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
-                :initialId="local" :hasError="Boolean(error)" :errorMessage="error"
+                :initialId="local" :hasError="Boolean(error)" :errorMessage="error" :emptyMessage="emptyMessage"
                 :hasExternalSearching="hasExternalSearching" :searching="searching" @change="$emit('change', $event)"
                 @update:modelValue="onComboBoxSelect" class="flex-grow min-w-0" />
             <button v-if="canClear" type="button" @click.stop="clear" v-tooltip="clearTooltip"
@@ -80,6 +80,8 @@ const props = defineProps({
     error: { type: String, default: '' },
     // Combobox-only:
     options: { type: Array, default: () => [] },
+    /** Passed straight to the ComboBox: what it says when it has nothing to offer. */
+    emptyMessage: { type: String, default: '' },
     multiple: { type: Boolean, default: false },
     decoration: { type: Boolean, default: true },
     /**

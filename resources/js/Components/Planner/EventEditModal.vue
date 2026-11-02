@@ -190,7 +190,8 @@
                                     type="text" class="flex-1 min-w-0" :placeholder="locationPlaceholder" />
                                 <ComboBox v-else v-model="selectedLocationId" :options="locationOptions"
                                     :initial-id="selectedLocationId" class="flex-1 min-w-0"
-                                    placeholder="Kies een locatie" @update:model-value="onLocationPicked" />
+                                    :empty-message="locationMessage" placeholder="Kies een locatie"
+                                    @update:model-value="onLocationPicked" />
 
                                 <ExclamationTriangleIcon v-if="hasDeviatingLocation"
                                     class="shrink-0 size-5 text-amber-500"
@@ -599,7 +600,7 @@ function customerName(id) {
  * stays the source of truth. The picker is only offered when the selected
  * customer actually has locations.
  */
-const { locations: locationOptions, load: loadCustomerLocations } = useCustomerLocations()
+const { locations: locationOptions, load: loadCustomerLocations, message: locationMessage } = useCustomerLocations()
 const hasLocations = computed(() => locationOptions.value.length > 0)
 const locationMode = ref(props.initial.location_id ? 'picker' : 'freeform')
 const selectedLocationId = ref(props.initial.location_id || null)

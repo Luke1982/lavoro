@@ -24,7 +24,7 @@
                 aria-hidden="true" />
 
             <Teleport to="body">
-                <div v-if="open && (filteredOptions.length > 0 || showEmptyState)" ref="floatingRef"
+                <div v-if="open && (filteredOptions.length > 0 || listMessage)" ref="floatingRef"
                     data-combobox-dropdown :style="dropdownStyle">
                     <ComboboxOptions v-if="filteredOptions.length > 0"
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
@@ -53,7 +53,7 @@
                     </ComboboxOptions>
                     <div v-else
                         class="rounded-md bg-white dark:bg-slate-900 py-3 px-3 text-sm text-gray-500 dark:text-slate-400 shadow-lg ring-1 ring-black/5 dark:ring-slate-500 sm:text-sm">
-                        Geen resultaten gevonden
+                        {{ listMessage }}
                     </div>
                 </div>
             </Teleport>
@@ -106,6 +106,17 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: 'Type om te zoeken...',
+    },
+    /**
+     * What the open box says when it has no options to offer at all. The reason
+     * belongs to whoever fetched the list -- nobody chose a customer yet, the
+     * list came back empty, the request was refused -- and only they can tell
+     * those apart, so the sentence comes from there. Left empty, a box with
+     * nothing in it stays shut, which is how every picker behaved before.
+     */
+    emptyMessage: {
+        type: String,
+        default: '',
     },
     emitValue: {
         type: Boolean,
@@ -234,9 +245,29 @@ watch(() => props.modelValue, (newVal) => {
 })
 
 const showSearchHint = computed(() => props.hasExternalSearching && props.options.length === 0)
-const showEmptyState = computed(() =>
-    props.hasExternalSearching && query.value !== '' && !internalSearching.value && filteredOptions.value.length === 0
-)
+/**
+ * The sentence in the box when there is nothing to pick. Without it the panel
+ * simply did not render: you typed, the list filtered down to nothing, and the
+ * box closed as if the field were broken. Typing something a stored title does
+ * not literally contain is enough to land here -- one of their locations is
+ * called 'Rustenburg 24  - Wageningen', with two spaces, and typing it the way
+ * you would write it matches nothing at all.
+ */
+const listMessage = computed(() => {
+    if (filteredOptions.value.length > 0) return ''
+
+    /** A search that is still running speaks for itself through the spinner. */
+    if (internalSearching.value) return ''
+
+    if (props.options.length === 0 && query.value === '') return props.emptyMessage
+
+    /** An externally searched box waits for a term before it has anything to say. */
+    if (props.hasExternalSearching && query.value === '') return ''
+
+    return query.value === ''
+        ? props.emptyMessage
+        : `Geen resultaten voor ‘${query.value}’`
+})
 
 const effectivePlaceholder = computed(() => {
     if (showSearchHint.value && props.placeholder.startsWith('Selecteer ')) {
@@ -247,13 +278,41 @@ const effectivePlaceholder = computed(() => {
 })
 
 const query = ref('')
-const filteredOptions = computed(() =>
-    query.value === '' || props.disableInternalFilter
-        ? props.options
-        : props.options.filter((option) =>
-            `${option.name} ${option.search ?? ''}`.toLowerCase().includes(query.value.toLowerCase())
-        )
-)
+
+/**
+ * Both sides of the comparison are flattened to letters, digits and single
+ * spaces before they are matched: accents off, every dash, comma, slash and run
+ * of spaces reduced to one space.
+ *
+ * What people type is what they would write, and what is stored is what someone
+ * once typed. A location called 'Rustenburg 24  - Wageningen' -- two spaces, a
+ * hyphen -- could not be found by typing 'Rustenburg 24 - Wageningen', and the
+ * box then closed without a word, which reads as a location you are not allowed
+ * to pick. Matching on the letters only costs nothing and ends that whole class
+ * of complaint.
+ */
+const forMatching = (text) => String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const filteredOptions = computed(() => {
+    if (query.value === '' || props.disableInternalFilter) {
+        return props.options
+    }
+
+    const term = forMatching(query.value)
+
+    if (term === '') {
+        return props.options
+    }
+
+    return props.options.filter(
+        (option) => forMatching(`${option.name} ${option.search ?? ''}`).includes(term)
+    )
+})
 
 // display logic
 const isFocused = ref(false)

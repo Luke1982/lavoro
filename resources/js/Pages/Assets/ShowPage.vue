@@ -85,6 +85,7 @@
                         </EditableTextField>
                         <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
                             :readonly="!canUpdate" label="Locatie" indicator="link" :error="form.errors.location_id"
+                            :emptyMessage="locationMessage"
                             @revert="form.clearErrors('location_id')">
                             <template #display>
                                 <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"
@@ -541,7 +542,7 @@ const form = useForm({
 /** A child machine is owned through its parent, so its customer is not editable here. */
 const isChildAsset = computed(() => Boolean(props.asset.parent_asset_id))
 
-const { locations: locationOptions, load: loadLocations } = useCustomerLocations();
+const { locations: locationOptions, load: loadLocations, message: locationMessage } = useCustomerLocations();
 
 onMounted(() => loadLocations(form.customer_id));
 

@@ -9,7 +9,8 @@
                     <FieldError :message="form.errors.customer_id" />
                 </Field>
                 <Field v-if="form.customer_id" label="Locatie">
-                    <ComboBox v-model="form.location_id" :options="locations" placeholder="Optioneel" />
+                    <ComboBox v-model="form.location_id" :options="locations" :empty-message="locationMessage"
+                        placeholder="Optioneel" />
                     <FieldError :message="form.errors.location_id" />
                 </Field>
             </template>
@@ -125,6 +126,7 @@ import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue'
 import Field from '@/Components/UI/DrawerField.vue'
 import FieldError from '@/Components/UI/DrawerFieldError.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import { useCustomerLocations } from '@/Composables/useCustomerLocations'
 import { mapAssetForSelect } from '@/Utilities/Utilities'
 
 /**
@@ -180,7 +182,12 @@ const loadAssets = async () => {
 
 watch(selectedAsset, (asset) => { form.asset_id = asset?.id ?? null })
 
-const locations = ref([])
+/**
+ * Via de composable en niet met een eigen fetch: die haalde de lijst zonder
+ * vangnet op, dus een geweigerd verzoek eindigde als een leeg keuzelijstje
+ * zonder uitleg. De composable weet waarom de lijst leeg is en zegt het.
+ */
+const { locations, load: loadLocations, message: locationMessage } = useCustomerLocations()
 const users = ref([])
 const eventTypes = ref([])
 const saving = ref(false)
@@ -214,7 +221,7 @@ watch(() => [props.modelValue, props.action?.id], async ([isOpen, id]) => {
     form.clearErrors()
     selectedAsset.value = null
     assets.value = []
-    locations.value = []
+    loadLocations(null)
 
     if (id === 'nieuwe-werkbon') customers.value = (await axios.get('/combo/customers')).data
     if (id === 'nieuwe-storing') assets.value = []
@@ -252,10 +259,7 @@ watch(() => form.customer_id, async (customer_id) => {
     }
 
     form.location_id = null
-    locations.value = []
-    if (!customer_id) return
-    const { data } = await axios.get('/combo/customers/' + customer_id + '/locations')
-    locations.value = data
+    await loadLocations(customer_id)
 })
 
 const VISITABLE = {

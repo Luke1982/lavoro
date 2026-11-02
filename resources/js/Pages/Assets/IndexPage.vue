@@ -71,7 +71,7 @@
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatie</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="newAssetLocationOptions" v-model="newAssetForm.location_id"
-                        placeholder="Geen locatie" />
+                        :empty-message="newAssetLocationMessage" placeholder="Geen locatie" />
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
@@ -340,7 +340,7 @@ const newAssetForm = useForm({
     child_assets: [],
 })
 
-const { locations: newAssetLocationOptions, load: loadNewAssetLocations } = useCustomerLocations()
+const { locations: newAssetLocationOptions, load: loadNewAssetLocations, message: newAssetLocationMessage } = useCustomerLocations()
 
 watch(() => newAssetForm.customer_id, (customerId) => {
     newAssetForm.location_id = null
