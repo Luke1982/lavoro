@@ -8,7 +8,6 @@ use App\Http\Middleware\InitializeTenancyBySession;
 use App\Http\Middleware\ResolveAccessToken;
 use App\Http\Middleware\UseLandlordGuard;
 use App\Support\DatabaseErrorMessage;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Session\Middleware\AuthenticatesSessions;
@@ -94,18 +93,6 @@ return Application::configure(basePath: dirname(__DIR__))
             return back()->withInput()->with('error', $e->getMessage());
         });
 
-        $exceptions->render(function (AuthorizationException $e, Request $request) {
-            if ($request->expectsJson()) {
-                return null;
-            }
-
-            $message = $e->getMessage() && $e->getMessage() !== 'This action is unauthorized.'
-                ? $e->getMessage()
-                : 'U heeft geen toestemming om deze actie uit te voeren.';
-
-            return redirect()->back()->with('error', $message);
-        });
-
         /**
          * Safety net for constraint violations: a duplicate unique value, a
          * foreign key that no longer resolves, a NOT NULL column left empty.
@@ -155,11 +142,25 @@ return Application::configure(basePath: dirname(__DIR__))
                     'status' => $response->getStatusCode(),
                     'methode' => $request->method(),
                     'pad' => $request->path(),
+                    'reden' => $exception->getMessage(),
                 ]);
             }
 
+            /**
+             * A refusal that was given a reason keeps it. Laravel turns an
+             * AuthorizationException into an AccessDeniedHttpException before
+             * any render callback is consulted, so the reason has to be picked
+             * up here: a callback typed on AuthorizationException itself is
+             * never called at all.
+             */
             if ($response->getStatusCode() === 403 && !$request->expectsJson()) {
-                return redirect()->back()->with('error', 'U heeft geen toestemming om deze actie uit te voeren.');
+                $reason = $exception->getMessage();
+                $has_reason = $reason !== '' && $reason !== 'This action is unauthorized.';
+
+                return redirect()->back()->with(
+                    'error',
+                    $has_reason ? $reason : 'U heeft geen toestemming om deze actie uit te voeren.'
+                );
             }
 
             if ($response->getStatusCode() === 419) {

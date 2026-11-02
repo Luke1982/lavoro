@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Asset;
 use App\Rules\UniqueSerialForProduct;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,13 +14,9 @@ class ServiceJobAssetSerialUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $asset = $this->route('servicejob')->asset;
+        $asset = $this->asset();
 
-        if ($asset === null || !$asset->product?->requiresSerial()) {
-            return false;
-        }
-
-        return $this->user()->can('setSerial', $asset);
+        return $asset !== null && $this->user()->can('setSerial', $asset);
     }
 
     /**
@@ -28,10 +25,8 @@ class ServiceJobAssetSerialUpdateRequest extends FormRequest
      */
     protected function failedAuthorization(): void
     {
-        $asset = $this->route('servicejob')->asset;
-
         throw new AuthorizationException(
-            $asset?->product?->requiresSerial()
+            $this->asset()?->product?->requiresSerial()
                 ? 'Je mag het serienummer van deze machine niet invullen.'
                 : 'Deze machine heeft geen serienummer.'
         );
@@ -43,7 +38,7 @@ class ServiceJobAssetSerialUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $asset = $this->route('servicejob')->asset;
+        $asset = $this->asset();
 
         return [
             'serial_number' => [
@@ -60,5 +55,11 @@ class ServiceJobAssetSerialUpdateRequest extends FormRequest
         return [
             'serial_number.required' => 'Serienummer is verplicht.',
         ];
+    }
+
+    /** The machine under inspection: the only one this route will ever write to. */
+    private function asset(): ?Asset
+    {
+        return $this->route('servicejob')->asset;
     }
 }

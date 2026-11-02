@@ -116,7 +116,6 @@ class ServiceJobController extends Controller
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
             'can_set_serial' => $servicejob->asset !== null
-                && (bool) $servicejob->asset->product?->requiresSerial()
                 && Auth::user()->can('setSerial', $servicejob->asset),
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
             'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),

@@ -219,8 +219,8 @@ class User extends Authenticatable
     }
 
     /**
-     * One permission from the list is enough. An empty list grants nothing:
-     * whoever is asked for no permission at all, was asked the wrong question.
+     * One permission from the list is enough. An empty list grants nothing,
+     * where hasEveryPermission lets everyone through.
      *
      * @param  array<int, string>  $names
      */

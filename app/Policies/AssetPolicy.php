@@ -57,9 +57,17 @@ class AssetPolicy
      * edit machines outright passes, and a monteur who may touch nothing else on
      * the record can still read the plate of a machine that sits on one of their
      * own open werkbonnen.
+     *
+     * A bundle, and anything of a product that is not registreerbaar, has no
+     * serial to fill in -- so nobody may, and every screen asks this one method
+     * rather than repeating the two halves of that rule.
      */
     public function setSerial(User $user, Asset $asset): bool
     {
+        if (!$asset->product?->requiresSerial()) {
+            return false;
+        }
+
         if ($user->isAdmin() || $user->hasPermission('asset.update')) {
             return true;
         }

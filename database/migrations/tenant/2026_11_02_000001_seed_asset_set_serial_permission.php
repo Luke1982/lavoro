@@ -7,7 +7,7 @@ return new class extends Migration
 {
     private array $permission = [
         'name' => 'asset.set_serial.relevant.serviceorder',
-        'label' => 'Serienummer invullen op machines van open werkbonnen',
+        'label' => 'Serienummer invullen op machines van eigen open werkbonnen',
     ];
 
     public function up(): void

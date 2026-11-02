@@ -53,11 +53,10 @@
             </div>
             <div class="sm:px-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Serienummer</div>
-                <!-- Het plaatje zit hier voor je neus, dus vul je het hier in: dezelfde
-                     scanknoppen als op de machine zelf, voor wie de machine mag bijwerken. -->
-                <div v-if="can_set_serial" class="flex items-center gap-2">
-                    <EditableTextField v-model="serialForm.serial_number" class="flex-1 min-w-0" :bordered="false"
-                        indicator="link" placeholder="Nog geen serienummer"
+                <div class="flex items-center gap-2">
+                    <EditableTextField v-model="serialForm.serial_number" :readonly="!can_set_serial"
+                        class="flex-1 min-w-0" :bordered="false"
+                        :indicator="servicejob.asset.serial_number ? 'link' : ''"
                         :error="serialForm.errors.serial_number" @update="saveSerial"
                         @revert="serialForm.clearErrors('serial_number')">
                         <template #display>
@@ -66,16 +65,12 @@
                                 {{ servicejob.asset.serial_number }}
                             </Link>
                             <span v-else class="text-sm font-normal text-gray-400 dark:text-slate-500">
-                                Nog geen serienummer
+                                {{ noSerialText }}
                             </span>
                         </template>
                     </EditableTextField>
-                    <ScanSerialButton @picked="saveSerial" />
+                    <ScanSerialButton v-if="can_set_serial" @picked="saveSerial" />
                 </div>
-                <Link v-else :href="`/assets/${servicejob.asset.id}`"
-                    class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
-                    {{ servicejob.asset.serial_number }}
-                </Link>
             </div>
             <div class="sm:px-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Werkbon</div>
@@ -357,10 +352,29 @@ const form = useForm({
     description: servicejob.description || ''
 });
 
-const serialForm = useForm({ serial_number: servicejob.asset?.serial_number ?? '' });
+const serialForm = useForm({ serial_number: servicejob.asset.serial_number ?? '' });
 
+/** The machine page's own wording: a bundle, a product that never has one, or not filled in yet. */
+const noSerialText = computed(() => {
+    if (servicejob.asset.product.bundle) {
+        return 'Bundel';
+    }
+
+    return servicejob.asset.product.registable ? 'Nog geen serienummer' : 'Geen serienummer';
+});
+
+/**
+ * Leaving the field saves it whether anything changed or not, and the keuring is
+ * an expensive page to re-render, so an unchanged serial goes nowhere.
+ */
 const saveSerial = (value) => {
-    serialForm.serial_number = value;
+    const serial = (value ?? '').trim();
+    serialForm.serial_number = serial;
+
+    if (serial === (servicejob.asset.serial_number ?? '')) {
+        return;
+    }
+
     serialForm.patch(`/servicejobs/${servicejob.id}/serial`, { preserveScroll: true });
 };
 
