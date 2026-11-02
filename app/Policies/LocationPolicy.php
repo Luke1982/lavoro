@@ -33,14 +33,25 @@ class LocationPolicy
     }
 
     /**
-     * Listing a customer's locations for a picker. Locations are customer
-     * sub-data, so this follows the customer read permission (or location.read
-     * for the Locaties-management flows). The app has no per-record ACL, so this
-     * is a domain-level gate, not a per-customer one.
+     * Listing a customer's locations for a picker. The picker fills a field on
+     * another record -- a werkbon, a machine, an appointment -- so whoever may
+     * fill that field may see what there is to choose from. On the Locaties
+     * rights alone, a monteur was allowed to set a machine's location while the
+     * list behind it stayed closed: an empty box, and nothing to say why. The
+     * app has no per-record ACL, so this is a domain-level gate, not a
+     * per-customer one.
      */
     public function pickForCustomer(User $user): bool
     {
-        return $user->hasPermission('customer.read')
-            || $user->hasPermission('location.read');
+        return $user->hasAnyPermission([
+            'customer.read',
+            'location.read',
+            'serviceorder.create',
+            'serviceorder.update',
+            'asset.create',
+            'asset.update',
+            'event.create',
+            'event.update',
+        ]);
     }
 }

@@ -38,6 +38,24 @@ class LocationAccessTest extends TestCase
             ->assertJsonCount(1);
     }
 
+    /**
+     * The field the picker fills carries its own right, and that is enough. A
+     * monteur has neither of the two above and was left with an empty box on a
+     * machine they were perfectly allowed to move.
+     */
+    public function test_the_picker_follows_the_right_of_the_field_it_fills(): void
+    {
+        $customer = Customer::factory()->create();
+        Location::factory()->create(['customer_id' => $customer->id]);
+
+        foreach (['asset.update', 'serviceorder.update', 'event.create'] as $permission) {
+            $this->actingAs($this->userWith($permission))
+                ->getJson("/combo/customers/{$customer->id}/locations")
+                ->assertOk()
+                ->assertJsonCount(1);
+        }
+    }
+
     public function test_the_picker_is_denied_without_a_relevant_permission(): void
     {
         $customer = Customer::factory()->create();

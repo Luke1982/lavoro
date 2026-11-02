@@ -218,6 +218,23 @@ class User extends Authenticatable
         return true;
     }
 
+    /**
+     * One permission from the list is enough. An empty list grants nothing:
+     * whoever is asked for no permission at all, was asked the wrong question.
+     *
+     * @param  array<int, string>  $names
+     */
+    public function hasAnyPermission(array $names): bool
+    {
+        foreach ($names as $name) {
+            if ($this->hasPermission($name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function scopeCanLeadProjects($query)
     {
         return $query->whereHas('roles', function ($role_query) {
