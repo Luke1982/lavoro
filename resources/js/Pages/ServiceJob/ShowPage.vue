@@ -53,7 +53,26 @@
             </div>
             <div class="sm:px-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Serienummer</div>
-                <Link :href="`/assets/${servicejob.asset.id}`"
+                <!-- Het plaatje zit hier voor je neus, dus vul je het hier in: dezelfde
+                     scanknoppen als op de machine zelf, voor wie de machine mag bijwerken. -->
+                <div v-if="can_set_serial" class="flex items-center gap-2">
+                    <EditableTextField v-model="serialForm.serial_number" class="flex-1 min-w-0" :bordered="false"
+                        indicator="link" placeholder="Nog geen serienummer"
+                        :error="serialForm.errors.serial_number" @update="saveSerial"
+                        @revert="serialForm.clearErrors('serial_number')">
+                        <template #display>
+                            <Link v-if="servicejob.asset.serial_number" :href="`/assets/${servicejob.asset.id}`"
+                                class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
+                                {{ servicejob.asset.serial_number }}
+                            </Link>
+                            <span v-else class="text-sm font-normal text-gray-400 dark:text-slate-500">
+                                Nog geen serienummer
+                            </span>
+                        </template>
+                    </EditableTextField>
+                    <ScanSerialButton @picked="saveSerial" />
+                </div>
+                <Link v-else :href="`/assets/${servicejob.asset.id}`"
                     class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
                     {{ servicejob.asset.serial_number }}
                 </Link>
@@ -274,6 +293,8 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import ServiceCheckInstanceComponent from '@/Components/ServiceCheckInstanceComponent.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
+import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { nlDate, hasPermission } from '@/Utilities/Utilities';
 import { openInNewTab } from '@/Utilities/download.js';
@@ -286,7 +307,9 @@ import {
     DocumentArrowDownIcon, EnvelopeIcon,
 } from '@heroicons/vue/24/outline';
 
-const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, parent_job, child_jobs } = defineProps({
+const {
+    servicejob, possibleOutcomes, missing_checks_count, missing_checks, parent_job, child_jobs, can_set_serial,
+} = defineProps({
     servicejob: {
         type: Object,
         required: true
@@ -315,6 +338,10 @@ const { servicejob, possibleOutcomes, missing_checks_count, missing_checks, pare
         type: Array,
         default: () => []
     },
+    can_set_serial: {
+        type: Boolean,
+        default: false
+    },
 });
 
 const updating = ref(false);
@@ -329,6 +356,13 @@ const form = useForm({
     completed_on: servicejob.completed_on || today(),
     description: servicejob.description || ''
 });
+
+const serialForm = useForm({ serial_number: servicejob.asset?.serial_number ?? '' });
+
+const saveSerial = (value) => {
+    serialForm.serial_number = value;
+    serialForm.patch(`/servicejobs/${servicejob.id}/serial`, { preserveScroll: true });
+};
 
 const currentOutcomeId = ref(possibleOutcomes.find(outcome => outcome.name === servicejob.outcome).id);
 watch(currentOutcomeId, () => {

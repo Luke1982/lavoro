@@ -52,6 +52,23 @@ class AssetPolicy
     }
 
     /**
+     * Filling in the serial of the machine in front of you, from the job you are
+     * doing on it. Narrower than the machine's own form on purpose: whoever may
+     * edit machines outright passes, and a monteur who may touch nothing else on
+     * the record can still read the plate of a machine that sits on one of their
+     * own open werkbonnen.
+     */
+    public function setSerial(User $user, Asset $asset): bool
+    {
+        if ($user->isAdmin() || $user->hasPermission('asset.update')) {
+            return true;
+        }
+
+        return $user->hasPermission('asset.set_serial.relevant.serviceorder')
+            && in_array($asset->id, $user->relevantAssetIds());
+    }
+
+    /**
      * Hanging a machine under another one, and cutting it loose again. These kept the
      * assetrelation.* permission names when asset_relations folded into assets, because
      * the names are already granted to roles in the database.

@@ -75,7 +75,7 @@ Op de klantpagina staan tabbladen: Overzicht (contactgegevens), Machines, Werkbo
 
 ## Machines
 
-Een machine is een exemplaar van een product uit de catalogus, met een serienummer, een klant en meestal een locatie. Verder heeft hij een status (actief of niet actief), een datum ingebruikname en een **volgende keuringsdatum**.
+Een machine is een exemplaar van een product uit de catalogus, met een serienummer, een klant en meestal een locatie. Verder heeft hij een status (actief of niet actief), een datum ingebruikname en een **volgende keuringsdatum**. Naast het serienummer staan twee scanknoppen: de eerste maakt een foto van het typeplaatje, de tweede gebruikt een foto die je al hebt. Lavoro leest de tekst van die foto en biedt de nummers die het erin herkent aan om op te tikken — zelf typen mag natuurlijk ook.
 
 Niet elke machine heeft een serienummer. Een bundel is een omhulsel en heeft er nooit een, en een product dat niet **registreerbaar** is wordt per stuk geteld in plaats van stuk voor stuk vastgelegd — denk aan zonnepanelen. Machines van zulke producten worden gewoon aangemaakt, alleen zonder nummer; overal waar anders het serienummer staat, lees je "Bundel" of "Geen serienummer".
 
@@ -151,6 +151,8 @@ Taken kunnen aan planrollen gebonden zijn, zodat monteurs alleen de taken van hu
 ## Keuringen
 
 Een keuring is de inspectie van één machine op een werkbon. Voeg je op de werkbon een machine toe, dan ontstaat de keuring en worden automatisch alle **keurpunten** klaargezet die bij het producttype van die machine horen. Onderdelen van de machine krijgen elk hun eigen deelkeuring (een gecombineerde keuring met moeder- en dochterkeuringen).
+
+**Het serienummer** staat bovenaan de keuring en is daar ook in te vullen, met dezelfde twee scanknoppen als op de machine zelf. Dat scheelt een omweg als de machine zonder nummer of met het verkeerde nummer blijkt te zijn ingevoerd: het plaatje zit op dat moment voor je neus. Je ziet het veld als je machines mag bijwerken, of als je het recht **Serienummer invullen op machines van open werkbonnen** hebt — dat laatste geeft een monteur alleen het serienummer, en alleen van machines op zijn eigen open werkbonnen. Een bundel of een niet-registreerbaar product heeft geen serienummer en krijgt het veld dus niet.
 
 Keurpunten zijn er in soorten: één keuze uit meerdere, meerdere keuzes, ja/nee, getal en tekst; per punt kunnen ook een opmerking en foto's worden vastgelegd. Keurpunten en hun groepen (de indeling op het rapport) beheer je in de catalogus onder Keurpunten.
 

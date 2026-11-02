@@ -6,6 +6,7 @@
  */
 return [
     'asset.read.relevant.serviceorder',
+    'asset.set_serial.relevant.serviceorder',
     'dashboard.see_events',
     'document.see',
     'event.execute',

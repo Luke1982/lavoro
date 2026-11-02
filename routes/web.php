@@ -407,6 +407,8 @@ Route::group(
             ->name('servicejobs.emailPdf');
         Route::post('servicejobs/{servicejob}/clearcompletedon', [ServiceJobController::class, 'clearCompletedOn'])
             ->name('servicejobs.clearCompletedOn');
+        Route::patch('servicejobs/{servicejob}/serial', [ServiceJobController::class, 'updateAssetSerial'])
+            ->name('servicejobs.updateAssetSerial');
         Route::post(
             'servicejobs/{servicejob}/add-missing-instances',
             [ServiceJobController::class, 'addMissingInstances']

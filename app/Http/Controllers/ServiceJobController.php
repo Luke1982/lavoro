@@ -8,6 +8,7 @@ use App\Domain\Signals\Signals;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
+use App\Http\Requests\ServiceJobAssetSerialUpdateRequest;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
 use App\Mail\ServiceJobPdfMail;
@@ -114,6 +115,9 @@ class ServiceJobController extends Controller
 
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
+            'can_set_serial' => $servicejob->asset !== null
+                && (bool) $servicejob->asset->product?->requiresSerial()
+                && Auth::user()->can('setSerial', $servicejob->asset),
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
             'possibleOutcomes' => ServiceJobOutcomes::comboBoxArray(),
             'missing_checks' => $missing,
@@ -283,6 +287,17 @@ class ServiceJobController extends Controller
             : '';
 
         return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt. ' . $message);
+    }
+
+    /**
+     * The serial of the machine being inspected, filled in from the keuring
+     * itself -- that is where the plate is in front of you.
+     */
+    public function updateAssetSerial(ServiceJobAssetSerialUpdateRequest $request, ServiceJob $servicejob)
+    {
+        $servicejob->asset->update(['serial_number' => $request->validated()['serial_number']]);
+
+        return redirect()->back()->with('success', 'Serienummer opgeslagen.');
     }
 
     public function clearCompletedOn(ServiceJob $servicejob)
