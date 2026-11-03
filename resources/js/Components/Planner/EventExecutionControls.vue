@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isMine || isOthersRowCancelled || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
+    <div v-if="isMine || showsCancellation || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
         <template v-if="isMine">
             <template v-if="status === 'Afgerond'">
                 <Check class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
@@ -23,7 +23,7 @@
             </template>
         </template>
 
-        <Ban v-if="isOthersRowCancelled" class="size-4 text-gray-400"
+        <Ban v-if="showsCancellation" class="size-4 text-gray-400"
             v-tooltip="`Geannuleerd door ${rowExecution.name}`" />
 
         <button v-if="canRelease" type="button" v-tooltip="releaseCopy.tooltip"
@@ -84,17 +84,14 @@ const editTravelTime = ref(0)
 const targetUserId = ref(null)
 const targetUserName = ref('')
 
-const myExecution = computed(() =>
-    props.event.executing_users?.find(u => u.id === authUserId.value) ?? null
-)
-const isMine = computed(() => !!myExecution.value && hasPermission('event.execute'))
-const status = computed(() => myExecution.value?.completion_status ?? 'Gepland')
 const rowExecution = computed(() =>
     props.event.executing_users?.find(u => u.id === rowUserId.value) ?? null
 )
 const isOwnRow = computed(() => rowUserId.value === authUserId.value)
+const isMine = computed(() => isOwnRow.value && !!rowExecution.value && hasPermission('event.execute'))
+const status = computed(() => rowExecution.value?.completion_status ?? 'Gepland')
 const isRowCancelled = computed(() => isCancelledForUser(props.event, rowUserId.value))
-const isOthersRowCancelled = computed(() => isRowCancelled.value && !isOwnRow.value)
+const showsCancellation = computed(() => isRowCancelled.value && !isMine.value)
 const canRelease = computed(() => {
     if (!hasPermission('event.release_times')) return false
     if (isRowCancelled.value) return true
