@@ -10,7 +10,10 @@
         <div class="p-3">
             <!-- Title + avatars at top right -->
             <div class="flex items-start gap-2">
-                <div class="font-semibold text-sm leading-tight flex-1 min-w-0">{{ event.name || event.title }}</div>
+                <div class="font-semibold text-sm leading-tight flex-1 min-w-0"
+                    :class="isCancelled ? 'line-through text-gray-500 dark:text-slate-400' : ''">
+                    {{ event.name || event.title }}
+                </div>
                 <div class="flex items-center flex-shrink-0">
                     <span v-if="selectedUserId === null && canSeeAll"
                         class="text-xs text-gray-500 dark:text-slate-400 truncate max-w-[7rem]">
@@ -134,7 +137,7 @@ import { router } from '@inertiajs/vue3'
 import { BuildingOfficeIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import { TriangleAlert, CircleCheck, MessageCircleReply, Car } from '@lucide/vue'
 import { hasPermission, initials, formatWbNumber } from '@/Utilities/Utilities'
-import { isClosedForUser } from '@/Utilities/plannerOverlaps'
+import { isClosedForUser, isCancelledForUser } from '@/Utilities/plannerOverlaps'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
 
 const props = defineProps({
@@ -158,6 +161,7 @@ const MAX_AVATARS = 3
 const roleById = computed(() => Object.fromEntries(props.userRoles.map(r => [r.id, r])))
 
 const isClosed = computed(() => isClosedForUser(props.event, props.relevantUserId))
+const isCancelled = computed(() => isCancelledForUser(props.event, props.relevantUserId))
 
 const cardColor = computed(() => (isClosed.value ? '#6b7280' : (props.event.color || '#3b82f6')))
 

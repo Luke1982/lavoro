@@ -36,7 +36,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('events/{event}/execution', [EventExecutionController::class, 'show']);
     Route::post('events/{event}/execution/transition', [EventExecutionController::class, 'transition']);
     Route::patch('events/{event}/execution', [EventExecutionController::class, 'update']);
-    Route::post('events/{event}/execution/release', [EventExecutionController::class, 'release']);
+    Route::post('events/{event}/users/{target_user}/execution/release', [EventExecutionController::class, 'release']);
     Route::get('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'showFor']);
     Route::patch('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'updateFor']);
 

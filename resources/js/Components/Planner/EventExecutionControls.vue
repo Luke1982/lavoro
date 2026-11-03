@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isMine || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
+    <div v-if="isMine || isOthersRowCancelled || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
         <template v-if="isMine">
             <template v-if="status === 'Afgerond'">
                 <Check class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
@@ -23,7 +23,10 @@
             </template>
         </template>
 
-        <button v-if="canRelease" type="button" v-tooltip="'Geregistreerde tijden vrijgeven om opnieuw in te vullen'"
+        <Ban v-if="isOthersRowCancelled" class="size-4 text-gray-400"
+            v-tooltip="`Geannuleerd door ${rowExecution.name}`" />
+
+        <button v-if="canRelease" type="button" v-tooltip="releaseCopy.tooltip"
             class="p-1 rounded text-amber-600 hover:bg-amber-50 disabled:opacity-40"
             :disabled="busy" @click="release">
             <RotateCcw class="size-4" />
@@ -59,6 +62,7 @@ import ExecutionModal from '@/Components/Planner/ExecutionModal.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { Clock, Check, X, Ban, RotateCcw, UserPen } from '@lucide/vue'
 import { nlTime, formatLocalDateAsISO, localToUtcDatetime, hasPermission } from '@/Utilities/Utilities'
+import { isCancelledForUser, isClosedForUser } from '@/Utilities/plannerOverlaps'
 
 const props = defineProps({
     event: { type: Object, required: true },
@@ -85,17 +89,31 @@ const myExecution = computed(() =>
 )
 const isMine = computed(() => !!myExecution.value && hasPermission('event.execute'))
 const status = computed(() => myExecution.value?.completion_status ?? 'Gepland')
+const rowExecution = computed(() =>
+    props.event.executing_users?.find(u => u.id === rowUserId.value) ?? null
+)
+const isOwnRow = computed(() => rowUserId.value === authUserId.value)
+const isRowCancelled = computed(() => isCancelledForUser(props.event, rowUserId.value))
+const isOthersRowCancelled = computed(() => isRowCancelled.value && !isOwnRow.value)
 const canRelease = computed(() => {
     if (!hasPermission('event.release_times')) return false
-    const execution = (props.event.executing_users || []).find(u => u.id === rowUserId.value)
-    return !!execution && execution.completion_status === 'Afgerond' && !!execution.actual_start && !!execution.actual_end
+    if (isRowCancelled.value) return true
+    const execution = rowExecution.value
+    return execution?.completion_status === 'Afgerond' && !!execution.actual_start && !!execution.actual_end
 })
+const releaseCopy = computed(() => isRowCancelled.value
+    ? {
+        tooltip: 'Annulering intrekken zodat de tijden alsnog ingevuld kunnen worden',
+        confirmation: `Weet je zeker dat je de annulering van ${rowExecution.value.name} wilt intrekken, zodat de tijden alsnog ingevuld kunnen worden?`,
+    }
+    : {
+        tooltip: 'Geregistreerde tijden vrijgeven om opnieuw in te vullen',
+        confirmation: `Weet je zeker dat je de geregistreerde tijden van ${rowExecution.value.name} wilt vrijgeven, zodat deze opnieuw ingevuld kunnen worden?`,
+    })
 const executeOthersTarget = computed(() => {
-    if (!hasPermission('event.execute_others')) return null
-    if (rowUserId.value === authUserId.value) return null
-    const execution = (props.event.executing_users || []).find(u => u.id === rowUserId.value)
-    if (!execution || execution.completion_status === 'Afgerond' || execution.completion_status === 'Geannuleerd') return null
-    return execution
+    if (!hasPermission('event.execute_others') || isOwnRow.value) return null
+    if (isClosedForUser(props.event, rowUserId.value)) return null
+    return rowExecution.value
 })
 
 async function postTransition(payload) {
@@ -117,11 +135,11 @@ function cancel() {
 
 async function release() {
     if (busy.value) return
-    if (!window.confirm('Weet je zeker dat je de geregistreerde tijden wilt vrijgeven zodat deze opnieuw ingevuld kunnen worden?')) return
+    if (!window.confirm(releaseCopy.value.confirmation)) return
     busy.value = true
     try {
         await axios.get('/sanctum/csrf-cookie')
-        await axios.post(`/api/events/${props.event.id}/execution/release`)
+        await axios.post(`/api/events/${props.event.id}/users/${rowUserId.value}/execution/release`)
         emit('changed')
     } finally {
         busy.value = false

@@ -202,7 +202,13 @@ De planningspagina is een tijdbalk: monteurs als rijen, de tijd van links naar r
 - **Onbeschikbaarheid** (vrije dagen en vaste vrije momenten uit het rooster) ligt als blok over de planning. Plannen over een blok heen kan alleen als de beheerder dat toestaat, en dan met een uitdrukkelijke bevestiging.
 - **Plangroepen** ordenen de monteursrijen: gekleurde groepen die je in de zijbalk aanmaakt, hernoemt, sorteert en van monteurs voorziet; ook of iemand überhaupt **inplanbaar** is stel je daar in.
 
-**Uren en handtekening (uitvoering)**: elke monteur op een afspraak registreert zijn eigen werkelijkheid — starttijd, eindtijd, reistijd en een handtekening. Op de afspraak staan daarvoor knopjes; wie het recht heeft kan ook tijden voor een ander invullen of geregistreerde tijden weer vrijgeven. Monteurs die hun tijden van gisteren nog niet hebben ingevuld krijgen daar 's ochtends automatisch een melding van.
+**Uren en handtekening (uitvoering)**: elke monteur op een afspraak registreert zijn eigen werkelijkheid — starttijd, eindtijd, reistijd en een handtekening. Op de afspraak staan daarvoor knopjes: de klok om tijden en handtekening in te vullen, het kruisje om je eigen deel van de afspraak te annuleren. Wie het recht heeft kan ook tijden voor een ander invullen. Monteurs die hun tijden van gisteren nog niet hebben ingevuld krijgen daar 's ochtends automatisch een melding van.
+
+**Annuleren** geldt alleen voor jou: de afspraak en de andere monteurs erop blijven gewoon staan. In de planner is een geannuleerd deel te herkennen aan de doorgestreepte titel in de rij van die monteur en aan een verbodsteken dat iedereen ziet. Daarna kan niemand meer tijden voor dat deel invullen, ook niet namens jou, totdat de annulering wordt ingetrokken.
+
+**Vrijgeven**: wie het recht heeft om tijden vrij te geven ziet op een afgerond of geannuleerd deel een rond pijltje. Dat geldt alleen voor de monteur in wiens rij het staat: afgeronde tijden worden gewist, een annulering wordt ingetrokken, en daarna kunnen de tijden opnieuw ingevuld worden. Wat de anderen op dezelfde afspraak hebben geregistreerd blijft staan.
+
+Starten, tijden registreren, annuleren en vrijgeven komen allemaal op de tijdlijn van de gekoppelde werkbon. Je ziet daar wie het deed, voor welke monteur, en welke tijden er stonden voordat ze werden vrijgegeven. De assistent kan er ook naar gevraagd worden, per werkbon of per afspraak.
 
 Afspraken kunnen gekopieerd worden naar andere dagen (inclusief werkbonkoppeling en monteurs). Vanaf een afspraak kan een **afspraakbevestiging** naar de klant worden gemaild, en de beheerder kan **standaard e-mails** aan het aanmaken, wijzigen of verwijderen van afspraken hangen (zie Instellingen en beheer).
 
