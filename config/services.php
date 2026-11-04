@@ -42,11 +42,26 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    /**
+     * Our own bookkeeping, where the invoices of the admin panel are booked:
+     * the username and the two security codes of the SOAP connection in
+     * e-Boekhouden. Without them the panel shows nothing of e-Boekhouden.
+     */
+    'eboekhouden' => [
+        'url' => env('EBOEKHOUDEN_URL', 'https://soap.e-boekhouden.nl/soap.asmx'),
+        'username' => env('EBOEKHOUDEN_USERNAME'),
+        'security_code_1' => env('EBOEKHOUDEN_SECURITY_CODE_1'),
+        'security_code_2' => env('EBOEKHOUDEN_SECURITY_CODE_2'),
+        'debtors_account' => env('EBOEKHOUDEN_DEBTORS_ACCOUNT', '1300'),
+        'revenue_account' => env('EBOEKHOUDEN_REVENUE_ACCOUNT', '8000'),
+    ],
+
     'snelstart' => [
-        'client_key'       => env('SNELSTART_CLIENT_KEY'),
+        'client_key' => env('SNELSTART_CLIENT_KEY'),
         'subscription_key' => env('SNELSTART_SUBSCRIPTION_KEY'),
-        'auth_url'         => env('SNELSTART_AUTH_URL'),
-        'api_base'         => env('SNELSTART_API_BASE'),
+        'auth_url' => env('SNELSTART_AUTH_URL'),
+        'api_base' => env('SNELSTART_API_BASE'),
     ],
 
 ];

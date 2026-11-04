@@ -68,6 +68,8 @@ class CollectionController extends Controller
             ->whereNull('collected_at')
             /** A credit note cannot be collected; paying money back is done by hand. */
             ->where('gross_cents', '>', 0)
+            /** Nor an invoice a credit note cancelled: the customer owes nothing for it. */
+            ->whereDoesntHave('creditedBy')
             ->whereHas('tenant', fn ($query) => $query
                 ->where('payment_method', 'direct_debit')
                 ->whereNotNull('iban')

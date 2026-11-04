@@ -67,6 +67,50 @@ class InvoiceCalculationTest extends TestCase
         $this->assertSame('31-10-2026 t/m 29-11-2026', $this->period($tenant, '2026-11-01'));
     }
 
+    /**
+     * The anchor a term switch leaves behind is not a second start date. Once
+     * the subscription starts later, the periods count from that later day.
+     */
+    public function test_the_periods_never_start_before_the_subscription_does(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-11-07',
+            'billing_period_started_on' => '2026-10-07',
+        ]);
+
+        $this->assertSame('07-11-2026 t/m 06-12-2026', $this->period($tenant, '2026-11-04'));
+        $this->assertSame('07-11-2026 t/m 06-12-2026', $this->period($tenant, '2026-11-20'));
+    }
+
+    /** A customer who has not started gets their first invoice on the first day. */
+    public function test_the_next_invoice_of_a_customer_who_has_not_started_is_on_the_start_date(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-11-07']);
+
+        $this->assertSame('2026-11-07', (new Invoicer($tenant))->nextInvoiceOn(CarbonImmutable::parse('2026-11-04'))->toDateString());
+    }
+
+    public function test_the_next_invoice_after_a_paid_period_is_on_the_first_day_of_the_next(): void
+    {
+        $tenant = $this->tenant();
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-20'));
+
+        $this->assertSame('2026-04-15', (new Invoicer($tenant))->nextInvoiceOn(CarbonImmutable::parse('2026-03-20'))->toDateString());
+    }
+
+    public function test_an_invoice_that_is_due_can_be_made_today(): void
+    {
+        $this->assertSame('2026-03-20', (new Invoicer($this->tenant()))->nextInvoiceOn(CarbonImmutable::parse('2026-03-20'))->toDateString());
+    }
+
+    public function test_a_cancelled_subscription_that_has_been_invoiced_has_no_next_invoice(): void
+    {
+        $tenant = $this->tenant(['subscription_ends_on' => '2026-04-14']);
+        (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-03-20'));
+
+        $this->assertNull((new Invoicer($tenant))->nextInvoiceOn(CarbonImmutable::parse('2026-03-20')));
+    }
+
     public function test_a_yearly_period_runs_twelve_months(): void
     {
         $tenant = $this->tenant([

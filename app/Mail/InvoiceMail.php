@@ -22,7 +22,7 @@ class InvoiceMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: ($this->invoice->gross_cents < 0 ? 'Creditfactuur ' : 'Factuur ') . $this->invoice->number
+            subject: ($this->invoice->gross_cents < 0 || $this->invoice->credits_invoice_id ? 'Creditfactuur ' : 'Factuur ') . $this->invoice->number
                 . ' van ' . IssuerSetting::value('name', 'MajorLabel'),
         );
     }

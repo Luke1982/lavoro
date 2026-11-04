@@ -282,6 +282,15 @@ De verrekening van een pakketwijziging kan twee kanten op:
 Een wissel op de eerste dag van een nog niet gefactureerde periode levert dus
 niets op: er is dan nog geen dag op het oude pakket voorbij.
 
+**Wat er vóór de ingangsdatum wordt afgesproken, is de afspraak zelf** en wordt
+nooit verrekend. Schuif je de ingangsdatum op tot voorbij een wijziging, dan
+vervalt de verrekening die die wijziging opleverde bij het opslaan: het waren
+dagen waarop er nog niets liep. De periodes tellen ook nooit vanaf vóór de
+ingangsdatum, ook niet als een termijnwissel eerder een anker achterliet.
+
+Een openstaande verrekening die niet klopt, haal je weg met *verwijderen* naast
+de regel onder Facturatie.
+
 Gaat een klant naar een goedkoper pakket, dan staat er tegoed open. Is dat meer
 dan er op dat moment te factureren valt, dan komt er geen factuur: het tegoed
 blijft staan en gaat van de volgende af. Het scherm zegt dat er dan ook bij.
@@ -302,6 +311,40 @@ knop, met de PDF en het UBL-bestand als bijlage.
 Incasso: `/beheer/incasso` levert een SEPA-bestand (pain.008) voor de bank.
 Vereist per klant een machtiging en IBAN, en één keer een incassant-ID onder
 Catalogus → Facturatie.
+
+**Een foute factuur** die nog niet de deur uit is -- niet gemaild, geïncasseerd of
+geboekt -- verwijder je. Daarna gaat het met *crediteren*: dat maakt een
+creditfactuur met een eigen nummer die alle bedragen terugdraait en de
+oorspronkelijke factuur noemt, op de pdf en in de UBL. De periode staat daarna
+weer open, dus *Factuur aanmaken* maakt de juiste; wat de foute factuur
+verrekende (bijgekocht AI-tegoed, een verrekening) staat weer klaar voor die
+nieuwe factuur. Een factuur wordt één keer gecrediteerd, een creditfactuur
+nooit, en geen van beide kan daarna nog weg. Alleen de periode van vandaag kan
+opnieuw gefactureerd worden; een gecrediteerde oudere periode verschijnt bij de
+nooit gefactureerde periodes.
+
+**De nummering van dit jaar terugzetten** kan onder Catalogus → Facturatie. De
+teller gaat terug naar het hoogste nummer dat nog op een factuur staat, zodat
+de nummers van verwijderde facturen opnieuw uitgegeven worden. Lager kan niet,
+en alleen verwijderde facturen maken een nummer vrij -- die zijn nooit gemaild,
+geïncasseerd of geboekt. Heb je er een als pdf met de hand verstuurd, zet dan
+niet terug. Wie het deed en van welk nummer naar welk, staat in het log.
+
+**e-Boekhouden.** Met `EBOEKHOUDEN_USERNAME`, `EBOEKHOUDEN_SECURITY_CODE_1` en
+`EBOEKHOUDEN_SECURITY_CODE_2` in `.env` (de SOAP-koppeling van e-Boekhouden)
+verschijnt er een kaart op het abonnementsscherm en een knop *naar
+e-Boekhouden* per factuur. Geboekt wordt als verstuurde factuur op
+`EBOEKHOUDEN_DEBTORS_ACCOUNT` (1300) tegen `EBOEKHOUDEN_REVENUE_ACCOUNT` (8000),
+per regel, met de jaarkorting als eigen regel en de btw per regel zo afgerond
+dat het totaal op de cent gelijk is aan de factuur. Staat het factuurnummer er
+al, dan wordt het niet nog eens geboekt.
+
+Boeken kan pas als de klant aan een relatie gekoppeld is. Zoek op de kaart of
+hij er al staat en klik op de juiste relatie; klik op de gekoppelde om hem los
+te maken. *Nieuwe relatie aanmaken* weigert zolang er een relatie is met
+hetzelfde KvK-nummer, btw-nummer, factuur-e-mailadres of dezelfde naam (zonder
+B.V. en leestekens); de nieuwe krijgt de code `LVR-` plus het begin van het
+klant-id. Een geboekte factuur kan niet meer weg, alleen gecrediteerd worden.
 
 ## Migraties
 

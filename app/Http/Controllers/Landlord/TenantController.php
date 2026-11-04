@@ -17,6 +17,7 @@ use App\Models\Central\Reseller;
 use App\Models\Central\TenantProvisioningRequest;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\EBoekhouden\EBoekhoudenClient;
 use App\Services\Invoicer;
 use App\Services\StorageQuota;
 use App\Services\TenantSubscription;
@@ -147,6 +148,7 @@ class TenantController extends Controller
 
         $subscription = new TenantSubscription($tenant);
         $invoicer = new Invoicer($tenant);
+        $next_on = $invoicer->nextInvoiceOn();
         $reseller = $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null;
 
         return inertia('Landlord/EditPage', [
@@ -219,9 +221,11 @@ class TenantController extends Controller
             'billing' => [
                 /** A demo is never invoiced; without this the panel only shows a zero. */
                 'demo' => $tenant->isDemo(),
-                'next_cents' => $invoicer->preview()['total_cents'],
+                'next_on' => $next_on?->toDateString(),
+                'next_cents' => $next_on ? $invoicer->preview($next_on)['total_cents'] : null,
                 'pending' => $invoicer->pendingCharges()
                     ->map(fn ($charge) => [
+                        'id' => $charge->id,
                         'description' => $charge->description,
                         'amount_cents' => (int) $charge->amount_cents,
                     ])->values(),
@@ -232,6 +236,13 @@ class TenantController extends Controller
             ] : null,
             'superadmins' => $superadmins,
             'unreachable' => $unreachable,
+            'eboekhouden' => [
+                'configured' => app(EBoekhoudenClient::class)->configured(),
+                'relation_code' => $tenant->eboekhouden_relation_code,
+                /** Flashed by the search; only there right after searching. */
+                'term' => session('eboekhouden_term'),
+                'matches' => session('eboekhouden_matches'),
+            ],
         ]);
     }
 
@@ -270,12 +281,15 @@ class TenantController extends Controller
         $tenant->update($attributes);
 
         $after = new TenantSubscription($tenant->refresh());
-        $charge = (new Invoicer($tenant))->prorate(
+        $invoicer = new Invoicer($tenant);
+        $charge = $invoicer->prorate(
             $before_cents,
             $after->packageCents(),
             old_package: $before_package,
             new_package: $after->packageName(),
         );
+
+        $invoicer->forgetSettlementsBeforeTheStart();
 
         $this->settleCancellation($tenant, $ended_on);
 

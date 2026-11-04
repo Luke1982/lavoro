@@ -58,14 +58,30 @@
             <Link :href="`/beheer/${tenant.id}`" class="underline">het abonnement</Link>.
         </p>
 
-        <p v-else class="mt-4 text-sm text-slate-500">
+        <p v-else-if="starts_on" class="mt-4 text-sm text-slate-500">
+            Het abonnement gaat in op <strong>{{ nlDate(starts_on) }}</strong>; vanaf die dag kan de
+            eerste factuur.
+        </p>
+
+        <p v-else-if="next_invoice_on" class="mt-4 text-sm text-slate-500">
             Deze periode is al gefactureerd en er staat niets nieuws open. De volgende factuur kan
-            vanaf <strong>{{ nlDate(next_period_starts_on) }}</strong>, of eerder zodra er iets
+            vanaf <strong>{{ nlDate(next_invoice_on) }}</strong>, of eerder zodra er iets
             verandert &mdash; een pakketwissel of bijgekocht AI-tegoed.
+        </p>
+
+        <p v-else class="mt-4 text-sm text-slate-500">
+            Het abonnement is opgezegd en tot en met de laatste dag gefactureerd.
         </p>
     </PanelSection>
 
     <PanelSection title="Aangemaakt" class="mt-5">
+
+        <p v-if="eboekhouden.configured && !eboekhouden.relation_code"
+            class="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+            Deze klant is nog niet gekoppeld aan een relatie in e-Boekhouden, dus boeken kan nog
+            niet. Zoek of maak de relatie op
+            <Link :href="`/beheer/${tenant.id}`" class="underline">het abonnementsscherm</Link>.
+        </p>
 
         <p v-if="!invoices.length" class="text-slate-500">Nog geen facturen.</p>
 
@@ -79,10 +95,10 @@
                 <template v-for="invoice in invoices" :key="invoice.id">
                     <tr class="border-t border-slate-200 align-top">
                         <td class="w-16 py-3">
-                            <a :href="preview(invoice)" target="_blank" rel="noopener"
+                            <a :href="pdfPreviewUrl(invoice)" target="_blank" rel="noopener"
                                 :title="`Bekijk ${invoice.number}`"
                                 class="block h-28 w-20 overflow-hidden rounded border border-slate-200 bg-white">
-                                <iframe :src="`${preview(invoice)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`"
+                                <iframe :src="`${pdfPreviewUrl(invoice)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`"
                                     class="pointer-events-none h-[453px] w-[320px] origin-top-left scale-[0.25]"
                                     loading="lazy" tabindex="-1" :title="`Voorbeeld van ${invoice.number}`" />
                             </a>
@@ -102,13 +118,8 @@
                             <span v-if="invoice.mailed_at" class="text-slate-500">
                                 verstuurd {{ nlDate(invoice.mailed_at) }} {{ nlTime(invoice.mailed_at) }}
                             </span>
-                            <button v-else type="button" :disabled="mailing === invoice.id" @click="mail(invoice)"
+                            <button v-else type="button" :disabled="busy === invoice.id" @click="mail(invoice)"
                                 class="text-blue-700 underline disabled:opacity-60">versturen</button>
-                            <template v-if="!invoice.mailed_at && !invoice.collected_at">
-                                &middot;
-                                <button type="button" @click="remove(invoice)"
-                                    class="text-red-700 underline">verwijderen</button>
-                            </template>
                         </td>
                     </tr>
 
@@ -121,8 +132,34 @@
                                 <span class="whitespace-nowrap">{{ euro(line.amount_cents) }}</span>
                             </div>
 
+                            <div class="mt-1 flex flex-wrap gap-x-3 text-sm">
+                                <span v-if="invoice.credits" class="text-slate-500">
+                                    creditfactuur voor {{ invoice.credits.number }}
+                                </span>
+                                <span v-if="invoice.credited_by" class="text-slate-500">
+                                    gecrediteerd met {{ invoice.credited_by.number }}
+                                </span>
+                                <template v-if="eboekhouden.configured">
+                                    <span v-if="invoice.booked_at" class="text-slate-500">
+                                        in e-Boekhouden sinds {{ nlDate(invoice.booked_at) }}
+                                        <template v-if="invoice.booking_number">(mutatie {{ invoice.booking_number }})</template>
+                                    </span>
+                                    <button v-else type="button" :disabled="busy === invoice.id" @click="book(invoice)"
+                                        class="text-blue-700 underline disabled:opacity-60">naar e-Boekhouden</button>
+                                </template>
+                                <button v-if="canCredit(invoice)" type="button" :disabled="busy === invoice.id"
+                                    @click="credit(invoice)"
+                                    class="text-blue-700 underline disabled:opacity-60">crediteren</button>
+                                <button v-if="canRemove(invoice)" type="button" @click="remove(invoice)"
+                                    class="text-red-700 underline">verwijderen</button>
+                            </div>
+
                             <p v-if="invoice.mail_error" class="pt-1 text-sm font-semibold text-red-700">
                                 Versturen mislukt: {{ invoice.mail_error }}
+                            </p>
+                            <p v-if="invoice.booking_error && !invoice.booked_at"
+                                class="pt-1 text-sm font-semibold text-red-700">
+                                Boeken mislukt: {{ invoice.booking_error }}
                             </p>
                         </td>
                     </tr>
@@ -145,14 +182,29 @@ const props = defineProps({
     preview: { type: Object, required: true },
     is_due: { type: Boolean, required: true },
     is_credit: { type: Boolean, default: false },
-    next_period_starts_on: { type: String, required: true },
+    next_invoice_on: { type: String, default: null },
+    starts_on: { type: String, default: null },
     unbilled: { type: Array, default: () => [] },
+    eboekhouden: { type: Object, default: () => ({ configured: false, relation_code: null }) },
 })
 
-const preview = (invoice) => `/beheer/${props.tenant.id}/facturen/${invoice.id}/voorbeeld`
+const pdfPreviewUrl = (invoice) => `/beheer/${props.tenant.id}/facturen/${invoice.id}/voorbeeld`
 
 const issuing = ref(false)
-const mailing = ref(null)
+const busy = ref(null)
+
+/** Een creditfactuur crediteer je niet, en een factuur maar één keer. */
+const canCredit = (invoice) => !invoice.credits_invoice_id && invoice.gross_cents >= 0 && !invoice.credited_by
+
+/** Alleen wat de deur nog niet uit is en niet bij een creditering hoort. */
+const canRemove = (invoice) => !invoice.mailed_at && !invoice.collected_at && !invoice.booked_at
+    && !invoice.credits_invoice_id && !invoice.credited_by
+
+const act = (invoice, url) => router.post(url, {}, {
+    preserveScroll: true,
+    onStart: () => { busy.value = invoice.id },
+    onFinish: () => { busy.value = null },
+})
 
 const issue = () => router.post(`/beheer/${props.tenant.id}/facturen`, {}, {
     preserveScroll: true,
@@ -160,11 +212,19 @@ const issue = () => router.post(`/beheer/${props.tenant.id}/facturen`, {}, {
     onFinish: () => { issuing.value = false },
 })
 
-const mail = (invoice) => router.post(`/beheer/${props.tenant.id}/facturen/${invoice.id}/mail`, {}, {
-    preserveScroll: true,
-    onStart: () => { mailing.value = invoice.id },
-    onFinish: () => { mailing.value = null },
-})
+const mail = (invoice) => act(invoice, `/beheer/${props.tenant.id}/facturen/${invoice.id}/mail`)
+
+const book = (invoice) => act(invoice, `/beheer/${props.tenant.id}/facturen/${invoice.id}/e-boekhouden`)
+
+const credit = (invoice) => {
+    if (!confirm(`Factuur ${invoice.number} crediteren? Er komt een creditfactuur met een eigen nummer `
+        + `die alle bedragen van ${invoice.number} terugdraait. Wat die factuur verrekende, staat daarna `
+        + 'weer open voor de volgende.')) {
+        return
+    }
+
+    act(invoice, `/beheer/${props.tenant.id}/facturen/${invoice.id}/crediteren`)
+}
 
 const remove = (invoice) => {
     if (!confirm(`Factuur ${invoice.number} verwijderen? Het nummer blijft vergeven; `

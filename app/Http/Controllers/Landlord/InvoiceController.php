@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Landlord;
 
 use App\Exceptions\Refusal;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\CreditInvoiceRequest;
 use App\Http\Requests\Landlord\DestroyInvoiceRequest;
+use App\Http\Requests\Landlord\ForgetPendingChargeRequest;
 use App\Http\Requests\Landlord\IssueInvoiceRequest;
 use App\Http\Requests\Landlord\MailInvoiceRequest;
 use App\Models\Central\Invoice;
 use App\Models\Central\PendingCharge;
 use App\Models\Tenant;
+use App\Services\EBoekhouden\EBoekhoudenClient;
 use App\Services\InvoiceDocuments;
 use App\Services\InvoiceMailer;
 use App\Services\Invoicer;
@@ -26,17 +29,23 @@ class InvoiceController extends Controller
         $tenant = Tenant::on('central')->findOrFail($id);
 
         $invoicer = new Invoicer($tenant);
-        [$start, $end] = $invoicer->periodFor(CarbonImmutable::now());
+        $starts_on = $tenant->subscription_started_on ? CarbonImmutable::parse($tenant->subscription_started_on) : null;
 
         return inertia('Landlord/InvoicesPage', [
             'tenant' => $tenant,
-            'invoices' => Invoice::on('central')->with('lines')
-                ->where('tenant_id', $tenant->id)->latest('issued_on')->get(),
+            'invoices' => Invoice::on('central')->with(['lines', 'credits:id,number', 'creditedBy:id,number,credits_invoice_id'])
+                ->where('tenant_id', $tenant->id)->latest('issued_on')->latest('id')->get(),
             'preview' => $invoicer->preview(),
             'is_due' => $invoicer->isDue(),
             'is_credit' => $invoicer->isCreditNote(),
-            'next_period_starts_on' => $end->addDay(),
+            'next_invoice_on' => $invoicer->nextInvoiceOn()?->toDateString(),
+            /** Only while it lies ahead: the screen then says when the first invoice comes. */
+            'starts_on' => $starts_on?->isFuture() ? $starts_on->toDateString() : null,
             /** Months that were skipped; those do not come back of their own accord. */
+            'eboekhouden' => [
+                'configured' => app(EBoekhoudenClient::class)->configured(),
+                'relation_code' => $tenant->eboekhouden_relation_code,
+            ],
             'unbilled' => collect($invoicer->unbilledPeriods())
                 ->map(fn (array $period) => $period['start']->format('d-m-Y') . ' t/m ' . $period['end']->format('d-m-Y'))
                 ->all(),
@@ -74,9 +83,18 @@ class InvoiceController extends Controller
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 
-        if ($invoice->mailed_at || $invoice->collected_at) {
+        if ($invoice->hasLeftTheBuilding()) {
             throw new Refusal("Factuur {$invoice->number} is al de deur uit."
                 . ' Terugdraaien gaat met een creditfactuur, niet met verwijderen.');
+        }
+
+        /**
+         * A credit note and the invoice it cancels belong together: deleting
+         * either leaves the other pointing at nothing, and the charges the
+         * credit note released are already outstanding again.
+         */
+        if ($invoice->credits_invoice_id || $invoice->creditedBy()->exists()) {
+            throw new Refusal("Factuur {$invoice->number} hoort bij een creditering en blijft staan.");
         }
 
         $number = $invoice->number;
@@ -88,6 +106,39 @@ class InvoiceController extends Controller
 
         return back()->with('status', "Factuur {$number} verwijderd."
             . ' Het nummer blijft vergeven; de volgende factuur krijgt het daaropvolgende.');
+    }
+
+    /**
+     * Cancels a wrong invoice with a credit note. After that the period is open
+     * again for the invoice that should have been sent.
+     */
+    public function creditInvoice(CreditInvoiceRequest $request, string $id, int $invoice_id)
+    {
+        [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
+
+        $note = (new Invoicer($tenant))->credit($invoice);
+
+        return back()->with('status', "Creditfactuur {$note->number} aangemaakt voor {$invoice->number}: € "
+            . Money::human($note->gross_cents) . '. Wat die factuur verrekende staat weer open.');
+    }
+
+    /**
+     * Takes an outstanding charge off before it is invoiced. A credit note puts
+     * whatever the wrong invoice settled back in the queue; if the error was in
+     * one of those charges, this is the way to keep it off the next invoice.
+     */
+    public function forgetCharge(ForgetPendingChargeRequest $request, string $id, int $charge_id)
+    {
+        $tenant = Tenant::on('central')->findOrFail($id);
+
+        $charge = PendingCharge::on('central')
+            ->where('tenant_id', $tenant->id)
+            ->whereNull('invoice_id')
+            ->findOrFail($charge_id);
+
+        $charge->delete();
+
+        return back()->with('status', "Verrekening verwijderd: {$charge->description}.");
     }
 
     /** By hand: someone should have looked at the invoice first. */

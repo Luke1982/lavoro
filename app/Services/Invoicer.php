@@ -23,17 +23,23 @@ class Invoicer
     }
 
     /**
+     * The day the periods are counted from: the start of the current term, but
+     * never before the subscription itself started. A term switch on a
+     * customer that has not started yet anchors the term on the start date;
+     * moving that start date later used to leave the anchor where it was, and
+     * the customer got periods -- and settlements over them -- from before
+     * they ever started.
+     *
      * Without a start date there is nothing to invoice; this fallback only
      * keeps the date arithmetic intact for screens that ask anyway.
      * subscriptionIsDue() refuses such a customer separately.
      */
     private function startedOn(): CarbonImmutable
     {
-        return CarbonImmutable::parse(
-            $this->tenant->billing_period_started_on
-                ?? $this->tenant->subscription_started_on
-                ?? now()->startOfMonth()
-        );
+        return collect([$this->tenant->subscription_started_on, $this->tenant->billing_period_started_on])
+            ->filter()
+            ->map(fn (string $date) => CarbonImmutable::parse($date))
+            ->max() ?? CarbonImmutable::now()->startOfMonth();
     }
 
     /**
@@ -287,8 +293,15 @@ class Invoicer
      */
     private function subscriptionWasInvoicedFor(CarbonImmutable $start): bool
     {
+        /**
+         * A credited invoice no longer counts, and neither does the credit
+         * note that cancelled it: the period is open again for the invoice that
+         * should have been sent.
+         */
         return Invoice::on('central')
             ->where('tenant_id', $this->tenant->id)
+            ->whereNull('credits_invoice_id')
+            ->whereDoesntHave('creditedBy')
             ->whereDate('period_start', '<=', $start->toDateString())
             ->whereDate('period_end', '>=', $start->toDateString())
             ->whereHas('lines', fn ($query) => $query->where('kind', 'subscription'))
@@ -311,6 +324,34 @@ class Invoicer
          * had just offered to make one.
          */
         return $this->preview($on)['lines'] !== [];
+    }
+
+    /**
+     * The day the next invoice can be made: today if there is something to
+     * invoice, otherwise the first day of the next period. For a customer who
+     * has not started that is the start date. Nothing once a cancelled
+     * subscription has been invoiced up to its last day.
+     *
+     * The screens used to show what could be invoiced today -- nothing, for a
+     * customer starting next week -- and the day after the current period,
+     * which for that customer is a month too late.
+     */
+    public function nextInvoiceOn(?CarbonImmutable $on = null): ?CarbonImmutable
+    {
+        $on = ($on ?? CarbonImmutable::now())->startOfDay();
+
+        if ($this->tenant->isDemo() || !$this->tenant->subscription_started_on) {
+            return null;
+        }
+
+        if ($this->isDue($on)) {
+            return $on;
+        }
+
+        [$start, $end] = $this->periodFor($on);
+        $next = $start->greaterThan($on) ? $start : $end->addDay();
+
+        return $this->endsOn()?->lessThan($next) ? null : $next;
     }
 
     /**
@@ -451,7 +492,7 @@ class Invoicer
 
         return DB::connection('central')->transaction(function () use ($preview, $start, $end, $on) {
             $invoice = Invoice::on('central')->create([
-                'number' => $this->nextNumber($on),
+                'number' => (new InvoiceNumbers)->next($on),
                 'tenant_id' => $this->tenant->id,
                 /** Written down, because the customer may be gone by the time this is read back. */
                 'tenant_name' => $this->tenant->name,
@@ -482,47 +523,60 @@ class Invoicer
     }
 
     /**
-     * The next invoice number.
+     * Cancels an invoice that was wrong with a credit note.
      *
-     * Continuous per year across all customers rather than per customer: the
-     * bookkeeping wants one series.
+     * Every amount with the opposite sign, for the same period, under a number
+     * of its own and naming the invoice it cancels. What that invoice settled
+     * -- top ups, settlements -- is outstanding again, so the invoice that
+     * should have been sent picks it up; the credit note has taken it off.
      *
-     * From a counter that only goes up, and not from the highest number in the
-     * table. That highest number came free again as soon as an invoice went --
-     * with a removed customer their invoices went along -- and the next invoice
-     * took it. Two different invoices with the same number is exactly what a
-     * continuous series must never produce, and the tax office reads that series
-     * as proof that nothing was left out.
-     *
-     * The row is locked by the increment until this transaction commits, so two
-     * invoices at the same moment get two numbers.
+     * Once only, and never a credit note itself: crediting a credit note is
+     * invoicing again, and that is what the button for a new invoice is for.
      */
-    private function nextNumber(CarbonImmutable $on): string
+    public function credit(Invoice $invoice): Invoice
     {
-        $year = (int) $on->format('Y');
-        $prefix = $year . '-LVR-';
-        $counter = DB::connection('central')->table('invoice_numbers');
+        if ($invoice->credits_invoice_id || $invoice->gross_cents < 0) {
+            throw new Refusal("{$invoice->number} is zelf een creditfactuur. Wat er opnieuw gerekend moet worden, gaat op een nieuwe factuur.");
+        }
 
-        $counter->insertOrIgnore(['year' => $year, 'last_number' => 0]);
+        return DB::connection('central')->transaction(function () use ($invoice) {
+            $original = Invoice::on('central')->with('lines')->lockForUpdate()->findOrFail($invoice->id);
 
-        $last = (int) ($counter->where('year', $year)->lockForUpdate()->value('last_number') ?? 0);
+            if ($original->creditedBy()->exists()) {
+                throw new Refusal("{$original->number} is al gecrediteerd.");
+            }
 
-        /**
-         * The highest number that is actually there counts too. A row written
-         * around this service -- an import, a repair by hand -- does not move
-         * the counter, and handing out a number that is already on an invoice
-         * is worse than skipping one.
-         */
-        $issued = (int) str_replace($prefix, '', (string) Invoice::on('central')
-            ->where('number', 'like', $prefix . '%')
-            ->orderByRaw('CAST(REPLACE(number, ?, "") AS UNSIGNED) DESC', [$prefix])
-            ->value('number'));
+            $on = CarbonImmutable::now();
 
-        $next = max($last, $issued) + 1;
+            $note = Invoice::on('central')->create([
+                'number' => (new InvoiceNumbers)->next($on),
+                'tenant_id' => $original->tenant_id,
+                'tenant_name' => $this->tenant->name,
+                'credits_invoice_id' => $original->id,
+                'period_start' => $original->period_start->toDateString(),
+                'period_end' => $original->period_end->toDateString(),
+                'issued_on' => $on->toDateString(),
+                'due_on' => $on->toDateString(),
+                'subtotal_cents' => -$original->subtotal_cents,
+                'discount_cents' => -$original->discount_cents,
+                'total_cents' => -$original->total_cents,
+                'vat_percent' => $original->vat_percent,
+                'vat_cents' => -$original->vat_cents,
+                'gross_cents' => -$original->gross_cents,
+            ]);
 
-        $counter->where('year', $year)->update(['last_number' => $next]);
+            foreach ($original->lines as $line) {
+                $note->lines()->create([
+                    'description' => $line->description,
+                    'kind' => $line->kind,
+                    'amount_cents' => -$line->amount_cents,
+                ]);
+            }
 
-        return $prefix . $next;
+            PendingCharge::on('central')->where('invoice_id', $original->id)->update(['invoice_id' => null]);
+
+            return $note;
+        });
     }
 
     /**
@@ -582,6 +636,29 @@ class Invoicer
             ->whereNull('invoice_id')
             ->where('data->cancellation', true)
             ->delete();
+    }
+
+    /**
+     * Removes the settlements for changes made before the subscription started.
+     *
+     * Whatever is agreed before the first day is the agreement itself, and
+     * prorate() never settles it. But a settlement made while the start date
+     * was still earlier stays behind when that date is moved past the change:
+     * a line about days on the old price on which the customer had nothing at
+     * all, on an invoice for a subscription that has not begun.
+     */
+    public function forgetSettlementsBeforeTheStart(): void
+    {
+        if (!$this->tenant->subscription_started_on) {
+            return;
+        }
+
+        $starts_on = CarbonImmutable::parse($this->tenant->subscription_started_on);
+
+        $this->pendingCharges()
+            ->filter(fn (PendingCharge $charge) => isset($charge->data['changed_on'])
+                && CarbonImmutable::parse($charge->data['changed_on'])->lessThan($starts_on))
+            ->each(fn (PendingCharge $charge) => $charge->delete());
     }
 
     /**

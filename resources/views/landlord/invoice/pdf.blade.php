@@ -79,8 +79,11 @@
 <table class="head"><tr>
     <td>
         <div class="title-bar">
-            <h1>{{ $invoice->gross_cents < 0 ? 'Creditfactuur' : 'Factuur' }}</h1>
+            <h1>{{ $invoice->gross_cents < 0 || $invoice->credits_invoice_id ? 'Creditfactuur' : 'Factuur' }}</h1>
             <p class="number">{{ $invoice->number }}</p>
+            @if($invoice->credits)
+                <p class="number">voor factuur {{ $invoice->credits->number }}</p>
+            @endif
         </div>
     </td>
     <td class="r" style="width:46%">
@@ -194,7 +197,12 @@
         </td>
         <td>
             <strong>Betaling</strong><br>
-            @if(!empty($issuer['iban']))
+            @if($invoice->credits)
+                Deze creditfactuur heft factuur {{ $invoice->credits->number }} op. Is die al
+                betaald, dan storten wij het bedrag terug.
+            @elseif($invoice->gross_cents < 0)
+                Wij storten het bedrag terug op uw rekening.
+            @elseif(!empty($issuer['iban']))
                 Op IBAN {{ $issuer['iban'] }}<br>onder vermelding van {{ $invoice->number }}.
             @else
                 Betaalgegevens volgen apart, onder vermelding van {{ $invoice->number }}.

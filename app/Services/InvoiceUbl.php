@@ -50,6 +50,16 @@ class InvoiceUbl
         $x->writeElement('cbc:EndDate', $this->invoice->period_end->format('Y-m-d'));
         $x->endElement();
 
+        /** A credit note names the invoice it cancels; a package reads it from here. */
+        if ($credited = $this->invoice->credits) {
+            $x->startElement('cac:BillingReference');
+            $x->startElement('cac:InvoiceDocumentReference');
+            $x->writeElement('cbc:ID', $credited->number);
+            $x->writeElement('cbc:IssueDate', $credited->issued_on->format('Y-m-d'));
+            $x->endElement();
+            $x->endElement();
+        }
+
         $this->party($x, 'cac:AccountingSupplierParty', [
             'name' => $issuer['name'] ?? '',
             'address' => $issuer['address'] ?? '',

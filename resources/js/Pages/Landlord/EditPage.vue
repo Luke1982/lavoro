@@ -10,6 +10,7 @@
 
         <div class="grid gap-5">
             <BillingCard :tenant="tenant" :billing="billing" />
+            <EBoekhoudenCard :tenant="tenant" :eboekhouden="eboekhouden" />
             <CouponCard :tenant="tenant" :reseller="reseller" :subscription="subscription" />
             <AiTopupCard :tenant="tenant" :ai="ai" :topups="topups" />
             <SuperAdminCard :tenant="tenant" :superadmins="superadmins" />
@@ -29,6 +30,7 @@
 import { Head } from '@inertiajs/vue3'
 import SubscriptionForm from '@/Components/Landlord/SubscriptionForm.vue'
 import BillingCard from '@/Components/Landlord/BillingCard.vue'
+import EBoekhoudenCard from '@/Components/Landlord/EBoekhoudenCard.vue'
 import CouponCard from '@/Components/Landlord/CouponCard.vue'
 import AiTopupCard from '@/Components/Landlord/AiTopupCard.vue'
 import SuperAdminCard from '@/Components/Landlord/SuperAdminCard.vue'
@@ -45,5 +47,6 @@ defineProps({
     reseller: { type: Object, default: null },
     superadmins: { type: Array, required: true },
     unreachable: { type: String, default: null },
+    eboekhouden: { type: Object, default: () => ({ configured: false, relation_code: null, matches: null }) },
 })
 </script>

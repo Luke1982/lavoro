@@ -3,6 +3,7 @@
 use App\Http\Controllers\Landlord\AuthController;
 use App\Http\Controllers\Landlord\CatalogueController;
 use App\Http\Controllers\Landlord\CollectionController;
+use App\Http\Controllers\Landlord\EBoekhoudenController;
 use App\Http\Controllers\Landlord\InvoiceController;
 use App\Http\Controllers\Landlord\ResellerController;
 use App\Http\Controllers\Landlord\SuperAdminController;
@@ -51,6 +52,20 @@ Route::prefix('beheer')
             Route::post('{tenant}/facturen', [InvoiceController::class, 'issueInvoice'])->name('landlord.invoice.issue');
             Route::post('{tenant}/facturen/{invoice}/mail', [InvoiceController::class, 'mailInvoice'])->name('landlord.invoice.mail');
             Route::delete('{tenant}/facturen/{invoice}', [InvoiceController::class, 'destroyInvoice'])->name('landlord.invoice.destroy');
+            Route::post('{tenant}/facturen/{invoice}/crediteren', [InvoiceController::class, 'creditInvoice'])
+                ->name('landlord.invoice.credit');
+            Route::post('{tenant}/facturen/{invoice}/e-boekhouden', [EBoekhoudenController::class, 'bookInvoice'])
+                ->name('landlord.invoice.book');
+            Route::delete('{tenant}/verrekening/{charge}', [InvoiceController::class, 'forgetCharge'])
+                ->name('landlord.charge.forget');
+            Route::post('{tenant}/e-boekhouden/zoeken', [EBoekhoudenController::class, 'searchRelations'])
+                ->name('landlord.eboekhouden.search');
+            Route::post('{tenant}/e-boekhouden/relatie', [EBoekhoudenController::class, 'linkRelation'])
+                ->name('landlord.eboekhouden.link');
+            Route::delete('{tenant}/e-boekhouden/relatie', [EBoekhoudenController::class, 'unlinkRelation'])
+                ->name('landlord.eboekhouden.unlink');
+            Route::post('{tenant}/e-boekhouden/relatie/nieuw', [EBoekhoudenController::class, 'createRelation'])
+                ->name('landlord.eboekhouden.create');
             Route::get('{tenant}/facturen/{invoice}/pdf', [InvoiceController::class, 'invoicePdf'])->name('landlord.invoice.pdf');
             Route::get('{tenant}/facturen/{invoice}/voorbeeld', [InvoiceController::class, 'invoicePreview'])
                 ->name('landlord.invoice.preview');
@@ -59,6 +74,8 @@ Route::prefix('beheer')
             Route::put('module/{module}', [CatalogueController::class, 'updateModule'])->name('landlord.module.update');
             Route::put('instelling/{setting}', [CatalogueController::class, 'updateSetting'])->name('landlord.setting.update');
             Route::put('facturatie', [CatalogueController::class, 'updateIssuer'])->name('landlord.issuer.update');
+            Route::post('facturatie/nummering', [CatalogueController::class, 'resetNumbering'])
+                ->name('landlord.numbering.reset');
             Route::get('{tenant}', [TenantController::class, 'edit'])->name('landlord.edit');
             Route::put('{tenant}', [TenantController::class, 'update'])->name('landlord.update');
             Route::post('{tenant}/bijkoop', [TopupController::class, 'addTopup'])->name('landlord.topup');

@@ -375,6 +375,70 @@ class SubscriptionScreenTest extends TestCase
         $this->assertCount(1, (new Invoicer($tenant))->pendingCharges());
     }
 
+    /**
+     * The reported case. A price agreed while the start date still said a month
+     * earlier: the settlement counted the days since that date as days on the
+     * old price. Moving the start date past the change made those days days
+     * on which nothing ran, and the settlement stayed on the next invoice all
+     * the same.
+     */
+    public function test_moving_the_start_date_past_a_change_takes_its_settlement_away(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-08-10']);
+
+        $this->save($tenant, ['price_override_euro' => '10.00'])->assertRedirect();
+        $this->assertCount(1, (new Invoicer($tenant))->pendingCharges());
+
+        $this->save($tenant, ['subscription_started_on' => '2026-09-10'])->assertRedirect();
+
+        $this->assertCount(0, (new Invoicer($tenant->fresh()))->pendingCharges());
+    }
+
+    /**
+     * Everything agreed before the subscription starts is the agreement itself,
+     * not a change to it. Also when a term switch left an anchor behind from
+     * before the start date was moved.
+     */
+    public function test_a_price_agreed_before_the_subscription_starts_settles_nothing(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-10',
+            'billing_period_started_on' => '2026-08-10',
+        ]);
+
+        $this->save($tenant, ['price_override_euro' => '10.00'])->assertRedirect();
+
+        $this->assertCount(0, (new Invoicer($tenant))->pendingCharges());
+    }
+
+    /**
+     * The billing card showed what could be invoiced today. For a customer who
+     * starts next week that is nothing, and a settlement alone then read as
+     * the monthly amount.
+     */
+    public function test_the_billing_card_shows_the_first_invoice_of_a_customer_who_has_not_started(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-10']);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.edit', $tenant->id))
+            ->assertInertia(fn ($page) => $page
+                ->where('billing.next_on', '2026-09-10')
+                ->where('billing.next_cents', 2750));
+    }
+
+    public function test_the_invoice_list_says_when_the_first_invoice_can_be_made(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-10']);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.invoices', $tenant->id))
+            ->assertInertia(fn ($page) => $page
+                ->where('is_due', false)
+                ->where('next_invoice_on', '2026-09-10')
+                ->where('starts_on', '2026-09-10'));
+    }
+
     /** A package change and a module in one go settles only the package. */
     public function test_a_package_switch_with_a_module_settles_only_the_package(): void
     {

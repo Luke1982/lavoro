@@ -1,5 +1,5 @@
 <x-mail::message>
-# {{ $invoice->gross_cents < 0 ? 'Creditfactuur' : 'Factuur' }} {{ $invoice->number }}
+# {{ $invoice->gross_cents < 0 || $invoice->credits_invoice_id ? 'Creditfactuur' : 'Factuur' }} {{ $invoice->number }}
 
 Beste {{ $tenant->name }},
 

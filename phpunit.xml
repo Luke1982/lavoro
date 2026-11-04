@@ -40,6 +40,10 @@
         <env name="TENANCY_GRANT_PROCEDURE" value="lavoro_test_admin.grant_tenant_access"/>
         <env name="SESSION_CONNECTION" value="central"/>
         <env name="MAIL_MAILER" value="array"/>
+        <env name="EBOEKHOUDEN_URL" value="https://soap.e-boekhouden.test/soap.asmx"/>
+        <env name="EBOEKHOUDEN_USERNAME" value=""/>
+        <env name="EBOEKHOUDEN_SECURITY_CODE_1" value=""/>
+        <env name="EBOEKHOUDEN_SECURITY_CODE_2" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

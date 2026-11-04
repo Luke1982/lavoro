@@ -8,6 +8,7 @@ import InvoicesPage from '../InvoicesPage.vue'
 import LoginPage from '../LoginPage.vue'
 import ResellersPage from '../ResellersPage.vue'
 import BillingCard from '@/Components/Landlord/BillingCard.vue'
+import EBoekhoudenCard from '@/Components/Landlord/EBoekhoudenCard.vue'
 
 /**
  * <Head> heeft de hoofdmanager van createInertiaApp nodig en usePage() de
@@ -42,7 +43,8 @@ const screens = [
         settings: [{ id: 1, key: 'vat_percent', value: 21 }],
         usage: { starter: 2 },
         issuer_rows: [{ id: 1, key: 'incassant_id', value: 'NL98ZZZ' }],
-    }, 'Pakketten'],
+        numbering: { year: 2026, prefix: '2026-LVR-', counter: 14, highest: 0 },
+    }, 'Terugzetten: de volgende wordt 2026-LVR-1'],
 
     ['de incassolijst', CollectionsPage, {
         invoices: [{ id: 1, number: '2026-LVR-1', gross_cents: 3328, tenant: { name: 'Testbedrijf', mandate_reference: 'M-1', iban: 'NL91ABNA0417164300' } }],
@@ -64,7 +66,7 @@ const screens = [
     }, 'Testbedrijf'],
 
     ['de facturen', InvoicesPage, {
-        tenant, invoices: [], preview, is_due: true, next_period_starts_on: '2026-10-01',
+        tenant, invoices: [], preview, is_due: true, next_invoice_on: '2026-10-01',
     }, 'Eerstvolgende factuur'],
 
     ['het inlogscherm', LoginPage, {}, 'Inloggen'],
@@ -93,14 +95,42 @@ describe('de beheerschermen', () => {
 })
 
 /**
+ * De eerstvolgende factuur stond er met alleen nullen en "BTW %": een
+ * hulpfunctie met dezelfde naam als de prop schoof in het sjabloon voor de
+ * prop. Dat het kopje er staat zegt daarover niets; de bedragen wel.
+ */
+describe('de facturenlijst', () => {
+    it('toont de regels en bedragen van de eerstvolgende factuur', () => {
+        const text = mount(InvoicesPage, {
+            props: { tenant, invoices: [], preview, is_due: true, next_invoice_on: '2026-10-01' },
+            global: { stubs: { Link: true } },
+        }).text()
+
+        expect(text).toContain('Abonnement Lavoro Starter')
+        expect(text).toContain('BTW 21%')
+        expect(text).toContain('33,28')
+    })
+})
+
+/**
  * De demo wordt elke nacht opnieuw opgebouwd en dus nooit gefactureerd. De
  * kaart toonde daar alleen € 0,00, en dat leest als een fout in de prijs.
  */
 describe('de facturatiekaart', () => {
     const card = (billing) => mount(BillingCard, { props: { tenant, billing }, global: { stubs: { Link: true } } })
 
-    it('noemt het bedrag van de volgende factuur', () => {
-        expect(card({ demo: false, next_cents: 3328, pending: [] }).text()).toContain('33,28')
+    it('noemt het bedrag en de dag van de volgende factuur', () => {
+        const text = card({ demo: false, next_on: '2026-10-01', next_cents: 3328, pending: [] }).text()
+
+        expect(text).toContain('33,28')
+        expect(text).toContain('01-10-2026')
+    })
+
+    it('zegt het als er geen factuur meer komt', () => {
+        const text = card({ demo: false, next_on: null, next_cents: null, pending: [] }).text()
+
+        expect(text).toContain('geen factuur meer gepland')
+        expect(text).not.toContain('0,00')
     })
 
     it('zegt bij de demo waarom er niets te factureren valt', () => {
@@ -108,5 +138,66 @@ describe('de facturatiekaart', () => {
 
         expect(text).toContain('Wordt niet gefactureerd')
         expect(text).not.toContain('0,00')
+    })
+})
+
+describe('de facturen en hun creditering', () => {
+    const invoice = (fields) => ({
+        id: 1, number: '2026-LVR-1', issued_on: '2026-11-04', gross_cents: 3328, credits_invoice_id: null,
+        mailed_at: null, collected_at: null, booked_at: null, lines: [], credits: null, credited_by: null, ...fields,
+    })
+    const page = (invoices, eboekhouden = { configured: true, relation_code: 'ACC1042' }) => mount(InvoicesPage, {
+        props: { tenant, invoices, preview, is_due: false, next_invoice_on: '2026-12-01', eboekhouden },
+        global: { stubs: { Link: true } },
+    }).text()
+
+    it('biedt crediteren en boeken aan bij een gewone factuur', () => {
+        const text = page([invoice({ mailed_at: '2026-11-04T10:00:00' })])
+
+        expect(text).toContain('crediteren')
+        expect(text).toContain('naar e-Boekhouden')
+        expect(text).not.toContain('verwijderen')
+    })
+
+    it('noemt bij een creditering welke factuur bij welke hoort', () => {
+        const text = page([
+            invoice({ id: 2, number: '2026-LVR-2', gross_cents: -3328, credits_invoice_id: 1, credits: { id: 1, number: '2026-LVR-1' } }),
+            invoice({ credited_by: { id: 2, number: '2026-LVR-2' } }),
+        ])
+
+        expect(text).toContain('creditfactuur voor 2026-LVR-1')
+        expect(text).toContain('gecrediteerd met 2026-LVR-2')
+        expect(text).not.toContain('crediteren')
+        expect(text).not.toContain('verwijderen')
+    })
+
+    it('zegt het als de klant nog niet aan e-Boekhouden gekoppeld is', () => {
+        expect(page([invoice({})], { configured: true, relation_code: null })).toContain('nog niet gekoppeld')
+    })
+
+    it('laat e-Boekhouden weg als het niet is ingesteld', () => {
+        expect(page([invoice({})], { configured: false, relation_code: null })).not.toContain('e-Boekhouden')
+    })
+})
+
+describe('de e-Boekhouden-kaart', () => {
+    const card = (eboekhouden) => mount(EBoekhoudenCard, { props: { tenant, eboekhouden } }).text()
+    const match = { code: 'ACC1042', name: 'Testbedrijf B.V.', city: 'Zwolle', email: '', coc_number: '' }
+
+    it('zegt wat er ontbreekt als het niet is ingesteld', () => {
+        expect(card({ configured: false, relation_code: null, matches: null })).toContain('Niet ingesteld')
+    })
+
+    it('laat pas na het zoeken een nieuwe relatie aanmaken', () => {
+        expect(card({ configured: true, relation_code: null, matches: null })).not.toContain('Nieuwe relatie')
+        expect(card({ configured: true, relation_code: null, term: 'test', matches: [match] })).toContain('Nieuwe relatie')
+    })
+
+    it('toont de gekoppelde relatie, ook zonder zoekopdracht', () => {
+        const text = card({ configured: true, relation_code: 'ACC1042', matches: null })
+
+        expect(text).toContain('ACC1042')
+        expect(text).toContain('gekoppeld')
+        expect(text).not.toContain('Nieuwe relatie')
     })
 })

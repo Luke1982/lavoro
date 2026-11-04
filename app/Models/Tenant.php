@@ -57,7 +57,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'invoice_city',
             'invoice_country',
             'vat_number',
-            'coc_number', 'extra_field_seats', 'extra_office_seats',
+            'coc_number', 'eboekhouden_relation_code', 'extra_field_seats', 'extra_office_seats',
             'modules', 'module_prices', 'module_started_on', 'price_override_cents', 'storage_limit_gb',
             'ai_allowance_micros',
             'discount_cents',

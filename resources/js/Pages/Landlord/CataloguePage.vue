@@ -170,6 +170,27 @@
             <button type="submit" :disabled="issuerForm.processing"
                 class="panel-button mt-4">Opslaan</button>
         </form>
+
+        <div class="mt-6 border-t border-slate-200 pt-4">
+            <h4 class="font-semibold">Factuurnummering {{ numbering.year }}</h4>
+            <p class="mt-1 text-sm text-slate-500">
+                Uitgegeven tot en met <strong>{{ numbering.prefix }}{{ numbering.counter }}</strong>;
+                het hoogste nummer dat nog op een factuur staat is
+                <strong>{{ numbering.highest ? numbering.prefix + numbering.highest : 'geen' }}</strong>.
+            </p>
+
+            <template v-if="numbering.counter > numbering.highest">
+                <p class="mt-1 text-sm text-slate-500">
+                    De nummers daarna waren van verwijderde facturen. Die zijn nooit gemaild of
+                    geïncasseerd, dus ze kunnen opnieuw uitgegeven worden &mdash; tenzij je er een
+                    als pdf met de hand hebt verstuurd.
+                </p>
+                <button type="button" class="panel-button mt-3" @click="resetNumbering">
+                    Terugzetten: de volgende wordt {{ numbering.prefix }}{{ numbering.highest + 1 }}
+                </button>
+            </template>
+            <p v-else class="mt-1 text-sm text-slate-500">De nummering sluit aan op de laatste factuur.</p>
+        </div>
     </PanelSection>
 </template>
 
@@ -186,6 +207,7 @@ const props = defineProps({
     settings: { type: Array, required: true },
     usage: { type: Object, required: true },
     issuer_rows: { type: Array, required: true },
+    numbering: { type: Object, required: true },
 })
 
 /**
@@ -235,4 +257,14 @@ const issuerForm = useForm({
 })
 
 const saveIssuer = () => issuerForm.put('/beheer/facturatie', { preserveScroll: true })
+
+const resetNumbering = () => {
+    const next = `${props.numbering.prefix}${props.numbering.highest + 1}`
+
+    if (!confirm(`De nummering van ${props.numbering.year} terugzetten? De volgende factuur wordt ${next}.`)) {
+        return
+    }
+
+    router.post('/beheer/facturatie/nummering', {}, { preserveScroll: true })
+}
 </script>

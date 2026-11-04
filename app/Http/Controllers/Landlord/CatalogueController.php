@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Landlord;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Landlord\ResetInvoiceNumbersRequest;
 use App\Http\Requests\Landlord\UpdateIssuerRequest;
 use App\Http\Requests\Landlord\UpdateModuleRequest;
 use App\Http\Requests\Landlord\UpdatePackageRequest;
@@ -12,7 +13,10 @@ use App\Models\Central\Module;
 use App\Models\Central\ModuleBundle;
 use App\Models\Central\Package;
 use App\Models\Central\PricingSetting;
+use App\Services\InvoiceNumbers;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Wat er te koop is en tegen welke prijs, plus onze eigen factuurgegevens.
@@ -35,7 +39,44 @@ class CatalogueController extends Controller
                 ->selectRaw('package_key, COUNT(*) AS aantal')->groupBy('package_key')
                 ->pluck('aantal', 'package_key')->all(),
             'issuer_rows' => IssuerSetting::on('central')->orderBy('key')->get(),
+            'numbering' => $this->numbering(),
         ]);
+    }
+
+    /** Where this year's invoice numbers stand: handed out, and still on an invoice. */
+    private function numbering(): array
+    {
+        $numbers = new InvoiceNumbers;
+        $year = (int) now()->format('Y');
+
+        return [
+            'year' => $year,
+            'prefix' => $numbers->prefix($year),
+            'counter' => $numbers->counter($year),
+            'highest' => $numbers->highest($year),
+        ];
+    }
+
+    /**
+     * Hands the numbers of withdrawn invoices out again. Written to the log,
+     * because a bookkeeper who later finds a number used twice by date should
+     * be able to read when and by whom the series was set back.
+     */
+    public function resetNumbering(ResetInvoiceNumbersRequest $request)
+    {
+        $numbers = new InvoiceNumbers;
+        $year = (int) now()->format('Y');
+        $reset = $numbers->reset($year);
+
+        Log::notice('Factuurnummering teruggezet', [
+            'year' => $year,
+            'from' => $reset['from'],
+            'to' => $reset['to'],
+            'by' => Auth::guard('landlord')->user()?->email,
+        ]);
+
+        return back()->with('status', 'De nummering van ' . $year . ' is teruggezet: de volgende factuur wordt '
+            . $numbers->prefix($year) . ($reset['to'] + 1) . '.');
     }
 
     public function updateIssuer(UpdateIssuerRequest $request)
