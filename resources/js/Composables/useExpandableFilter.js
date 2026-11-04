@@ -1,4 +1,5 @@
-import { ref, computed, toValue } from 'vue'
+import { ref, computed } from 'vue'
+import { useSearchFilter } from '@/Composables/useSearchFilter'
 
 /**
  * Search-filtered list capped at maxVisible items, with a show more/less toggle.
@@ -8,15 +9,8 @@ import { ref, computed, toValue } from 'vue'
  * @param {number} maxVisible
  */
 export function useExpandableFilter(items, matchFn, maxVisible = 4) {
-    const searchQuery = ref('')
+    const { searchQuery, filteredItems } = useSearchFilter(items, matchFn)
     const isExpanded = ref(false)
-
-    const filteredItems = computed(() => {
-        const query = searchQuery.value.trim().toLowerCase()
-        const list = toValue(items)
-        if (!query) return list
-        return list.filter(item => matchFn(item, query))
-    })
 
     const visibleItems = computed(() =>
         isExpanded.value ? filteredItems.value : filteredItems.value.slice(0, maxVisible)

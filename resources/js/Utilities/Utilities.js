@@ -429,6 +429,20 @@ export const nextServiceIso = (product, fallbackDays = 365) => {
 };
 
 /**
+ * Reduces both sides of a comparison to letters and digits: accents off, every
+ * space, dash, comma and slash gone. What people type is what they would write,
+ * and what is stored is what someone once typed -- a location called
+ * 'Rustenburg 24  - Wageningen' (two spaces) could not be found by typing it the
+ * way you would write it, and a postcode typed as '6702AE' missed '6702 AE'.
+ * Dropping the separators can only widen a match, never narrow one.
+ */
+export const forMatching = (text) => String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '');
+
+/**
  * The one address format used across the app: "Dorpsstraat 1, 1234AB Utrecht".
  * Mirrors App\Support\AddressFormatter so an address never renders two ways.
  * Takes anything with address/postal_code/city — a location, a customer.

@@ -76,6 +76,7 @@ import {
 } from '@headlessui/vue'
 import { debounce } from 'lodash';
 import { ArrowPathIcon, ListBulletIcon } from '@heroicons/vue/24/outline';
+import { forMatching } from '@/Utilities/Utilities';
 
 const props = defineProps({
     modelValue: [String, Number, Array],
@@ -258,20 +259,6 @@ const effectivePlaceholder = computed(() => {
 })
 
 const query = ref('')
-
-/**
- * Reduces both sides of a comparison to letters and digits: accents off, every
- * space, dash, comma and slash gone. What people type is what they would write,
- * and what is stored is what someone once typed -- a location called
- * 'Rustenburg 24  - Wageningen' (two spaces) could not be found by typing it the
- * way you would write it, and a postcode typed as '6702AE' missed '6702 AE'.
- * Dropping the separators can only widen a match, never narrow one.
- */
-const forMatching = (text) => String(text ?? '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '')
 
 const filteredOptions = computed(() => {
     if (query.value === '' || props.disableInternalFilter) {

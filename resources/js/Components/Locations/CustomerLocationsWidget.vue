@@ -14,41 +14,30 @@
             </button>
         </div>
 
-        <template v-if="locations.length > 0">
-            <div class="border-1 rounded-lavoro-sm border-gray-200/70">
-                <div v-auto-animate>
-                    <div v-for="location in visibleLocations" :key="location.id"
-                        class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-800 last:border-b-0">
-                        <button type="button" @click="openMapModal(location)"
-                            :disabled="!locationAddress(location)"
-                            class="relative w-28 flex-none overflow-hidden rounded-lavoro-sm ring-1 ring-gray-200/70 dark:ring-slate-700 transition enabled:cursor-pointer enabled:hover:ring-2 enabled:hover:ring-lavoro-blue"
-                            v-tooltip="locationAddress(location) ? 'Vergroot kaart' : ''">
-                            <OpenStreetMapWidget :key="locationAddress(location)" :address="locationAddress(location)"
-                                :interactive="false" height-class="h-24" />
-                            <span class="absolute inset-0" aria-hidden="true" />
-                        </button>
-                        <Link :href="`/locations/${location.id}`"
-                            class="flex flex-1 items-center justify-between min-w-0 hover:opacity-80">
-                            <div class="flex flex-col min-w-0 gap-2">
-                                <span class="font-bold text-sm text-gray-900 dark:text-slate-100 truncate">{{ location.title }}</span>
-                                <TitleValueIconComponent :icon="MapPinIcon" title="Adres"
-                                    :value="locationAddress(location) || '—'" />
-                            </div>
-                            <ChevronRightIcon class="size-5 text-gray-400 dark:text-slate-500 shrink-0" />
-                        </Link>
-                        <TrashIcon v-if="canDelete"
-                            class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer shrink-0"
-                            @click="openDelete(location)" v-tooltip="'Locatie verwijderen'" />
-                    </div>
+        <PagedList v-if="locations.length" v-slot="{ items }" :items="locations" :search-keys="searchKeys"
+            label="locaties" search-placeholder="Zoek op naam, code of adres..." storage-key="customerLocationsPerPage">
+            <div class="border-1 rounded-lavoro-sm border-gray-200/70" v-auto-animate>
+                <div v-for="location in items" :key="location.id"
+                    class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-slate-800 last:border-b-0">
+                    <button type="button" @click="openMapModal(location)" :disabled="!formatAddress(location)"
+                        class="flex flex-none items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10 text-lavoro-blue transition enabled:hover:bg-lavoro-blue/20 disabled:opacity-40"
+                        v-tooltip="formatAddress(location) ? 'Toon op de kaart' : ''">
+                        <MapPinIcon class="size-5" />
+                    </button>
+                    <Link :href="`/locations/${location.id}`"
+                        class="flex flex-1 items-center justify-between gap-2 min-w-0 hover:opacity-80">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{{ location.title }}</p>
+                            <p class="text-xs text-gray-500 dark:text-slate-400 truncate">{{ formatAddress(location) || '—' }}</p>
+                        </div>
+                        <ChevronRightIcon class="size-5 text-gray-400 dark:text-slate-500 shrink-0" />
+                    </Link>
+                    <TrashIcon v-if="canDelete"
+                        class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer shrink-0"
+                        @click="openDelete(location)" v-tooltip="'Locatie verwijderen'" />
                 </div>
             </div>
-            <button v-if="locations.length > locationPreviewCount" type="button"
-                @click="showAllLocations = !showAllLocations"
-                class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue hover:underline">
-                {{ showAllLocations ? 'Minder tonen' : `Alle ${locations.length} locaties bekijken` }}
-                <ArrowRightIcon class="size-4 transition-transform" :class="{ 'rotate-90': showAllLocations }" />
-            </button>
-        </template>
+        </PagedList>
         <p v-else class="text-sm text-gray-400 dark:text-slate-500 italic">Nog geen locaties.</p>
 
         <LocationDeleteModal v-model:open="deleteModalOpen" :location="deleteTarget"
@@ -58,10 +47,10 @@
             max-width-class="w-full sm:max-w-3xl">
             <div class="overflow-hidden rounded-lavoro-sm">
                 <OpenStreetMapWidget v-if="mapModalLocation" :key="mapModalLocation.id"
-                    :address="locationAddress(mapModalLocation)" height-class="h-[60vh]" />
+                    :address="formatAddress(mapModalLocation)" height-class="h-[60vh]" />
             </div>
             <p v-if="mapModalLocation" class="mt-3 text-sm text-gray-500 dark:text-slate-400">
-                {{ locationAddress(mapModalLocation) || 'Geen adres bekend' }}
+                {{ formatAddress(mapModalLocation) || 'Geen adres bekend' }}
             </p>
         </ModalDialog>
 
@@ -121,16 +110,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
-import { MapPinIcon, PlusIcon, ChevronRightIcon, TrashIcon, ArrowRightIcon } from '@heroicons/vue/24/outline';
+import { MapPinIcon, PlusIcon, ChevronRightIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import TextInput from '@/Components/UI/TextInput.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import LocationDeleteModal from '@/Components/Locations/LocationDeleteModal.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
-import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { hasPermission } from '@/Utilities/Utilities';
+import PagedList from '@/Components/UI/PagedList.vue';
+import { formatAddress, hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     customerId: { type: Number, required: true },
@@ -140,17 +129,8 @@ const props = defineProps({
 const canCreate = hasPermission('location.create');
 const canDelete = hasPermission('location.delete');
 
-function locationAddress(location) {
-    return [location.address, [location.postal_code, location.city].filter(Boolean).join(' ')]
-        .filter(Boolean)
-        .join(', ');
-}
-
-const locationPreviewCount = 2;
-const showAllLocations = ref(false);
-const visibleLocations = computed(() =>
-    showAllLocations.value ? props.locations : props.locations.slice(0, locationPreviewCount)
-);
+/** The columns Location::scopeMatchesText searches, so this list finds what every other location search finds. */
+const searchKeys = ['title', 'location_code', 'address', 'postal_code', 'city', 'country'];
 
 const mapModalOpen = ref(false);
 const mapModalLocation = ref(null);
