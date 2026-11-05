@@ -184,9 +184,10 @@
 
             <template v-if="numbering.counter > numbering.highest">
                 <p class="mt-1 text-sm text-slate-500">
-                    De nummers daarna waren van verwijderde facturen. Die zijn nooit gemaild,
-                    geïncasseerd of naar e-Boekhouden gestuurd, dus ze kunnen opnieuw uitgegeven
-                    worden &mdash; tenzij je er een als pdf met de hand hebt verstuurd.
+                    De nummers daarna zijn van facturen die onder de oude regel verwijderd zijn en
+                    hun nummer hielden. Die zijn nooit gemaild, geïncasseerd of naar e-Boekhouden
+                    gestuurd, dus ze kunnen opnieuw uitgegeven worden &mdash; tenzij je er een als pdf
+                    met de hand hebt verstuurd.
                 </p>
                 <button type="button" class="panel-button mt-3" @click="resetNumbering">
                     Terugzetten: de volgende wordt {{ numbering.prefix }}{{ numbering.highest + 1 }}
@@ -195,10 +196,13 @@
             <p v-else class="mt-1 text-sm text-slate-500">De nummering sluit aan op de laatste factuur.</p>
         </div>
     </PanelSection>
+
+    <RestartYearCard v-if="numbering.issued" :numbering="numbering" />
 </template>
 
 <script setup>
 import PanelSection from '@/Components/Landlord/PanelSection.vue'
+import RestartYearCard from '@/Components/Landlord/RestartYearCard.vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
 import { euro } from '@/Components/Landlord/money.js'

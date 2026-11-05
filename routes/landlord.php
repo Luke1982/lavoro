@@ -76,6 +76,8 @@ Route::prefix('beheer')
             Route::put('facturatie', [CatalogueController::class, 'updateIssuer'])->name('landlord.issuer.update');
             Route::post('facturatie/nummering', [CatalogueController::class, 'resetNumbering'])
                 ->name('landlord.numbering.reset');
+            Route::post('facturatie/opnieuw-beginnen', [CatalogueController::class, 'restartYear'])
+                ->name('landlord.numbering.restart');
             Route::get('{tenant}', [TenantController::class, 'edit'])->name('landlord.edit');
             Route::put('{tenant}', [TenantController::class, 'update'])->name('landlord.update');
             Route::post('{tenant}/bijkoop', [TopupController::class, 'addTopup'])->name('landlord.topup');

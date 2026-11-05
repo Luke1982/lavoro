@@ -316,17 +316,33 @@ klant overslaat en je de factuur zelf aanmaakt bij *Facturen bekijken*. Het
 abonnementsblok en de facturatiekaart laten regel voor regel zien wat er
 gefactureerd wordt en waarom.
 
-**Een verwijderde factuur geeft zijn nummer niet vanzelf terug.** Was het de
-laatste van het jaar, zet de nummering dan terug onder Catalogus → Facturatie.
+**Een gat van vóór deze regel** -- facturen die eerder verwijderd zijn en hun
+nummer hielden -- sluit je onder Catalogus → Facturatie met *terugzetten*, als het
+gat aan het eind van het jaar zit.
+
+**Een jaar opnieuw beginnen** is de laatste uitweg, voor een jaar vol proefdraaien:
+onderaan Catalogus verwijdert het alle facturen van dit jaar, creditfacturen en
+verstuurde meegerekend, en de volgende factuur wordt weer nummer 1. Je tikt het
+jaartal over om te bevestigen. Wat ze verrekenden staat weer open, en het
+automatisch factureren maakt de lopende periode daarna opnieuw aan. Het scherm
+zegt hoeveel er al gemaild, geïncasseerd of naar e-Boekhouden gestuurd is: die
+zet je daar zelf recht. Elk verwijderd nummer komt in de log. Een boeking in
+e-Boekhouden met een nummer dat terugkomt, wordt bij een andere relatie
+geweigerd in plaats van voor de nieuwe factuur aangezien; haal hem daar weg.
 
 Incasso: `/beheer/incasso` levert een SEPA-bestand (pain.008) voor de bank.
 Vereist per klant een machtiging en IBAN, en één keer een incassant-ID onder
 Catalogus → Facturatie.
 
-**Een foute factuur** die nog niet de deur uit is -- niet gemaild, geïncasseerd of
-naar e-Boekhouden gestuurd (ook een mislukte boeking telt: of die aankwam is niet
-zeker) -- verwijder je. Crediteren kan dan niet; dat kost twee nummers voor niets.
-Is hij wel de deur uit, dan gaat het met *crediteren*: dat maakt een
+**De nummering heeft geen gaten, en een factuur in de boeken verandert niet.**
+Verwijderen kan daarom alleen bij de nieuwste factuur van het hele systeem, over
+alle klanten heen, en alleen zolang niemand hem heeft: niet gemaild, geïncasseerd
+of naar e-Boekhouden gestuurd (ook een mislukte boeking telt: of die aankwam is
+niet zeker). Het nummer gaat dan terug naar de volgende factuur. Die ene factuur
+crediteer je niet; dat kost twee nummers voor niets.
+
+**Elke andere foute factuur** -- de deur uit, of er is daarna nog een factuur
+gemaakt -- gaat met *crediteren*: dat maakt een
 creditfactuur met een eigen nummer die alle bedragen terugdraait en de
 oorspronkelijke factuur noemt, op de pdf en in de UBL. De periode staat daarna
 weer open; wat de foute factuur verrekende (bijgekocht AI-tegoed, een

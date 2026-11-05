@@ -102,7 +102,7 @@ class Invoicer
     {
         $on = $on ?? CarbonImmutable::now();
 
-        return [...$this->subscriptionLines($on), ...$this->chargeLines()];
+        return [...$this->subscriptionLines($on), ...$this->chargeLines($this->charges())];
     }
 
     /**
@@ -227,18 +227,16 @@ class Invoicer
         return $days < $total ? compact('from', 'to', 'days', 'total') : null;
     }
 
-    /**
-     * The one-off charges raised since the previous invoice.
-     *
-     * @return array<int, array{description: string, kind: string, amount_cents: int}>
-     */
-    private function chargeLines(): array
+    /** The one-off charges raised since the previous invoice; none for the demo. */
+    private function charges(): Collection
     {
-        if ($this->tenant->isDemo()) {
-            return [];
-        }
+        return $this->tenant->isDemo() ? new Collection : $this->pendingCharges();
+    }
 
-        return $this->pendingCharges()->map(fn (PendingCharge $charge) => [
+    /** @return array<int, array{description: string, kind: string, amount_cents: int}> */
+    private function chargeLines(Collection $charges): array
+    {
+        return $charges->map(fn (PendingCharge $charge) => [
             'description' => $charge->description,
             'kind' => $charge->kind,
             'amount_cents' => (int) $charge->amount_cents,
@@ -453,7 +451,8 @@ class Invoicer
         $on = $on ?? CarbonImmutable::now();
 
         $subscription = $this->subscriptionLines($on);
-        $lines = [...$subscription, ...$this->chargeLines()];
+        $charges = $this->charges();
+        $lines = [...$subscription, ...$this->chargeLines($charges)];
 
         $subtotal = array_sum(array_column($lines, 'amount_cents'));
 
@@ -485,6 +484,8 @@ class Invoicer
             'vat_percent' => $vat_percent,
             'vat_cents' => $vat,
             'gross_cents' => $net + $vat,
+            /** Which charges are on it, so issue() marks those and not one that came in since. */
+            'charge_ids' => $charges->pluck('id')->all(),
         ];
     }
 
@@ -542,12 +543,79 @@ class Invoicer
 
             /** Only fixed here, so a failed invoice does not eat them. */
             PendingCharge::on('central')
-                ->where('tenant_id', $this->tenant->id)
+                ->whereIn('id', $preview['charge_ids'])
                 ->whereNull('invoice_id')
                 ->update(['invoice_id' => $invoice->id]);
 
             return $invoice;
         });
+    }
+
+    /**
+     * Deletes an invoice that should not have been made, and gives its number
+     * back.
+     *
+     * The series of invoice numbers has no gaps, and no invoice changes once
+     * it is in the books. So only the newest invoice in the whole system can
+     * go, and only while nobody has it; everything else is corrected with a
+     * credit note. What it settled is outstanding again, except a settlement
+     * over days before the start, which should never have been on it.
+     *
+     * Asked again once the counter is locked, on a fresh copy: an invoice
+     * mailed or booked a moment ago has left the building after all.
+     *
+     * @return string The number the next invoice gets.
+     */
+    public function withdraw(Invoice $invoice): string
+    {
+        $numbers = new InvoiceNumbers;
+
+        return DB::connection('central')->transaction(function () use ($invoice, $numbers) {
+            $numbers->lock($numbers->yearOf($invoice));
+            $invoice = Invoice::on('central')->lockForUpdate()->findOrFail($invoice->id);
+
+            if ($refusal = $this->withdrawRefusal($invoice)) {
+                throw new Refusal($refusal);
+            }
+
+            $period = $invoice->period_start->toDateString();
+            $afterwards = $this->settlementsFor($period, after: $invoice);
+
+            $numbers->giveBack($invoice);
+            $this->release($invoice);
+            $invoice->delete();
+
+            $this->resettle($period, $afterwards);
+            $this->forgetSettlementsBeforeTheStart();
+
+            return $numbers->upcoming($numbers->yearOf($invoice));
+        });
+    }
+
+    public function canWithdraw(Invoice $invoice): bool
+    {
+        return $this->withdrawRefusal($invoice) === null;
+    }
+
+    /** Why an invoice cannot be deleted, or nothing when it can. */
+    private function withdrawRefusal(Invoice $invoice): ?string
+    {
+        if ($invoice->hasLeftTheBuilding()) {
+            return "Factuur {$invoice->number} is al de deur uit, of is naar e-Boekhouden gestuurd."
+                . ' Terugdraaien gaat met een creditfactuur.';
+        }
+
+        if ($invoice->belongsToACredit()) {
+            return "Factuur {$invoice->number} hoort bij een creditering en blijft staan.";
+        }
+
+        if (!(new InvoiceNumbers)->isNewest($invoice)) {
+            return "Factuur {$invoice->number} is niet de laatste factuur: daarna is er nog een gemaakt."
+                . ' Een gat in de nummering mag niet; '
+                . ($invoice->gross_cents < 0 ? 'wat er anders moet, gaat op een nieuwe factuur.' : 'crediteer hem.');
+        }
+
+        return null;
     }
 
     /**
@@ -567,21 +635,28 @@ class Invoicer
             throw new Refusal("{$invoice->number} is zelf een creditfactuur. Wat er opnieuw gerekend moet worden, gaat op een nieuwe factuur.");
         }
 
-        if (!$invoice->hasLeftTheBuilding()) {
-            throw new Refusal("{$invoice->number} is nog niet de deur uit. Verwijder hem: crediteren kost twee nummers voor niets.");
+        if ($this->canWithdraw($invoice)) {
+            throw new Refusal("{$invoice->number} kan nog weg: het is de laatste factuur en hij is nog niet de deur uit."
+                . ' Verwijder hem; dan krijgt de volgende factuur zijn nummer.');
         }
 
         return DB::connection('central')->transaction(function () use ($invoice) {
+            /**
+             * The number first: that locks the counter before anything else is
+             * read, so what this sees of the series is not from before a
+             * delete that was still busy.
+             */
+            $on = CarbonImmutable::now();
+            $number = (new InvoiceNumbers)->next($on);
+
             $original = Invoice::on('central')->with('lines')->lockForUpdate()->findOrFail($invoice->id);
 
             if ($original->creditedBy()->exists()) {
                 throw new Refusal("{$original->number} is al gecrediteerd.");
             }
 
-            $on = CarbonImmutable::now();
-
             $note = Invoice::on('central')->create([
-                'number' => (new InvoiceNumbers)->next($on),
+                'number' => $number,
                 'tenant_id' => $original->tenant_id,
                 'tenant_name' => $this->tenant->name,
                 'credits_invoice_id' => $original->id,
@@ -605,54 +680,40 @@ class Invoicer
                 ]);
             }
 
-            $afterwards = $this->settlementsMadeAfter($original);
+            $period = $original->period_start->toDateString();
+            $afterwards = $this->settlementsFor($period, after: $original);
 
-            PendingCharge::on('central')->where('invoice_id', $original->id)->update(['invoice_id' => null]);
-
-            foreach ($afterwards as $charge) {
-                $this->withdraw($charge);
-
-                if (!isset($charge->data['cancellation'])) {
-                    $this->prorate(
-                        $charge->data['from_cents'],
-                        $charge->data['to_cents'],
-                        CarbonImmutable::parse($charge->data['changed_on']),
-                        $charge->data['from_package'],
-                        $charge->data['to_package'],
-                    );
-                }
-            }
+            $this->release($original);
+            $this->resettle($period, $afterwards);
 
             return $note;
         });
     }
 
+    /** What an invoice settled -- topped up credit, settlements -- is outstanding again. */
+    private function release(Invoice $invoice): void
+    {
+        PendingCharge::on('central')->where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
+    }
+
     /**
-     * The settlements for the period of an invoice that is being credited that
-     * were made after it, and so worked out against it: "paid at the old price,
-     * so the difference over the days to come". Open ones, and ones a later
-     * invoice has already charged.
-     *
-     * Once the invoice is credited that is no longer true; the next one charges
-     * the period afresh. A cancellation then needs no settlement -- that
-     * invoice stops at the last day -- and a package change is worked out
-     * again, the other way round: over the days already spent on the old
-     * package. After several changes in one period that uses the day of the
-     * last one, as the line itself already does.
+     * The settlements over a period: the open ones, and with $after also the
+     * ones a later invoice already charged that were made after that invoice.
+     * A cancellation counts for the period its last day falls in.
      *
      * @return Collection<int, PendingCharge>
      */
-    private function settlementsMadeAfter(Invoice $invoice): Collection
+    private function settlementsFor(string $period, ?Invoice $after = null): Collection
     {
-        $period = $invoice->period_start->toDateString();
         $cancelled_in = $this->endsOn() ? $this->periodFor($this->endsOn())[0]->toDateString() : null;
 
         return PendingCharge::on('central')
             ->where('tenant_id', $this->tenant->id)
             ->where('kind', 'proration')
-            ->where(fn ($query) => $query->whereNull('invoice_id')->orWhere(fn ($query) => $query
-                ->where('invoice_id', '!=', $invoice->id)
-                ->where('created_at', '>=', $invoice->created_at)))
+            ->where(fn ($query) => $query->whereNull('invoice_id')->when($after, fn ($query) => $query
+                ->orWhere(fn ($query) => $query
+                    ->where('invoice_id', '!=', $after->id)
+                    ->where('created_at', '>=', $after->created_at))))
             ->orderBy('id')
             ->get()
             ->filter(fn (PendingCharge $charge) => isset($charge->data['cancellation'])
@@ -662,10 +723,71 @@ class Invoicer
     }
 
     /**
+     * Works settlements out again for a period whose invoice is gone --
+     * credited, deleted, or the year started over -- if no other invoice
+     * still charges its subscription. An invoice that only carried topped up
+     * credit changes nothing about the period.
+     *
+     * They were worked out against that invoice: "paid at the old price, so
+     * the difference over the days to come". Now the next invoice charges the
+     * period afresh. A cancellation then needs no settlement -- that invoice
+     * stops at the last day -- and a package change is worked out the other
+     * way round: over the days already spent on the old package. After
+     * several changes in one period that uses the day of the last one, as the
+     * line itself already does.
+     *
+     * Each change once: a settlement worked out again after an earlier credit
+     * describes the same change as the one it replaced, and the reversal of
+     * that one goes too. All taken back first, then worked out: settle() adds
+     * a new settlement to the one already open for the period, and that must
+     * not be one of these.
+     *
+     * @param  Collection<int, PendingCharge>  $charges
+     */
+    private function resettle(string $period, Collection $charges): void
+    {
+        if ($this->subscriptionWasInvoicedFor(CarbonImmutable::parse($period))) {
+            return;
+        }
+
+        $this->pendingCharges()
+            ->filter(fn (PendingCharge $reversal) => in_array($reversal->data['withdraws'] ?? null, $charges->modelKeys(), true))
+            ->each(fn (PendingCharge $reversal) => $reversal->delete());
+
+        $charges->each(fn (PendingCharge $charge) => $this->reverseSettlement($charge));
+
+        $charges
+            ->reject(fn (PendingCharge $charge) => isset($charge->data['cancellation']))
+            ->unique(fn (PendingCharge $charge) => implode('|', [
+                $charge->data['changed_on'], $charge->data['from_cents'], $charge->data['to_cents'],
+            ]))
+            ->each(fn (PendingCharge $charge) => $this->prorate(
+                $charge->data['from_cents'],
+                $charge->data['to_cents'],
+                CarbonImmutable::parse($charge->data['changed_on']),
+                $charge->data['from_package'],
+                $charge->data['to_package'],
+            ));
+    }
+
+    /**
+     * Works the settlements over these periods out again after their invoices
+     * were deleted with the year (YearRestart).
+     *
+     * @param  iterable<int, string>  $periods  the first day of each, yyyy-mm-dd
+     */
+    public function resettlePeriods(iterable $periods): void
+    {
+        foreach ($periods as $period) {
+            $this->resettle($period, $this->settlementsFor($period));
+        }
+    }
+
+    /**
      * Takes a settlement back: an open one is deleted, one that an invoice
      * already charged is reversed on the next.
      */
-    private function withdraw(PendingCharge $charge): void
+    private function reverseSettlement(PendingCharge $charge): void
     {
         if (!$charge->invoice_id) {
             $charge->delete();

@@ -112,8 +112,13 @@ class EBoekhoudenClient
         return (int) $result->Rel_ID;
     }
 
-    /** Whether a booking with this invoice number is already there. */
-    public function invoiceExists(string $number): bool
+    /**
+     * The relation codes of the bookings with this invoice number; none when
+     * it is not there.
+     *
+     * @return array<int, string>
+     */
+    public function bookedRelations(string $number): array
     {
         return $this->session(function (string $session) use ($number) {
             $result = $this->call('GetMutaties', [
@@ -130,7 +135,11 @@ class EBoekhoudenClient
             ]);
 
             return collect($this->items($result->Mutaties->cMutatieList))
-                ->contains(fn (SimpleXMLElement $mutation) => (string) $mutation->Factuurnummer === $number);
+                ->filter(fn (SimpleXMLElement $mutation) => (string) $mutation->Factuurnummer === $number)
+                ->map(fn (SimpleXMLElement $mutation) => (string) $mutation->RelatieCode)
+                ->unique()
+                ->values()
+                ->all();
         });
     }
 

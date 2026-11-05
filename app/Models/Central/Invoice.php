@@ -3,7 +3,6 @@
 namespace App\Models\Central;
 
 use App\Models\Tenant;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
@@ -11,8 +10,6 @@ class Invoice extends Model
     protected $connection = 'central';
 
     protected $table = 'invoices';
-
-    protected $appends = ['left_the_building'];
 
     protected $casts = [
         'period_start' => 'date',
@@ -51,18 +48,18 @@ class Invoice extends Model
      * bookkeeping. From then on the way back is a credit note.
      *
      * A booking that failed counts too: whether it reached e-Boekhouden is not
-     * certain when the answer got lost. Deleted, and its number handed out
-     * again after a reset, the next invoice would be taken for it.
+     * certain when the answer got lost. Deleted, its number would go to the
+     * next invoice, and that one would clash with the booking.
      */
     public function hasLeftTheBuilding(): bool
     {
         return $this->mailed_at || $this->collected_at || $this->booked_at || $this->booking_error !== null;
     }
 
-    /** For the screen, so it does not keep its own copy of the rule. */
-    protected function leftTheBuilding(): Attribute
+    /** A credit note and the invoice it cancels belong together: either one without the other points at nothing. */
+    public function belongsToACredit(): bool
     {
-        return Attribute::get(fn () => $this->hasLeftTheBuilding());
+        return $this->credits_invoice_id !== null || $this->creditedBy()->exists();
     }
 
     protected $fillable = ['number', 'tenant_id', 'tenant_name', 'period_start', 'period_end', 'issued_on', 'due_on', 'subtotal_cents', 'discount_cents', 'total_cents', 'vat_percent', 'vat_cents', 'gross_cents', 'mailed_at', 'mail_error', 'collected_at', 'collection_batch', 'credits_invoice_id', 'booked_at', 'booking_number', 'booking_error'];

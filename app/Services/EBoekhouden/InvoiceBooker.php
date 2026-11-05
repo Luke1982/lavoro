@@ -11,8 +11,9 @@ use App\Support\Money;
  * Books an invoice from the admin panel in e-Boekhouden as a sent invoice: on
  * the debtors account, against revenue, per line.
  *
- * By hand and not on creation. An invoice can still be withdrawn until it has
- * left the building, and one that is already in the bookkeeping has left it.
+ * By hand and not on creation: once it is in the bookkeeping an invoice has
+ * left the building (Invoice::hasLeftTheBuilding), and the way back is a
+ * credit note.
  */
 class InvoiceBooker
 {
@@ -34,28 +35,51 @@ class InvoiceBooker
         $code = $tenant->eboekhouden_relation_code
             ?: throw new Refusal("Koppel {$tenant->name} eerst aan een relatie in e-Boekhouden; dat kan op het abonnementsscherm.");
 
-        /** Worked out first: a refusal here never left the building, and is not recorded as a failed booking. */
         $booking = $this->booking($invoice->loadMissing(['lines', 'credits']), $code);
 
+        /**
+         * Asked first: a booking that did arrive while the answer got lost is
+         * not booked twice. That is the only way this invoice can already be
+         * there -- after an attempt that failed, under its own relation.
+         * Anything else with its number is a different invoice that had it
+         * before the year was started over, and has to go in e-Boekhouden
+         * first.
+         */
+        $booked = $this->client->bookedRelations($invoice->number);
+        $arrived = $invoice->booking_error !== null && in_array($code, $booked, true);
+
+        if ($booked && !$arrived) {
+            throw new Refusal("Factuurnummer {$invoice->number} staat in e-Boekhouden al op relatie "
+                . implode(', ', array_map(fn (string $other) => $other ?: '(geen)', $booked))
+                . ', maar deze factuur is daar nooit heen gestuurd: het is een andere factuur met hetzelfde nummer.'
+                . ' Haal die boeking daar weg en boek opnieuw.');
+        }
+
+        $invoice->forceFill([
+            'booked_at' => now(),
+            'booking_number' => $arrived ? null : $this->send($invoice, $booking),
+            'booking_error' => null,
+        ])->save();
+
+        return $invoice;
+    }
+
+    /**
+     * Sends the booking. A failure stays with the invoice: whether it reached
+     * e-Boekhouden is not certain when the answer got lost, so from then on it
+     * counts as gone out (Invoice::hasLeftTheBuilding). Everything before this
+     * -- working the booking out, looking it up -- sends nothing and is not
+     * recorded.
+     */
+    private function send(Invoice $invoice, array $booking): string
+    {
         try {
-            /**
-             * Asked first, so a second click -- or a booking that did arrive
-             * while the answer got lost -- does not book the invoice twice.
-             */
-            $number = $this->client->invoiceExists($invoice->number) ? null : $this->client->addInvoice($booking);
+            return $this->client->addInvoice($booking);
         } catch (Refusal $e) {
             $invoice->forceFill(['booking_error' => mb_substr($e->getMessage(), 0, 255)])->save();
 
             throw $e;
         }
-
-        $invoice->forceFill([
-            'booked_at' => now(),
-            'booking_number' => $number,
-            'booking_error' => null,
-        ])->save();
-
-        return $invoice;
     }
 
     /**

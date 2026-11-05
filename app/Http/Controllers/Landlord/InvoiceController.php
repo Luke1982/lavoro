@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Landlord;
 
-use App\Exceptions\Refusal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Landlord\CreditInvoiceRequest;
 use App\Http\Requests\Landlord\DestroyInvoiceRequest;
@@ -46,6 +45,8 @@ class InvoiceController extends Controller
             'is_due' => $invoicer->isDue(),
             'is_credit' => $preview['total_cents'] < 0,
             'next_invoice_on' => $next_on?->toDateString(),
+            /** The one invoice that may be deleted: the newest in the system, if it is this customer's and nobody has it. */
+            'deletable_id' => $this->deletableId($tenant, $invoicer),
             /** Only while it lies ahead: the screen then says when the first invoice comes. */
             'starts_on' => $starts_on?->isFuture() ? $starts_on->toDateString() : null,
             'eboekhouden' => [
@@ -60,6 +61,13 @@ class InvoiceController extends Controller
                 ])
                 ->all(),
         ]);
+    }
+
+    private function deletableId(Tenant $tenant, Invoicer $invoicer): ?int
+    {
+        $newest = Invoice::on('central')->latest('id')->first();
+
+        return $newest?->tenant_id === $tenant->id && $invoicer->canWithdraw($newest) ? $newest->id : null;
     }
 
     public function issueInvoice(IssueInvoiceRequest $request, string $id)
@@ -78,48 +86,14 @@ class InvoiceController extends Controller
             . Money::human($invoice->gross_cents));
     }
 
-    /**
-     * Withdraws an invoice that should not have been made.
-     *
-     * Only while it has not left the building (Invoice::hasLeftTheBuilding):
-     * once the customer or the bookkeeping may have it, the way back is a
-     * credit note and not a delete.
-     *
-     * The number does not come back by itself. It stays spent in the counter,
-     * so the next invoice takes the following one, until someone resets the
-     * numbering in the catalogue -- a series with a gap is a question you can
-     * answer, two invoices with the same number is not.
-     */
+    /** Deletes an invoice that should not have been made; Invoicer::withdraw says when that may. */
     public function destroyInvoice(DestroyInvoiceRequest $request, string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 
-        if ($invoice->hasLeftTheBuilding()) {
-            throw new Refusal("Factuur {$invoice->number} is al de deur uit, of is naar e-Boekhouden gestuurd."
-                . ' Terugdraaien gaat met een creditfactuur, niet met verwijderen.');
-        }
+        $next = (new Invoicer($tenant))->withdraw($invoice);
 
-        /**
-         * A credit note and the invoice it cancels belong together: deleting
-         * either leaves the other pointing at nothing, and the charges the
-         * credit note released are already outstanding again.
-         */
-        if ($invoice->credits_invoice_id || $invoice->creditedBy()->exists()) {
-            throw new Refusal("Factuur {$invoice->number} hoort bij een creditering en blijft staan.");
-        }
-
-        $number = $invoice->number;
-
-        /** The charges it settled become outstanding again, for the next invoice. */
-        PendingCharge::on('central')->where('invoice_id', $invoice->id)->update(['invoice_id' => null]);
-
-        $invoice->delete();
-
-        /** Except a settlement over days before the start: that one should never have been on it. */
-        (new Invoicer($tenant))->forgetSettlementsBeforeTheStart();
-
-        return back()->with('status', "Factuur {$number} verwijderd. Het nummer komt niet vanzelf terug;"
-            . ' was het de laatste, zet de nummering dan terug onder Catalogus.');
+        return back()->with('status', "Factuur {$invoice->number} verwijderd; de volgende factuur wordt {$next}.");
     }
 
     /**

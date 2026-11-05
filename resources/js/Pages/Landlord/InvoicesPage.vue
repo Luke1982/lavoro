@@ -188,6 +188,7 @@ const props = defineProps({
     is_due: { type: Boolean, required: true },
     is_credit: { type: Boolean, default: false },
     next_invoice_on: { type: String, default: null },
+    deletable_id: { type: Number, default: null },
     starts_on: { type: String, default: null },
     unbilled: { type: Array, default: () => [] },
     eboekhouden: { type: Object, default: () => ({ configured: false, relation_code: null }) },
@@ -199,13 +200,14 @@ const issuing = ref(false)
 const busy = ref(null)
 
 /**
- * Wat de deur uit is wordt gecrediteerd, wat er nog niet uit is verwijderd. Een
+ * Alleen de nieuwste factuur van het hele systeem kan weg, zolang niemand hem
+ * heeft: de nummering heeft geen gaten. Al het andere wordt gecrediteerd. Een
  * creditfactuur crediteer je niet, en een factuur maar één keer.
  */
-const canCredit = (invoice) => invoice.left_the_building
-    && !invoice.credits_invoice_id && invoice.gross_cents >= 0 && !invoice.credited_by
+const canRemove = (invoice) => invoice.id === props.deletable_id
 
-const canRemove = (invoice) => !invoice.left_the_building && !invoice.credits_invoice_id && !invoice.credited_by
+const canCredit = (invoice) => !canRemove(invoice)
+    && !invoice.credits_invoice_id && invoice.gross_cents >= 0 && !invoice.credited_by
 
 const act = (invoice, url) => router.post(url, {}, {
     preserveScroll: true,
@@ -236,8 +238,8 @@ const credit = (invoice) => {
 }
 
 const remove = (invoice) => {
-    if (!confirm(`Factuur ${invoice.number} verwijderen? Het nummer komt niet vanzelf terug; `
-        + 'was het de laatste, zet de nummering dan terug onder Catalogus.')) {
+    if (!confirm(`Factuur ${invoice.number} verwijderen? Het is de laatste factuur, dus de volgende `
+        + 'krijgt dit nummer weer.')) {
         return
     }
 

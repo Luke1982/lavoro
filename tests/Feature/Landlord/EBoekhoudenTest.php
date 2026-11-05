@@ -27,10 +27,12 @@ class EBoekhoudenTest extends TestCase
     /** @var array<int, array<string, string>> The relations e-Boekhouden has. */
     private array $relations = [];
 
-    /** @var array<int, string> Invoice numbers already booked there. */
+    /** @var array<string, string> Invoice number => relation code, already booked there. */
     private array $booked = [];
 
     private ?string $refusal = null;
+
+    private ?string $lookup_refusal = null;
 
     /** @var array<int, array{operation: string, body: string}> */
     private array $sent = [];
@@ -70,10 +72,14 @@ class EBoekhoudenTest extends TestCase
                     ->map(fn ($value, $key) => "<{$key}>" . e($value) . "</{$key}>")->implode('') . '</cRelatie>')
                 ->implode('')),
             'AddRelatie' => '<ErrorMsg /><Rel_ID>77</Rel_ID>',
-            'GetMutaties' => '<ErrorMsg />' . $this->list('Mutaties', collect($this->booked)
-                ->filter(fn ($number) => $number === $field('Factuurnummer'))
-                ->map(fn ($number) => "<cMutatieList><MutatieNr>1</MutatieNr><Factuurnummer>{$number}</Factuurnummer></cMutatieList>")
-                ->implode('')),
+            'GetMutaties' => $this->lookup_refusal
+                ? '<ErrorMsg><LastErrorCode>E0001</LastErrorCode><LastErrorDescription>' . e($this->lookup_refusal)
+                    . '</LastErrorDescription></ErrorMsg>'
+                : '<ErrorMsg />' . $this->list('Mutaties', collect($this->booked)
+                    ->filter(fn ($relation, $number) => $number === $field('Factuurnummer'))
+                    ->map(fn ($relation, $number) => '<cMutatieList><MutatieNr>1</MutatieNr>'
+                        . "<RelatieCode>{$relation}</RelatieCode><Factuurnummer>{$number}</Factuurnummer></cMutatieList>")
+                    ->implode('')),
             'AddMutatie' => $this->refusal
                 ? '<ErrorMsg><LastErrorCode>E0016</LastErrorCode><LastErrorDescription>' . e($this->refusal)
                     . '</LastErrorDescription></ErrorMsg><Mutatienummer>0</Mutatienummer>'
@@ -185,15 +191,61 @@ class EBoekhoudenTest extends TestCase
         );
     }
 
+    /** The answer to an earlier attempt got lost, but the booking arrived. */
     public function test_an_invoice_that_is_already_there_is_not_booked_twice(): void
     {
         $invoice = (new Invoicer($this->customer()))->issue();
-        $this->booked[] = $invoice->number;
+        $invoice->update(['booking_error' => 'Geen antwoord van e-Boekhouden.']);
+        $this->booked[$invoice->number] = 'ACC1042';
 
         $this->book($invoice)->assertSessionHas('status');
 
         $this->assertNotContains('AddMutatie', $this->operations());
         $this->assertNotNull($invoice->fresh()->booked_at);
+    }
+
+    /**
+     * After the year was started over, the number can be in e-Boekhouden for
+     * a different invoice of another customer. That one is not taken for it.
+     */
+    public function test_a_number_booked_on_another_relation_is_refused(): void
+    {
+        $invoice = (new Invoicer($this->customer()))->issue();
+        $this->booked[$invoice->number] = 'ACC7777';
+
+        $this->book($invoice)->assertSessionHas('error', fn ($message) => str_contains($message, 'ACC7777'));
+
+        $this->assertNotContains('AddMutatie', $this->operations());
+        $this->assertNull($invoice->fresh()->booked_at);
+    }
+
+    /**
+     * After the year was started over, the same customer usually gets the
+     * same number again. This invoice was never sent, so what is there is the
+     * old one.
+     */
+    public function test_a_number_already_there_for_an_invoice_never_sent_is_refused(): void
+    {
+        $invoice = (new Invoicer($this->customer()))->issue();
+        $this->booked[$invoice->number] = 'ACC1042';
+
+        $this->book($invoice)->assertSessionHas('error', fn ($message) => str_contains($message, 'nooit heen gestuurd'));
+
+        $this->assertNotContains('AddMutatie', $this->operations());
+        $this->assertNull($invoice->fresh()->booked_at);
+    }
+
+    /** Looking it up sends nothing, so a failure there does not count as an invoice that may have gone out. */
+    public function test_a_failed_lookup_is_not_kept_as_a_failed_booking(): void
+    {
+        $invoice = (new Invoicer($this->customer()))->issue();
+        $this->lookup_refusal = 'Even niet bereikbaar';
+
+        $this->book($invoice)->assertSessionHas('error', fn ($message) => str_contains($message, 'Even niet bereikbaar'));
+
+        $this->assertNotContains('AddMutatie', $this->operations());
+        $this->assertNull($invoice->fresh()->booking_error);
+        $this->delete("/beheer/{$invoice->tenant_id}/facturen/{$invoice->id}")->assertSessionHas('status');
     }
 
     public function test_booking_needs_a_linked_relation(): void

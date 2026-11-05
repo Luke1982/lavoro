@@ -9,6 +9,7 @@ import LoginPage from '../LoginPage.vue'
 import ResellersPage from '../ResellersPage.vue'
 import BillingCard from '@/Components/Landlord/BillingCard.vue'
 import EBoekhoudenCard from '@/Components/Landlord/EBoekhoudenCard.vue'
+import RestartYearCard from '@/Components/Landlord/RestartYearCard.vue'
 
 /**
  * <Head> heeft de hoofdmanager van createInertiaApp nodig en usePage() de
@@ -43,7 +44,7 @@ const screens = [
         settings: [{ id: 1, key: 'vat_percent', value: 21 }],
         usage: { starter: 2 },
         issuer_rows: [{ id: 1, key: 'incassant_id', value: 'NL98ZZZ' }],
-        numbering: { year: 2026, prefix: '2026-LVR-', counter: 14, highest: 0 },
+        numbering: { year: 2026, prefix: '2026-LVR-', counter: 14, highest: 0, issued: 0, mailed: 0, collected: 0, booked: 0 },
     }, 'Terugzetten: de volgende wordt 2026-LVR-1'],
 
     ['de incassolijst', CollectionsPage, {
@@ -110,6 +111,23 @@ describe('de facturenlijst', () => {
         expect(text).toContain('Abonnement Lavoro Starter')
         expect(text).toContain('BTW 21%')
         expect(text).toContain('33,28')
+    })
+})
+
+/**
+ * Een heel jaar weggooien is de laatste uitweg. Het scherm zegt hoeveel er al
+ * de deur uit is, want dat moet daarna met de hand rechtgezet worden.
+ */
+describe('een jaar opnieuw beginnen', () => {
+    it('noemt wat er al de deur uit is en vraagt het jaartal', () => {
+        const text = mount(RestartYearCard, {
+            props: { numbering: { year: 2026, prefix: '2026-LVR-', issued: 12, mailed: 9, collected: 2, booked: 0 } },
+        }).text()
+
+        expect(text).toContain('alle 12 facturen van 2026')
+        expect(text).toContain('9 gemaild, 2 geïncasseerd')
+        expect(text).not.toContain('naar e-Boekhouden')
+        expect(text).toContain('Tik 2026 over om te bevestigen')
     })
 })
 
@@ -184,16 +202,15 @@ describe('de opbouw van de prijs', () => {
 describe('de facturen en hun creditering', () => {
     const invoice = (fields) => ({
         id: 1, number: '2026-LVR-1', issued_on: '2026-11-04', gross_cents: 3328, credits_invoice_id: null,
-        mailed_at: null, collected_at: null, booked_at: null, left_the_building: false, lines: [], credits: null,
-        credited_by: null, ...fields,
+        mailed_at: null, collected_at: null, booked_at: null, lines: [], credits: null, credited_by: null, ...fields,
     })
-    const page = (invoices, eboekhouden = { configured: true, relation_code: 'ACC1042' }, unbilled = []) => mount(InvoicesPage, {
-        props: { tenant, invoices, preview, is_due: false, next_invoice_on: '2026-12-01', eboekhouden, unbilled },
+    const page = (invoices, eboekhouden = { configured: true, relation_code: 'ACC1042' }, unbilled = [], deletable_id = null) => mount(InvoicesPage, {
+        props: { tenant, invoices, preview, is_due: false, next_invoice_on: '2026-12-01', eboekhouden, unbilled, deletable_id },
         global: { stubs: { Link: true } },
     }).text()
 
-    it('biedt crediteren en boeken aan bij een factuur die de deur uit is', () => {
-        const text = page([invoice({ mailed_at: '2026-11-04T10:00:00', left_the_building: true })])
+    it('biedt crediteren en boeken aan bij een factuur die niet meer weg kan', () => {
+        const text = page([invoice({ mailed_at: '2026-11-04T10:00:00' })])
 
         expect(text).toContain('crediteren')
         expect(text).toContain('naar e-Boekhouden')
@@ -212,8 +229,8 @@ describe('de facturen en hun creditering', () => {
         expect(text).not.toContain('verwijderen')
     })
 
-    it('biedt bij een factuur die nog niet de deur uit is verwijderen aan, geen crediteren', () => {
-        const text = page([invoice({})])
+    it('biedt bij de nieuwste factuur die nog niet de deur uit is verwijderen aan, geen crediteren', () => {
+        const text = page([invoice({})], undefined, [], 1)
 
         expect(text).toContain('verwijderen')
         expect(text).not.toContain('crediteren')
