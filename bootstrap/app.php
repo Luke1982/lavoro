@@ -163,7 +163,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 );
             }
 
-            if ($response->getStatusCode() === 419) {
+            /**
+             * A redirect is an answer only for a page. A script calling /api
+             * follows it without saying so, lands on an ordinary page with a 200
+             * and takes that for success: the remark, the photo or the location
+             * that was refused is gone, and nobody hears of it. So a request
+             * that asked for JSON gets its real status, here and below.
+             */
+            if ($response->getStatusCode() === 419 && !$request->expectsJson()) {
                 return back()->with([
                     'message' => 'De pagina is verlopen, ververs de pagina en probeer het nogmaals.',
                 ]);
@@ -177,7 +184,8 @@ return Application::configure(basePath: dirname(__DIR__))
              * happened when a half created customer tripped the admin panel.
              */
             $notProd = app()->environment(['local', 'development', 'testing']);
-            if (!$notProd && !$request->isMethodSafe() && in_array($response->getStatusCode(), [500, 503, 404])) {
+            if (!$notProd && !$request->isMethodSafe() && !$request->expectsJson()
+                && in_array($response->getStatusCode(), [500, 503, 404])) {
                 $messages = [
                     500 => 'Er is een serverfout opgetreden. Probeer het later opnieuw.',
                     503 => 'De service is momenteel niet beschikbaar.',

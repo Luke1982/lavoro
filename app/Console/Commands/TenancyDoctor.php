@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Middleware\TenancyBeforeCsrfForStatefulApi;
 use App\Http\Middleware\TenancyForStatefulApi;
 use App\Models\Central\IssuerSetting;
 use App\Models\Central\TenantProvisioningRequest;
@@ -791,6 +792,18 @@ class TenancyDoctor extends Command
                 . TenancyForStatefulApi::class . ', but is '
                 . var_export(config('sanctum.middleware.authenticate_session'), true)
                 . '. Without that hook /api looks for the user in the wrong database.');
+
+        /**
+         * The same customer has to be set before the CSRF check, or a request
+         * whose session has expired ends in a 500 instead of a 419: the refused
+         * session is saved, and saving looks for the user in the central database.
+         */
+        config('sanctum.middleware.validate_csrf_token') === TenancyBeforeCsrfForStatefulApi::class
+            ? $this->pass('an expired session on /api gets a 419, not a 500')
+            : $this->bad('sanctum.middleware.validate_csrf_token should be '
+                . TenancyBeforeCsrfForStatefulApi::class . ', but is '
+                . var_export(config('sanctum.middleware.validate_csrf_token'), true)
+                . '. Without it every /api save after an expired session is a 500.');
 
         collect(app(Router::class)->getMiddlewareGroups()['api'] ?? [])
             ->contains(EnsureFrontendRequestsAreStateful::class)

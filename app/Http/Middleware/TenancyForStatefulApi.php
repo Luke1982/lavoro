@@ -5,7 +5,9 @@ namespace App\Http\Middleware;
 use App\Models\Central\AccessTokenTenantLookup;
 use App\Models\Tenant;
 use Closure;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
 
@@ -18,10 +20,42 @@ use Laravel\Sanctum\Http\Middleware\AuthenticateSession;
  * up in the central database by then. The last element of that pipeline is
  * configurable through sanctum.middleware.authenticate_session, and that is the
  * first point where the session exists and the user has not been fetched yet.
+ *
+ * The CSRF check before it needs the tenant as well, which is why
+ * TenancyBeforeCsrfForStatefulApi calls initialize() first; here it then
+ * finds the tenant already set.
  */
 class TenancyForStatefulApi
 {
     public function handle(Request $request, Closure $next): mixed
+    {
+        static::initialize($request);
+
+        return app(AuthenticateSession::class)->handle($request, $next);
+    }
+
+    /**
+     * The tenant from the session, else from the long-lived cookie that
+     * "remember me" leaves, else from a personal access token.
+     *
+     * Without a tenant nothing can be logged in: the users table lives in the
+     * tenant database. Left alone, the guard would still look for one -- from
+     * the session or from the remember-me cookie -- and ask the central
+     * database for a users table that is not there: a 500 instead of a 401.
+     * InitializeTenancyBySession does the same for the ordinary pages.
+     */
+    public static function initialize(Request $request): void
+    {
+        if (!tenancy()->initialized && $tenant = static::tenantFor($request)) {
+            tenancy()->initialize($tenant);
+        }
+
+        if (!tenancy()->initialized) {
+            static::forgetTheUser($request);
+        }
+    }
+
+    private static function tenantFor(Request $request): ?Tenant
     {
         $tenant_id = $request->hasSession() ? $request->session()->get('tenant_id') : null;
         $tenant_id = $tenant_id ?: $request->cookie('tenant_id');
@@ -34,14 +68,26 @@ class TenancyForStatefulApi
                 ->value('tenant_id');
         }
 
-        if ($tenant_id && !tenancy()->initialized) {
-            $tenant = Tenant::on('central')->find($tenant_id);
+        return $tenant_id ? Tenant::on('central')->find($tenant_id) : null;
+    }
 
-            if ($tenant) {
-                tenancy()->initialize($tenant);
-            }
+    private static function forgetTheUser(Request $request): void
+    {
+        $guard = Auth::guard();
+
+        Auth::forgetUser();
+
+        if (!$guard instanceof SessionGuard) {
+            return;
         }
 
-        return app(AuthenticateSession::class)->handle($request, $next);
+        if ($request->hasSession()) {
+            $request->session()->forget($guard->getName());
+        }
+
+        $recaller = $guard->getRecallerName();
+
+        $request->cookies->remove($recaller);
+        cookie()->queue(cookie()->forget($recaller));
     }
 }

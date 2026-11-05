@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\TenancyBeforeCsrfForStatefulApi;
+use App\Http\Middleware\TenancyForStatefulApi;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Laravel\Sanctum\Sanctum;
 
 return [
@@ -76,9 +79,9 @@ return [
     */
 
     'middleware' => [
-        'authenticate_session' => App\Http\Middleware\TenancyForStatefulApi::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'authenticate_session' => TenancyForStatefulApi::class,
+        'encrypt_cookies' => EncryptCookies::class,
+        'validate_csrf_token' => TenancyBeforeCsrfForStatefulApi::class,
     ],
 
 ];
