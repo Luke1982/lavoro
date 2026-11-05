@@ -60,13 +60,7 @@ class ProjectController extends Controller
         ]);
 
         if ($request->user()->can('manageFinancials', $project)) {
-            $project->load('financialNotesUpdatedBy:id,name');
-        } else {
-            $project->makeHidden([
-                'financial_notes',
-                'financial_notes_updated_at',
-                'financial_notes_updated_by',
-            ]);
+            $project->load('financialNotesUpdatedBy:id,name')->makeVisible(Project::FINANCIAL_ATTRIBUTES);
         }
 
         return inertia('Projects/ShowPage', [

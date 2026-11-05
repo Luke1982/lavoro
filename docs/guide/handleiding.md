@@ -267,7 +267,7 @@ Op de projectpagina staan de details, een **tijdlijn** (mijlpalen, werkbonnen me
 
 De werkbonnen staan er als kaartjes: nummer en aanmaakdatum, klant met de locatie eronder, de geplande afspraken (de eerste twee; een +teller klapt de rest uit als je eroverheen beweegt), de fase (met bijvoorbeeld de afsluitdatum of de werkelijke starttijd eronder), de monteurs en hoeveel taken er af zijn. Het kleurbalkje links volgt de fase. Op een smal scherm klapt de rij samen tot een compact kaartje met dezelfde informatie. Dezelfde weergave wordt gebruikt op de klantpagina.
 
-Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met financiële notities (met vastgelegd wie ze het laatst bijwerkte).
+Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met financiële notities (met vastgelegd wie ze het laatst bijwerkte). Wijzigingen in die notities komen niet in de tijdlijn: alleen de laatste bewerker en het tijdstip worden bewaard. Zonder dat recht zijn de notities nergens te zien, ook niet via de assistent.
 
 ## Documenten, foto's en opmerkingen
 

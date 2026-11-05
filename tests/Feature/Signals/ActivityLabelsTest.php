@@ -22,7 +22,6 @@ use Tests\TestCase;
  */
 class ActivityLabelsTest extends TestCase
 {
-
     /** Models that record history and therefore need a label for every field. */
     private const MODELS = [
         ServiceOrder::class,
@@ -51,7 +50,7 @@ class ActivityLabelsTest extends TestCase
                 ? $reflection->getProperty('activity_ignore')->getDefaultValue() : [];
 
             foreach ($model->getFillable() as $field) {
-                if (isset($labels[$field]) || in_array($field, $ignored, true)) {
+                if (isset($labels[$field]) || in_array($field, [...$ignored, ...$model->getHidden()], true)) {
                     continue;
                 }
 

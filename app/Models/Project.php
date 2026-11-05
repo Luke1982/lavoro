@@ -9,8 +9,13 @@ class Project extends Model
 {
     use RecordsHistory;
 
+    public const FINANCIAL_ATTRIBUTES = [
+        'financial_notes',
+        'financial_notes_updated_at',
+        'financial_notes_updated_by',
+    ];
+
     protected array $activity_labels = [
-        'financial_notes' => 'Financiële notities',
         'title' => 'Titel',
         'description' => 'Omschrijving',
         'customer_id' => 'Klant',
@@ -23,11 +28,6 @@ class Project extends Model
 
     protected array $activity_relations = [
         'customer_id' => ['customer', 'name'],
-    ];
-
-    protected array $activity_ignore = [
-        'financial_notes_updated_at',
-        'financial_notes_updated_by',
     ];
 
     protected $fillable = [
@@ -43,6 +43,14 @@ class Project extends Model
         'financial_notes_updated_at',
         'financial_notes_updated_by',
     ];
+
+    /**
+     * Alleen wie de financiën beheert mag ze zien, en een project wordt op veel
+     * pagina's meegestuurd; een pagina die ze nodig heeft maakt ze zichtbaar.
+     * Verborgen velden komen ook niet in de tijdlijn: de notities zijn een
+     * spreadsheet die bij elke celwijziging in zijn geheel wordt opgeslagen.
+     */
+    protected $hidden = self::FINANCIAL_ATTRIBUTES;
 
     protected function casts(): array
     {
