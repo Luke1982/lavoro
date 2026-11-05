@@ -112,8 +112,9 @@ function onServiceOrderUnplanned(id) {
 }
 
 /**
- * De lijst met ongeplande werkbonnen kent geen projectwerkbonnen, dus alleen die
- * lijst hoeft terug te komen — en de flash, die het antwoord van de backend draagt.
+ * Een werkbon in de lijst met ongeplande werkbonnen hangt nooit onder een projectbalk,
+ * dus alleen die lijst hoeft terug te komen — en de flash, die het antwoord van de
+ * backend draagt.
  * De planning eromheen blijft staan doordat de pagina niet opnieuw opgebouwd wordt.
  */
 function onDeleteServiceOrder(serviceorder) {

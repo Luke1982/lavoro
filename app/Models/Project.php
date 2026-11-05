@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\RecordsHistory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
@@ -58,6 +59,24 @@ class Project extends Model
             'financial_notes' => 'array',
             'financial_notes_updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Projecten met een looptijd: alleen die krijgen een balk in de planner.
+     */
+    public function scopeScheduled(Builder $query): Builder
+    {
+        return $query->whereNotNull('start_date')->whereNotNull('end_date');
+    }
+
+    /**
+     * Projecten waarvan de balk nog niet voorbij is. Alleen daaronder vindt de planner
+     * een werkbon terug; die van een afgelopen project, of van een project zonder
+     * looptijd, horen in de lijst met ongeplande werkbonnen.
+     */
+    public function scopeOpenForPlanning(Builder $query): Builder
+    {
+        return $query->scheduled()->whereDate('end_date', '>=', today());
     }
 
     public function customer()

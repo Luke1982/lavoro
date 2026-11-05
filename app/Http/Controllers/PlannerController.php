@@ -61,7 +61,7 @@ class PlannerController extends Controller
                 'taskInstances.product.brand:id,name',
             ])
                 ->withCount('events')
-                ->whereNull('project_id')
+                ->whereDoesntHave('project', fn ($q) => $q->openForPlanning())
                 ->whereHas('serviceOrderStage', function ($q) {
                     $q->where('is_plannable_state', true)
                         ->where('is_planned_state', false);
@@ -74,12 +74,13 @@ class PlannerController extends Controller
                     'resolved_city',
                     ServiceOrderLocationResolver::city($order),
                 )),
-            'projects' => Project::query()
-                ->whereNotNull('start_date')
-                ->whereNotNull('end_date')
+            'projects' => Project::scheduled()
                 ->with([
                     'customer:id,name',
-                    'serviceOrders' => fn ($q) => $q->doesntHave('events')->orderBy('id'),
+                    'serviceOrders' => fn ($q) => $q
+                        ->doesntHave('events')
+                        ->whereHas('project', fn ($pq) => $pq->openForPlanning())
+                        ->orderBy('id'),
                 ])
                 ->orderBy('start_date')
                 ->get(),

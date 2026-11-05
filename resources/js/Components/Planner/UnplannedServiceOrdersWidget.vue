@@ -9,7 +9,7 @@
             <div v-if="listedServiceOrders.length" class="px-3">
                 <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                     <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
-                    <input v-model="searchQuery" type="text" placeholder="Zoeken op klant, plaats of omschrijving..."
+                    <input v-model="searchQuery" type="text" placeholder="Zoeken op nummer, klant, plaats of omschrijving..."
                         class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
                 </label>
             </div>
@@ -25,6 +25,8 @@
                             #{{ so.id }}
                             <ExclamationTriangleIcon v-if="so.events_count > 0" class="size-4 text-amber-500"
                                 v-tooltip="`Let op: deze werkbon heeft al ${so.events_count} eerdere afspra(a)k(en) gekoppeld`" />
+                            <FolderIcon v-if="so.project" class="size-4 text-gray-500 dark:text-slate-400"
+                                v-tooltip="`Hoort bij project ${so.project.title}`" />
                             <span v-if="so.maintenance_contract_id"
                                 v-tooltip="`Komt uit onderhoudscontract #${so.maintenance_contract_id}`"
                                 class="rounded-full bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 ring-1 ring-inset ring-purple-600/20 dark:bg-purple-900/20 dark:text-purple-300 dark:ring-purple-500/30">
@@ -108,10 +110,10 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, DocumentCheckIcon, ExclamationTriangleIcon,
-    MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, MapPinIcon,
+    FolderIcon, MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, MapPinIcon,
 } from '@heroicons/vue/24/outline'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
-import { nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
+import { formatWbNumber, nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import { canDeleteServiceOrder, canReadServiceOrders } from '@/Utilities/serviceOrders'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
@@ -157,6 +159,7 @@ const {
     filteredItems: filteredServiceOrders,
     visibleItems: visibleServiceOrders,
 } = useExpandableFilter(listedServiceOrders, (so, query) =>
+    `#${so.id} ${formatWbNumber(so.id)}`.toLowerCase().includes(query) ||
     so.customer?.name?.toLowerCase().includes(query) ||
     so.resolved_city?.toLowerCase().includes(query) ||
     so.description?.toLowerCase().includes(query),
