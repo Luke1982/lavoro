@@ -131,6 +131,8 @@ class HandleInertiaRequests extends Middleware
                 : null,
             /** Also on a partial reload: app.js puts it in the tab after every visit. */
             'title' => Inertia::always(fn () => PageTitle::for($request)),
+            /** For the link on the login screen, which Google Play requires in the app. */
+            'privacy_url' => config('app.privacy_url'),
             /** The package this customer subscribes to, for the licence card in the menu. */
             'tenant' => tenancy()->initialized ? [
                 'name' => tenancy()->tenant->name,

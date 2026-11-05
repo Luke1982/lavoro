@@ -89,9 +89,12 @@ export function useLocationTracker() {
         if (is_native) {
             // The native foreground service collects GPS and POSTs to the server
             // independently of the WebView, so it keeps running when the app is
-            // backgrounded. It needs the server origin and reads session cookies
-            // from the shared native cookie store for authentication.
-            await LocationTracker.start({ serverUrl: window.location.origin });
+            // backgrounded. It reads session cookies from the shared native
+            // cookie store, and holds to the same tracking window as below.
+            await LocationTracker.start({
+                serverUrl: window.location.origin,
+                window: usePage().props.location_tracking,
+            });
             is_tracking.value = true;
             return;
         }

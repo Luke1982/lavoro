@@ -8,42 +8,74 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.webkit.CookieManager;
 import android.webkit.URLUtil;
+import android.webkit.WebView;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
+import androidx.core.splashscreen.SplashScreen;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.CapConfig;
+import com.getcapacitor.WebViewListener;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class MainActivity extends BridgeActivity {
 
+    private static final long MAX_SPLASH_MS = 10_000;
+    private static final String SPLASH_BACKGROUND = "#081020";
+
     private final Map<Long, String> pending_downloads = new HashMap<>();
     private BroadcastReceiver download_receiver;
+    private volatile boolean first_page_loaded = false;
 
+    /**
+     * Every customer works on the same server and the login decides which
+     * company they are in, so the server is fixed when the app is built
+     * (BuildConfig.SERVER_URL) and nobody types an address.
+     *
+     * The page in the web directory is only shown when that server cannot be
+     * reached. Web debugging follows the build type: on in a debug build, off
+     * in the one that goes to Google Play.
+     *
+     * The splash screen stays until the first page has loaded, so the app goes
+     * from the logo straight to Lavoro instead of through a white WebView. A
+     * slow server keeps it no longer than MAX_SPLASH_MS; the WebView behind it
+     * has the same colour.
+     */
     @Override
+    @SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
+        long started_at = SystemClock.uptimeMillis();
+        SplashScreen.installSplashScreen(this).setKeepOnScreenCondition(
+            () -> !first_page_loaded && SystemClock.uptimeMillis() - started_at < MAX_SPLASH_MS
+        );
+
         registerPlugin(LocationTrackerPlugin.class);
-        registerPlugin(AppConfigPlugin.class);
 
-        String url = getSharedPreferences(AppConfigPlugin.PREFS, Context.MODE_PRIVATE)
-            .getString(AppConfigPlugin.URL_KEY, null);
-
-        if (url != null) {
-            String host = Uri.parse(url).getHost();
-            this.config = new CapConfig.Builder(this)
-                .setServerUrl(url)
-                .setAllowNavigation(new String[] { host })
-                .setWebContentsDebuggingEnabled(true)
-                .create();
-        }
+        this.config = new CapConfig.Builder(this)
+            .setServerUrl(BuildConfig.SERVER_URL)
+            .setAllowNavigation(new String[] { Uri.parse(BuildConfig.SERVER_URL).getHost() })
+            .setErrorPath(LavoroWebViewClient.OFFLINE_PAGE)
+            .setBackgroundColor(SPLASH_BACKGROUND)
+            .setPluginsConfiguration(CapConfig.loadDefault(this).getObject("plugins"))
+            .create();
 
         super.onCreate(savedInstanceState);
+
+        this.bridge.setWebViewClient(new LavoroWebViewClient(this.bridge));
+        this.bridge.addWebViewListener(new WebViewListener() {
+            @Override
+            public void onPageLoaded(WebView webView) {
+                first_page_loaded = true;
+            }
+        });
 
         this.bridge.getWebView().setDownloadListener((downloadUrl, userAgent, contentDisposition, mimetype, contentLength) -> {
             String cookies = CookieManager.getInstance().getCookie(downloadUrl);
@@ -95,11 +127,7 @@ public class MainActivity extends BridgeActivity {
         };
 
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(download_receiver, filter, RECEIVER_EXPORTED);
-        } else {
-            registerReceiver(download_receiver, filter);
-        }
+        ContextCompat.registerReceiver(this, download_receiver, filter, ContextCompat.RECEIVER_EXPORTED);
     }
 
     @Override

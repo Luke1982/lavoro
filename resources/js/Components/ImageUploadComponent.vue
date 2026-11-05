@@ -140,7 +140,6 @@
                 </div>
             </div>
         </div>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
 
         <ModalDialog :open="deleteConfirmOpen" @update:open="deleteConfirmOpen = $event" max-width-class="sm:max-w-sm">
             <div class="sm:flex sm:items-start gap-4">
@@ -183,6 +182,7 @@ import 'tui-image-editor/dist/tui-image-editor.min.css';
 import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
+import 'glightbox/dist/css/glightbox.min.css';
 import emblaCarouselVue from 'embla-carousel-vue';
 import ImageThumbnailMenu from '@/Components/UI/ImageThumbnailMenu.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';

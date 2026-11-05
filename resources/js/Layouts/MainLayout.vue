@@ -1,6 +1,5 @@
 <template>
     <OfflineBanner />
-    <UpdateBanner />
     <PushPermissionBanner v-if="page.props.auth?.user" />
     <div class="min-h-dvh bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 transition-colors">
         <TransitionRoot as="template" :show="sidebarOpen">
@@ -110,7 +109,6 @@ import MenuSidebar from '@/Components/Layout/MenuSidebar.vue'
 import GlobalNotification from '@/Components/GlobalNotification.vue'
 import InternalAnnouncementBar from '@/Components/InternalAnnouncementBar.vue'
 import OfflineBanner from '@/Components/UI/OfflineBanner.vue'
-import UpdateBanner from '@/Components/UI/UpdateBanner.vue'
 import PushPermissionBanner from '@/Components/UI/PushPermissionBanner.vue'
 import LogoutOverlay from '@/Components/UI/LogoutOverlay.vue'
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
@@ -123,7 +121,6 @@ import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'
 import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
 import { useWebPush } from '@/Composables/useWebPush.js'
-import { useAppUpdate } from '@/Composables/useAppUpdate.js'
 import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 
 // Push requires a configured Firebase project (google-services.json on
@@ -139,7 +136,6 @@ const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
 const { register: register_push } = usePushNotifications()
 const { sync: sync_web_push, disable: disable_web_push } = useWebPush()
-const { check: check_update } = useAppUpdate()
 const { init: init_deep_links } = useDeepLinks()
 
 const page = usePage()
@@ -155,7 +151,6 @@ onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
         try { await init_deep_links() } catch (e) { console.error('Deep link init failed:', e) }
-        try { await check_update() } catch (e) { console.error('Update check failed:', e) }
         if (PUSH_ENABLED) {
             try {
                 await register_push()

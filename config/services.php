@@ -57,6 +57,20 @@ return [
         'revenue_account' => env('EBOEKHOUDEN_REVENUE_ACCOUNT', '8000'),
     ],
 
+    /**
+     * The Android app, for /.well-known/assetlinks.json. The fingerprints are
+     * the SHA-256 of every key that signs an installed copy, separated by
+     * commas: the Play app signing key (Play Console, Test and release, App
+     * integrity) and the debug key for development builds.
+     */
+    'android' => [
+        'package_name' => env('ANDROID_PACKAGE_NAME', 'nl.lavoro.fsm'),
+        'sha256_cert_fingerprints' => array_values(array_filter(array_map('trim', explode(',', env(
+            'ANDROID_SHA256_CERT_FINGERPRINTS',
+            '00:8D:D1:A2:9C:75:D0:C0:AD:AB:DC:50:44:03:26:C9:C7:2C:7B:D3:0B:63:FD:85:3C:B0:52:84:89:8A:9E:DE',
+        ))))),
+    ],
+
     'snelstart' => [
         'client_key' => env('SNELSTART_CLIENT_KEY'),
         'subscription_key' => env('SNELSTART_SUBSCRIPTION_KEY'),

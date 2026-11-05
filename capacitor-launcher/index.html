@@ -16,6 +16,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center;
             padding: 2rem 1.5rem;
             padding-top: max(2rem, env(safe-area-inset-top));
             padding-bottom: max(2rem, env(safe-area-inset-bottom));
@@ -39,92 +40,24 @@
             object-fit: contain;
         }
 
-        .logo-fallback {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #3b82f6;
-            letter-spacing: -0.04em;
-        }
-
         h1 {
-            font-size: 1.75rem;
+            font-size: 1.375rem;
             font-weight: 700;
             letter-spacing: -0.02em;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
         }
 
-        .tagline {
-            color: #334155;
-            font-size: 0.875rem;
-            margin-bottom: 3rem;
-        }
-
-        /* Connecting state */
-        #status-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .spinner {
-            width: 28px;
-            height: 28px;
-            border: 3px solid #0f1f35;
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .status-text {
-            color: #475569;
-            font-size: 0.875rem;
-        }
-
-        /* Setup form */
-        #setup-screen {
-            display: none;
-            flex-direction: column;
-            gap: 0.625rem;
-            width: 100%;
-            max-width: 360px;
-        }
-
-        label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #475569;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: #0d1b2e;
-            border: 1px solid #1e3a5f;
-            border-radius: 10px;
-            color: #f1f5f9;
-            font-size: 1rem;
-            outline: none;
-            -webkit-appearance: none;
-            transition: border-color 0.15s;
-        }
-
-        input:focus { border-color: #3b82f6; }
-        input::placeholder { color: #1e3a5f; }
-
-        .error {
-            color: #f87171;
-            font-size: 0.8rem;
-            display: none;
-            padding-left: 0.25rem;
+        p {
+            color: #94a3b8;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+            max-width: 320px;
+            margin-bottom: 2rem;
         }
 
         button {
             width: 100%;
+            max-width: 320px;
             padding: 0.875rem;
             background: #2563eb;
             color: white;
@@ -132,112 +65,37 @@
             border-radius: 10px;
             font-size: 1rem;
             font-weight: 600;
-            cursor: pointer;
-            margin-top: 0.25rem;
             -webkit-appearance: none;
-            transition: opacity 0.15s;
         }
 
         button:active { opacity: 0.8; }
-
-        /* Footer hint — shows stored URL, tap 3× to reset */
-        .footer {
-            position: fixed;
-            bottom: max(1.25rem, env(safe-area-inset-bottom));
-            color: #0f1f35;
-            font-size: 0.65rem;
-            text-align: center;
-            cursor: pointer;
-            padding: 0.5rem 1.5rem;
-            user-select: none;
-            -webkit-user-select: none;
-            transition: color 0.2s;
-        }
-
-        .footer.visible { color: #1e3a5f; }
+        button:disabled { opacity: 0.6; }
     </style>
 </head>
 <body>
-
     <div class="logo">
-        <img src="icons/icon-192.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'logo-fallback',textContent:'L'}))">
+        <img src="data:image/png;base64,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" alt="">
     </div>
 
-    <h1>Lavoro</h1>
-    <p class="tagline">Servicebeheer</p>
+    <h1>Lavoro is niet bereikbaar</h1>
+    <p>Controleer je internetverbinding. Zodra er weer verbinding is, gaat de app vanzelf verder.</p>
 
-    <div id="status-screen">
-        <div class="spinner"></div>
-        <p class="status-text" id="status-text">Verbinden met server…</p>
-    </div>
-
-    <div id="setup-screen">
-        <label for="url-input">Serveradres</label>
-        <input
-            type="text"
-            id="url-input"
-            placeholder="https://lavoro.mijnbedrijf.nl"
-            autocapitalize="none"
-            autocorrect="off"
-            autocomplete="off"
-            spellcheck="false"
-        >
-        <p class="error" id="error-msg">Voer een geldig adres in (bijv. https://lavoro.mijnbedrijf.nl)</p>
-        <button onclick="connect()">Verbinden</button>
-    </div>
-
-    <div class="footer" id="footer"></div>
+    <button id="retry" type="button">Opnieuw proberen</button>
 
     <script>
-        // This launcher only renders on first run (or after a reset). Once a
-        // URL is stored, the native MainActivity loads it directly as the app's
-        // server URL — so the Capacitor bridge stays fully wired and all plugins
-        // work. The redirect is done natively, not via window.location.
-
-        function normalise(raw) {
-            raw = raw.trim().replace(/\/+$/, '');
-            if (raw && !/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
-            return raw;
+        /**
+         * Shown by the app (LavoroWebViewClient) when the server cannot be
+         * reached. This page has no Capacitor bridge and does not know the
+         * server's address: it goes to /opnieuw-verbinden, which the app
+         * intercepts to load the server it was built with.
+         */
+        function retry() {
+            document.getElementById('retry').disabled = true;
+            window.location.replace('/opnieuw-verbinden');
         }
 
-        function is_valid(url) {
-            try {
-                const u = new URL(url);
-                return u.protocol === 'https:' || u.protocol === 'http:';
-            } catch { return false; }
-        }
-
-        function show_setup() {
-            document.getElementById('status-screen').style.display = 'none';
-            document.getElementById('setup-screen').style.display = 'flex';
-            setTimeout(() => document.getElementById('url-input').focus(), 100);
-        }
-
-        function show_connecting() {
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('status-screen').style.display = 'flex';
-        }
-
-        async function connect() {
-            const url = normalise(document.getElementById('url-input').value);
-            const err = document.getElementById('error-msg');
-            if (!is_valid(url)) { err.style.display = 'block'; return; }
-            err.style.display = 'none';
-
-            const plugin = window.Capacitor?.Plugins?.AppConfig;
-            if (!plugin) { err.textContent = 'Native bridge niet beschikbaar'; err.style.display = 'block'; return; }
-
-            show_connecting();
-            // setServerUrl persists the URL natively and restarts the app, which
-            // re-launches MainActivity — now loading the remote site directly.
-            await plugin.setServerUrl({ url });
-        }
-
-        document.getElementById('url-input').addEventListener('keydown', e => {
-            if (e.key === 'Enter') connect();
-        });
-
-        show_setup();
+        document.getElementById('retry').addEventListener('click', retry);
+        window.addEventListener('online', retry);
     </script>
 </body>
 </html>

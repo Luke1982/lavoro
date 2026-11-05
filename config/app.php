@@ -54,6 +54,12 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    /**
+     * The privacy statement on the website. Google Play requires a link to it
+     * inside the app; the login screen shows one as soon as this is set.
+     */
+    'privacy_url' => env('PRIVACY_POLICY_URL'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

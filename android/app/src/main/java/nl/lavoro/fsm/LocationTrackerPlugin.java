@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.os.Build;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.PermissionState;
@@ -29,22 +30,51 @@ import com.getcapacitor.annotation.PermissionCallback;
 )
 public class LocationTrackerPlugin extends Plugin {
 
-    private String pending_server_url;
+    /**
+     * "Niet nu" holds until the app is started again. The layout calls start()
+     * on every full page load, and asking again on each of those would make the
+     * question impossible to get rid of.
+     */
+    private static boolean declined_this_launch = false;
+
+    private TrackingWindow window = TrackingWindow.ALWAYS;
 
     @PluginMethod
     public void start(PluginCall call) {
-        pending_server_url = call.getString("serverUrl");
-        if (pending_server_url == null) {
-            call.reject("serverUrl is required");
+        window = TrackingWindow.from(call.getObject("window"));
+
+        if (getPermissionState("location") == PermissionState.GRANTED) {
+            request_notifications_then_start(call);
             return;
         }
 
-        if (getPermissionState("location") != PermissionState.GRANTED) {
-            requestPermissionForAlias("location", call, "location_callback");
+        if (declined_this_launch) {
+            call.reject("Location disclosure declined");
             return;
         }
 
-        request_notifications_then_start(call);
+        getActivity().runOnUiThread(() -> show_disclosure(call));
+    }
+
+    /**
+     * Google Play wants the reason in the app itself, before Android asks for
+     * the permission: what is collected, what for, that it goes on while the
+     * app is closed, and who sees it. Only an explicit "Toestaan" leads to the
+     * system question; anything else counts as no.
+     */
+    private void show_disclosure(PluginCall call) {
+        new AlertDialog.Builder(getActivity())
+            .setTitle(R.string.location_disclosure_title)
+            .setMessage(getContext().getString(R.string.location_disclosure_body, window.describe()))
+            .setCancelable(false)
+            .setPositiveButton(R.string.location_disclosure_accept, (dialog, which) ->
+                requestPermissionForAlias("location", call, "location_callback")
+            )
+            .setNegativeButton(R.string.location_disclosure_decline, (dialog, which) -> {
+                declined_this_launch = true;
+                call.reject("Location disclosure declined");
+            })
+            .show();
     }
 
     @PermissionCallback
@@ -72,7 +102,7 @@ public class LocationTrackerPlugin extends Plugin {
 
     private void start_service(PluginCall call) {
         Intent intent = new Intent(getContext(), LocationForegroundService.class);
-        intent.putExtra("serverUrl", pending_server_url);
+        window.putInto(intent);
         ContextCompat.startForegroundService(getContext(), intent);
         call.resolve();
     }

@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+def server_url = (project.findProperty('lavoroServerUrl') ?: 'https://app.lavorofsm.nl').toString().replaceAll('/+$', '')
+def server_uri = new URI(server_url)
+
+def keystore_properties = new Properties()
+def keystore_file = rootProject.file('keystore.properties')
+if (keystore_file.exists()) {
+    keystore_file.withInputStream { keystore_properties.load(it) }
+}
+
 android {
     namespace = "nl.lavoro.fsm"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -10,17 +19,48 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "SERVER_URL", "\"${server_url}\""
+        manifestPlaceholders = [
+            appLinkHost: server_uri.host,
+            usesCleartextTraffic: server_uri.scheme == 'http' ? 'true' : 'false',
+        ]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    buildFeatures {
+        buildConfig = true
+    }
+    signingConfigs {
+        release {
+            if (keystore_file.exists()) {
+                storeFile rootProject.file(keystore_properties['storeFile'])
+                storePassword keystore_properties['storePassword']
+                keyAlias keystore_properties['keyAlias']
+                keyPassword keystore_properties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystore_file.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def building_release = graph.allTasks.any { it.name ==~ /(bundle|assemble|package)Release/ }
+    if (building_release && server_uri.scheme != 'https') {
+        throw new GradleException("A release build must load an https server, not ${server_url}")
+    }
+    if (building_release && !keystore_file.exists()) {
+        throw new GradleException('A release build needs android/keystore.properties with the upload key; see docs/install/android.md')
     }
 }
 

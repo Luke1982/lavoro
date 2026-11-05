@@ -16,7 +16,6 @@
                     </a>
                 </div>
                 <p v-else class="text-sm text-gray-400 dark:text-slate-500">Geen foto's</p>
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
             </div>
 
             <div>
@@ -85,6 +84,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import GLightbox from 'glightbox';
+import 'glightbox/dist/css/glightbox.min.css';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';

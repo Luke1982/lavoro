@@ -111,13 +111,18 @@
                     <a href="mailto:" class="text-gray-500 hover:text-gray-400 transition-colors">Neem contact op</a>
                     met je beheerder.
                 </p>
+
+                <p v-if="page.props.privacy_url" class="mt-3 text-center text-xs">
+                    <a :href="page.props.privacy_url" target="_blank" rel="noopener"
+                        class="text-gray-500 hover:text-gray-400 transition-colors">Privacyverklaring</a>
+                </p>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import {
     EnvelopeIcon,
@@ -129,6 +134,8 @@ import {
     ShieldCheckIcon,
     PresentationChartLineIcon,
 } from '@heroicons/vue/24/outline';
+
+const page = usePage();
 
 const loginForm = useForm({
     email: '',

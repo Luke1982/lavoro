@@ -4,4 +4,14 @@
     <string name="title_activity_main">Lavoro</string>
     <string name="package_name">nl.lavoro.fsm</string>
     <string name="custom_url_scheme">nl.lavoro.fsm</string>
+
+    <string name="location_disclosure_title">Je locatie delen met de planning</string>
+    <string name="location_disclosure_body">Lavoro verzamelt je locatie, zodat de planning op de monteurkaart ziet waar je bent en werk kan geven aan wie er het dichtstbij is.\n\nDat gebeurt ook als de app gesloten is of niet wordt gebruikt, %1$s: de werktijden die je bedrijf heeft ingesteld. Zolang je locatie wordt verzameld, staat de melding \"Locatie actief\" in je meldingenbalk.\n\nJe locatie is alleen zichtbaar binnen je eigen bedrijf.</string>
+    <string name="location_disclosure_accept">Toestaan</string>
+    <string name="location_disclosure_decline">Niet nu</string>
+
+    <string name="location_channel_description">Laat zien wanneer Lavoro je locatie deelt met de planning.</string>
+    <string name="location_notification_active">Locatie actief</string>
+    <string name="location_notification_paused">Locatie gepauzeerd buiten werktijd</string>
+    <string name="location_notification_body">Je locatie wordt gedeeld %1$s.</string>
 </resources>
