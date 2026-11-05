@@ -14,6 +14,11 @@
 # id, package, seats, billing and invoices. What was changed on this side since
 # the last import is gone; what is there now is dumped first.
 #
+# Our own account in that installation -- the one MajorLabel worked with there --
+# becomes this customer's super admin with --super-admin old@address[=new@address].
+# An address belongs to one customer here, so when the old one is already in use
+# elsewhere, name the one it gets instead.
+#
 # Needs root: the other installation lives under another account (its home
 # directory is usually 0750, so even reading it fails), dumping its database
 # needs an account with rights on it, and creating the tenant database is not
@@ -27,7 +32,7 @@ case "$0" in
 esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-FROM=""; NAME=""; SLUG=""; PACKAGE=""; BILLING_FROM=""; DRY=0; REFRESH=0
+FROM=""; NAME=""; SLUG=""; PACKAGE=""; BILLING_FROM=""; SUPER_ADMIN=""; DRY=0; REFRESH=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --from) FROM="$2"; shift 2 ;;
@@ -40,6 +45,8 @@ while [ $# -gt 0 ]; do
         --package=*) PACKAGE="${1#*=}"; shift ;;
         --billing-from) BILLING_FROM="$2"; shift 2 ;;
         --billing-from=*) BILLING_FROM="${1#*=}"; shift ;;
+        --super-admin) SUPER_ADMIN="$2"; shift 2 ;;
+        --super-admin=*) SUPER_ADMIN="${1#*=}"; shift ;;
         --dry-run) DRY=1; shift ;;
         --refresh) REFRESH=1; shift ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
@@ -56,6 +63,7 @@ if [ "$(id -u)" -ne 0 ]; then
     ARGS=(--from "$FROM" --name "$NAME" --slug "$SLUG")
     [ -n "$PACKAGE" ] && ARGS+=(--package "$PACKAGE")
     [ -n "$BILLING_FROM" ] && ARGS+=(--billing-from "$BILLING_FROM")
+    [ -n "$SUPER_ADMIN" ] && ARGS+=(--super-admin "$SUPER_ADMIN")
     [ "$DRY" -eq 1 ] && ARGS+=(--dry-run)
     [ "$REFRESH" -eq 1 ] && ARGS+=(--refresh)
 
@@ -171,6 +179,42 @@ elif [ "$REFRESH" -eq 1 ]; then
     die "--refresh, but ${DB} does not exist yet. Run it without --refresh for the first import."
 fi
 
+# Our own account, settled before anything is replaced: a refresh drops the
+# customer's database further down, and learning only then that the address
+# cannot be used leaves nothing to go back to but the backup.
+OUR_OLD=""; OUR_NEW=""
+if [ -n "$SUPER_ADMIN" ]; then
+    OUR_OLD="${SUPER_ADMIN%%=*}"
+    OUR_NEW="${SUPER_ADMIN#*=}"
+    ADDRESS='^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+
+    [[ "$OUR_OLD" =~ $ADDRESS ]] && [[ "$OUR_NEW" =~ $ADDRESS ]] \
+        || die "--super-admin takes old@address or old@address=new@address, not: ${SUPER_ADMIN}"
+
+    sql_root "SELECT 1 FROM \`${SRC_DB}\`.users WHERE email='${OUR_OLD}'" | grep -q . \
+        || die "${OUR_OLD} is not a user in ${SRC_DB}, so there is nothing to make a super admin of."
+
+    if [ "$OUR_NEW" != "$OUR_OLD" ] \
+        && sql_root "SELECT 1 FROM \`${SRC_DB}\`.users WHERE email='${OUR_NEW}'" | grep -q .; then
+        die "${OUR_NEW} is already another user in ${SRC_DB}."
+    fi
+
+    TAKEN=$(sql_root "SELECT
+        (SELECT COUNT(*) FROM ${LANDLORD_DB}.user_tenant_lookups
+            WHERE email='${OUR_NEW}' AND tenant_id <> '${TENANT_ROW}')
+      + (SELECT COUNT(*) FROM ${LANDLORD_DB}.tenant_super_admins
+            WHERE email='${OUR_NEW}' AND tenant_id <> '${TENANT_ROW}')")
+
+    if [ "${TAKEN:-0}" -gt 0 ] && [ "$OUR_NEW" = "$OUR_OLD" ]; then
+        die "${OUR_OLD} is already in use at another customer here, and an address belongs to
+one customer. Name the address it gets in this one:
+
+  --super-admin ${OUR_OLD}=${OUR_OLD%@*}+${SLUG}@${OUR_OLD#*@}"
+    elif [ "${TAKEN:-0}" -gt 0 ]; then
+        die "${OUR_NEW} is already in use at another customer here. Choose another address."
+    fi
+fi
+
 SRC_MB=$(sql_root "SELECT COALESCE(ROUND(SUM(data_length + index_length) / 1024 / 1024), 0)
     FROM information_schema.tables WHERE table_schema='${SRC_DB}'")
 FREE_MB=$(df -Pm "$PROJECT_ROOT" | awk 'NR == 2 { print $4 }')
@@ -185,6 +229,7 @@ roughly ${NEEDED_MB} MB for the dump and the copy, and ${FREE_MB} MB is free on 
 info "  source:   ${SRC_DB} (${SRC_MB} MB)"
 info "  target:   ${DB}"
 info "  artisan:  as ${APP_ACCOUNT}"
+[ -n "$OUR_OLD" ] && info "  ours:     ${OUR_OLD} becomes super admin ${OUR_NEW}"
 [ "$DRY" -eq 1 ] && info "  (dry run: nothing is written)"
 
 step "Dump and restore"
@@ -254,6 +299,18 @@ else
         \`${DB}\`.jobs, \`${DB}\`.job_batches, \`${DB}\`.failed_jobs"
 fi
 
+if [ -n "$OUR_OLD" ] && [ "$OUR_NEW" != "$OUR_OLD" ]; then
+    step "Our own account in the old installation"
+    # Before registering: that reads every address in the database and refuses
+    # one that belongs to another customer, and the old one does.
+    if [ "$DRY" -eq 1 ]; then
+        info "+ UPDATE ${DB}.users SET email='${OUR_NEW}' WHERE email='${OUR_OLD}'"
+    else
+        sql_root "UPDATE \`${DB}\`.users SET email='${OUR_NEW}' WHERE email='${OUR_OLD}'"
+        green "  ${OUR_OLD} is ${OUR_NEW} here"
+    fi
+fi
+
 step "Registering the tenant"
 # Idempotent: a database that is already a customer is updated instead of
 # refused, and keeps its id, package, seats, billing and invoices.
@@ -266,6 +323,12 @@ if [ -n "$BILLING_FROM" ]; then
 else
     artisan tenant:setup-existing "$NAME" "$DB"
 fi
+
+# Written down before the migrations, which turn it into what every customer here
+# has: afterwards it can no longer be told which rights, tables and columns the
+# old installation had and which ones are new. See tenant:adapt-import.
+step "What the old installation had"
+artisan tenant:adapt-import "$DB" --record
 
 step "Updating the schema"
 artisan tenants:migrate
@@ -337,6 +400,27 @@ elif [ "$DRY" -eq 1 ]; then
     info "+ copy ${FROM}/storage/app into storage/tenant-<new id>"
 else
     warn "  No files copied: ${FROM}/storage/app does not exist."
+fi
+
+# Only public and private are disks. A file anywhere else in storage/app is
+# reachable through neither, so it is not copied -- and is named, rather than
+# left behind without a word.
+if [ -d "$FROM/storage/app" ]; then
+    STRAYS=$(find "$FROM/storage/app" -mindepth 2 -type f \
+        -not -path "$FROM/storage/app/public/*" -not -path "$FROM/storage/app/private/*" | wc -l)
+    [ "$STRAYS" -eq 0 ] || warn "  Not copied: ${STRAYS} file(s) in ${FROM}/storage/app outside public/ and private/.
+  No disk reads them here. Look at them before the old installation is gone."
+fi
+
+step "Adapting it to this installation"
+# What the migrations cannot do: the stages and roles a new customer is given,
+# a stage for open work orders from before the stages, who can be planned, the
+# rights that did not exist in the old installation, and our own account made a
+# super admin. It says what it changed.
+if [ -n "$OUR_NEW" ]; then
+    artisan tenant:adapt-import "$DB" --super-admin="$OUR_NEW"
+else
+    artisan tenant:adapt-import "$DB"
 fi
 
 if [ -n "$PACKAGE" ] && [ "$DRY" -eq 1 ]; then

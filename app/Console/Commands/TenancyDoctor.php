@@ -1752,6 +1752,18 @@ class TenancyDoctor extends Command
         $stale === 0 ? $this->pass('no references to vanished tenants')
             : $this->bad("{$stale} row(s) in user_tenant_lookups point at a tenant that no longer exists");
 
+        /**
+         * A super admin of a customer that is gone still holds its address: an
+         * import of that same customer then refuses it as belonging elsewhere.
+         */
+        $ours = DB::connection('central')->table('tenant_super_admins')
+            ->whereNotIn('tenant_id', $ids)->pluck('email');
+
+        $ours->isEmpty() ? $this->pass('no super admins of vanished tenants')
+            : $this->bad($ours->count() . ' super admin(s) of a tenant that no longer exists: '
+                . $ours->implode(', ') . '. Remove them with:' . "\n"
+                . '         DELETE FROM tenant_super_admins WHERE tenant_id NOT IN (SELECT id FROM tenants)');
+
         $prefix = config('tenancy.database.prefix');
 
         $databases = collect(DB::connection('central')->select(

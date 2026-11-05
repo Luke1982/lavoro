@@ -60,6 +60,52 @@ class TenantSuperAdmins
     }
 
     /**
+     * Makes an account that already exists in the customer's database ours: the
+     * one MajorLabel worked with in a dedicated installation that is imported
+     * here. It keeps its id, so what it did there stays attributed to it, and
+     * the password it already had, so whoever used it can still get in.
+     *
+     * The customer's own roles are taken off it. The role is what lets it in
+     * now, and an account that is also the customer's administrator would show
+     * up in their roles screen as one of theirs.
+     *
+     * The landlord record is written before the role is given, never the other
+     * way around: a role without a record lives in a database that an import
+     * replaces, and nothing could make it again.
+     */
+    public function adopt(Tenant $tenant, string $email): void
+    {
+        $lookup = DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->first();
+
+        if ($lookup && $lookup->tenant_id !== $tenant->id) {
+            throw new Refusal("{$email} is al in gebruik bij een andere tenant.");
+        }
+
+        if (TenantSuperAdmin::where('email', $email)->where('tenant_id', '!=', $tenant->id)->exists()) {
+            throw new Refusal("{$email} is al superbeheerder bij een andere tenant.");
+        }
+
+        $user = Tenancy::within($tenant, fn () => User::withoutGlobalScopes()->where('email', $email)->first());
+
+        if (!$user) {
+            throw new Refusal("{$email} bestaat niet in de database van {$tenant->name}.");
+        }
+
+        $record = TenantSuperAdmin::firstOrCreate(
+            ['email' => $email],
+            ['tenant_id' => $tenant->id, 'name' => $user->name, 'password' => $user->password],
+        );
+
+        $this->copyIntoTheTenant($tenant, $record);
+
+        Tenancy::within($tenant, function () use ($user) {
+            $theirs = Role::where('name', '!=', Role::SUPERADMIN)->pluck('id');
+
+            $user->roles()->detach($theirs);
+        });
+    }
+
+    /**
      * Read from the landlord database, so the panel shows them even when the
      * customer's own database cannot be opened -- which is one of the moments
      * you most want to know who can still get in.

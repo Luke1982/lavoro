@@ -156,6 +156,17 @@ class ImportTenantSettings extends Command
         }
 
         /**
+         * Laravel's own .env ships MAIL_HOST=127.0.0.1 and nothing else: a
+         * placeholder, not a mail server. Taken over, it reads as one under
+         * Technisch beheer, and switching that screen to SMTP later would send
+         * into this server.
+         */
+        if (in_array($wanted['mail_smtp_host'] ?? null, ['127.0.0.1', 'localhost'], true)
+            && !isset($wanted['mail_smtp_username'])) {
+            unset($wanted['mail_smtp_host'], $wanted['mail_smtp_port'], $wanted['mail_smtp_scheme']);
+        }
+
+        /**
          * Which way this customer sends. Read from what is actually filled in
          * rather than from MAIL_MAILER, which on these installations is as
          * often 'smtp' with a Microsoft registration next to it as the other

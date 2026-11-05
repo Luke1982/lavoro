@@ -15,24 +15,42 @@ still working in it.
 
 ## What you need before you start
 
-**The old installation has to be on this server**, both its folder and its
-database. The import reads its `.env` from a path on this machine, and copies
-its database from the MySQL server running here.
+**Where the old installation is decides the script.**
 
-If it is still on another machine, bring it over first:
+- **On this server**, folder and database both: `scripts/tenancy/import-install.sh
+  --from /path/to/old/lavoro`. It reads the `.env` there and copies the database
+  from the MySQL server running here.
+- **Somewhere else**, and you have carried three files across: a dump of its
+  database (`.sql` or `.sql.gz`, from MySQL or MariaDB), its `.env`, and an
+  archive of its `storage` folder (`.zip`, `.tar`, `.tar.gz`, or an unpacked
+  folder). Then `scripts/tenancy/import-archive.sh --dump … --env … --storage …`.
+  It loads the dump into a staging database of its own, unpacks the archive next
+  to the `.env`, and hands that to `import-install.sh`. Every other option below
+  works the same for both. The staging copy is removed afterwards; the three
+  files are not. Remove them yourself once the customer works here, because the
+  `.env` holds their mail and SnelStart secrets.
 
 ```bash
-# On the new server, as root: copy the folder across
-rsync -a old-server:/home/customer/lavorofsm/ /home/customer/lavorofsm/
-
-# Copy its database dump across and load it into a database here
-scp old-server:~/lavoro-before-move.sql .
-mysql -e "CREATE DATABASE old_customer_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-mysql old_customer_db < lavoro-before-move.sql
+# On the old server
+mysqldump --single-transaction --routines old_database | gzip > old.sql.gz
+cd /path/to/old/lavoro && zip -r ~/storage.zip storage/app
 ```
 
-Then make sure the `DB_DATABASE` line in the copied `.env` names the database
-you just loaded, because that is the line the import reads to find it.
+A dump made by MariaDB 10.11 or later starts with a line the MySQL client
+refuses ("enable the sandbox mode"); `import-archive.sh` takes it out, along with
+its `CREATE DATABASE`/`USE` lines, `DEFINER`s and MariaDB 11's collation. A JSON
+column from MariaDB arrives in MySQL as text; the adaptation step below makes it
+JSON again.
+
+**Your own account in the old installation.** A dedicated installation usually
+has an account of MajorLabel's own, as an ordinary administrator. Here that
+account is a super admin, and an address belongs to one customer only, so
+`info@majorlabel.nl` is almost certainly taken already. Pass
+`--super-admin info@majorlabel.nl=info+<slug>@majorlabel.nl`: the account is
+given that address, keeps its id and its password, and becomes this customer's
+super admin. Everything it did in the old installation stays attributed to it.
+Without the `=` part it keeps its address, and the script stops if that address
+is in use elsewhere, naming the option to use.
 
 **The import needs root**, because the old installation belongs to a different
 Linux account and creating a database is not something the application account
@@ -79,10 +97,41 @@ What it does:
 1. copies the old database into a new one called `lavoro_tenant_<slug>`;
 2. removes the tables that are now shared between all customers (sessions,
    cache and queued jobs);
-3. registers the company as a customer of this installation;
-4. brings the database tables up to date with the current code;
-5. copies the uploaded files into the customer's own folder;
-6. sets the subscription package.
+3. gives your own account its new address (`--super-admin`);
+4. registers the company as a customer of this installation;
+5. writes down which tables, columns and rights the old installation had;
+6. brings the database tables up to date with the current code;
+7. takes the mail, Microsoft 365 and SnelStart settings from the old `.env`;
+8. copies the uploaded files into the customer's own folder;
+9. adapts what the migrations cannot (see below);
+10. sets the subscription package.
+
+**Adapting it to this installation** (`tenant:adapt-import`). The migrations
+bring the tables up to date, but a new customer is given more than tables, and
+an old installation lacks things the application now depends on. This step
+says what it changed:
+
+- the work order **stages** and **roles** a new customer is given, where the old
+  installation has none for that purpose. An existing stage stays the one: the
+  migrations make "Afgerond" for closed work orders, and no second closed stage is
+  added next to it;
+- open work orders from **before the stages** have none, so they never appear in
+  the planner. They are put in *Gepland* when an appointment is linked, as linking
+  one does, and in *Nieuw* otherwise;
+- a **closing date** for closed work orders and tickets that have none, taken from
+  their last change. The old installation never wrote it down;
+- **who can be planned**: from before `plannable`, nobody is, and the planner is
+  empty. Whoever carried out work in the old installation becomes plannable and
+  takes a field seat;
+- **rights that did not exist** in the old installation are granted to the role
+  of the same name as a new customer has it. Rights that did exist stay as the
+  customer set them. Location tracking (`location.track`) is never granted this
+  way: following employees is the customer's own decision, and one they have to
+  announce;
+- your own account becomes a **super admin**.
+
+It is safe to run again, and an import with `--refresh` runs it again on the
+fresh copy.
 
 The existing users come across with the passwords they already had. Their email
 addresses are registered in the shared database, which is how the login screen
@@ -188,11 +237,27 @@ sudo scripts/tenancy/import-install.sh --from /path/to/old/lavoro \
     --name "Company BV" --slug company --refresh
 ```
 
+Or, when the old installation is on another server, with the three files
+carried across:
+
+```bash
+sudo scripts/tenancy/import-archive.sh --dump old.sql.gz --env old.env \
+    --storage storage.zip --name "Company BV" --slug company \
+    --super-admin info@majorlabel.nl=info+company@majorlabel.nl --refresh
+```
+
 Watch for the steps named **Our own accounts** and **Settings from the old
 installation**: those write your super admins back and take the mail,
 Microsoft 365 and SnelStart settings out of the old `.env`. If the settings step
 says it found nothing, that installation kept them somewhere else and you fill
 them in by hand under Technisch beheer.
+
+Then read **Adapting it to this installation**. It names every work order that
+was given a stage, every user that became plannable and every right that was
+granted, and ends with the number of field and office seats in use. Check that the
+package covers those seats. If it says `not granted, the customer decides:
+location.track`, ask the customer whether they want location tracking for their
+technicians, and grant it under Rollen if they do.
 
 **4. Check what a program can check**
 
@@ -243,8 +308,20 @@ bash scripts/tenancy/import-install.sh --from /home/klant/lavorofsm \
 | `--slug` | short name used for the new database, `lavoro_tenant_<slug>` |
 | `--package` | the subscription package (`starter`, `team`, `business`, `enterprise`) |
 | `--billing-from` | the date the subscription starts. A date, or `none` to leave it open. Without it, today. On a takeover this is usually something you agreed, not today |
+| `--super-admin` | `old@address[=new@address]`: our own account in the old installation, which becomes this customer's super admin. Name a new address when the old one is in use at another customer |
 | `--dry-run` | prints the whole plan and changes nothing |
 | `--refresh` | imports again into a customer that is already here, as described in step 4 |
+
+`import-archive.sh` takes all of these except `--from`, and these three instead:
+
+| Option | What it does |
+| --- | --- |
+| `--dump` | the database dump, `.sql` or `.sql.gz`, from MySQL or MariaDB |
+| `--env` | the old installation's `.env` |
+| `--storage` | its `storage` folder as `.zip`, `.tar` or `.tar.gz`, or an unpacked folder. Only `storage/app` is read |
+
+With `--dry-run` it still makes the staging copy, so that the plan can be read
+off it, and removes it again. The customer is not touched.
 
 ## Next
 

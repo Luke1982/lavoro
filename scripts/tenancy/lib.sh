@@ -180,15 +180,26 @@ detect_client() {
 ADMIN_USER="${ADMIN_USER:-root}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 DEFAULTS_FILE="${DEFAULTS_FILE:-}"
+# Over the socket unless a host is named. A privileged account that exists only
+# for 127.0.0.1 -- the one a development machine runs its tests on -- cannot be
+# reached over the socket at all: MySQL looks for it at localhost and says
+# "access denied" about an account that is there.
+ADMIN_HOST="${ADMIN_HOST:-}"
 
 # Builds the client arguments for the privileged connection. Order matters:
 # --defaults-file must come first, and it is the only option that keeps the
 # password off both the command line and the process environment.
 admin_args() {
+    local target=("--protocol=socket")
+
+    if [ -n "$ADMIN_HOST" ]; then
+        target=("--protocol=tcp" "-h" "$ADMIN_HOST")
+    fi
+
     if [ -n "$DEFAULTS_FILE" ]; then
-        printf '%s\n' "--defaults-file=$DEFAULTS_FILE" "--protocol=socket" "-u" "$ADMIN_USER"
+        printf '%s\n' "--defaults-file=$DEFAULTS_FILE" "${target[@]}" "-u" "$ADMIN_USER"
     else
-        printf '%s\n' "--protocol=socket" "-u" "$ADMIN_USER"
+        printf '%s\n' "${target[@]}" "-u" "$ADMIN_USER"
     fi
 }
 

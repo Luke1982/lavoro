@@ -23,16 +23,7 @@ class TenantDatabaseSeeder extends Seeder
             'is_incomplete_state' => false,
         ];
 
-        $stages = [
-            ['name' => 'Nieuw', 'order' => 1, 'is_plannable_state' => true],
-            ['name' => 'Planning geannuleerd', 'order' => 2, 'is_plannable_state' => true, 'is_planning_cancelled_state' => true],
-            ['name' => 'Gepland', 'order' => 3, 'is_planned_state' => true],
-            ['name' => 'Niet afgerond', 'order' => 4, 'is_incomplete_state' => true],
-            ['name' => 'Gesloten', 'order' => 5, 'is_closed_state' => true],
-            ['name' => 'Gefactureerd', 'order' => 6, 'is_invoiced_state' => true],
-        ];
-
-        foreach ($stages as $stage) {
+        foreach (include base_path('database/seeders/data/tenant_stages.php') as $stage) {
             ServiceOrderStage::firstOrCreate(['name' => $stage['name']], array_merge($default_flags, $stage));
         }
 

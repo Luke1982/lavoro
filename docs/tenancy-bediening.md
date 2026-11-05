@@ -410,6 +410,21 @@ onderhoudspagina gaat dan alsnog uit.
 Zet een dump van een losse installatie om in een klant binnen deze opzet. Zie
 taak 44 van het plan voor wat het precies doet.
 
+Staat de oude installatie op een andere server, neem dan de dump, de `.env` en
+een archief van `storage` mee en gebruik:
+
+```bash
+./scripts/tenancy/import-archive.sh --dump oud.sql.gz --env oud.env --storage storage.zip \
+    --name "Bedrijf BV" --slug bedrijf --super-admin info@majorlabel.nl=info+bedrijf@majorlabel.nl
+```
+
+Na de migraties brengt `tenant:adapt-import` de klant gelijk met een nieuwe: de
+fases en rollen die een nieuwe klant krijgt, een fase voor open werkbonnen van
+vóór de fases, wie ingepland kan worden, en de rechten die de oude installatie nog
+niet kende. Locatie volgen wordt nooit zo toegekend, dat beslist de klant zelf.
+Ons eigen account uit de oude installatie wordt superbeheerder. Alles in
+`install/import-existing.md`.
+
 ## Verder lezen
 
 | | |

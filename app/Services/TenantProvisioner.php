@@ -252,6 +252,12 @@ class TenantProvisioner
 
         DB::connection('central')->table('user_tenant_lookups')->where('tenant_id', $tenant->id)->delete();
 
+        /**
+         * Ours go with it. Left behind, the address still counts as a super
+         * admin elsewhere, and importing the same customer again refuses it.
+         */
+        DB::connection('central')->table('tenant_super_admins')->where('tenant_id', $tenant->id)->delete();
+
         $tenant->delete();
 
         $template = config('tenancy.database.template_tenant_connection', 'mysql');
