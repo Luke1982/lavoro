@@ -416,7 +416,8 @@ This takes the installation offline for everyone while it runs, so deploy
 outside working hours. In order, it:
 
 1. puts up the maintenance page;
-2. dumps every database into `storage/backups/` and stops if a dump fails;
+2. dumps every database into `storage/backups/predeploy/` and stops if a dump
+   fails; the newest seven deploys are kept;
 3. fetches the new code with `git pull --ff-only`, which refuses if anything on
    the server was changed by hand;
 4. runs the migrations for the shared database and for every customer;

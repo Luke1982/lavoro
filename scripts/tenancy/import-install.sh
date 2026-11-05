@@ -195,7 +195,7 @@ chmod 600 "$DUMP"
 trap 'rm -f "$DUMP"' EXIT
 
 if [ "$DRY" -eq 1 ]; then
-    [ "$REFRESH" -eq 1 ] && info "+ mysqldump ${DB} > storage/backups/before-refresh-${SLUG}-<stamp>.sql.gz"
+    [ "$REFRESH" -eq 1 ] && info "+ mysqldump ${DB} > storage/backups/before-import/${SLUG}-<stamp>.sql.gz"
     [ "$REFRESH" -eq 1 ] && info "+ DROP DATABASE ${DB}"
     info "+ mysqldump ${SRC_DB} > ${DUMP}"
     info "+ CREATE DATABASE ${DB}"
@@ -211,11 +211,23 @@ else
     # was done on this side since the last import, and "I did not mean that"
     # arrives after the fact, not before it.
     if [ "$REFRESH" -eq 1 ]; then
-        ROLLBACK="$PROJECT_ROOT/storage/backups/before-refresh-${SLUG}-$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
+        BEFORE_IMPORT="$PROJECT_ROOT/storage/backups/before-import"
+        mkdir -p "$BEFORE_IMPORT"
+        ROLLBACK="${BEFORE_IMPORT}/${SLUG}-$(date +%Y-%m-%d_%H-%M-%S).sql.gz"
         MYSQL_PWD="$ADMIN_PASSWORD" mysqldump "${ARGS[@]}" --single-transaction --routines \
-            --no-tablespaces "$DB" | gzip > "$ROLLBACK"
+            --no-tablespaces "$DB" | gzip > "${ROLLBACK}.part"
+        mv "${ROLLBACK}.part" "$ROLLBACK"
         chmod 600 "$ROLLBACK"
         green "  kept what was there: ${ROLLBACK#"$PROJECT_ROOT/"}"
+
+        # The newest seven of this customer stay: a refresh is usually done a few
+        # times in a row while a customer is moved over.
+        find "$BEFORE_IMPORT" -maxdepth 1 -type f \
+            -name "${SLUG}-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*.sql.gz" -printf '%f\n' \
+            | LC_ALL=C sort -r | tail -n +8 | while read -r OLD; do
+                rm -f "${BEFORE_IMPORT:?}/${OLD}"
+                info "  removed an older one: ${OLD}"
+            done
 
         sql_root "DROP DATABASE \`${DB}\`"
     fi

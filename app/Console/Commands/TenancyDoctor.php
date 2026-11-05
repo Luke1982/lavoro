@@ -607,6 +607,7 @@ class TenancyDoctor extends Command
         $this->checkApiAuthentication();
         $this->checkCachedConfigIsCurrent();
         $this->checkBuiltAssets();
+        $this->checkNightlyBackup();
     }
 
     /**
@@ -895,6 +896,68 @@ class TenancyDoctor extends Command
             : $this->bad("The log file is {$megabytes} MB and keeps growing: LOG_CHANNEL does not"
                 . " rotate. Set LOG_STACK=daily in .env and restart php.\n"
                 . "         Clear it now: truncate -s 0 {$log}");
+    }
+
+    private const BACKUP_UNIT = '/etc/systemd/system/lavoro-backup.service';
+
+    private const BACKUP_STALE_AFTER_HOURS = 36;
+
+    /**
+     * The nightly backup is a systemd timer, and one that stopped -- a full
+     * disk, a customer database that no longer opens, a php that moved -- looks
+     * exactly like one that runs. The only proof is a complete run from last
+     * night in the folder the timer writes to, which is read from its unit:
+     * setup-backups.sh can point it anywhere.
+     */
+    private function checkNightlyBackup(): void
+    {
+        if (!is_readable(self::BACKUP_UNIT)) {
+            if (app()->environment('production')) {
+                $this->bad("no nightly database backup: nothing backs up by itself.\n"
+                    . '         sudo scripts/tenancy/setup-backups.sh');
+            }
+
+            return;
+        }
+
+        if (!is_link(dirname(self::BACKUP_UNIT) . '/timers.target.wants/lavoro-backup.timer')) {
+            $this->bad("the nightly backup is installed, but its timer is off.\n"
+                . '         sudo systemctl enable --now lavoro-backup.timer');
+
+            return;
+        }
+
+        preg_match('/--to=(\S+)/', (string) file_get_contents(self::BACKUP_UNIT), $match);
+        $folder = $match[1] ?? storage_path('backups/scheduled');
+
+        $runs = collect(glob($folder . '/*', GLOB_ONLYDIR) ?: [])
+            ->map(fn (string $path) => basename($path))
+            ->filter(fn (string $name) => preg_match('/^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(-incomplete)?$/', $name))
+            ->sort();
+
+        $newest = $runs->last();
+        $newest_complete = $runs->reject(fn (string $name) => str_ends_with($name, '-incomplete'))->last();
+        $log_hint = "\n         journalctl -u lavoro-backup -n 50";
+
+        if ($newest_complete === null) {
+            $this->bad("the nightly backup has no complete run in {$folder} yet." . $log_hint);
+
+            return;
+        }
+
+        if ($newest !== $newest_complete) {
+            $this->bad("the last backup run is incomplete: {$folder}/{$newest} is missing a database."
+                . $log_hint);
+
+            return;
+        }
+
+        $hours = (int) floor((time() - (int) filemtime($folder . '/' . $newest_complete)) / 3600);
+
+        $hours > self::BACKUP_STALE_AFTER_HOURS
+            ? $this->bad("the newest complete backup is {$hours} hours old ({$folder}/{$newest_complete})."
+                . "\n         systemctl list-timers lavoro-backup.timer" . $log_hint)
+            : $this->pass("nightly backup: {$newest_complete} in {$folder}");
     }
 
     /**

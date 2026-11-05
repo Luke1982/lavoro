@@ -236,12 +236,13 @@ keeps refusing, and nothing says the two are connected.
 
 ## The disk is full
 
-The most common cause is dumps piling up in `storage/backups`. The deploy script
-adds a set on every deploy and never deletes them.
+The backups keep the newest seven runs per folder, so they only grow with the
+databases themselves. Dumps lying loose in `storage/backups` itself, outside the
+folders, are from before that, and nothing removes them.
 
 ```bash
-du -sh storage/backups storage/tenant-* | sort -h | tail
-find storage/backups -name '*.sql.gz' -mtime +14 -delete
+du -sh storage/backups/* storage/tenant-* | sort -h | tail
+lavoro backup list
 ```
 
 Folders belonging to customers that no longer exist are reported by

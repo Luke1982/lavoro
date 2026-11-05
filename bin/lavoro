@@ -24,7 +24,8 @@ ROOT="$(cd "${SELF%/bin/*}" && pwd)"
 # shellcheck source=../scripts/tenancy/lib.sh
 source "$ROOT/scripts/tenancy/lib.sh"
 
-BACKUP_DIR="${LAVORO_BACKUP_DIR:-$ROOT/storage/backups}"
+BACKUPS="$ROOT/storage/backups"
+BACKUP_UNIT="/etc/systemd/system/lavoro-backup.service"
 
 # ---------------------------------------------------------------------------
 # Running things as the right account
@@ -223,7 +224,7 @@ cmd_status() {
 
     if [ "${free_mb:-0}" -lt 2048 ]; then
         bad_line "disk" "${free_mb} MB free (${used} used)"
-        todo "lavoro backup list" "almost full; old dumps are usually the cause (delete with --keep-days)"
+        todo "lavoro backup list" "almost full; see what the backup folders hold"
     elif [ "${free_mb:-0}" -lt 10240 ]; then
         warn_line "disk" "${free_mb} MB free (${used} used)"
     else
@@ -265,43 +266,61 @@ next_steps() {
     printf '\n  All commands: \033[1mlavoro help\033[0m\n\n'
 }
 
-# The newest dump, and how old it is. A backup nobody looks at is the normal way
-# to find out, months later, that it stopped working.
+# setup-backups.sh can point the timer anywhere, and looking only in the default
+# folder would report a backup that is somewhere else as missing.
+scheduled_dir() {
+    local to
+    to="$(sed -n 's/^ExecStart=.*--to=\([^ ]*\).*/\1/p' "$BACKUP_UNIT" 2>/dev/null | head -n 1)"
+    printf '%s' "${to:-$BACKUPS/scheduled}"
+}
+
+# Every folder that holds runs, one "<kind> <folder>" per line.
+run_folders() {
+    printf '%s %s\n' scheduled "$(scheduled_dir)" predeploy "$BACKUPS/predeploy" manual "$BACKUPS/manual"
+}
+
+# The runs in one folder, newest first: one folder per run, named after the
+# moment it started, '-incomplete' when a database is missing from it.
+runs_in() {
+    find "$1" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+        -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}(-incomplete)?' \
+        -printf '%f\n' 2>/dev/null | LC_ALL=C sort -r
+}
+
+# 2026-11-05_03-30-00 as 2026-11-05 03:30.
+moment() { printf '%s %s:%s' "${1:0:10}" "${1:11:2}" "${1:14:2}"; }
+
+# Whether the nightly backup is in place, and what each folder holds. Whether
+# the newest one is recent enough is the doctor's call, summarised above.
 backup_status() {
-    local newest age_days count
+    local kind folder newest
 
-    if [ ! -d "$BACKUP_DIR" ]; then
-        warn_line "backups" "no folder ${BACKUP_DIR}"
-        return
-    fi
-
-    newest="$(find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' -printf '%T@ %p\n' 2>/dev/null \
-        | sort -rn | head -1 | cut -d' ' -f2-)"
-
-    if [ -z "$newest" ]; then
-        bad_line "backups" "none in ${BACKUP_DIR}"
-        todo "lavoro backup --keep-days=14" "there is no backup of any database at all"
-        return
-    fi
-
-    count="$(find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' | wc -l)"
-    age_days=$(( ( $(date +%s) - $(stat -c %Y "$newest") ) / 86400 ))
-
-    if [ "$age_days" -ge 7 ]; then
-        bad_line "newest dump" "${age_days} days old"
-        todo "lavoro backup --keep-days=14" "the newest backup is ${age_days} days old"
-    elif [ "$age_days" -ge 2 ]; then
-        warn_line "newest dump" "${age_days} days old"
+    if [ ! -f "$BACKUP_UNIT" ]; then
+        bad_line "nightly" "not set up -- nothing backs up by itself"
+        todo "sudo lavoro setup backups" "every database every night, the newest seven kept"
+    elif ! quietly systemctl is-enabled lavoro-backup.timer; then
+        bad_line "nightly" "installed, but the timer is off"
+        todo "sudo systemctl enable --now lavoro-backup.timer" "the nightly backup does not run"
+    elif [ "$(systemctl show -p Result --value lavoro-backup.service 2>/dev/null)" != "success" ]; then
+        bad_line "nightly" "the last run failed"
+        todo "journalctl -u lavoro-backup -n 50" "the nightly backup failed; the reason is in its log"
     else
-        ok "newest dump" "$(date -d "@$(stat -c %Y "$newest")" '+%Y-%m-%d %H:%M')"
+        ok "nightly" "on"
     fi
 
-    line "dumps kept" "${count} file(s), $(du -sh "$BACKUP_DIR" 2>/dev/null | cut -f1)"
+    while read -r kind folder; do
+        newest="$(runs_in "$folder" | head -n 1)"
 
-    if [ "$BACKUP_DIR" = "$ROOT/storage/backups" ]; then
-        warn_line "where" "inside the installation -- same disk as the databases"
-        todo "LAVORO_BACKUP_DIR=/backups/lavoro lavoro backup" "a copy on this disk is gone when this server is; then rsync it off the machine"
-    fi
+        case "$newest" in
+            "")           line "$kind" "none" ;;
+            *-incomplete) warn_line "$kind" "$(moment "$newest") -- a database is missing from it" ;;
+            *)            line "$kind" "$(moment "$newest"), $(runs_in "$folder" | wc -l) kept, $(du -sh "$folder" 2>/dev/null | cut -f1)" ;;
+        esac
+    done < <(run_folders)
+
+    case "$(scheduled_dir)" in
+        "$ROOT"/*) warn_line "off the machine" "no copy -- these are on the same disk as the databases" ;;
+    esac
 }
 
 # Whether refused logins are actually acted on. The application writes them
@@ -535,16 +554,46 @@ cmd_tenants() {
 # backup and restore
 # ---------------------------------------------------------------------------
 
+# One run or dump on a line of its own: its name and its size.
+list_entry() { printf '  %-46s %6s\n' "${1##*/}" "$(du -sh "$1" 2>/dev/null | cut -f1)"; }
+
+list_runs() {
+    local label="$1" folder="$2" runs name
+
+    [ -d "$folder" ] || return 0
+    info "${label}, in ${folder}:"
+    runs="$(runs_in "$folder")"
+
+    if [ -z "$runs" ]; then
+        info "  none"
+    else
+        while read -r name; do list_entry "$folder/$name"; done <<< "$runs"
+    fi
+
+    info ""
+}
+
+list_dumps() {
+    local label="$1" folder="$2" file
+
+    [ -n "$(find "$folder" -maxdepth 1 -type f -name '*.sql.gz' -print -quit 2>/dev/null)" ] || return 0
+    info "${label}, in ${folder}:"
+    find "$folder" -maxdepth 1 -type f -name '*.sql.gz' | LC_ALL=C sort -r \
+        | while read -r file; do list_entry "$file"; done
+    info ""
+}
+
 cmd_backup() {
+    local kind folder
+
     case "${1:-run}" in
-        run|"")
-            shift 2>/dev/null || true
-            bash "$ROOT/scripts/tenancy/backup.sh" --to="$BACKUP_DIR" "$@" ;;
+        run|-*)
+            [ "${1:-}" = "run" ] && shift
+            as_owner bash "$ROOT/scripts/tenancy/backup.sh" --to="$BACKUPS/manual" "$@" ;;
         list)
-            [ -d "$BACKUP_DIR" ] || die "No backup folder: ${BACKUP_DIR}"
-            info "In ${BACKUP_DIR}, newest first:"
-            find "$BACKUP_DIR" -maxdepth 1 -name '*.sql.gz' -printf '%T@ %TY-%Tm-%Td %TH:%TM  %10s  %f\n' \
-                | sort -rn | cut -d' ' -f2- | head -40 ;;
+            while read -r kind folder; do list_runs "$kind" "$folder"; done < <(run_folders)
+            list_dumps before-import "$BACKUPS/before-import"
+            list_dumps "loose, from before the folders" "$BACKUPS" ;;
         *) die "Unknown: lavoro backup $1. Try: run, list" ;;
     esac
 }
@@ -555,7 +604,7 @@ cmd_restore() {
     local database="${1:-}" dump="${2:-}" defaults="${LAVORO_MYSQL_DEFAULTS:-/root/backup.cnf}"
 
     [ -n "$database" ] && [ -n "$dump" ] || die "Usage: sudo lavoro restore <database> <dump.sql.gz>
-Example: sudo lavoro restore lavoro_tenant_acme ${BACKUP_DIR}/lavoro_tenant_acme-2026-09-20_04-00-01.sql.gz
+Example: sudo lavoro restore lavoro_tenant_acme $(scheduled_dir)/2026-09-20_03-30-00/lavoro_tenant_acme.sql.gz
 See which database belongs to which customer with: lavoro tenants"
 
     [ "$(id -u)" -eq 0 ] || die "Restoring needs root: sudo lavoro restore ..."
@@ -588,7 +637,7 @@ or point LAVORO_MYSQL_DEFAULTS at another file. See docs/operations/backup-resto
     artisan app:maintenance
 
     green "Done. Restore this customer's files from the same moment as well:"
-    info "  rsync -a ${BACKUP_DIR}/files/tenant-<customer id>/ ${ROOT}/storage/tenant-<customer id>/"
+    info "  rsync -a /backups/lavoro/files/tenant-<customer id>/ ${ROOT}/storage/tenant-<customer id>/"
 }
 
 # ---------------------------------------------------------------------------
@@ -704,6 +753,7 @@ cmd_setup() {
         permissions) cmd_fix_permissions "$@" ;;
         mysql)    sudo "$ROOT/scripts/tenancy/setup-mysql.sh" "$@" ;;
         workers)  sudo "$ROOT/scripts/tenancy/setup-workers.sh" "$@" ;;
+        backups)  sudo "$ROOT/scripts/tenancy/setup-backups.sh" "$@" ;;
         sudoers)  sudo "$ROOT/scripts/tenancy/setup-sudoers.sh" "$@" ;;
         fail2ban) sudo "$ROOT/scripts/tenancy/setup-fail2ban.sh" "$@" ;;
         env)      bash "$ROOT/scripts/tenancy/setup-env.sh" "$@" ;;
@@ -713,7 +763,7 @@ cmd_setup() {
             ln -sf "$ROOT/bin/lavoro" /usr/local/bin/lavoro
             green "ln -s ${ROOT}/bin/lavoro /usr/local/bin/lavoro" ;;
         *) die "Unknown: lavoro setup $what
-Try: mysql, workers, sudoers, fail2ban, permissions, env, verify, cli" ;;
+Try: mysql, workers, backups, sudoers, fail2ban, permissions, env, verify, cli" ;;
     esac
 }
 
@@ -734,21 +784,23 @@ lavoro -- one command for a Lavoro installation
   lavoro tenants admin <id> them@example.nl
   sudo lavoro tenants import --from /path/to/old --name "Name BV" --slug name [--refresh]
 
-  lavoro backup [--keep-days=14]    dump every database
-  lavoro backup list                what is in the backup folder
+  lavoro backup [--to=DIR]          dump every database, into manual/ unless --to
+  lavoro backup list                what the backup folders hold
   sudo lavoro restore <database> <dump.sql.gz>
 
   lavoro logs [app|auth|worker|provisioning] [-f]
   lavoro workers [status|restart|failed|retry|flush]
   lavoro maintenance [on|off]
 
-  lavoro setup <mysql|workers|sudoers|fail2ban|env|verify|cli>
+  lavoro setup <mysql|workers|backups|sudoers|fail2ban|env|verify|cli>
   sudo lavoro setup permissions     give the web server and the provisioner their
                                     rights on storage/ again, masks included
 
 Where things are:
   installation  ${ROOT}
-  backups       ${BACKUP_DIR}   (set LAVORO_BACKUP_DIR to change)
+  nightly       $(scheduled_dir)
+  deploys       ${BACKUPS}/predeploy
+  by hand       ${BACKUPS}/manual
 USAGE
 }
 

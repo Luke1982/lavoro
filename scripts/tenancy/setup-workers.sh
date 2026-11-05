@@ -96,17 +96,9 @@ account_missing "$PROV_ACCOUNT" "Draai eerst: sudo scripts/tenancy/setup-mysql.s
 
 PHP_PATH="$(php -r 'echo PHP_BINARY;' 2>/dev/null || command -v php)"
 
-# What the unit has to wait for the database server on. Start the worker
-# earlier and it falls over on a connection that is not there yet and systemd
-# tries again -- works eventually, but fills the log with noise.
-DB_UNIT="mysql.service"
-for candidate in mariadb.service mysql.service mysqld.service; do
-    if systemctl list-unit-files "$candidate" >/dev/null 2>&1 \
-        && systemctl list-unit-files "$candidate" | grep -q "$candidate"; then
-        DB_UNIT="$candidate"
-        break
-    fi
-done
+# Started earlier, a worker falls over on a connection that is not there yet and
+# systemd tries again -- works eventually, but fills the log with noise.
+DB_UNIT="$(database_unit)"
 
 WORKER_UNIT="[Unit]
 Description=Lavoro worker

@@ -153,7 +153,8 @@ and prints the command to change it anyway.
 **What it throws away:** anything that was changed on *this* side in that
 customer's database since the last import. The old installation's data replaces
 it. Before replacing anything, the script saves what is there to
-`storage/backups/before-refresh-<slug>-<date>.sql.gz`.
+`storage/backups/before-import/<slug>-<date>.sql.gz`. The newest seven per
+customer are kept.
 
 **Files:** anything new at the old installation is copied here, and changed
 files overwrite the ones here. Files deleted at the old installation stay here.

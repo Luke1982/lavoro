@@ -133,15 +133,17 @@ The import is [taking over an installation](../install/import-existing.md);
 ## Backups
 
 ```bash
-lavoro backup                     # dump every database
-lavoro backup --keep-days=14      # and delete dumps older than two weeks
-lavoro backup list                # what is in the backup folder, newest first
+sudo lavoro setup backups         # every database, every night, the newest 7 kept
+lavoro backup                     # one run now, into storage/backups/manual
+lavoro backup --to=/backups/x     # one run now, into a folder of your own
+lavoro backup list                # what every backup folder holds, newest first
 ```
 
-By default it writes into `storage/backups`, which is the same disk as the
-databases. Set `LAVORO_BACKUP_DIR=/backups/lavoro` in the environment to put
-them somewhere else; `lavoro status` warns as long as they are inside the
-installation.
+The nightly backup is a systemd timer that runs as the account the site runs
+as; `lavoro status` says whether it is on and when each folder last got a run.
+The deploy puts its own runs in `storage/backups/predeploy`. Every folder keeps
+its newest seven runs; how they are laid out is in
+[backups and restoring](backup-restore.md#where-the-backups-are).
 
 This covers databases only. The uploaded files and `APP_KEY` are two more
 commands, described in [backups and restoring](backup-restore.md).
@@ -149,7 +151,7 @@ commands, described in [backups and restoring](backup-restore.md).
 Putting one customer's database back:
 
 ```bash
-sudo lavoro restore lavoro_tenant_acme /backups/lavoro/lavoro_tenant_acme-2026-09-20_04-00-01.sql.gz
+sudo lavoro restore lavoro_tenant_acme /var/www/lavoro/storage/backups/scheduled/2026-09-20_03-30-00/lavoro_tenant_acme.sql.gz
 ```
 
 It tells you what it is about to replace and when that dump was made, asks once,

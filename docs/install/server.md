@@ -596,10 +596,10 @@ not the file.
 
 ## Once you are live
 
-- **Set up backups.** Back up the shared database, every customer database, the
-  uploaded files and `APP_KEY`. See
-  [backups and restoring](../operations/backup-restore.md); the command is
-  `scripts/tenancy/backup.sh`.
+- **Set up backups.** `sudo scripts/tenancy/setup-backups.sh` dumps the shared
+  database and every customer database every night and keeps the newest seven.
+  The uploaded files and `APP_KEY` need backing up as well, and so does a copy
+  on another machine. See [backups and restoring](../operations/backup-restore.md).
 - **Store `APP_KEY` somewhere safe.** It decrypts every customer database
   password. Without it, a restored backup cannot be used.
 - **Put the `lavoro` command on PATH**: `sudo /var/www/lavoro/bin/lavoro setup cli`.

@@ -42,65 +42,125 @@ So a backup has four parts, and you need all four:
 | The uploaded files | `storage/tenant-*/` | photos and documents are gone. The app still lists them, so work orders show broken images |
 | `APP_KEY` | `.env` | the customer database passwords cannot be decrypted, so a restored shared database is useless |
 
+## Where the backups are
+
+Unless you point them elsewhere, the dumps Lavoro makes go into
+`storage/backups`, one folder per reason:
+
+| Folder | What is in it | Kept |
+| --- | --- | --- |
+| `scheduled/` | the nightly backup | the newest 7 runs |
+| `predeploy/` | taken by every deploy, before it changes anything | the newest 7 runs |
+| `manual/` | `lavoro backup`, or `backup.sh` run by hand | the newest 7 runs |
+| `before-import/` | a customer's database just before an import with `--refresh` replaced it | the newest 7 per customer |
+
+In `scheduled/`, `predeploy/` and `manual/` every run is a folder of its own,
+named after the moment it started, with one file per database in it:
+
+```
+storage/backups/scheduled/2026-11-05_03-30-00/lavoro_landlord.sql.gz
+storage/backups/scheduled/2026-11-05_03-30-00/lavoro_tenant_acme.sql.gz
+```
+
+So the shared database and every customer database of one moment are always
+together, which is what a restore needs.
+
+A run is written into `<moment>.part` and only gets its real name once every
+database is in it. A run that missed a database is named
+`<moment>-incomplete`: the dumps that are in it are whole and usable, but it
+does not count as a backup.
+
+Old runs are removed after a complete run, never after a failed one. A backup
+that fails night after night therefore never removes the last good ones.
+
+`lavoro backup list` shows what every folder holds; `lavoro status` shows when
+each last ran.
+
 ## Taking a backup
 
-A backup is three commands. Each one covers a different part of the four above,
-and none of them covers the others.
+The databases are one command, and the nightly timer runs it for you. The
+uploaded files and `APP_KEY` are two more, and nothing runs those by itself.
 
 ```bash
 cd /var/www/lavoro
-mkdir -p /backups/lavoro/files
 
-# 1. All databases: the shared one and every customer's
-scripts/tenancy/backup.sh --to=/backups/lavoro --keep-days=14
+# 1. All databases, every night (once, as root)
+sudo scripts/tenancy/setup-backups.sh
 
 # 2. The uploaded files
+mkdir -p /backups/lavoro/files
 rsync -a storage/tenant-* /backups/lavoro/files/
 
 # 3. APP_KEY, which is what makes the database dumps usable
 cp .env /backups/lavoro/lavoro.env
 ```
 
-That leaves everything in `/backups/lavoro` on this same server, which does not
-survive the server failing. Copy it to another machine, for example:
+That still leaves everything on this same server, which does not survive the
+server failing. Copy it to another machine, for example:
 
 ```bash
+rsync -a storage/backups/scheduled/ backup-host:/backups/lavoro/databases/
 rsync -a /backups/lavoro/ backup-host:/backups/lavoro/
 ```
 
-None of this runs by itself. To back up nightly at half past three, add this to
-the crontab of the account that owns the files (`crontab -e`):
+Without `--delete`, the other machine keeps every night, including the ones
+removed here after a week; clear out old ones there as you see fit. With
+`--delete` it keeps exactly what is here, which also means that whatever goes
+missing here goes missing there the next night.
 
-```
-30 3 * * * cd /var/www/lavoro && scripts/tenancy/backup.sh --to=/backups/lavoro --keep-days=14 && rsync -a storage/tenant-* /backups/lavoro/files/ && rsync -a /backups/lavoro/ backup-host:/backups/lavoro/
-```
-
-### 1. The databases
+### 1. The databases, every night
 
 ```bash
-scripts/tenancy/backup.sh                          # writes into storage/backups
-scripts/tenancy/backup.sh --to=/backups/lavoro     # writes into /backups/lavoro
-scripts/tenancy/backup.sh --to=/backups/lavoro --keep-days=14
+sudo scripts/tenancy/setup-backups.sh --dry-run    # show what it would put in place
+sudo scripts/tenancy/setup-backups.sh              # every night at 03:30, newest 7 kept
+sudo scripts/tenancy/setup-backups.sh --at=02:15 --keep=14 --to=/backups/lavoro/databases
 ```
 
-It creates the folder you give it with `--to` if it does not exist. Without
-`--to` it writes into `storage/backups` inside the installation, which is on the
-same disk as the databases themselves, so use `--to` for a real backup.
+This installs a systemd timer, `lavoro-backup.timer`, which runs
+`scripts/tenancy/backup.sh` every night into `storage/backups/scheduled`, and
+then runs it once straight away so you know now whether it works. If the server
+is off at that time, the backup runs as soon as it is back on.
 
-You get one compressed file per database, named after the database and the
-moment it was taken: `lavoro_landlord-2026-09-24_04-00-01.sql.gz`, then one per
-customer. With three customers that is four files. They are created readable
-only by the account that ran the script (mode 600), because they contain all of
+It runs as the account the site runs as, not as `lavoro_provisioner`. A backup
+only reads, and it reads each database with that database's own login, which
+the application hands it. The provisioner may create and drop databases and
+users, and a process that runs every night with nobody watching should not have
+that. The script refuses to set it up as the provisioner or as root.
+
+Run it again to change the time, the folder or how many are kept. To see when
+it runs next and what the last run said:
+
+```bash
+systemctl list-timers lavoro-backup.timer
+journalctl -u lavoro-backup -n 50
+```
+
+`php artisan tenancy:doctor` reports it when the timer is off, when the last run
+is incomplete, or when the newest complete run is more than 36 hours old. A
+backup that stopped looks exactly like one that runs, so that check is how you
+find out.
+
+### Dumping by hand
+
+```bash
+lavoro backup                                      # into storage/backups/manual
+scripts/tenancy/backup.sh --to=/backups/lavoro     # into a folder of your own
+scripts/tenancy/backup.sh --to=/backups/lavoro --keep=14
+```
+
+It creates the folder you give it with `--to` if it does not exist, and puts a
+run folder in it as described above. The files are readable only by the account
+that ran the script (mode 600, the run folder 700), because they contain all of
 that company's data.
 
-If one customer's database cannot be opened, the script prints that customer's
-name, dumps all the other databases anyway, and finishes with exit code 1. Check
-that exit code when you run it from cron: otherwise a backup that is missing one
-company looks exactly like a complete one.
+`--keep=7` is the default: the newest seven complete runs in that folder stay,
+older ones go. `--keep=0` removes nothing. It only ever removes run folders it
+recognises by name, so pointing it at a folder that holds other things as well
+is safe.
 
-`--keep-days=14` deletes dumps older than fourteen days from the folder it
-writes into, and that is the only thing this script ever deletes. Leave it off
-and old dumps are kept forever.
+If one customer's database cannot be opened, the script prints that customer's
+name, dumps all the other databases anyway, names the run `-incomplete` and
+finishes with exit code 1.
 
 It does not touch the uploaded files or `APP_KEY`; steps 2 and 3 do that. It
 does not copy anything to another machine either.
@@ -108,8 +168,8 @@ does not copy anything to another machine either.
 To check afterwards that a dump is readable and not empty:
 
 ```bash
-ls -lh /backups/lavoro                                   # none of them should be tiny
-gunzip -t /backups/lavoro/lavoro_tenant_acme-*.sql.gz    # silence means it is intact
+ls -lh storage/backups/scheduled/<moment>/                             # none of them should be tiny
+gunzip -t storage/backups/scheduled/<moment>/lavoro_tenant_acme.sql.gz   # silence means it is intact
 ```
 
 ### 2. The uploaded files
@@ -175,22 +235,20 @@ server can read it with `ps`, and give `mysqldump` the options
 
 ## The dumps the deploy leaves behind are not a backup
 
-`scripts/deploy.sh` dumps every database into `storage/backups/` before it
-changes anything, and refuses to deploy if a dump fails. Those files exist so
-you can undo that one deploy.
+`scripts/deploy.sh` dumps every database into `storage/backups/predeploy/`
+before it changes anything, and refuses to deploy if a dump fails. A customer
+whose database cannot be opened at all is named and skipped; that does not stop
+the deploy. The newest seven deploys are kept.
 
-They are not a backup of the installation: they are on the same disk as the
-databases they came from, they do not include the uploaded files or `APP_KEY`,
-and nothing ever deletes them, so they fill up the disk. Delete the old ones,
-or set up the real backup above:
+Those runs exist so you can undo that one deploy. They are not a backup of the
+installation: they are on the same disk as the databases they came from, they
+do not include the uploaded files or `APP_KEY`, and a week without a deploy
+means a week without one.
 
-```bash
-find storage/backups -name '*.sql.gz' -mtime +14 -delete
-```
-
-You may also find a file called `before-refresh-<name>-<date>.sql.gz` there.
-That is a customer's database as it was just before an import replaced it; see
-[taking over an installation](../install/import-existing.md).
+`storage/backups/before-import/<name>-<moment>.sql.gz` is a customer's database
+as it was just before an import replaced it; see
+[taking over an installation](../install/import-existing.md). The newest seven
+per customer are kept.
 
 ## Before restoring: the MySQL login you need
 
@@ -233,7 +291,7 @@ php artisan app:maintenance --message="Bezig met herstel." --until="16:00"
 php artisan tenants:list
 
 # Load the dump back into that database
-gunzip -c /backups/lavoro/lavoro_tenant_acme-2026-09-20_04-00-01.sql.gz \
+gunzip -c storage/backups/scheduled/2026-09-20_03-30-00/lavoro_tenant_acme.sql.gz \
     | mysql --defaults-extra-file=/root/backup.cnf lavoro_tenant_acme
 
 # The dump may be older than the current code, so bring the tables up to date
@@ -281,7 +339,7 @@ cd /var/www/lavoro
 
 php artisan app:maintenance --message="Bezig met herstel."
 
-gunzip -c /backups/lavoro/lavoro_landlord-2026-09-20_04-00-01.sql.gz \
+gunzip -c storage/backups/scheduled/2026-09-20_03-30-00/lavoro_landlord.sql.gz \
     | mysql --defaults-extra-file=/root/backup.cnf lavoro_landlord
 
 php artisan migrate --force
@@ -309,7 +367,7 @@ This is the full recovery: a new machine, from backups only.
    mysql --defaults-extra-file=/root/backup.cnf \
        -e "CREATE DATABASE lavoro_tenant_acme CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 
-   gunzip -c /backups/lavoro/lavoro_tenant_acme-<date>.sql.gz \
+   gunzip -c /backups/lavoro/databases/<moment>/lavoro_tenant_acme.sql.gz \
        | mysql --defaults-extra-file=/root/backup.cnf lavoro_tenant_acme
    ```
 
@@ -348,8 +406,8 @@ This is the full recovery: a new machine, from backups only.
   whether your backups can actually be read back, and the only bad moment to
   find out is during a real failure.
 - **Keep a copy on another machine**, and keep backups far enough back to
-  recover from a mistake nobody noticed for a week. `--keep-days=14` gives you
-  two weeks.
+  recover from a mistake nobody noticed for a week. The nightly timer keeps
+  seven nights; `setup-backups.sh --keep=14` gives you two weeks.
 - **Remember that deleting a customer in the admin panel is immediate.** It
   deletes that customer's database, its MySQL user and its files. These backups
   are the only way back.

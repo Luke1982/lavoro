@@ -530,3 +530,19 @@ print_flavour() {
     info "  Flavour: ${DB_FLAVOUR}"
     info "  Socket:  ${SOCKET_PLUGIN} (${IDENTIFIED_CLAUSE})"
 }
+
+# The unit the database server runs as, for After= in the units these scripts
+# write. Start a worker or a backup before it and it falls over on a connection
+# that is not there yet.
+database_unit() {
+    local candidate
+
+    for candidate in mariadb.service mysql.service mysqld.service; do
+        if systemctl list-unit-files "$candidate" 2>/dev/null | grep -q "^${candidate}"; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+
+    printf 'mysql.service'
+}
