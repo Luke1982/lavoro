@@ -34,14 +34,15 @@ class InvoiceBooker
         $code = $tenant->eboekhouden_relation_code
             ?: throw new Refusal("Koppel {$tenant->name} eerst aan een relatie in e-Boekhouden; dat kan op het abonnementsscherm.");
 
+        /** Worked out first: a refusal here never left the building, and is not recorded as a failed booking. */
+        $booking = $this->booking($invoice->loadMissing(['lines', 'credits']), $code);
+
         try {
             /**
              * Asked first, so a second click -- or a booking that did arrive
              * while the answer got lost -- does not book the invoice twice.
              */
-            $number = $this->client->invoiceExists($invoice->number)
-                ? null
-                : $this->client->addInvoice($this->booking($invoice->loadMissing(['lines', 'credits']), $code));
+            $number = $this->client->invoiceExists($invoice->number) ? null : $this->client->addInvoice($booking);
         } catch (Refusal $e) {
             $invoice->forceFill(['booking_error' => mb_substr($e->getMessage(), 0, 255)])->save();
 

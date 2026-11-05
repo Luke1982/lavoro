@@ -272,13 +272,16 @@ class EBoekhoudenClient
      * iterator_to_array(): those key on the tag name, so every relation after
      * the first overwrote the one before it.
      *
+     * Nothing when the list is missing: an empty result may leave out the
+     * element around it, and then the tag reads as null.
+     *
      * @return array<int, SimpleXMLElement>
      */
-    private function items(SimpleXMLElement $elements): array
+    private function items(?SimpleXMLElement $elements): array
     {
         $items = [];
 
-        foreach ($elements as $element) {
+        foreach ($elements ?? [] as $element) {
             $items[] = $element;
         }
 

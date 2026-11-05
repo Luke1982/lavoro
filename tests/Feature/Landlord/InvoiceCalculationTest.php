@@ -90,6 +90,27 @@ class InvoiceCalculationTest extends TestCase
         $this->assertSame('2026-11-07', (new Invoicer($tenant))->nextInvoiceOn(CarbonImmutable::parse('2026-11-04'))->toDateString());
     }
 
+    /**
+     * Credit bought before the start waits for the first invoice. It used to
+     * make the customer due at once, and the hourly round invoiced it alone.
+     */
+    public function test_a_charge_before_the_start_goes_on_the_first_invoice(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-11-07']);
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id, 'kind' => 'topup', 'description' => 'AI-tegoed', 'amount_cents' => 1000,
+        ]);
+        $invoicer = new Invoicer($tenant);
+        $today = CarbonImmutable::parse('2026-11-05');
+
+        $this->assertFalse($invoicer->isDue($today));
+        $this->assertSame('2026-11-07', $invoicer->nextInvoiceOn($today)->toDateString());
+        $this->assertSame(['subscription', 'topup'], array_column($invoicer->preview(CarbonImmutable::parse('2026-11-07'))['lines'], 'kind'));
+
+        $this->expectException(Refusal::class);
+        $invoicer->issue($today);
+    }
+
     public function test_the_next_invoice_after_a_paid_period_is_on_the_first_day_of_the_next(): void
     {
         $tenant = $this->tenant();

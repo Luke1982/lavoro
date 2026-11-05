@@ -68,18 +68,38 @@ class TenantSubscriptionTest extends TestCase
      * top; otherwise a customer with a fixed price gets every module and every
      * gigabyte thrown in for free.
      */
-    public function test_a_price_override_covers_the_package_and_nothing_else(): void
+    public function test_a_price_override_covers_the_package_its_seats_and_its_storage(): void
     {
         $this->assertSame(9999, $this->subscription(['price_override_cents' => 9999])->monthlyTotalCents());
 
-        $this->assertSame(
-            9999 + 2250 + 3 * 1000,
-            $this->subscription([
-                'price_override_cents' => 9999,
-                'modules' => ['assistant'],
-                'extra_field_seats' => 3,
-            ])->monthlyTotalCents(),
-        );
+        $this->assertSame(9999, $this->subscription([
+            'price_override_cents' => 9999,
+            'extra_field_seats' => 3,
+            'extra_office_seats' => 4,
+            'storage_limit_gb' => 90,
+        ])->monthlyTotalCents());
+    }
+
+    public function test_modules_come_on_top_of_a_price_override(): void
+    {
+        $this->assertSame(9999 + 2250, $this->subscription([
+            'price_override_cents' => 9999,
+            'modules' => ['assistant'],
+            'extra_field_seats' => 3,
+        ])->monthlyTotalCents());
+    }
+
+    /** The invoice says what the fixed price replaces: the package with its seats and storage. */
+    public function test_the_regular_price_beside_a_price_override_includes_seats_and_storage(): void
+    {
+        $line = $this->subscription([
+            'price_override_cents' => 10000,
+            'extra_office_seats' => 4,
+            'storage_limit_gb' => 60,
+        ])->breakdown()[0];
+
+        $this->assertSame(10000, $line['amount_cents']);
+        $this->assertSame(16000 + 4 * 700 + 10 * 50, $line['regular_cents']);
     }
 
     public function test_a_module_can_have_a_price_of_its_own(): void

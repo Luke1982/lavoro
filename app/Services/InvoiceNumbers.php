@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\Refusal;
 use App\Models\Central\Invoice;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,17 +30,13 @@ class InvoiceNumbers
      * continuous series must never produce, and the tax office reads that series
      * as proof that nothing was left out.
      *
-     * The row is locked by the increment until the transaction commits, so two
-     * invoices at the same moment get two numbers.
+     * The row is locked until the transaction commits, so two invoices at the
+     * same moment get two numbers.
      */
     public function next(CarbonImmutable $on): string
     {
         $year = (int) $on->format('Y');
-        $counter = DB::connection('central')->table('invoice_numbers');
-
-        $counter->insertOrIgnore(['year' => $year, 'last_number' => 0]);
-
-        $last = (int) ($counter->where('year', $year)->lockForUpdate()->value('last_number') ?? 0);
+        $last = $this->lockedCounter($year);
 
         /**
          * The highest number that is actually there counts too. A row written
@@ -49,7 +46,7 @@ class InvoiceNumbers
          */
         $next = max($last, $this->highest($year)) + 1;
 
-        $counter->where('year', $year)->update(['last_number' => $next]);
+        $this->counterRow($year)->update(['last_number' => $next]);
 
         return $this->prefix($year) . $next;
     }
@@ -57,8 +54,30 @@ class InvoiceNumbers
     /** The last number the counter handed out this year. */
     public function counter(int $year): int
     {
-        return (int) (DB::connection('central')->table('invoice_numbers')
-            ->where('year', $year)->value('last_number') ?? 0);
+        return (int) $this->counterRow($year)->value('last_number');
+    }
+
+    /**
+     * The counter of the year, locked before anything is written. With the row
+     * already there -- every invoice but the year's first -- an ignored insert
+     * still takes a shared lock, and two of those waiting for the exclusive one
+     * is a deadlock.
+     */
+    private function lockedCounter(int $year): int
+    {
+        $last = $this->counterRow($year)->lockForUpdate()->value('last_number');
+
+        if ($last === null) {
+            DB::connection('central')->table('invoice_numbers')->insertOrIgnore(['year' => $year, 'last_number' => 0]);
+            $last = $this->counterRow($year)->lockForUpdate()->value('last_number');
+        }
+
+        return (int) $last;
+    }
+
+    private function counterRow(int $year): Builder
+    {
+        return DB::connection('central')->table('invoice_numbers')->where('year', $year);
     }
 
     /** The highest number of the year that is still on an invoice. */
@@ -78,15 +97,15 @@ class InvoiceNumbers
      *
      * Never lower than that: the invoices that remain keep their number. And
      * only withdrawn invoices free a number, which is only possible before they
-     * were mailed or collected -- what the customer has, stays spent.
+     * left the building -- what the customer or the bookkeeping may have,
+     * stays spent.
      *
      * @return array{from: int, to: int}
      */
     public function reset(int $year): array
     {
         return DB::connection('central')->transaction(function () use ($year) {
-            $counter = DB::connection('central')->table('invoice_numbers');
-            $from = (int) ($counter->where('year', $year)->lockForUpdate()->value('last_number') ?? 0);
+            $from = (int) $this->counterRow($year)->lockForUpdate()->value('last_number');
             $to = $this->highest($year);
 
             if ($from <= $to) {
@@ -94,7 +113,7 @@ class InvoiceNumbers
                     . ($to ? ' (' . $this->prefix($year) . $to . ')' : '') . '; er valt niets terug te zetten.');
             }
 
-            $counter->where('year', $year)->update(['last_number' => $to]);
+            $this->counterRow($year)->update(['last_number' => $to]);
 
             return ['from' => $from, 'to' => $to];
         });

@@ -19,6 +19,17 @@
                 </div>
             </div>
 
+            <label class="mt-3 flex items-start gap-2">
+                <input v-model="form.auto_invoicing" type="checkbox" class="mt-1">
+                <span>
+                    Automatisch factureren
+                    <span class="block text-sm text-slate-500">
+                        Elk uur worden de facturen aangemaakt waarvan de periode begonnen is (niet
+                        verstuurd). Uit: alleen met de knop bij Facturen bekijken.
+                    </span>
+                </span>
+            </label>
+
             <label class="mb-1 mt-4 block font-semibold">Pakket</label>
             <select v-model="form.package_key" class="panel-field w-full">
                 <option value="">— geen —</option>
@@ -54,13 +65,27 @@
             </div>
 
             <div class="my-4 rounded-md border border-slate-200 bg-slate-50 p-3">
-                <div>Berekend: {{ euro(subscription.before_discount_cents) }}</div>
-                <div v-if="subscription.discount_cents" class="text-red-700">
-                    Korting: − {{ euro(subscription.discount_cents) }}
+                <table class="w-full text-sm">
+                    <tbody>
+                        <tr v-for="(line, index) in subscription.lines" :key="index" class="align-top">
+                            <td class="py-1">
+                                {{ line.description }}
+                                <span v-if="line.detail" class="block text-slate-500">{{ line.detail }}</span>
+                            </td>
+                            <td class="py-1 pl-3 text-right whitespace-nowrap"
+                                :class="{ 'text-red-700': line.amount_cents < 0 }">
+                                {{ euro(line.amount_cents) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="mt-2 flex justify-between border-t border-slate-300 pt-2 text-lg font-bold">
+                    <span>Totaal per maand</span>
+                    <span>{{ euro(subscription.total_cents) }}</span>
                 </div>
-                <div class="mt-1 text-lg font-bold">
-                    Totaal: {{ euro(subscription.total_cents) }} per maand
-                </div>
+                <p v-if="form.isDirty" class="mt-1 text-sm text-amber-700">
+                    Dit is de opbouw zoals hij is opgeslagen; na opslaan klopt hij met wat je hebt ingevuld.
+                </p>
             </div>
 
             <label class="mb-1 block font-semibold">Korting</label>
@@ -105,8 +130,8 @@
             <input id="package-price" v-model="form.price_override_euro" type="number" step="0.01" min="0"
                 class="panel-field w-full">
             <p class="mt-1 text-sm text-slate-500">
-                Geldt voor het pakket. Plekken, modules en extra opslag komen daar bovenop; voor een
-                module spreek je hierboven een eigen prijs af.
+                Geldt voor het pakket met alle plekken en opslag, hoeveel het er ook zijn. Alleen
+                modules komen erbovenop; daarvoor spreek je hierboven een eigen prijs af.
             </p>
 
             <label class="mb-1 mt-4 block font-semibold">Factuurgegevens</label>
@@ -192,6 +217,7 @@ const form = useForm({
     subscription_started_on: props.tenant.subscription_started_on,
     subscription_ends_on: props.tenant.subscription_ends_on ?? '',
     billing_period: props.tenant.billing_period === 'yearly' ? 'yearly' : 'monthly',
+    auto_invoicing: props.tenant.auto_invoicing !== false,
     package_key: props.tenant.package_key ?? '',
     extra_field_seats: props.tenant.extra_field_seats,
     extra_office_seats: props.tenant.extra_office_seats,
@@ -219,5 +245,8 @@ const form = useForm({
     ),
 })
 
-const submit = () => form.put(`/beheer/${props.tenant.id}`, { preserveScroll: true })
+const submit = () => form.put(`/beheer/${props.tenant.id}`, {
+    preserveScroll: true,
+    onSuccess: () => form.defaults(),
+})
 </script>

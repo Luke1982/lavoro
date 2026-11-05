@@ -34,8 +34,11 @@ class CreditInvoiceTest extends TestCase
         return $this->tenantRow(['subscription_started_on' => '2026-11-01']);
     }
 
+    /** Credited once it has gone out; before that it is deleted instead. */
     private function credit(Invoice $invoice)
     {
+        $invoice->update(['mailed_at' => $invoice->mailed_at ?? now()]);
+
         return $this->post("/beheer/{$invoice->tenant_id}/facturen/{$invoice->id}/crediteren");
     }
 
@@ -188,5 +191,83 @@ class CreditInvoiceTest extends TestCase
 
         $this->assertStringContainsString('<cac:BillingReference>', $xml);
         $this->assertStringContainsString('<cbc:ID>' . $invoice->number . '</cbc:ID>', $xml);
+    }
+
+    public function test_an_invoice_that_has_not_gone_out_is_deleted_and_not_credited(): void
+    {
+        $invoice = (new Invoicer($this->tenant()))->issue();
+
+        $this->post("/beheer/{$invoice->tenant_id}/facturen/{$invoice->id}/crediteren")->assertSessionHas('error');
+
+        $this->assertNull($this->creditNoteOf($invoice));
+    }
+
+    /** The refund for unused days was worked out against the invoice that is now cancelled. */
+    public function test_a_cancellation_is_not_refunded_on_top_of_a_credited_invoice(): void
+    {
+        $tenant = $this->tenant();
+        $invoice = (new Invoicer($tenant))->issue();
+        $tenant->update(['subscription_ends_on' => '2026-11-15']);
+        (new Invoicer($tenant))->settleCancellation(CarbonImmutable::parse('2026-11-15'));
+
+        $this->credit($invoice);
+
+        $this->assertSame(1375, (new Invoicer($tenant))->issue()->total_cents);
+    }
+
+    /** An upgrade after the invoice is worked out again, over the days spent on the old package. */
+    public function test_a_package_change_after_the_credited_invoice_is_settled_again(): void
+    {
+        $tenant = $this->tenant();
+        $invoice = (new Invoicer($tenant))->issue();
+        $this->travelTo(CarbonImmutable::parse('2026-11-16 10:00:00'));
+        $tenant->update(['package_key' => 'team']);
+        (new Invoicer($tenant))->prorate(2750, 8750, old_package: 'Starter', new_package: 'Team');
+
+        $this->credit($invoice);
+
+        $this->assertSame(1375 + 4375, (new Invoicer($tenant))->issue()->total_cents);
+    }
+
+    /**
+     * The upgrade of 16 November was charged on December's invoice. Crediting
+     * November takes it back, and November is worked out again: half a month
+     * on each package, across the two invoices.
+     */
+    public function test_a_settlement_a_later_invoice_charged_is_reversed_with_the_credit(): void
+    {
+        $tenant = $this->tenant();
+        $november = (new Invoicer($tenant))->issue();
+        $this->travelTo(CarbonImmutable::parse('2026-11-16 10:00:00'));
+        $tenant->update(['package_key' => 'team']);
+        (new Invoicer($tenant))->prorate(2750, 8750, old_package: 'Starter', new_package: 'Team');
+        $this->travelTo(CarbonImmutable::parse('2026-12-01 10:00:00'));
+        $december = (new Invoicer($tenant))->issue();
+
+        $this->credit($november);
+        $again = (new Invoicer($tenant))->issue(period: CarbonImmutable::parse('2026-11-01'));
+
+        $this->assertSame(8750 + 3000, $december->total_cents);
+        $this->assertSame(1375 + 4375, 3000 + $again->total_cents);
+    }
+
+    /** A credited month in the past is open again, and invoiced from the list of open periods. */
+    public function test_a_credited_period_in_the_past_is_invoiced_again_from_the_panel(): void
+    {
+        $tenant = $this->tenantRow(['subscription_started_on' => '2026-10-01']);
+        $october = (new Invoicer($tenant))->issue(CarbonImmutable::parse('2026-10-01'));
+        (new Invoicer($tenant))->issue();
+        $this->credit($october);
+
+        $this->get(route('landlord.invoices', $tenant->id))
+            ->assertInertia(fn ($page) => $page->where('unbilled.0.start', '2026-10-01'));
+
+        $this->post("/beheer/{$tenant->id}/facturen", ['period_start' => '2026-10-01'])->assertSessionHas('status');
+
+        $again = Invoice::on('central')->where('tenant_id', $tenant->id)->latest('id')->first();
+        $this->assertSame('2026-10-01', $again->period_start->toDateString());
+        $this->assertSame('2026-11-04', $again->issued_on->toDateString());
+
+        $this->post("/beheer/{$tenant->id}/facturen", ['period_start' => '2026-10-01'])->assertSessionHasErrors('period_start');
     }
 }

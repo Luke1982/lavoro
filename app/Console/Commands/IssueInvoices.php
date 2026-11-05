@@ -34,6 +34,12 @@ class IssueInvoices extends Command
         foreach ($tenants as $tenant) {
             $invoicer = new Invoicer($tenant);
 
+            if ($tenant->auto_invoicing === false) {
+                $this->line($tenant->name . ': automatisch factureren staat uit.');
+
+                continue;
+            }
+
             if (!$invoicer->isDue($on)) {
                 continue;
             }

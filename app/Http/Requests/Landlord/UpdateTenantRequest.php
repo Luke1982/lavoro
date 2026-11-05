@@ -20,6 +20,7 @@ class UpdateTenantRequest extends FormRequest
             'subscription_started_on' => 'nullable|date',
             'subscription_ends_on' => 'nullable|date|after_or_equal:subscription_started_on',
             'billing_period' => 'required|in:monthly,yearly',
+            'auto_invoicing' => 'boolean',
             'modules' => 'array',
             'module_prices' => 'array',
             'module_prices.*' => 'nullable|numeric|min:0',

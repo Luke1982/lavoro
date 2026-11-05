@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Landlord;
 
+use App\Models\Central\Invoice;
+use App\Models\Central\PendingCharge;
 use App\Models\Tenant;
 use App\Services\Invoicer;
 use Carbon\CarbonImmutable;
@@ -424,7 +426,27 @@ class SubscriptionScreenTest extends TestCase
             ->get(route('landlord.edit', $tenant->id))
             ->assertInertia(fn ($page) => $page
                 ->where('billing.next_on', '2026-09-10')
-                ->where('billing.next_cents', 2750));
+                ->where('billing.next.total_cents', 2750)
+                ->where('billing.next.lines.0.amount_cents', 2750));
+    }
+
+    /** Spee: a fixed price of € 100 with four extra office seats is € 100, and says what it includes. */
+    public function test_a_fixed_price_includes_the_seats_and_the_screen_says_so(): void
+    {
+        $tenant = $this->tenant([
+            'subscription_started_on' => '2026-09-10',
+            'package_key' => 'business',
+            'extra_office_seats' => 4,
+            'price_override_cents' => 10000,
+        ]);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->get(route('landlord.edit', $tenant->id))
+            ->assertInertia(fn ($page) => $page
+                ->where('subscription.total_cents', 10000)
+                ->where('subscription.lines.0.description', 'Abonnement Lavoro Business (met 4 extra kantoorplekken)')
+                ->where('subscription.lines.0.detail', 'vaste prijs, normaal € 188,00')
+                ->where('billing.next.total_cents', 10000));
     }
 
     public function test_the_invoice_list_says_when_the_first_invoice_can_be_made(): void
@@ -436,7 +458,75 @@ class SubscriptionScreenTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('is_due', false)
                 ->where('next_invoice_on', '2026-09-10')
-                ->where('starts_on', '2026-09-10'));
+                ->where('starts_on', '2026-09-10')
+                ->where('preview.total_cents', 2750));
+    }
+
+    /** 2026-LVR-9: the hourly round invoiced a settlement for a customer who had not started. */
+    public function test_the_hourly_round_leaves_a_customer_who_has_not_started_alone(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-10']);
+        PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id, 'kind' => 'topup', 'description' => 'AI-tegoed', 'amount_cents' => 2500,
+        ]);
+
+        $this->artisan('invoices:issue', ['--tenant' => $tenant->id])->assertSuccessful();
+
+        $this->assertSame(0, Invoice::on('central')->where('tenant_id', $tenant->id)->count());
+
+        $this->artisan('invoices:issue', ['--tenant' => $tenant->id, '--on' => '2026-09-10'])->assertSuccessful();
+
+        $this->assertSame(1, Invoice::on('central')->where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_auto_invoicing_can_be_switched_off_per_customer(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01']);
+
+        $this->save($tenant, ['auto_invoicing' => false])->assertRedirect();
+
+        $this->assertFalse($tenant->refresh()->auto_invoicing);
+
+        $this->artisan('invoices:issue', ['--tenant' => $tenant->id])->assertSuccessful();
+
+        $this->assertSame(0, Invoice::on('central')->where('tenant_id', $tenant->id)->count());
+        $this->assertTrue((new Invoicer($tenant))->isDue(), 'met de hand kan het nog wel');
+    }
+
+    /**
+     * A fixed price covers the seats too: € 40 fixed on € 27,50 of package
+     * with € 24 of seats is a reduction, and settles as one.
+     */
+    public function test_setting_a_fixed_price_settles_against_the_package_with_its_seats(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-01', 'extra_field_seats' => 2]);
+        (new Invoicer($tenant))->issue();
+
+        $this->save($tenant, ['price_override_euro' => '40.00'])->assertRedirect();
+
+        $this->assertSame(-920, (int) (new Invoicer($tenant))->pendingCharges()->sum('amount_cents'));
+    }
+
+    /** The settlement Spee got on 2026-LVR-9: deleting that invoice drops it for good. */
+    public function test_deleting_an_invoice_drops_a_settlement_from_before_the_start(): void
+    {
+        $tenant = $this->tenant(['subscription_started_on' => '2026-09-10']);
+        $charge = PendingCharge::on('central')->create([
+            'tenant_id' => $tenant->id, 'kind' => 'proration', 'description' => 'Verrekening',
+            'amount_cents' => 5419, 'data' => ['changed_on' => '2026-09-01'],
+        ]);
+        $invoice = Invoice::on('central')->create([
+            'tenant_id' => $tenant->id, 'number' => '2026-LVR-99', 'issued_on' => '2026-09-01', 'due_on' => '2026-09-15',
+            'period_start' => '2026-09-01', 'period_end' => '2026-09-30',
+            'subtotal_cents' => 5419, 'total_cents' => 5419, 'vat_cents' => 1138, 'gross_cents' => 6557,
+        ]);
+        $charge->update(['invoice_id' => $invoice->id]);
+
+        $this->actingAs($this->landlord(), 'landlord')
+            ->delete("/beheer/{$tenant->id}/facturen/{$invoice->id}")
+            ->assertSessionHas('status');
+
+        $this->assertNull(PendingCharge::on('central')->find($charge->id));
     }
 
     /** A package change and a module in one go settles only the package. */

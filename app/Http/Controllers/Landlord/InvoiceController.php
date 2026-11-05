@@ -31,23 +31,33 @@ class InvoiceController extends Controller
         $invoicer = new Invoicer($tenant);
         $starts_on = $tenant->subscription_started_on ? CarbonImmutable::parse($tenant->subscription_started_on) : null;
 
+        /**
+         * The preview is the invoice that comes next, not what could be made
+         * today: before the start that is nothing, and the screen read € 0,00.
+         */
+        $next_on = $invoicer->nextInvoiceOn();
+        $preview = $invoicer->preview($next_on);
+
         return inertia('Landlord/InvoicesPage', [
             'tenant' => $tenant,
             'invoices' => Invoice::on('central')->with(['lines', 'credits:id,number', 'creditedBy:id,number,credits_invoice_id'])
                 ->where('tenant_id', $tenant->id)->latest('issued_on')->latest('id')->get(),
-            'preview' => $invoicer->preview(),
+            'preview' => $preview,
             'is_due' => $invoicer->isDue(),
-            'is_credit' => $invoicer->isCreditNote(),
-            'next_invoice_on' => $invoicer->nextInvoiceOn()?->toDateString(),
+            'is_credit' => $preview['total_cents'] < 0,
+            'next_invoice_on' => $next_on?->toDateString(),
             /** Only while it lies ahead: the screen then says when the first invoice comes. */
             'starts_on' => $starts_on?->isFuture() ? $starts_on->toDateString() : null,
-            /** Months that were skipped; those do not come back of their own accord. */
             'eboekhouden' => [
                 'configured' => app(EBoekhoudenClient::class)->configured(),
                 'relation_code' => $tenant->eboekhouden_relation_code,
             ],
+            /** Periods that were skipped or credited; those do not come back of their own accord. */
             'unbilled' => collect($invoicer->unbilledPeriods())
-                ->map(fn (array $period) => $period['start']->format('d-m-Y') . ' t/m ' . $period['end']->format('d-m-Y'))
+                ->map(fn (array $period) => [
+                    'start' => $period['start']->toDateString(),
+                    'label' => $period['start']->format('d-m-Y') . ' t/m ' . $period['end']->format('d-m-Y'),
+                ])
                 ->all(),
         ]);
     }
@@ -56,7 +66,7 @@ class InvoiceController extends Controller
     {
         $tenant = Tenant::on('central')->findOrFail($id);
 
-        $invoice = (new Invoicer($tenant))->issue();
+        $invoice = (new Invoicer($tenant))->issue(period: $request->period());
 
         /**
          * The amount that is on the invoice as well and that gets collected:
@@ -71,20 +81,21 @@ class InvoiceController extends Controller
     /**
      * Withdraws an invoice that should not have been made.
      *
-     * Only while it has not left the building: once it has been mailed or has
-     * travelled along in a collection file the customer has it, and then the way
-     * back is a credit note and not a delete.
+     * Only while it has not left the building (Invoice::hasLeftTheBuilding):
+     * once the customer or the bookkeeping may have it, the way back is a
+     * credit note and not a delete.
      *
-     * The number does not come back. It stays spent in the counter, so the next
-     * invoice takes the following one -- a series with a gap is a question you
-     * can answer, two invoices with the same number is not.
+     * The number does not come back by itself. It stays spent in the counter,
+     * so the next invoice takes the following one, until someone resets the
+     * numbering in the catalogue -- a series with a gap is a question you can
+     * answer, two invoices with the same number is not.
      */
     public function destroyInvoice(DestroyInvoiceRequest $request, string $id, int $invoice_id)
     {
         [$tenant, $invoice] = $this->invoiceOf($id, $invoice_id);
 
         if ($invoice->hasLeftTheBuilding()) {
-            throw new Refusal("Factuur {$invoice->number} is al de deur uit."
+            throw new Refusal("Factuur {$invoice->number} is al de deur uit, of is naar e-Boekhouden gestuurd."
                 . ' Terugdraaien gaat met een creditfactuur, niet met verwijderen.');
         }
 
@@ -104,8 +115,11 @@ class InvoiceController extends Controller
 
         $invoice->delete();
 
-        return back()->with('status', "Factuur {$number} verwijderd."
-            . ' Het nummer blijft vergeven; de volgende factuur krijgt het daaropvolgende.');
+        /** Except a settlement over days before the start: that one should never have been on it. */
+        (new Invoicer($tenant))->forgetSettlementsBeforeTheStart();
+
+        return back()->with('status', "Factuur {$number} verwijderd. Het nummer komt niet vanzelf terug;"
+            . ' was het de laatste, zet de nummering dan terug onder Catalogus.');
     }
 
     /**

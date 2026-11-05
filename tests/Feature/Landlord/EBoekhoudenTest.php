@@ -62,18 +62,18 @@ class EBoekhoudenTest extends TestCase
         $result = match ($operation) {
             'OpenSession' => '<ErrorMsg /><SessionID>sessie-1</SessionID>',
             'CloseSession' => null,
-            'GetRelaties' => '<ErrorMsg /><Relaties>' . collect($this->relations)
+            'GetRelaties' => '<ErrorMsg />' . $this->list('Relaties', collect($this->relations)
                 ->filter(fn (array $relation) => $field('Code') !== ''
                     ? $relation['Code'] === $field('Code')
                     : collect($relation)->contains(fn ($value) => Str::contains(Str::lower($value), Str::lower($field('Trefwoord')))))
                 ->map(fn (array $relation) => '<cRelatie>' . collect($relation)
                     ->map(fn ($value, $key) => "<{$key}>" . e($value) . "</{$key}>")->implode('') . '</cRelatie>')
-                ->implode('') . '</Relaties>',
+                ->implode('')),
             'AddRelatie' => '<ErrorMsg /><Rel_ID>77</Rel_ID>',
-            'GetMutaties' => '<ErrorMsg /><Mutaties>' . collect($this->booked)
+            'GetMutaties' => '<ErrorMsg />' . $this->list('Mutaties', collect($this->booked)
                 ->filter(fn ($number) => $number === $field('Factuurnummer'))
                 ->map(fn ($number) => "<cMutatieList><MutatieNr>1</MutatieNr><Factuurnummer>{$number}</Factuurnummer></cMutatieList>")
-                ->implode('') . '</Mutaties>',
+                ->implode('')),
             'AddMutatie' => $this->refusal
                 ? '<ErrorMsg><LastErrorCode>E0016</LastErrorCode><LastErrorDescription>' . e($this->refusal)
                     . '</LastErrorDescription></ErrorMsg><Mutatienummer>0</Mutatienummer>'
@@ -85,6 +85,12 @@ class EBoekhoudenTest extends TestCase
             . "<{$operation}Response xmlns=\"http://www.e-boekhouden.nl/soap\">"
             . ($result === null ? '' : "<{$operation}Result>{$result}</{$operation}Result>")
             . "</{$operation}Response></soap:Body></soap:Envelope>");
+    }
+
+    /** An empty result leaves out the element around the list altogether, so the client must cope with that. */
+    private function list(string $tag, string $items): string
+    {
+        return $items === '' ? '' : "<{$tag}>{$items}</{$tag}>";
     }
 
     /** @return array<int, string> */
@@ -212,6 +218,9 @@ class EBoekhoudenTest extends TestCase
         $this->assertNull($invoice->booked_at);
         $this->assertStringContainsString('Relatie bestaat niet', $invoice->booking_error);
         $this->assertSame('CloseSession', last($this->operations()));
+
+        /** Whether it arrived is not certain, so its number must not be handed out again. */
+        $this->delete("/beheer/{$invoice->tenant_id}/facturen/{$invoice->id}")->assertSessionHas('error');
     }
 
     /** In the bookkeeping is out of the building: from then on, a credit note. */
@@ -259,6 +268,8 @@ class EBoekhoudenTest extends TestCase
             'zelfde btw-nummer' => [['vat_number' => 'NL001234567B01'], ['Bedrijf' => 'Anders genaamd', 'BTWNummer' => 'nl001234567b01']],
             'zelfde e-mailadres' => [['invoice_email' => 'factuur@spee.nl'], ['Bedrijf' => 'Anders genaamd', 'Email' => 'Factuur@Spee.nl ']],
             'zelfde naam met rechtsvorm' => [[], ['Bedrijf' => 'Spee Totaaltechniek B.V.']],
+            'zelfde naam, hier met rechtsvorm' => [['name' => 'Spee Totaaltechniek B.V.'], ['Bedrijf' => 'Spee Totaaltechniek']],
+            'KvK-nummer met spaties' => [['coc_number' => '1234 5678'], ['Bedrijf' => 'Anders genaamd', 'KvkNummer' => '12345678']],
         ];
     }
 

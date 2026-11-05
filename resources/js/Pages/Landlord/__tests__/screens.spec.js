@@ -58,8 +58,9 @@ const screens = [
         modules: [{ key: 'quotes', name: 'Offertes', price_cents: 2750 }],
         ai: { spent_cents: 0, allowance_cents: 2250, is_default: true, topup_cents: 0, rate_cents: 200 },
         topups: [],
-        subscription: { monthly_cents: 2750, commission_cents: 0 },
-        billing: { preview, is_due: true, pending: [] },
+        subscription: { lines: [], total_cents: 2750, commission_cents: 0 },
+        billing: { demo: false, next_on: null, next: null, pending: [] },
+        eboekhouden: { configured: false, relation_code: null },
         reseller: null,
         superadmins: [],
         unreachable: null,
@@ -119,40 +120,80 @@ describe('de facturenlijst', () => {
 describe('de facturatiekaart', () => {
     const card = (billing) => mount(BillingCard, { props: { tenant, billing }, global: { stubs: { Link: true } } })
 
-    it('noemt het bedrag en de dag van de volgende factuur', () => {
-        const text = card({ demo: false, next_on: '2026-10-01', next_cents: 3328, pending: [] }).text()
+    it('zet de volgende factuur regel voor regel neer, met wat er nog openstaat', () => {
+        const text = card({
+            demo: false,
+            next_on: '2026-11-07',
+            next: {
+                lines: [{ description: 'Abonnement Lavoro Business (met 4 extra kantoorplekken) 07-11-2026 t/m 06-12-2026, normaal € 188,00, speciale prijsafspraak', amount_cents: 10000 }],
+                discount_cents: 0,
+                total_cents: 12500,
+            },
+            pending: [{ id: 3, description: 'AI-tegoed', amount_cents: 2500 }],
+        }).text()
 
-        expect(text).toContain('33,28')
-        expect(text).toContain('01-10-2026')
+        expect(text).toContain('07-11-2026')
+        expect(text).toContain('met 4 extra kantoorplekken')
+        expect(text).toMatch(/AI-tegoed\s*€\s25,00\s*verwijderen/)
+        expect(text).toMatch(/Totaal excl\. btw\s*€\s125,00/)
     })
 
     it('zegt het als er geen factuur meer komt', () => {
-        const text = card({ demo: false, next_on: null, next_cents: null, pending: [] }).text()
+        const text = card({ demo: false, next_on: null, next: null, pending: [] }).text()
 
         expect(text).toContain('geen factuur meer gepland')
         expect(text).not.toContain('0,00')
     })
 
     it('zegt bij de demo waarom er niets te factureren valt', () => {
-        const text = card({ demo: true, next_cents: 0, pending: [] }).text()
+        const text = card({ demo: true, next_on: null, next: null, pending: [] }).text()
 
         expect(text).toContain('Wordt niet gefactureerd')
         expect(text).not.toContain('0,00')
     })
 })
 
+/**
+ * Het abonnement liet alleen "Berekend" en "Totaal" zien: bij een vaste prijs van
+ * € 100 en een totaal van € 128 viel niet te zien waar het verschil vandaan kwam.
+ */
+describe('de opbouw van de prijs', () => {
+    it('zet elke regel neer met waarom hij kost wat hij kost', () => {
+        const page = mount(EditPage, {
+            props: {
+                ...screens.find(([name]) => name === 'het abonnement')[2],
+                subscription: {
+                    lines: [
+                        { description: 'Abonnement Lavoro Business (met 4 extra kantoorplekken)', amount_cents: 10000, detail: 'vaste prijs, normaal € 188,00' },
+                        { description: 'Offertes', amount_cents: 2750 },
+                    ],
+                    total_cents: 12750,
+                    commission_cents: 0,
+                },
+            },
+            global: { stubs: { Link: true } },
+        })
+
+        const text = page.text()
+        expect(text).toContain('vaste prijs, normaal € 188,00')
+        expect(text).toMatch(/Offertes\s*€\s27,50/)
+        expect(text).toMatch(/Totaal per maand\s*€\s127,50/)
+    })
+})
+
 describe('de facturen en hun creditering', () => {
     const invoice = (fields) => ({
         id: 1, number: '2026-LVR-1', issued_on: '2026-11-04', gross_cents: 3328, credits_invoice_id: null,
-        mailed_at: null, collected_at: null, booked_at: null, lines: [], credits: null, credited_by: null, ...fields,
+        mailed_at: null, collected_at: null, booked_at: null, left_the_building: false, lines: [], credits: null,
+        credited_by: null, ...fields,
     })
-    const page = (invoices, eboekhouden = { configured: true, relation_code: 'ACC1042' }) => mount(InvoicesPage, {
-        props: { tenant, invoices, preview, is_due: false, next_invoice_on: '2026-12-01', eboekhouden },
+    const page = (invoices, eboekhouden = { configured: true, relation_code: 'ACC1042' }, unbilled = []) => mount(InvoicesPage, {
+        props: { tenant, invoices, preview, is_due: false, next_invoice_on: '2026-12-01', eboekhouden, unbilled },
         global: { stubs: { Link: true } },
     }).text()
 
-    it('biedt crediteren en boeken aan bij een gewone factuur', () => {
-        const text = page([invoice({ mailed_at: '2026-11-04T10:00:00' })])
+    it('biedt crediteren en boeken aan bij een factuur die de deur uit is', () => {
+        const text = page([invoice({ mailed_at: '2026-11-04T10:00:00', left_the_building: true })])
 
         expect(text).toContain('crediteren')
         expect(text).toContain('naar e-Boekhouden')
@@ -169,6 +210,19 @@ describe('de facturen en hun creditering', () => {
         expect(text).toContain('gecrediteerd met 2026-LVR-2')
         expect(text).not.toContain('crediteren')
         expect(text).not.toContain('verwijderen')
+    })
+
+    it('biedt bij een factuur die nog niet de deur uit is verwijderen aan, geen crediteren', () => {
+        const text = page([invoice({})])
+
+        expect(text).toContain('verwijderen')
+        expect(text).not.toContain('crediteren')
+    })
+
+    it('laat een overgeslagen of gecrediteerde periode alsnog factureren', () => {
+        const text = page([], undefined, [{ start: '2026-10-01', label: '01-10-2026 t/m 31-10-2026' }])
+
+        expect(text).toMatch(/01-10-2026 t\/m 31-10-2026\s*factureren/)
     })
 
     it('zegt het als de klant nog niet aan e-Boekhouden gekoppeld is', () => {

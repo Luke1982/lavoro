@@ -40,10 +40,10 @@ class RelationLinker
 
     /**
      * Creates a relation for the customer, unless one that is clearly the same
-     * company is already there: the same chamber of commerce number, VAT number,
-     * invoice address or name. A name that merely contains the search term is
-     * no reason to refuse -- "Spee" is not "Speelgoed BV" -- those are for the
-     * person searching to judge.
+     * company is already there: the same chamber of commerce number, VAT
+     * number, invoice e-mail address or name. A name that merely contains the
+     * search term is no reason to refuse -- "Spee" is not "Speelgoed BV" --
+     * those are for the person searching to judge.
      */
     public function create(Tenant $tenant): array
     {
@@ -85,6 +85,12 @@ class RelationLinker
      * Relations that are the same company, each with the field that gave it
      * away.
      *
+     * e-Boekhouden searches for text the field contains, so each value is
+     * looked up as written and as it reads without its trimmings too: "Spee
+     * Totaaltechniek B.V." does not find "Spee Totaaltechniek", "Spee
+     * Totaaltechniek" does. What comes back is compared on the normalised
+     * values.
+     *
      * @return array<int, array{code: string, name: string, because: string}>
      */
     public function sameCompany(Tenant $tenant): array
@@ -96,7 +102,17 @@ class RelationLinker
             'naam' => [$tenant->name, 'name', fn ($value) => $this->bareName((string) $value)],
         ], fn (array $check) => filled($check[0]) && filled($check[2]($check[0])));
 
-        $found = $this->client->searchRelations(...array_map(fn (array $check) => (string) $check[0], array_values($checks)));
+        $terms = collect($checks)
+            ->flatMap(fn (array $check, string $because) => [
+                (string) $check[0],
+                $because === 'naam' ? $this->withoutLegalForm((string) $check[0]) : $check[2]($check[0]),
+            ])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $found = $this->client->searchRelations(...$terms);
         $matches = [];
 
         foreach ($found as $relation) {
@@ -116,9 +132,16 @@ class RelationLinker
      */
     private function bareName(string $name): string
     {
-        return (string) Str::of($name)->lower()
-            ->replaceMatches('/\b(b\.?\s?v\.?|v\.?\s?o\.?\s?f\.?|n\.?\s?v\.?)(?=\s|$)/u', '')
-            ->replaceMatches('/[^\p{L}\p{N}]/u', '');
+        return (string) Str::of($this->withoutLegalForm($name))->lower()->replaceMatches('/[^\p{L}\p{N}]/u', '');
+    }
+
+    /** "Spee Totaaltechniek B.V." becomes "Spee Totaaltechniek": readable, for searching. */
+    private function withoutLegalForm(string $name): string
+    {
+        return (string) Str::of($name)
+            ->replaceMatches('/\b(b\.?\s?v\.?|v\.?\s?o\.?\s?f\.?|n\.?\s?v\.?)(?=\s|$)/iu', '')
+            ->squish()
+            ->rtrim(',');
     }
 
     /**

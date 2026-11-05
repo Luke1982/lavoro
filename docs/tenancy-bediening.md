@@ -224,11 +224,12 @@ php artisan tenant:storage <id> --limit=200
 php artisan tenant:override <id> --price=14900   # vaste pakketprijs in centen, --clear wist hem
 ```
 
-**Een vaste prijs geldt voor het pakket, niet voor de rest.** Extra plekken,
-modules en extra opslag komen er bovenop; anders zou een klant met een vaste
-prijs alles wat hij bijneemt gratis krijgen. Voor een losse module valt in het
+**Een vaste prijs is de prijs van het pakket met al zijn plekken en opslag**,
+hoeveel het er ook zijn. Alleen de modules (offertes, facturen, AI-assistent)
+komen erbovenop, en los gekocht AI-tegoed. Voor een losse module valt in het
 paneel een eigen prijs af te spreken, en die gaat voor op een bundelprijs uit
-de catalogus.
+de catalogus. Naast de vaste prijs zet de factuur wat pakket, plekken en opslag
+normaal hadden gekost.
 
 Overal waar zo'n afspraak geldt, zet de factuur de gewone prijs erbij:
 *Abonnement Lavoro Starter 01-09-2026 t/m 30-09-2026, normaal € 27,50, speciale
@@ -308,20 +309,36 @@ php artisan invoices:issue --mail        # maakt aan én verstuurt
 Versturen gebeurt met opzet niet vanzelf. In het paneel staat per factuur een
 knop, met de PDF en het UBL-bestand als bijlage.
 
+Vóór de ingangsdatum van een klant maakt de ronde niets aan, ook niet als er al
+iets openstaat: dat gaat mee op de eerste factuur. Per klant staat in het
+abonnement een vinkje *Automatisch factureren*; uit betekent dat de ronde de
+klant overslaat en je de factuur zelf aanmaakt bij *Facturen bekijken*. Het
+abonnementsblok en de facturatiekaart laten regel voor regel zien wat er
+gefactureerd wordt en waarom.
+
+**Een verwijderde factuur geeft zijn nummer niet vanzelf terug.** Was het de
+laatste van het jaar, zet de nummering dan terug onder Catalogus → Facturatie.
+
 Incasso: `/beheer/incasso` levert een SEPA-bestand (pain.008) voor de bank.
 Vereist per klant een machtiging en IBAN, en één keer een incassant-ID onder
 Catalogus → Facturatie.
 
 **Een foute factuur** die nog niet de deur uit is -- niet gemaild, geïncasseerd of
-geboekt -- verwijder je. Daarna gaat het met *crediteren*: dat maakt een
+naar e-Boekhouden gestuurd (ook een mislukte boeking telt: of die aankwam is niet
+zeker) -- verwijder je. Crediteren kan dan niet; dat kost twee nummers voor niets.
+Is hij wel de deur uit, dan gaat het met *crediteren*: dat maakt een
 creditfactuur met een eigen nummer die alle bedragen terugdraait en de
 oorspronkelijke factuur noemt, op de pdf en in de UBL. De periode staat daarna
-weer open, dus *Factuur aanmaken* maakt de juiste; wat de foute factuur
-verrekende (bijgekocht AI-tegoed, een verrekening) staat weer klaar voor die
-nieuwe factuur. Een factuur wordt één keer gecrediteerd, een creditfactuur
-nooit, en geen van beide kan daarna nog weg. Alleen de periode van vandaag kan
-opnieuw gefactureerd worden; een gecrediteerde oudere periode verschijnt bij de
-nooit gefactureerde periodes.
+weer open; wat de foute factuur verrekende (bijgekocht AI-tegoed, een
+verrekening) staat weer klaar voor de nieuwe. Verrekeningen die ná de foute
+factuur over dezelfde periode zijn gemaakt, gingen ervan uit dat die betaald
+was: een opzegging vervalt, een pakketwissel wordt opnieuw uitgerekend over de
+dagen op het oude pakket, en wat een latere factuur daarvan al rekende wordt op
+de volgende teruggedraaid. Is het de periode van vandaag, dan maakt *Factuur
+aanmaken* de juiste; een oudere periode staat bovenaan *Facturen bekijken* bij de
+niet gefactureerde periodes, met een knop *factureren* (gedateerd vandaag). Een
+factuur wordt één keer gecrediteerd, een creditfactuur nooit, en geen van beide
+kan daarna nog weg.
 
 **De nummering van dit jaar terugzetten** kan onder Catalogus → Facturatie. De
 teller gaat terug naar het hoogste nummer dat nog op een factuur staat, zodat

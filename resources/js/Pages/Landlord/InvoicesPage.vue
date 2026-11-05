@@ -8,11 +8,15 @@
 
     <div v-if="unbilled.length"
         class="mb-5 rounded-lg border border-slate-200 border-l-4 border-l-red-700 bg-white p-5">
-        <strong>Deze periodes zijn nooit gefactureerd.</strong>
-        Er wordt altijd maar één periode tegelijk gefactureerd, die van vandaag; een overgeslagen
-        maand komt uit zichzelf niet meer terug.
-        <ul class="mt-2 list-inside list-disc">
-            <li v-for="period in unbilled" :key="period">{{ period }}</li>
+        <strong>Deze periodes zijn niet gefactureerd</strong>, of hun factuur is gecrediteerd.
+        Vanzelf wordt alleen de periode van vandaag gefactureerd; een overgeslagen maand komt niet
+        uit zichzelf terug. Hier maak je de factuur alsnog, met de datum van vandaag.
+        <ul class="mt-2">
+            <li v-for="period in unbilled" :key="period.start" class="flex items-baseline gap-3 py-0.5">
+                <span>{{ period.label }}</span>
+                <button type="button" :disabled="issuing" class="text-sm text-blue-700 underline disabled:opacity-60"
+                    @click="issue(period)">factureren</button>
+            </li>
         </ul>
     </div>
 
@@ -48,7 +52,7 @@
             niet mee &mdash; terugstorten gaat met de hand.
         </p>
 
-        <button v-if="is_due" type="button" :disabled="issuing" @click="issue"
+        <button v-if="is_due" type="button" :disabled="issuing" @click="issue()"
             class="panel-button mt-4">{{ is_credit ? 'Creditfactuur aanmaken' : 'Factuur aanmaken' }}</button>
 
         <p v-else-if="!tenant.subscription_started_on"
@@ -118,6 +122,7 @@
                             <span v-if="invoice.mailed_at" class="text-slate-500">
                                 verstuurd {{ nlDate(invoice.mailed_at) }} {{ nlTime(invoice.mailed_at) }}
                             </span>
+                            <span v-else-if="invoice.credited_by" class="text-slate-500">niet verstuurd</span>
                             <button v-else type="button" :disabled="busy === invoice.id" @click="mail(invoice)"
                                 class="text-blue-700 underline disabled:opacity-60">versturen</button>
                         </td>
@@ -193,12 +198,14 @@ const pdfPreviewUrl = (invoice) => `/beheer/${props.tenant.id}/facturen/${invoic
 const issuing = ref(false)
 const busy = ref(null)
 
-/** Een creditfactuur crediteer je niet, en een factuur maar één keer. */
-const canCredit = (invoice) => !invoice.credits_invoice_id && invoice.gross_cents >= 0 && !invoice.credited_by
+/**
+ * Wat de deur uit is wordt gecrediteerd, wat er nog niet uit is verwijderd. Een
+ * creditfactuur crediteer je niet, en een factuur maar één keer.
+ */
+const canCredit = (invoice) => invoice.left_the_building
+    && !invoice.credits_invoice_id && invoice.gross_cents >= 0 && !invoice.credited_by
 
-/** Alleen wat de deur nog niet uit is en niet bij een creditering hoort. */
-const canRemove = (invoice) => !invoice.mailed_at && !invoice.collected_at && !invoice.booked_at
-    && !invoice.credits_invoice_id && !invoice.credited_by
+const canRemove = (invoice) => !invoice.left_the_building && !invoice.credits_invoice_id && !invoice.credited_by
 
 const act = (invoice, url) => router.post(url, {}, {
     preserveScroll: true,
@@ -206,7 +213,9 @@ const act = (invoice, url) => router.post(url, {}, {
     onFinish: () => { busy.value = null },
 })
 
-const issue = () => router.post(`/beheer/${props.tenant.id}/facturen`, {}, {
+const issue = (period = null) => router.post(`/beheer/${props.tenant.id}/facturen`, {
+    period_start: period?.start ?? null,
+}, {
     preserveScroll: true,
     onStart: () => { issuing.value = true },
     onFinish: () => { issuing.value = false },
@@ -219,7 +228,7 @@ const book = (invoice) => act(invoice, `/beheer/${props.tenant.id}/facturen/${in
 const credit = (invoice) => {
     if (!confirm(`Factuur ${invoice.number} crediteren? Er komt een creditfactuur met een eigen nummer `
         + `die alle bedragen van ${invoice.number} terugdraait. Wat die factuur verrekende, staat daarna `
-        + 'weer open voor de volgende.')) {
+        + 'weer open, en de periode kan opnieuw gefactureerd worden.')) {
         return
     }
 
@@ -227,8 +236,8 @@ const credit = (invoice) => {
 }
 
 const remove = (invoice) => {
-    if (!confirm(`Factuur ${invoice.number} verwijderen? Het nummer blijft vergeven; `
-        + 'de volgende factuur krijgt het daaropvolgende.')) {
+    if (!confirm(`Factuur ${invoice.number} verwijderen? Het nummer komt niet vanzelf terug; `
+        + 'was het de laatste, zet de nummering dan terug onder Catalogus.')) {
         return
     }
 

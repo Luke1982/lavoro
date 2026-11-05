@@ -149,6 +149,7 @@ class TenantController extends Controller
         $subscription = new TenantSubscription($tenant);
         $invoicer = new Invoicer($tenant);
         $next_on = $invoicer->nextInvoiceOn();
+        $next = $next_on ? $invoicer->preview($next_on) : null;
         $reseller = $tenant->reseller_id ? Reseller::on('central')->find($tenant->reseller_id) : null;
 
         return inertia('Landlord/EditPage', [
@@ -169,6 +170,8 @@ class TenantController extends Controller
                 'subscription_started_on' => $tenant->subscription_started_on,
                 'subscription_ends_on' => $tenant->subscription_ends_on,
                 'billing_period' => $tenant->billing_period,
+                /** Not stored yet before the migration ran: then it is on, as it always was. */
+                'auto_invoicing' => $tenant->auto_invoicing !== false,
                 'package_key' => $tenant->package_key,
                 'extra_field_seats' => (int) $tenant->extra_field_seats,
                 'extra_office_seats' => (int) $tenant->extra_office_seats,
@@ -213,8 +216,7 @@ class TenantController extends Controller
                     'note' => $topup->note,
                 ]),
             'subscription' => [
-                'before_discount_cents' => $subscription->beforeDiscountCents(),
-                'discount_cents' => $subscription->discountCents(),
+                'lines' => $subscription->breakdown(),
                 'total_cents' => $subscription->monthlyTotalCents(),
                 'commission_cents' => $subscription->commissionCents(),
             ],
@@ -222,7 +224,16 @@ class TenantController extends Controller
                 /** A demo is never invoiced; without this the panel only shows a zero. */
                 'demo' => $tenant->isDemo(),
                 'next_on' => $next_on?->toDateString(),
-                'next_cents' => $next_on ? $invoicer->preview($next_on)['total_cents'] : null,
+                /**
+                 * The next invoice as it will be made, line by line. The
+                 * outstanding charges are listed apart, each with a button to
+                 * take it off.
+                 */
+                'next' => $next ? [
+                    'lines' => $invoicer->subscriptionLines($next_on),
+                    'discount_cents' => $next['discount_cents'],
+                    'total_cents' => $next['total_cents'],
+                ] : null,
                 'pending' => $invoicer->pendingCharges()
                     ->map(fn ($charge) => [
                         'id' => $charge->id,
@@ -260,10 +271,10 @@ class TenantController extends Controller
          * extension and not a change, and a line working out how many days
          * someone already had that module makes the invoice unreadable over a
          * couple of euros.
+         *
+         * Taken from a copy: $tenant itself changes with the save.
          */
-        $before = new TenantSubscription($tenant);
-        $before_cents = $before->packageCents();
-        $before_package = $before->packageName();
+        $before = new TenantSubscription(clone $tenant);
         $ended_on = $tenant->subscription_ends_on;
 
         $attributes = $request->tenantAttributes();
@@ -282,10 +293,17 @@ class TenantController extends Controller
 
         $after = new TenantSubscription($tenant->refresh());
         $invoicer = new Invoicer($tenant);
+
+        /**
+         * A fixed price covers the seats and the storage too. When one is set,
+         * changed or taken away, both sides count them: otherwise € 120 fixed
+         * on a € 100 package with € 40 of seats reads as a raise of € 20.
+         */
+        $with_extras = $before->hasFixedPrice() || $after->hasFixedPrice();
         $charge = $invoicer->prorate(
-            $before_cents,
-            $after->packageCents(),
-            old_package: $before_package,
+            $before->packageCents($with_extras),
+            $after->packageCents($with_extras),
+            old_package: $before->packageName(),
             new_package: $after->packageName(),
         );
 

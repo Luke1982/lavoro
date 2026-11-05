@@ -174,16 +174,19 @@
         <div class="mt-6 border-t border-slate-200 pt-4">
             <h4 class="font-semibold">Factuurnummering {{ numbering.year }}</h4>
             <p class="mt-1 text-sm text-slate-500">
-                Uitgegeven tot en met <strong>{{ numbering.prefix }}{{ numbering.counter }}</strong>;
-                het hoogste nummer dat nog op een factuur staat is
-                <strong>{{ numbering.highest ? numbering.prefix + numbering.highest : 'geen' }}</strong>.
+                <template v-if="numbering.counter">
+                    Uitgegeven tot en met <strong>{{ numbering.prefix }}{{ numbering.counter }}</strong>;
+                    het hoogste nummer dat nog op een factuur staat is
+                    <strong>{{ numbering.highest ? numbering.prefix + numbering.highest : 'geen' }}</strong>.
+                </template>
+                <template v-else>Dit jaar is er nog geen nummer uitgegeven.</template>
             </p>
 
             <template v-if="numbering.counter > numbering.highest">
                 <p class="mt-1 text-sm text-slate-500">
-                    De nummers daarna waren van verwijderde facturen. Die zijn nooit gemaild of
-                    geïncasseerd, dus ze kunnen opnieuw uitgegeven worden &mdash; tenzij je er een
-                    als pdf met de hand hebt verstuurd.
+                    De nummers daarna waren van verwijderde facturen. Die zijn nooit gemaild,
+                    geïncasseerd of naar e-Boekhouden gestuurd, dus ze kunnen opnieuw uitgegeven
+                    worden &mdash; tenzij je er een als pdf met de hand hebt verstuurd.
                 </p>
                 <button type="button" class="panel-button mt-3" @click="resetNumbering">
                     Terugzetten: de volgende wordt {{ numbering.prefix }}{{ numbering.highest + 1 }}

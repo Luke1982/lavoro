@@ -116,7 +116,7 @@ class Invoicer
      *
      * @return array<int, array{description: string, kind: string, amount_cents: int}>
      */
-    private function subscriptionLines(CarbonImmutable $on): array
+    public function subscriptionLines(CarbonImmutable $on): array
     {
         if (!$this->subscriptionIsDue($on)) {
             return [];
@@ -323,14 +323,27 @@ class Invoicer
          * that issue() refuses -- "there is nothing to invoice" on a screen that
          * had just offered to make one.
          */
-        return $this->preview($on)['lines'] !== [];
+        return $this->hasStarted($on ?? CarbonImmutable::now()) && $this->preview($on)['lines'] !== [];
+    }
+
+    /**
+     * Nothing is invoiced before the start, not even a charge that is already
+     * outstanding: it goes on the first invoice. A lone settlement was once
+     * invoiced on its own that way, days before the customer started. Without
+     * a start date the customer is never invoiced, as the panel says.
+     */
+    private function hasStarted(CarbonImmutable $on): bool
+    {
+        return $this->tenant->subscription_started_on
+            && CarbonImmutable::parse($this->tenant->subscription_started_on)->lessThanOrEqualTo($on->endOfDay());
     }
 
     /**
      * The day the next invoice can be made: today if there is something to
      * invoice, otherwise the first day of the next period. For a customer who
-     * has not started that is the start date. Nothing once a cancelled
-     * subscription has been invoiced up to its last day.
+     * has not started that is the start date, also with a charge outstanding.
+     * Nothing once a cancelled subscription has been invoiced up to its last
+     * day.
      *
      * The screens used to show what could be invoiced today -- nothing, for a
      * customer starting next week -- and the day after the current period,
@@ -475,11 +488,26 @@ class Invoicer
         ];
     }
 
-    public function issue(?CarbonImmutable $on = null): Invoice
+    /**
+     * Invoices the period around $on, dated $on. $period picks another one: a
+     * period that was skipped, or whose invoice was credited. The invoice is
+     * still dated $on, the day it is made.
+     */
+    public function issue(?CarbonImmutable $on = null, ?CarbonImmutable $period = null): Invoice
     {
         $on = $on ?? CarbonImmutable::now();
-        [$start, $end] = $this->periodFor($on);
-        $preview = $this->preview($on);
+        $period = $period ?? $on;
+        [$start, $end] = $this->periodFor($period);
+        $preview = $this->preview($period);
+
+        if (!$this->hasStarted($period)) {
+            $starts_on = $this->tenant->subscription_started_on;
+
+            throw new Refusal($starts_on
+                ? "{$this->tenant->name} begint pas op " . CarbonImmutable::parse($starts_on)->format('d-m-Y')
+                    . '; wat openstaat gaat mee op de eerste factuur.'
+                : "{$this->tenant->name} heeft nog geen ingangsdatum en wordt niet gefactureerd.");
+        }
 
         /**
          * No empty invoices. Without this limit every click on "create invoice"
@@ -539,6 +567,10 @@ class Invoicer
             throw new Refusal("{$invoice->number} is zelf een creditfactuur. Wat er opnieuw gerekend moet worden, gaat op een nieuwe factuur.");
         }
 
+        if (!$invoice->hasLeftTheBuilding()) {
+            throw new Refusal("{$invoice->number} is nog niet de deur uit. Verwijder hem: crediteren kost twee nummers voor niets.");
+        }
+
         return DB::connection('central')->transaction(function () use ($invoice) {
             $original = Invoice::on('central')->with('lines')->lockForUpdate()->findOrFail($invoice->id);
 
@@ -573,10 +605,82 @@ class Invoicer
                 ]);
             }
 
+            $afterwards = $this->settlementsMadeAfter($original);
+
             PendingCharge::on('central')->where('invoice_id', $original->id)->update(['invoice_id' => null]);
+
+            foreach ($afterwards as $charge) {
+                $this->withdraw($charge);
+
+                if (!isset($charge->data['cancellation'])) {
+                    $this->prorate(
+                        $charge->data['from_cents'],
+                        $charge->data['to_cents'],
+                        CarbonImmutable::parse($charge->data['changed_on']),
+                        $charge->data['from_package'],
+                        $charge->data['to_package'],
+                    );
+                }
+            }
 
             return $note;
         });
+    }
+
+    /**
+     * The settlements for the period of an invoice that is being credited that
+     * were made after it, and so worked out against it: "paid at the old price,
+     * so the difference over the days to come". Open ones, and ones a later
+     * invoice has already charged.
+     *
+     * Once the invoice is credited that is no longer true; the next one charges
+     * the period afresh. A cancellation then needs no settlement -- that
+     * invoice stops at the last day -- and a package change is worked out
+     * again, the other way round: over the days already spent on the old
+     * package. After several changes in one period that uses the day of the
+     * last one, as the line itself already does.
+     *
+     * @return Collection<int, PendingCharge>
+     */
+    private function settlementsMadeAfter(Invoice $invoice): Collection
+    {
+        $period = $invoice->period_start->toDateString();
+        $cancelled_in = $this->endsOn() ? $this->periodFor($this->endsOn())[0]->toDateString() : null;
+
+        return PendingCharge::on('central')
+            ->where('tenant_id', $this->tenant->id)
+            ->where('kind', 'proration')
+            ->where(fn ($query) => $query->whereNull('invoice_id')->orWhere(fn ($query) => $query
+                ->where('invoice_id', '!=', $invoice->id)
+                ->where('created_at', '>=', $invoice->created_at)))
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (PendingCharge $charge) => isset($charge->data['cancellation'])
+                ? $cancelled_in === $period
+                : ($charge->data['period_start'] ?? null) === $period)
+            ->values();
+    }
+
+    /**
+     * Takes a settlement back: an open one is deleted, one that an invoice
+     * already charged is reversed on the next.
+     */
+    private function withdraw(PendingCharge $charge): void
+    {
+        if (!$charge->invoice_id) {
+            $charge->delete();
+
+            return;
+        }
+
+        PendingCharge::on('central')->create([
+            'tenant_id' => $charge->tenant_id,
+            'kind' => 'proration',
+            'description' => 'Vervalt, stond op ' . Invoice::on('central')->find($charge->invoice_id)?->number . ': '
+                . $charge->description,
+            'amount_cents' => -$charge->amount_cents,
+            'data' => ['withdraws' => $charge->id],
+        ]);
     }
 
     /**
