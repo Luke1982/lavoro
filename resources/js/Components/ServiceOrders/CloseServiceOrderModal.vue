@@ -10,7 +10,7 @@
             <div>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Foto's</h3>
                 <div v-if="serviceOrder.images.length > 0" class="grid grid-cols-4 gap-2">
-                    <a v-for="image in serviceOrder.images" :key="image.id" :href="`/files/images/${image.id}`"
+                    <a v-for="image in serviceOrder.images" :key="image.id" :href="`/files/images/${image.id}`" data-type="image"
                         class="close-modal-lightbox block aspect-square overflow-hidden rounded-md ring-1 ring-gray-200 dark:ring-slate-700">
                         <img :src="`/files/images/${image.id}`" :alt="image.name" class="w-full h-full object-cover" />
                     </a>

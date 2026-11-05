@@ -56,7 +56,7 @@
                         'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2',
                         image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
                     ]">
-                        <a :href="`/files/images/${image.id}`" class="glightbox block size-full"
+                        <a :href="`/files/images/${image.id}`" data-type="image" class="glightbox block size-full"
                             @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="mayUpdate() && changeTitle(image.name, image.id)">
                             <img :src="`/files/images/${image.id}`" :alt="image.name" class="size-full object-cover">
                         </a>
