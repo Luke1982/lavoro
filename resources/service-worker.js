@@ -28,74 +28,53 @@ self.addEventListener("activate", (event) => {
     );
 });
 
+/**
+ * Only what is the same for every customer may come out of this cache: the
+ * app's own icons and images and the manifest. Everything else belongs to one
+ * customer, under an address another customer uses too -- /files/companies/1/logo
+ * is a different logo in each of them. That used to be cache-first as well, so
+ * whoever worked in two customers saw the first one's logo, photos and search
+ * results in the second, and within one customer a replaced logo or a new
+ * notification stayed out of sight until the next deploy.
+ */
+const STATIC_FILES = ["/manifest.json", "/favicon.ico", "/favicon.svg", "/apple-touch-icon.png"];
+const STATIC_FOLDERS = ["/icons/", "/img/"];
+
+const isStatic = (pathname) =>
+    STATIC_FILES.includes(pathname) || STATIC_FOLDERS.some((folder) => pathname.startsWith(folder));
+
 self.addEventListener("fetch", (event) => {
-    // Only handle same-origin GETs
     if (event.request.method !== "GET") return;
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
 
-    // Let the browser handle assets & API/Inertia calls
-    //
-    // /beheer hoort er ook bij. Dat is het beheerpaneel, geen onderdeel van de
-    // app die offline moet werken, en alles hieronder is cache-first: elke GET
-    // die hier langskomt wordt bewaard en daarna uit de cache beantwoord. Het
-    // paneel vraagt elke paar seconden of er iets veranderd is, en kreeg dus
-    // eeuwig hetzelfde antwoord terug -- het ververste nooit, wat je ook deed.
-    if (
-        url.pathname.startsWith("/build/") ||
-        url.pathname === "/beheer" ||
-        url.pathname.startsWith("/beheer/") ||
-        event.request.headers.get("X-Inertia") ||
-        url.pathname.startsWith("/api/")
-    ) {
-        return;
-    }
-
-    // For top-level navigations: network-first (avoid cached redirects)
+    /**
+     * Pages are never kept: a page is one customer's data, and the one shown
+     * offline could belong to another customer or to whoever logged out.
+     */
     if (event.request.mode === "navigate") {
         event.respondWith(
-            (async () => {
-                try {
-                    const response = await fetch(event.request);
-                    // Only cache clean 200 "basic" docs (not redirects/opaques)
-                    if (response && response.ok && response.type === "basic") {
-                        const cache = await caches.open(CACHE_NAME);
-                        cache.put(event.request, response.clone());
-                    }
-                    return response;
-                } catch (error) {
-                    console.error(error);
-                    const cached = await caches.match("/");
-                    return (
-                        cached ||
-                        new Response("Offline", {
-                            status: 503,
-                            headers: { "Content-Type": "text/plain" },
-                        })
-                    );
-                }
-            })(),
+            fetch(event.request).catch(
+                () =>
+                    new Response("Offline", {
+                        status: 503,
+                        headers: { "Content-Type": "text/plain" },
+                    }),
+            ),
         );
         return;
     }
 
-    // Other GETs: cache-first, skip redirects/errors
+    if (!isStatic(url.pathname)) return;
+
     event.respondWith(
         caches.match(event.request).then((response) => {
             if (response) return response;
 
             return fetch(event.request).then((networkResponse) => {
-                if (
-                    networkResponse &&
-                    networkResponse.ok &&
-                    networkResponse.type === "basic"
-                ) {
+                if (networkResponse && networkResponse.ok && networkResponse.type === "basic") {
                     const responseToCache = networkResponse.clone();
-                    caches
-                        .open(CACHE_NAME)
-                        .then((cache) =>
-                            cache.put(event.request, responseToCache),
-                        );
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
                 }
                 return networkResponse;
             });
