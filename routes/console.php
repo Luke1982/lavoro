@@ -9,6 +9,7 @@ use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
 use App\Jobs\ReinstallDemoTenantJob;
+use App\Jobs\SyncSnelStartJob;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Foundation\Inspiring;
@@ -43,6 +44,14 @@ Schedule::call(fn () => $forEachTenant(fn () => PruneLocationPingsJob::dispatch(
 
 Schedule::call(fn () => $forEachTenant(fn () => GenerateMaintenanceContractServiceOrdersJob::dispatch()))
     ->hourly()->name('maintenancecontracts-generate-serviceorders')->withoutOverlapping();
+
+/**
+ * Customers and materials from SnelStart, for every customer that has it
+ * connected; the job looks that up itself. Whether a customer already here is
+ * overwritten is up to each customer, on the settings page.
+ */
+Schedule::call(fn () => $forEachTenant(fn () => SyncSnelStartJob::dispatch()))
+    ->dailyAt('03:00')->name('snelstart-sync')->withoutOverlapping();
 
 Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
     ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();

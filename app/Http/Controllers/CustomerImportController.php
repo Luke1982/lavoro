@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\CustomerImportPreviewRequest;
 use App\Http\Requests\CustomerImportConfirmRequest;
+use App\Http\Requests\CustomerImportPreviewRequest;
 use App\Jobs\ProcessCustomerImportJob;
 use App\Models\Customer;
+use App\Services\SnelStartClient;
+use Illuminate\Pagination\LengthAwarePaginator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -13,38 +15,38 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class CustomerImportController extends Controller
 {
     private const COLUMNS = [
-        'Naam *'           => 'name',
-        'E-mail'           => 'email',
-        'Factuur e-mail'   => 'invoice_email',
-        'Offertes e-mail'  => 'quotes_email',
-        'Telefoon'         => 'phone',
-        'Mobiel'           => 'mobile',
-        'Website'          => 'website',
-        'Contactpersoon'   => 'contactname',
-        'Adres'            => 'address',
-        'Postcode'         => 'postal_code',
-        'Plaats'           => 'city',
-        'Land'             => 'country',
-        'Postadres'        => 'postal_address',
-        'Post postcode'    => 'postal_postal_code',
-        'Post plaats'      => 'postal_city',
-        'Post land'        => 'postal_country',
-        'IBAN'             => 'iban',
-        'BTW-nummer'       => 'vat_number',
-        'KVK-nummer'       => 'chamber_of_commerce_number',
-        'Locatiecode'      => 'location_code',
+        'Naam *' => 'name',
+        'E-mail' => 'email',
+        'Factuur e-mail' => 'invoice_email',
+        'Offertes e-mail' => 'quotes_email',
+        'Telefoon' => 'phone',
+        'Mobiel' => 'mobile',
+        'Website' => 'website',
+        'Contactpersoon' => 'contactname',
+        'Adres' => 'address',
+        'Postcode' => 'postal_code',
+        'Plaats' => 'city',
+        'Land' => 'country',
+        'Postadres' => 'postal_address',
+        'Post postcode' => 'postal_postal_code',
+        'Post plaats' => 'postal_city',
+        'Post land' => 'postal_country',
+        'IBAN' => 'iban',
+        'BTW-nummer' => 'vat_number',
+        'KVK-nummer' => 'chamber_of_commerce_number',
+        'Locatiecode' => 'location_code',
     ];
 
     private const SNELSTART_COLUMNS = [
-        'Naam'            => 'name',
-        'Contactpersoon'  => 'contactname',
-        'Adres'           => 'address',
-        'Postcode'        => 'postal_code',
-        'Plaats'          => 'city',
-        'LandNaam'        => 'country',
-        'Telefoon'        => 'phone',
+        'Naam' => 'name',
+        'Contactpersoon' => 'contactname',
+        'Adres' => 'address',
+        'Postcode' => 'postal_code',
+        'Plaats' => 'city',
+        'LandNaam' => 'country',
+        'Telefoon' => 'phone',
         'MobieleTelefoon' => 'mobile',
-        'Email'           => 'email',
+        'Email' => 'email',
     ];
 
     private const SNELSTART_SIGNATURE_COLUMNS = ['Relatiecode', 'LandNaam'];
@@ -98,9 +100,10 @@ class CustomerImportController extends Controller
                 $col_map = self::columnMap($header, self::SNELSTART_COLUMNS);
             } elseif (!$request->boolean('skip_snelstart_prompt') && self::looksLikeSnelStartExport($header)) {
                 return inertia('Customers/IndexPage', [
-                    'customers'               => $this->customersProp($request),
-                    'importPreview'           => null,
+                    'customers' => $this->customersProp($request),
+                    'importPreview' => null,
                     'snelStartImportDetected' => true,
+                    'snelStartConnected' => SnelStartClient::isConfigured(),
                 ]);
             }
         }
@@ -145,8 +148,8 @@ class CustomerImportController extends Controller
                 : (isset($existing_names[mb_strtolower($data['name'])]) ? 'update' : 'create');
 
             $preview_rows[] = array_merge($data, [
-                'action'   => $action,
-                'fatal'    => $fatal,
+                'action' => $action,
+                'fatal' => $fatal,
                 'warnings' => $warnings,
             ]);
         }
@@ -154,7 +157,7 @@ class CustomerImportController extends Controller
         session(['customer_import_preview' => $preview_rows]);
 
         return inertia('Customers/IndexPage', [
-            'customers'     => $this->customersProp($request),
+            'customers' => $this->customersProp($request),
             'importPreview' => $preview_rows,
         ]);
     }
@@ -171,7 +174,7 @@ class CustomerImportController extends Controller
                 ->appends(['search' => $search]);
         }
 
-        return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25);
+        return new LengthAwarePaginator([], 0, 25);
     }
 
     private static function columnMap(array $header, array $columns): array
@@ -183,6 +186,7 @@ class CustomerImportController extends Controller
                 $col_map[$idx] = $columns[$cell];
             }
         }
+
         return $col_map;
     }
 
@@ -194,6 +198,7 @@ class CustomerImportController extends Controller
                 return false;
             }
         }
+
         return true;
     }
 
@@ -217,7 +222,7 @@ class CustomerImportController extends Controller
 
     public function example(CustomerImportConfirmRequest $request)
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray([array_keys(self::COLUMNS)], null, 'A1');
         $sheet->fromArray([self::EXAMPLE_ROW], null, 'A2');

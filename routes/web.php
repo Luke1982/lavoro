@@ -357,6 +357,8 @@ Route::group(
         // Manual SnelStart imports
         Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
             ->name('imports.snelstart.materials');
+        Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
+            ->name('imports.snelstart.customers');
         Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])
             ->name('serviceorders.bulk-update');
         Route::resource('serviceorders', ServiceOrderController::class);
@@ -561,6 +563,10 @@ Route::group(
                 'admin/settings/serviceorder-min-images',
                 [GeneralSettingsController::class, 'updateServiceOrderMinImages'],
             )->name('admin.settings.serviceorder-min-images');
+            Route::put(
+                'admin/settings/snelstart-nightly-customers',
+                [GeneralSettingsController::class, 'updateSnelStartNightlyCustomers'],
+            )->name('admin.settings.snelstart-nightly-customers');
         });
     }
 );

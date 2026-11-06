@@ -7,7 +7,10 @@ use App\Http\Requests\Admin\UpdateAllowOverrideUnavailabilityRequest;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
+use App\Http\Requests\Admin\UpdateSnelStartNightlyCustomersRequest;
 use App\Models\GeneralSetting;
+use App\Services\SnelStartClient;
+use App\Services\SnelStartImport;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,15 +22,20 @@ class GeneralSettingsController extends Controller
         return Inertia::render('Admin/GeneralSettingsPage', [
             'locationTracking' => [
                 'start' => GeneralSetting::get('location_tracking_start', '07:00'),
-                'end'   => GeneralSetting::get('location_tracking_end', '18:00'),
-                'days'  => array_map(
+                'end' => GeneralSetting::get('location_tracking_end', '18:00'),
+                'days' => array_map(
                     'intval',
                     explode(',', GeneralSetting::get('location_tracking_days', '1,2,3,4,5'))
                 ),
             ],
-            'serviceOrderClosingText'     => GeneralSetting::get('serviceorder_closing_text', ''),
+            'serviceOrderClosingText' => GeneralSetting::get('serviceorder_closing_text', ''),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
-            'serviceOrderMinImages'       => (int) GeneralSetting::get('serviceorder_min_images', 0),
+            'serviceOrderMinImages' => (int) GeneralSetting::get('serviceorder_min_images', 0),
+            'snelStartConnected' => SnelStartClient::isConfigured(),
+            'snelStartNightlyUpdatesCustomers' => GeneralSetting::get(
+                SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS,
+                '1'
+            ) === '1',
         ]);
     }
 
@@ -53,6 +61,13 @@ class GeneralSettingsController extends Controller
         UpdateAllowOverrideUnavailabilityRequest $request
     ): RedirectResponse {
         GeneralSetting::set('allow_override_unavailability', $request->validated()['value'] ? '1' : '0');
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
+    }
+
+    public function updateSnelStartNightlyCustomers(UpdateSnelStartNightlyCustomersRequest $request): RedirectResponse
+    {
+        GeneralSetting::set(SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS, $request->validated()['value'] ? '1' : '0');
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }

@@ -4,7 +4,7 @@
         add-label="Voeg materiaal toe" :paginator="false" @add="() => materialFormRef?.show()">
         <template #filters>
             <div>
-                <button @click="importMaterials" :disabled="importingMaterials"
+                <button v-if="snelStartConnected" @click="importMaterials" :disabled="importingMaterials"
                     class="ml-auto px-3 py-2 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90 disabled:bg-gray-400">
                     SnelStart materialen importeren
                 </button>
@@ -142,11 +142,12 @@ const importingMaterials = ref(false)
 const importMaterialsForm = useForm({})
 const boolEdits = reactive({})
 
-const { materials, categories, usageUnits } = defineProps({
+const { materials, categories, usageUnits, snelStartConnected } = defineProps({
     materials: { type: Object, required: true },
     categories: { type: Array, default: () => [] },
     usageUnits: { type: Array, default: () => [] },
     search: { type: String, default: '' },
+    snelStartConnected: { type: Boolean, default: false },
 })
 
 const innerMaterials = computed(() => materials?.data || [])

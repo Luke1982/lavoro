@@ -113,6 +113,21 @@
                 <SwitchComponent v-model="overrideForm.value" @update="submitOverride" />
             </div>
         </section>
+
+        <section v-if="snelStartConnected" class="mt-10">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">SnelStart</h2>
+
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Bestaande klanten bijwerken bij de nachtelijke import</p>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        Elke nacht worden klanten en materialen uit SnelStart opgehaald. Nieuwe klanten komen er altijd bij.
+                        Staat dit uit, dan blijven klanten die al in Lavoro staan zoals ze zijn.
+                    </p>
+                </div>
+                <SwitchComponent v-model="snelStartForm.value" @update="submitSnelStart" />
+            </div>
+        </section>
     </div>
 </template>
 
@@ -125,6 +140,8 @@ const props = defineProps({
     serviceOrderClosingText: { type: String, default: '' },
     allowOverrideUnavailability: { type: Boolean, default: false },
     serviceOrderMinImages: { type: Number, default: 0 },
+    snelStartConnected: { type: Boolean, default: false },
+    snelStartNightlyUpdatesCustomers: { type: Boolean, default: true },
 })
 
 const DAYS = [
@@ -160,6 +177,10 @@ const overrideForm = useForm({
     value: props.allowOverrideUnavailability,
 })
 
+const snelStartForm = useForm({
+    value: props.snelStartNightlyUpdatesCustomers,
+})
+
 const minImagesForm = useForm({
     min_images: props.serviceOrderMinImages,
 })
@@ -178,5 +199,9 @@ function submitClosingText() {
 
 function submitOverride() {
     overrideForm.put('/admin/settings/allow-override-unavailability')
+}
+
+function submitSnelStart() {
+    snelStartForm.put('/admin/settings/snelstart-nightly-customers')
 }
 </script>

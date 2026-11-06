@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Services\ProductableService;
+use App\Services\SnelStartClient;
 use App\Traits\OffersContractTemplates;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,7 @@ class CustomerController extends Controller
 
         return inertia('Customers/IndexPage', [
             'customers' => $customers,
+            'snelStartConnected' => SnelStartClient::isConfigured(),
         ]);
     }
 

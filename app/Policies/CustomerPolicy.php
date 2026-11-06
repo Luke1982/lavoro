@@ -16,4 +16,9 @@ class CustomerPolicy
     {
         return $user->hasPermission('customer.read');
     }
+
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('customer.create');
+    }
 }

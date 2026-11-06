@@ -74,8 +74,8 @@ return [
     'snelstart' => [
         'client_key' => env('SNELSTART_CLIENT_KEY'),
         'subscription_key' => env('SNELSTART_SUBSCRIPTION_KEY'),
-        'auth_url' => env('SNELSTART_AUTH_URL'),
-        'api_base' => env('SNELSTART_API_BASE'),
+        'auth_url' => env('SNELSTART_AUTH_URL', 'https://auth.snelstart.nl/b2b/token'),
+        'api_base' => env('SNELSTART_API_BASE', 'https://b2bapi.snelstart.nl/v2'),
     ],
 
 ];
