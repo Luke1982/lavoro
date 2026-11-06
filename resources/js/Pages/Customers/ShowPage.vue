@@ -305,7 +305,7 @@
                                         </div>
                                         <h2 class="font-semibold text-base dark:text-slate-200">Onderhoudscontracten</h2>
                                     </div>
-                                    <button v-if="canCreateMaintenanceContract" type="button"
+                                    <button v-if="canCreateMaintenanceContract()" type="button"
                                         @click="showMaintenanceContractDrawer = true"
                                         v-tooltip="`Nieuw onderhoudscontract voor ${form.name}`"
                                         class="flex flex-none items-center gap-1.5 rounded-md bg-lavoro-blue px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-lavoro-blue focus:ring-offset-2 dark:focus:ring-offset-slate-900">
@@ -649,7 +649,7 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
-import { hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
+import { canCreateMaintenanceContract, hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
 import ServiceOrderList from '@/Components/ServiceOrderList.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import AddAssetForm from '@/Components/AddAssetForm.vue';
@@ -816,8 +816,6 @@ function deleteContact(contact) {
     if (!confirm(`Weet je zeker dat je ${contact.full_name} volledig wilt verwijderen?`)) return
     router.delete(`/contacts/${contact.id}`, { preserveScroll: true })
 }
-
-const canCreateMaintenanceContract = computed(() => hasPermission('maintenancecontract.create'))
 
 const contractStatusOrder = ['actief', 'toekomstig', 'verlopen', 'geannuleerd']
 

@@ -70,6 +70,10 @@ class CustomerController extends Controller
                 ->get()
             : collect();
 
+        if ($request->user()->can('seeSensitive', Customer::class)) {
+            $customer->makeVisible(Customer::SENSITIVE_ATTRIBUTES);
+        }
+
         return inertia('Customers/EditPage', [
             'customer' => $customer,
             'allCustomers' => $allCustomers,
@@ -112,6 +116,10 @@ class CustomerController extends Controller
             'maintenanceContracts',
             'locations' => fn ($q) => $q->withCount(['assets', 'serviceOrders', 'events']),
         ]);
+
+        if ($request->user()->can('seeSensitive', Customer::class)) {
+            $customer->makeVisible(Customer::SENSITIVE_ATTRIBUTES);
+        }
 
         $user = Auth::user();
         $has_all = $user->hasPermission('event.view_all');

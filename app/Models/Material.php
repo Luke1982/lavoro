@@ -16,6 +16,10 @@ class Material extends Model
     use HasActivities;
     use RecordsHistory;
 
+    public const FINANCIAL_ATTRIBUTES = [
+        'cost_price',
+    ];
+
     protected array $activity_labels = [
         'description' => 'Omschrijving',
         'material_category_id' => 'Categorie',
@@ -59,6 +63,13 @@ class Material extends Model
         'min_stock',
         'max_stock',
     ];
+
+    /**
+     * Hidden by default because a material travels along on every werkbon it is
+     * booked on. The material page makes it visible for whoever may see it; its
+     * changes still reach the trail, gated by $activity_permissions.
+     */
+    protected $hidden = self::FINANCIAL_ATTRIBUTES;
 
     protected $casts = [
         'divisable' => 'boolean',

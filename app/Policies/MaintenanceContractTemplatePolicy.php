@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\MaintenanceContract;
 use App\Models\MaintenanceContractTemplate;
 use App\Models\User;
 
@@ -30,5 +31,14 @@ class MaintenanceContractTemplatePolicy
     public function delete(User $user, MaintenanceContractTemplate $maintenanceContractTemplate): bool
     {
         return $user->hasPermission('maintenancecontracttemplate.delete');
+    }
+
+    /**
+     * A template's price is the price the contracts made from it get, so it sits
+     * behind the contracts' own financial permission.
+     */
+    public function seeFinancials(User $user): bool
+    {
+        return $user->can('seeFinancials', MaintenanceContract::class);
     }
 }

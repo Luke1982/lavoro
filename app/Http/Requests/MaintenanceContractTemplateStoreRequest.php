@@ -22,16 +22,10 @@ class MaintenanceContractTemplateStoreRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => ['required', 'string', 'max:255', Rule::unique('maintenance_contract_templates', 'name')],
             'title' => ['nullable', 'string', 'max:255'],
             'duration_months' => ['nullable', 'integer', 'min:1', DbRange::smallInt(unsigned: true)],
-            'price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
-            'price_interval' => ['nullable', 'string', 'in:' . ContractInterval::validationString()],
-            'price_interval_days' => [
-                'required_if:price_interval,' . ContractInterval::aangepast->value,
-                'nullable', 'integer', 'min:1', DbRange::int(unsigned: true),
-            ],
             'manage_frequency_per_asset' => ['boolean'],
             'frequency' => ['nullable', 'string', 'in:' . ContractInterval::validationString()],
             'frequency_days' => [
@@ -42,6 +36,27 @@ class MaintenanceContractTemplateStoreRequest extends FormRequest
             'auto_generate_interval' => ['nullable', 'string', 'in:' . ContractInterval::validationString()],
             'auto_generate_interval_days' => [
                 'required_if:auto_generate_interval,' . ContractInterval::aangepast->value,
+                'nullable', 'integer', 'min:1', DbRange::int(unsigned: true),
+            ],
+        ], $this->financialRules());
+    }
+
+    /**
+     * Only from whoever may see them; anyone else does not set them either.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function financialRules(): array
+    {
+        if (!$this->user()->can('seeFinancials', MaintenanceContractTemplate::class)) {
+            return [];
+        }
+
+        return [
+            'price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'price_interval' => ['nullable', 'string', 'in:' . ContractInterval::validationString()],
+            'price_interval_days' => [
+                'required_if:price_interval,' . ContractInterval::aangepast->value,
                 'nullable', 'integer', 'min:1', DbRange::int(unsigned: true),
             ],
         ];

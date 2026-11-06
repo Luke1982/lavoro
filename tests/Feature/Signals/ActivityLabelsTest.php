@@ -48,9 +48,12 @@ class ActivityLabelsTest extends TestCase
                 ? $reflection->getProperty('activity_labels')->getDefaultValue() : [];
             $ignored = $reflection->hasProperty('activity_ignore')
                 ? $reflection->getProperty('activity_ignore')->getDefaultValue() : [];
+            $gated = $reflection->hasProperty('activity_permissions')
+                ? $reflection->getProperty('activity_permissions')->getDefaultValue() : [];
+            $hidden_and_unlogged = array_diff($model->getHidden(), array_keys($gated));
 
             foreach ($model->getFillable() as $field) {
-                if (isset($labels[$field]) || in_array($field, [...$ignored, ...$model->getHidden()], true)) {
+                if (isset($labels[$field]) || in_array($field, [...$ignored, ...$hidden_and_unlogged], true)) {
                     continue;
                 }
 

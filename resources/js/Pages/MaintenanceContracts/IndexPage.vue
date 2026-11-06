@@ -2,7 +2,7 @@
     <IndexHeaderComponent title="Onderhoudscontracten" subtitle="Overzicht van alle onderhoudscontracten"
         search-url="/maintenancecontracts" search-placeholder="Zoek..." :search-other-params="filterParams"
         add-label="Voeg contract toe" @add="showCreateDrawer = true"
-        :can-add="hasPermission('maintenancecontract.create')"
+        :can-add="canCreateMaintenanceContract()"
         :has-active-filters="Boolean(customerFilter) || Boolean(statusFilter)">
         <template #filters>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
@@ -108,7 +108,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
-import { hasPermission, nlDate, nlCurrency, maintenanceContractStatusText, maintenanceContractStatusClasses } from '@/Utilities/Utilities'
+import { canCreateMaintenanceContract, hasPermission, nlDate, nlCurrency, maintenanceContractStatusText, maintenanceContractStatusClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
     maintenanceContracts: { type: Object, required: true },

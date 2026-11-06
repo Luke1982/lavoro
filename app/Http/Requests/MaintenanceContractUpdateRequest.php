@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ContractInterval;
+use App\Models\MaintenanceContract;
 use App\Rules\DbRange;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,9 +30,6 @@ class MaintenanceContractUpdateRequest extends FormRequest
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'start_date' => ['sometimes', 'required', 'date'],
             'end_date' => ['sometimes', 'nullable', 'date', 'after_or_equal:start_date'],
-            'price' => ['sometimes', 'required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
-            'price_interval' => ['sometimes', 'required', 'string', 'in:' . ContractInterval::validationString()],
-            'price_interval_days' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'manage_frequency_per_asset' => ['sometimes', 'boolean'],
             'frequency' => [
                 'sometimes', 'required_if:manage_frequency_per_asset,false',
@@ -44,7 +42,26 @@ class MaintenanceContractUpdateRequest extends FormRequest
                 'sometimes', 'nullable', 'string', 'in:' . ContractInterval::validationString(),
             ],
             'auto_generate_interval_days' => ['sometimes', 'nullable', 'integer', 'min:1'],
-        ]);
+        ], $this->financialRules());
+    }
+
+    /**
+     * Only from whoever may see them: anyone else's form loaded them empty, and
+     * saving it back would wipe the real values.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function financialRules(): array
+    {
+        if (!$this->user()->can('seeFinancials', MaintenanceContract::class)) {
+            return [];
+        }
+
+        return [
+            'price' => ['sometimes', 'required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'price_interval' => ['sometimes', 'required', 'string', 'in:' . ContractInterval::validationString()],
+            'price_interval_days' => ['sometimes', 'nullable', 'integer', 'min:1'],
+        ];
     }
 
     /**

@@ -278,6 +278,23 @@ class ServiceOrderController extends Controller
 
         $service_order->setRelation('taskInstances', $visible_instances);
 
+        $material_count = Material::count();
+        $material_options = $material_count <= 50 ? Material::with('usageUnit')->get() : collect();
+
+        if ($user->can('seeFinancials', $service_order)) {
+            $service_order->makeVisible(ServiceOrder::FINANCIAL_ATTRIBUTES);
+        } else {
+            /**
+             * The catalogue shows a material's sales price to anyone who may read it,
+             * but on a werkbon that price is what the order costs. combinedMaterials
+             * is built from these same models, so it loses the price with them.
+             */
+            $service_order->materials
+                ->concat($all_task_instances->flatMap->materials)
+                ->concat($material_options)
+                ->each->makeHidden('price');
+        }
+
         $stages = ServiceOrderStage::orderBy('order')
             ->with(['activities' => function ($q) use ($service_order) {
                 $q->visibleTo(Auth::user())
@@ -320,10 +337,8 @@ class ServiceOrderController extends Controller
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
             'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
             'eventWidgetEvents' => $event_widget->events($service_order, $user),
-            'allMaterials' => ($mc = Material::count()) <= 50
-                ? Material::with('usageUnit')->get()
-                : collect(),
-            'materialsUseAjax' => $mc > 50,
+            'allMaterials' => $material_options,
+            'materialsUseAjax' => $material_count > 50,
             'materialCategories' => MaterialCategory::orderBy('name')->get(['id', 'name']),
             'materialUsageUnits' => MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
             'customFields' => $service_order->allCustomFieldsWithValues(),

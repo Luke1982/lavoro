@@ -191,6 +191,11 @@ trait RecordsHistory
         return (string) $value;
     }
 
+    /**
+     * A hidden field stays out of the trail unless it declares who may read it:
+     * hiding it from the browser does not mean its history may be lost, and a
+     * gated entry is how "what was the price before" still gets an answer.
+     */
     private function shouldLogField(string $field): bool
     {
         if (in_array($field, self::$never_logged, true)) {
@@ -201,7 +206,7 @@ trait RecordsHistory
             return false;
         }
 
-        return !in_array($field, $this->getHidden(), true);
+        return !in_array($field, $this->getHidden(), true) || $this->permissionForField($field) !== null;
     }
 
     private function fieldLabel(string $field): string

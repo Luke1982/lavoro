@@ -84,29 +84,31 @@
                         :errorMessage="form.errors.duration_months" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
-                <div class="sm:col-span-2">
-                    <CurrencyInput v-model="form.price"
-                        :hasError="Boolean(form.errors.price)" :errorMessage="form.errors.price" />
+            <template v-if="canSeeFinancials">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
+                    <div class="sm:col-span-2">
+                        <CurrencyInput v-model="form.price"
+                            :hasError="Boolean(form.errors.price)" :errorMessage="form.errors.price" />
+                    </div>
                 </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="intervalOptions" v-model="form.price_interval" placeholder="Geen prijsinterval"
-                        :hasError="Boolean(form.errors.price_interval)" :errorMessage="form.errors.price_interval" />
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
+                    <div class="sm:col-span-2">
+                        <ComboBox :options="intervalOptions" v-model="form.price_interval" placeholder="Geen prijsinterval"
+                            :hasError="Boolean(form.errors.price_interval)" :errorMessage="form.errors.price_interval" />
+                    </div>
                 </div>
-            </div>
-            <div v-if="form.price_interval === CUSTOM_CONTRACT_INTERVAL"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="form.price_interval_days" type="number"
-                        :hasError="Boolean(form.errors.price_interval_days)"
-                        :errorMessage="form.errors.price_interval_days" />
+                <div v-if="form.price_interval === CUSTOM_CONTRACT_INTERVAL"
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Elke ... dagen</label>
+                    <div class="sm:col-span-2">
+                        <TextInput v-model="form.price_interval_days" type="number"
+                            :hasError="Boolean(form.errors.price_interval_days)"
+                            :errorMessage="form.errors.price_interval_days" />
+                    </div>
                 </div>
-            </div>
+            </template>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
                 <div class="sm:col-span-2">

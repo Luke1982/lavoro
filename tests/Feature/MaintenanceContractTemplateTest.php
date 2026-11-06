@@ -17,7 +17,6 @@ use Tests\TestCase;
  */
 class MaintenanceContractTemplateTest extends TestCase
 {
-
     private int $roles_made = 0;
 
     private function userWith(array $permission_names): User
@@ -45,7 +44,11 @@ class MaintenanceContractTemplateTest extends TestCase
 
     public function test_a_template_holds_everything_a_contract_has_except_customer_and_machines(): void
     {
-        $user = $this->userWith(['maintenancecontracttemplate.create', 'maintenancecontracttemplate.read']);
+        $user = $this->userWith([
+            'maintenancecontracttemplate.create',
+            'maintenancecontracttemplate.read',
+            'maintenancecontract.see_financials',
+        ]);
 
         $this->actingAs($user)->post('/maintenancecontracttemplates', [
             'name' => 'Standaard jaarcontract',
@@ -218,8 +221,9 @@ class MaintenanceContractTemplateTest extends TestCase
     public function test_a_contract_is_created_with_the_auto_generation_a_template_carries(): void
     {
         $customer = Customer::factory()->create();
+        $creator = $this->userWith(['maintenancecontract.create', 'maintenancecontract.see_financials']);
 
-        $this->actingAs($this->userWith(['maintenancecontract.create']))->post('/maintenancecontracts', [
+        $this->actingAs($creator)->post('/maintenancecontracts', [
             'customer_id' => $customer->id,
             'title' => 'Onderhoud 2026 — ' . $customer->name,
             'start_date' => '2026-01-01',

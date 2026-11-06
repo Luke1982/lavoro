@@ -19,14 +19,13 @@ class MaterialStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'material_category_id' => ['required', 'exists:material_categories,id'],
             'code' => ['nullable', 'string', 'max:255'],
             'vendor_code' => ['nullable', 'string', 'max:255'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'cost_price' => ['nullable', 'numeric', 'min:0'],
             'material_usage_unit_id' => ['required', 'exists:material_usage_units,id'],
             'divisable' => ['boolean'],
             'is_active' => ['boolean'],
@@ -34,6 +33,22 @@ class MaterialStoreRequest extends FormRequest
             'stock' => ['nullable', 'numeric', 'min:0'],
             'min_stock' => ['nullable', 'numeric', 'min:0'],
             'max_stock' => ['nullable', 'numeric', 'min:0'],
+        ], $this->financialRules());
+    }
+
+    /**
+     * Only from whoever may see them; anyone else does not set them either.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function financialRules(): array
+    {
+        if (!$this->user()->can('seeFinancials', Material::class)) {
+            return [];
+        }
+
+        return [
+            'cost_price' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

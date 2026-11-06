@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Customer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,12 +14,13 @@ class CustomerUpdateRequest extends FormRequest
         if (!$user) {
             return false;
         }
+
         return $user->isAdmin() || $user->hasPermission('customer.update');
     }
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'contactname' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -35,10 +37,26 @@ class CustomerUpdateRequest extends FormRequest
             'postal_country' => ['nullable', 'string', 'max:255'],
             'invoice_email' => ['nullable', 'email', 'max:255'],
             'quotes_email' => ['nullable', 'email', 'max:255'],
-            'iban' => ['nullable', 'string', 'max:255'],
-            'vat_number' => ['nullable', 'string', 'max:255'],
             'chamber_of_commerce_number' => ['nullable', 'string', 'max:255'],
             'billing_customer_id' => 'nullable|exists:customers,id',
+        ], $this->sensitiveRules());
+    }
+
+    /**
+     * Only from whoever may see them: anyone else's form loaded them empty, and
+     * saving it back would wipe the real values.
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    private function sensitiveRules(): array
+    {
+        if (!$this->user()->can('seeSensitive', Customer::class)) {
+            return [];
+        }
+
+        return [
+            'iban' => ['nullable', 'string', 'max:255'],
+            'vat_number' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

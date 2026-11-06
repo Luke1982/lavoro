@@ -17,9 +17,13 @@ class MaintenanceContractPolicy
         return $user->hasPermission('maintenancecontract.read');
     }
 
+    /**
+     * Creating a contract means entering its price, so it takes the right to see
+     * prices as well.
+     */
     public function create(User $user): bool
     {
-        return $user->hasPermission('maintenancecontract.create');
+        return $user->hasPermission('maintenancecontract.create') && $this->seeFinancials($user);
     }
 
     public function update(User $user, MaintenanceContract $maintenanceContract): bool
@@ -50,5 +54,11 @@ class MaintenanceContractPolicy
     public function generateServiceOrders(User $user, MaintenanceContract $maintenanceContract): bool
     {
         return $user->hasPermission('maintenancecontract.generate');
+    }
+
+    /** Price and price interval. Asked of the class: the answer is the same for every contract. */
+    public function seeFinancials(User $user): bool
+    {
+        return $user->hasPermission('maintenancecontract.see_financials');
     }
 }

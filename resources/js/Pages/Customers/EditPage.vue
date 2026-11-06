@@ -71,10 +71,12 @@
                         :has-error="!!form.errors.invoice_email" :error-message="form.errors.invoice_email" />
                     <TextInput v-model="form.quotes_email" label="Offerte e-mail" type="email"
                         :has-error="!!form.errors.quotes_email" :error-message="form.errors.quotes_email" />
-                    <TextInput v-model="form.iban" label="IBAN" :has-error="!!form.errors.iban"
-                        :error-message="form.errors.iban" />
-                    <TextInput v-model="form.vat_number" label="BTW-nummer" :has-error="!!form.errors.vat_number"
-                        :error-message="form.errors.vat_number" />
+                    <template v-if="hasPermission('customer.see_sensitive')">
+                        <TextInput v-model="form.iban" label="IBAN" :has-error="!!form.errors.iban"
+                            :error-message="form.errors.iban" />
+                        <TextInput v-model="form.vat_number" label="BTW-nummer" :has-error="!!form.errors.vat_number"
+                            :error-message="form.errors.vat_number" />
+                    </template>
                     <TextInput v-model="form.chamber_of_commerce_number" label="KvK-nummer"
                         :has-error="!!form.errors.chamber_of_commerce_number"
                         :error-message="form.errors.chamber_of_commerce_number" />
@@ -110,6 +112,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import { hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     customer: { type: Object, required: true },

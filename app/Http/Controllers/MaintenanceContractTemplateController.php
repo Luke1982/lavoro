@@ -8,13 +8,16 @@ use App\Http\Requests\MaintenanceContractTemplateReadRequest;
 use App\Http\Requests\MaintenanceContractTemplateStoreRequest;
 use App\Http\Requests\MaintenanceContractTemplateUpdateRequest;
 use App\Models\MaintenanceContractTemplate;
+use App\Traits\OffersContractTemplates;
 
 class MaintenanceContractTemplateController extends Controller
 {
+    use OffersContractTemplates;
+
     public function index(MaintenanceContractTemplateReadRequest $request)
     {
         return inertia('MaintenanceContractTemplates/IndexPage', [
-            'templates' => MaintenanceContractTemplate::orderBy('name')->get(),
+            'templates' => $this->templatesFor($request),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
         ]);
     }
@@ -23,6 +26,10 @@ class MaintenanceContractTemplateController extends Controller
         MaintenanceContractTemplateReadRequest $request,
         MaintenanceContractTemplate $maintenancecontracttemplate
     ) {
+        if ($request->user()->can('seeFinancials', MaintenanceContractTemplate::class)) {
+            $maintenancecontracttemplate->makeVisible(MaintenanceContractTemplate::FINANCIAL_ATTRIBUTES);
+        }
+
         return inertia('MaintenanceContractTemplates/ShowPage', [
             'template' => $maintenancecontracttemplate,
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),

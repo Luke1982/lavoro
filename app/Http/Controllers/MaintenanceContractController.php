@@ -69,6 +69,10 @@ class MaintenanceContractController extends Controller
 
         $maintenancecontracts = $query->orderByDesc('start_date')->paginate(20)->withQueryString();
 
+        if ($request->user()->can('seeFinancials', MaintenanceContract::class)) {
+            $maintenancecontracts->getCollection()->makeVisible(MaintenanceContract::FINANCIAL_ATTRIBUTES);
+        }
+
         /**
          * Past the threshold the comboboxes on this page search server-side instead
          * of holding every customer, which had the browser rendering thousands of
@@ -109,6 +113,10 @@ class MaintenanceContractController extends Controller
             'remarks.user',
             'generatedServiceOrders.serviceJobs.asset.product.brand',
         ]);
+
+        if ($request->user()->can('seeFinancials', MaintenanceContract::class)) {
+            $maintenancecontract->makeVisible(MaintenanceContract::FINANCIAL_ATTRIBUTES);
+        }
 
         /**
          * Every machine of the customer at any depth. Child machines have no customer_id,

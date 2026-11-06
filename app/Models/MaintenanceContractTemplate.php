@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class MaintenanceContractTemplate extends Model
 {
+    public const FINANCIAL_ATTRIBUTES = MaintenanceContract::FINANCIAL_ATTRIBUTES;
+
     protected $fillable = [
         'name',
         'title',
@@ -27,6 +29,13 @@ class MaintenanceContractTemplate extends Model
         'auto_generate_interval',
         'auto_generate_interval_days',
     ];
+
+    /**
+     * A template's price is the price its contracts get, so it is hidden like
+     * theirs. The template pages and the contract drawer make it visible for
+     * whoever may see it.
+     */
+    protected $hidden = self::FINANCIAL_ATTRIBUTES;
 
     protected $casts = [
         'duration_months' => 'integer',

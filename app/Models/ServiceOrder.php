@@ -36,6 +36,10 @@ class ServiceOrder extends Model
     use RecordsHistory;
     use RemarkableTrait;
 
+    public const FINANCIAL_ATTRIBUTES = [
+        'financial_comments',
+    ];
+
     protected array $activity_labels = [
         'signed_by' => 'Ondertekend door',
         'execution_location' => 'Uitvoeringslocatie',
@@ -104,6 +108,14 @@ class ServiceOrder extends Model
         'work_completed',
         'type',
     ];
+
+    /**
+     * Hidden by default because a werkbon travels along on the planner, the
+     * customer, projects and the event API. The werkbon page makes them visible
+     * for whoever may see them; their changes still reach the trail, gated by
+     * $activity_permissions.
+     */
+    protected $hidden = self::FINANCIAL_ATTRIBUTES;
 
     protected $casts = [
         'order_date' => 'date:Y-m-d',

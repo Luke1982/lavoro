@@ -93,6 +93,10 @@ class MaterialController extends Controller
             'activities' => fn ($q) => $q->visibleTo(Auth::user())->with('user')->latest(),
         ]);
 
+        if ($request->user()->can('seeFinancials', Material::class)) {
+            $material->makeVisible(Material::FINANCIAL_ATTRIBUTES);
+        }
+
         $supplier_count = Supplier::count();
         $all_suppliers = $supplier_count <= 50
             ? Supplier::orderBy('name')->get(['id', 'name'])

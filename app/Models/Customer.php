@@ -18,6 +18,11 @@ class Customer extends Model
 
     use RecordsHistory;
 
+    public const SENSITIVE_ATTRIBUTES = [
+        'iban',
+        'vat_number',
+    ];
+
     protected array $activity_labels = [
         'quotes_email' => 'Offerte e-mail',
         'website' => 'Website',
@@ -80,6 +85,13 @@ class Customer extends Model
         'lat',
         'lon',
     ];
+
+    /**
+     * Hidden by default because a customer travels along on nearly every page.
+     * The customer pages make them visible for whoever may see them; their
+     * changes still reach the trail, gated by $activity_permissions.
+     */
+    protected $hidden = self::SENSITIVE_ATTRIBUTES;
 
     public ?int $upcoming_asset_days = null;
 

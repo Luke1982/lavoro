@@ -23,6 +23,12 @@ class MaintenanceContract extends Model
     use RecordsHistory;
     use RemarkableTrait;
 
+    public const FINANCIAL_ATTRIBUTES = [
+        'price',
+        'price_interval',
+        'price_interval_days',
+    ];
+
     protected array $activity_labels = [
         'customer_id' => 'Klant',
         'title' => 'Titel',
@@ -75,6 +81,13 @@ class MaintenanceContract extends Model
         'auto_generate_interval',
         'auto_generate_interval_days',
     ];
+
+    /**
+     * Hidden by default because a contract travels along on the customer page.
+     * The contract pages make them visible for whoever may see them; their
+     * changes still reach the trail, gated by $activity_permissions.
+     */
+    protected $hidden = self::FINANCIAL_ATTRIBUTES;
 
     protected $casts = [
         'start_date' => 'date',

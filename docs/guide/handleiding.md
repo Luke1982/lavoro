@@ -226,7 +226,9 @@ De lijst met gekoppelde machines toont per machine het **producttype** en het se
 
 **Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Zit er een bundel bij, dan krijgen de onderdelen daarvan hun eigen deelkeuring, net als wanneer je de machine met de hand aan een werkbon toevoegt. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren.
 
-Verhuist een machine naar een andere klant, dan wordt hij automatisch van contracten van de oude klant losgekoppeld. De contractprijzen zijn alleen zichtbaar met het recht op financiële contractgegevens.
+Verhuist een machine naar een andere klant, dan wordt hij automatisch van contracten van de oude klant losgekoppeld.
+
+De **prijs en het prijsinterval** zijn alleen te zien en te wijzigen met het recht op financiële contractgegevens; dat geldt voor contracten en voor sjablonen. Omdat je bij het aanmaken de prijs invult, is voor een nieuw contract naast het recht om contracten aan te maken ook dit recht nodig; zonder staat er geen knop om een contract toe te voegen.
 
 ### Sjablonen
 
@@ -319,6 +321,8 @@ Beheer staat onder Communicatie → Aankondigingen.
 **Rollen toekennen** is een eigen recht (`user.assign_roles`), los van het bewerken van een gebruiker. Wie het heeft ziet op de gebruikerspagina het veld **Rollen** en kan daar rollen aan- en uitzetten; wie het niet heeft ziet dat veld niet en kan de rollen van een gebruiker ook niet langs een omweg wijzigen. Het staat bewust apart, want wie rollen uitdeelt deelt indirect alle rechten uit die in die rollen zitten. Het geeft geen toegang tot het samenstellen van rollen zelf: welke rechten in een rol zitten blijft aan de admin.
 
 Rechten heten steeds "onderdeel punt actie" — bijvoorbeeld: werkbonnen lezen, alleen eigen werkbonnen lezen, werkbon sluiten, financiële gegevens zien, afspraken voor anderen aanmaken, alle afspraken zien, tijden van anderen invullen, gevoelige klantgegevens zien, de AI-assistent gebruiken. Lijsten en zoekresultaten volgen dezelfde regels: wie alleen eigen werkbonnen mag zien, ziet overal — ook in de zoekfunctie en de assistent — alleen die werkbonnen.
+
+Eén recht werkt alleen samen met een ander: **contracten aanmaken** vraagt ook **financiële contractgegevens zien**, omdat je bij het aanmaken de prijs invult.
 
 **Per gebruiker** beheert de beheerder: naam, e-mail, wachtwoord, avatar, rollen (met het recht hierboven) en of iemand **inplanbaar** is (als rij in de planner verschijnt; alleen de admin). Gebruikers worden nooit echt weggegooid: verwijderen deactiveert ze, en ze zijn terug te halen.
 

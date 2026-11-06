@@ -70,6 +70,10 @@ export const hasAnyPermission = (permissions) => {
     return perms.has(permissions);
 };
 
+/** Creating a contract means entering its price, so it takes both rights, as the server's policy does. */
+export const canCreateMaintenanceContract = () =>
+    hasPermission("maintenancecontract.create") && hasPermission("maintenancecontract.see_financials");
+
 export const serviceOrderSentState = (order) => {
     if (!order) return "none";
     const a = !!order.sent_to_administration;

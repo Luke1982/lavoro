@@ -21,4 +21,10 @@ class CustomerPolicy
     {
         return $user->hasPermission('customer.create');
     }
+
+    /** IBAN and btw-nummer. Asked of the class: the answer is the same for every customer. */
+    public function seeSensitive(User $user): bool
+    {
+        return $user->hasPermission('customer.see_sensitive');
+    }
 }
