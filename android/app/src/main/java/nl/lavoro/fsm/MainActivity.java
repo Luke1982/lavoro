@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.view.animation.AccelerateInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.URLUtil;
 import android.webkit.WebView;
@@ -18,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 import androidx.core.splashscreen.SplashScreen;
+import androidx.core.splashscreen.SplashScreenViewProvider;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.CapConfig;
@@ -29,6 +31,8 @@ import java.util.Map;
 public class MainActivity extends BridgeActivity {
 
     private static final long MAX_SPLASH_MS = 10_000;
+    private static final long SPLASH_EXIT_MS = 300;
+    private static final float SPLASH_EXIT_LOGO_SCALE = 0.6f;
     private static final String SPLASH_BACKGROUND = "#081020";
 
     private final Map<Long, String> pending_downloads = new HashMap<>();
@@ -53,9 +57,11 @@ public class MainActivity extends BridgeActivity {
     @SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
         long started_at = SystemClock.uptimeMillis();
-        SplashScreen.installSplashScreen(this).setKeepOnScreenCondition(
+        SplashScreen splash_screen = SplashScreen.installSplashScreen(this);
+        splash_screen.setKeepOnScreenCondition(
             () -> !first_page_loaded && SystemClock.uptimeMillis() - started_at < MAX_SPLASH_MS
         );
+        splash_screen.setOnExitAnimationListener(this::leaveSplashScreen);
 
         registerPlugin(LocationTrackerPlugin.class);
 
@@ -128,6 +134,33 @@ public class MainActivity extends BridgeActivity {
 
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         ContextCompat.registerReceiver(this, download_receiver, filter, ContextCompat.RECEIVER_EXPORTED);
+    }
+
+    /**
+     * Lets the logo finish building itself, then shrinks it while the splash
+     * screen fades into the page behind it. Before Android 12 the logo does
+     * not move and the library reports no animation, so the fade starts at
+     * once. The wait never exceeds the animation itself, whatever clock the
+     * reported start time turns out to use.
+     */
+    private void leaveSplashScreen(SplashScreenViewProvider splash) {
+        long animation_ms = splash.getIconAnimationDurationMillis();
+        long animation_left = splash.getIconAnimationStartMillis() + animation_ms - System.currentTimeMillis();
+        long delay = Math.max(0, Math.min(animation_left, animation_ms));
+
+        splash.getIconView().animate()
+            .scaleX(SPLASH_EXIT_LOGO_SCALE)
+            .scaleY(SPLASH_EXIT_LOGO_SCALE)
+            .setStartDelay(delay)
+            .setDuration(SPLASH_EXIT_MS)
+            .setInterpolator(new AccelerateInterpolator());
+
+        splash.getView().animate()
+            .alpha(0f)
+            .setStartDelay(delay)
+            .setDuration(SPLASH_EXIT_MS)
+            .setInterpolator(new AccelerateInterpolator())
+            .withEndAction(splash::remove);
     }
 
     @Override

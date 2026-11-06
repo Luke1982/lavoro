@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<objectAnimator xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="@integer/splash_logo_animation_ms"
+    android:interpolator="@android:anim/linear_interpolator">
+    <propertyValuesHolder
+        android:propertyName="scaleY"
+        android:valueType="floatType">
+        <keyframe android:fraction="0" android:value="0" />
+        <keyframe android:fraction="0.5" android:value="0" />
+        <keyframe
+            android:fraction="0.9"
+            android:interpolator="@android:interpolator/fast_out_slow_in"
+            android:value="1" />
+        <keyframe android:fraction="1" android:value="1" />
+    </propertyValuesHolder>
+</objectAnimator>

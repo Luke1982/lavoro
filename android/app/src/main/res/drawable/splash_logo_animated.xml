@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The logo builds itself on the splash screen (Android 12 and later): the blue
+  stem drops in, the lime base slides in from the right, the corner folds up
+  and its shadows come last. Every animator runs for the whole
+  splash_logo_animation_ms and waits in its first keyframe instead of using a
+  start delay, so no part shows in its finished state before its turn.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_logo">
+
+    <target android:name="stem" android:animation="@animator/splash_stem_drop" />
+    <target android:name="stem_fill" android:animation="@animator/splash_stem_fade_in" />
+    <target android:name="stem_foot" android:animation="@animator/splash_stem_fade_in" />
+    <target android:name="stem_shade" android:animation="@animator/splash_stem_fade_in" />
+
+    <target android:name="base" android:animation="@animator/splash_base_slide" />
+    <target android:name="base_fill" android:animation="@animator/splash_base_fade_in" />
+
+    <target android:name="flap" android:animation="@animator/splash_flap_fold_up" />
+
+    <target android:name="fold_shadow" android:animation="@animator/splash_shadow_fade_in" />
+    <target android:name="flap_shadow" android:animation="@animator/splash_shadow_fade_in" />
+    <target android:name="flap_crease" android:animation="@animator/splash_shadow_fade_in" />
+</animated-vector>
