@@ -29,7 +29,7 @@ company.
    - App logo: optional
    - Developer contact: your email
 4. Scopes — add these:
-   - `https://www.googleapis.com/auth/calendar`
+   - `https://www.googleapis.com/auth/calendar.app.created` (only the calendars Lavoro creates; never the user's own)
    - `openid`
    - `email`
    - `profile`
@@ -99,7 +99,7 @@ GOOGLE_WEBHOOK_URL=https://<your-domain>/google/webhook
 
 ## 8. Going live to all customers
 
-The `auth/calendar` scope is "sensitive" by Google's classification. While the OAuth consent screen is in **Testing** mode, only pre-listed test users can connect.
+While the OAuth consent screen is in **Testing** mode, only pre-listed test users can connect, and their links stop working after 7 days. The consent screen's Data access page shows whether Google counts `calendar.app.created` as sensitive; if it does, the app needs the verification below.
 
 To allow any user to connect:
 

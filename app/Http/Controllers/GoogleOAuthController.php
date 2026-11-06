@@ -2,12 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\Google\BackfillCalendarJob;
 use App\Jobs\Google\TeardownIntegrationJob;
+use App\Models\CalendarGrant;
 use App\Models\GoogleCalendarIntegration;
+use App\Models\GoogleSyncedCalendar;
+use App\Services\Google\GoogleCalendarApi;
 use App\Services\Google\GoogleClientFactory;
+use App\Services\Google\GrantSyncService;
+use Google\Service\Oauth2;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class GoogleOAuthController extends Controller
@@ -53,13 +62,14 @@ class GoogleOAuthController extends Controller
         }
 
         $granted_scopes = explode(' ', $token_set['scope'] ?? '');
-        if (!in_array('https://www.googleapis.com/auth/calendar', $granted_scopes, true)) {
+        if (!in_array(config('google.calendar_scope'), $granted_scopes, true)) {
             $this->revokeAccessToken($token_set['access_token'] ?? null);
+
             return redirect()->route('me.edit')->with('error', __('google.oauth_missing_calendar_scope'));
         }
 
         $client->setAccessToken($token_set);
-        $oauth = new \Google\Service\Oauth2($client);
+        $oauth = new Oauth2($client);
         $userinfo = $oauth->userinfo->get();
 
         $user = Auth::user();
@@ -69,6 +79,7 @@ class GoogleOAuthController extends Controller
 
         if (!$incoming_refresh && !$existing) {
             $this->revokeAccessToken($token_set['access_token']);
+
             return redirect()->route('me.edit')->with('error', __('google.oauth_no_refresh_token'));
         }
 
@@ -91,18 +102,18 @@ class GoogleOAuthController extends Controller
             $attributes,
         );
 
-        $synced_cal = \App\Models\GoogleSyncedCalendar::where('google_calendar_integration_id', $integration->id)
+        $synced_cal = GoogleSyncedCalendar::where('google_calendar_integration_id', $integration->id)
             ->where('owner_user_id', $user->id)
             ->first();
 
         if (!$synced_cal) {
-            $service_api = app(\App\Services\Google\GoogleCalendarApi::class);
+            $service_api = app(GoogleCalendarApi::class);
             $google_cal = $service_api->createCalendar($integration, config('google.calendar_summary_own'));
 
             try {
-                $synced_cal = \Illuminate\Support\Facades\DB::transaction(
+                $synced_cal = DB::transaction(
                     function () use ($integration, $user, $google_cal) {
-                        return \App\Models\GoogleSyncedCalendar::create([
+                        return GoogleSyncedCalendar::create([
                             'google_calendar_integration_id' => $integration->id,
                             'owner_user_id' => $user->id,
                             'google_calendar_id' => $google_cal->getId(),
@@ -115,14 +126,15 @@ class GoogleOAuthController extends Controller
                     $service_api->deleteCalendar($integration, $google_cal->getId());
                 } catch (\Throwable $ignored) {
                 }
+
                 return redirect()->route('me.edit')->with('error', __('google.oauth_calendar_setup_failed'));
             }
         }
 
-        \App\Jobs\Google\BackfillCalendarJob::dispatch($synced_cal->id);
+        BackfillCalendarJob::dispatch($synced_cal->id);
 
-        $grants_received = \App\Models\CalendarGrant::where('viewer_user_id', $user->id)->get();
-        $grant_service = app(\App\Services\Google\GrantSyncService::class);
+        $grants_received = CalendarGrant::where('viewer_user_id', $user->id)->get();
+        $grant_service = app(GrantSyncService::class);
         foreach ($grants_received as $grant) {
             $grant_service->onGrantCreated($grant);
         }
@@ -136,6 +148,7 @@ class GoogleOAuthController extends Controller
         if ($integration) {
             TeardownIntegrationJob::dispatch($integration->id);
         }
+
         return redirect()->route('me.edit')->with('success', __('google.disconnect_started'));
     }
 
@@ -145,11 +158,11 @@ class GoogleOAuthController extends Controller
             return;
         }
         try {
-            \Illuminate\Support\Facades\Http::asForm()->post('https://oauth2.googleapis.com/revoke', [
+            Http::asForm()->post('https://oauth2.googleapis.com/revoke', [
                 'token' => $access_token,
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning(
+            Log::warning(
                 'Google access token revoke failed (non-fatal)',
                 ['error' => $e->getMessage()],
             );
