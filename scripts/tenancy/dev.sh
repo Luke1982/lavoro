@@ -166,6 +166,16 @@ if lsof -i ":${VITE_PORT}" >/dev/null 2>&1; then
 fi
 echo "  ports ${PORT} and ${VITE_PORT} are free"
 
+# Vite needs a file watcher of its own. A desktop with an editor and a handful of
+# apps open has used up the default of 128 long before that, so vite dies at the
+# start with EMFILE -- and without the --kill-others-on-fail below the app would
+# go on serving the last build without a word.
+WATCHERS="$(cat /proc/sys/fs/inotify/max_user_instances 2>/dev/null || echo 1024)"
+if [ "$WATCHERS" -lt 512 ]; then
+    echo "  fs.inotify.max_user_instances is ${WATCHERS}: vite will likely die with EMFILE. Raise it once with"
+    echo "    echo fs.inotify.max_user_instances=1024 | sudo tee /etc/sysctl.d/60-inotify.conf && sudo sysctl --system"
+fi
+
 if [ "$RESET" = true ]; then
     echo
     echo "== Resetting logins to '${PASSWORD}' =="
@@ -214,7 +224,7 @@ echo "== Starting (ctrl-c stops everything) =="
 # Vite reads .env directly and knows nothing of APP_ENV, so it gets the address
 # separately; otherwise it points at the app url from .env, which does not run
 # here.
-npx concurrently -c "#93c5fd,#c4b5fd,#fb7185,#fdba74" \
+npx concurrently --kill-others-on-fail -c "#93c5fd,#c4b5fd,#fb7185,#fdba74" \
     "APP_ENV=${ENVIRONMENT} php artisan serve --host=127.0.0.1 --port=${PORT}" \
     "APP_ENV=${ENVIRONMENT} php artisan queue:listen --tries=1" \
     "APP_ENV=${ENVIRONMENT} php artisan queue:listen --queue=provisioning --tries=1" \
