@@ -818,8 +818,23 @@ const ticketPriorityBadgeClass = (priority) => {
 const assetToCheck = ref(internalAssets[0]?.id || null);
 const ticketToSolve = ref(null);
 
+/**
+ * Only the fields this page edits through the autosave. The form outlives every save on
+ * the page, so anything else in it would be sent back at the value it had when the page
+ * loaded: a stage changed since then would be moved back, or refused for whoever may
+ * only close the werkbon.
+ */
 const form = useForm({
-    ...props.serviceOrder,
+    customer_id: props.serviceOrder.customer_id,
+    type: props.serviceOrder.type,
+    project_id: props.serviceOrder.project_id,
+    location_id: props.serviceOrder.location_id,
+    order_date: props.serviceOrder.order_date,
+    external_purchaseorder_no: props.serviceOrder.external_purchaseorder_no,
+    external_invoice_no: props.serviceOrder.external_invoice_no,
+    execution_location: props.serviceOrder.execution_location,
+    description: props.serviceOrder.description,
+    financial_comments: props.serviceOrder.financial_comments,
     actual_start_time: props.serviceOrder.actual_start_time ? props.serviceOrder.actual_start_time.substring(0, 5) : null,
     actual_end_time: props.serviceOrder.actual_end_time ? props.serviceOrder.actual_end_time.substring(0, 5) : null,
 });
@@ -920,16 +935,16 @@ function updateWorkCompleted(work_completed) {
 }
 
 function handleSignatureConfirm({ signed_by, signature_base64 }) {
-    form.signed_by = signed_by
-    form.signature_base64 = signature_base64
-    form.put(`/serviceorders/${props.serviceOrder.id}`, {
+    useForm({
+        customer_id: props.serviceOrder.customer.id,
+        signed_by,
+        signature_base64,
+    }).patch(`/serviceorders/${props.serviceOrder.id}`, {
         preserveScroll: true,
         onSuccess: () => {
-            form.defaults()
             showCloseModal.value = false
         },
         onError: (errors) => {
-            form.reset('signed_by', 'signature_base64')
             const msg = errors.signed_by || errors.signature_base64 || Object.values(errors)[0]
             if (msg) usePage().props.flash.error = msg
         },
