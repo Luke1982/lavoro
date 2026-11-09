@@ -26,6 +26,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Psr\Log\LogLevel;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -84,7 +85,12 @@ return Application::configure(basePath: dirname(__DIR__))
          * reason. Without this it became a 500 and the user read "Er is een
          * serverfout opgetreden", while the explanation had already been
          * written by whoever threw the refusal.
+         *
+         * Logged as debug: it is an answer to a user, not a fault, and at error
+         * level it buried the real faults in the log.
          */
+        $exceptions->level(Refusal::class, LogLevel::DEBUG);
+
         $exceptions->render(function (Refusal $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $e->getMessage()], 422);
