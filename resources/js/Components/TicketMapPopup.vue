@@ -17,10 +17,14 @@
                         {{ ticket.priority }}
                     </span>
                 </div>
-                <div class="mt-0.5">
+                <div class="mt-0.5 flex flex-wrap gap-1">
                     <span
                         :class="['inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset', ticketStatusClasses(ticket.status)]">
                         {{ ticket.status }}
+                    </span>
+                    <span v-if="ticket.on_contract"
+                        class="inline-flex items-center rounded bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20">
+                        Onderhoudscontract
                     </span>
                 </div>
             </div>

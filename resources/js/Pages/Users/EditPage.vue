@@ -90,6 +90,35 @@
                 </div>
             </section>
 
+            <section v-if="seesHomeAddress"
+                class="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 shadow-sm">
+                <div class="px-6 py-5 border-b border-gray-200 dark:border-slate-800">
+                    <h2 class="text-sm font-medium text-gray-900 dark:text-slate-100">Thuisadres</h2>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Een route op de kaart kan hier beginnen
+                        en eindigen. Alleen deze persoon en wie gebruikers beheert zien het adres; wie de route plant
+                        ziet alleen het huisje op de kaart.</p>
+                </div>
+                <div class="p-6 space-y-4">
+                    <AddressSearch label="Zoeken" placeholder="Typ straat, huisnummer en plaats…"
+                        @pick="fillHomeAddress" />
+                    <div class="grid gap-4 sm:grid-cols-6">
+                        <div class="sm:col-span-3">
+                            <TextInput v-model="form.home_address" label="Straat en huisnummer"
+                                :has-error="!!form.errors.home_address" :error-message="form.errors.home_address" />
+                        </div>
+                        <div class="sm:col-span-1">
+                            <TextInput v-model="form.home_postal_code" label="Postcode"
+                                :has-error="!!form.errors.home_postal_code"
+                                :error-message="form.errors.home_postal_code" />
+                        </div>
+                        <div class="sm:col-span-2">
+                            <TextInput v-model="form.home_city" label="Plaats" :has-error="!!form.errors.home_city"
+                                :error-message="form.errors.home_city" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <GoogleCalendarSection v-if="isSelfEdit" />
 
             <div class="flex items-center gap-3">
@@ -121,10 +150,11 @@ import { initials, hasPermission } from '@/Utilities/Utilities'
 import { useForm, Link, usePage } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import AddressSearch from '@/Components/UI/AddressSearch.vue'
 import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
 import UserRosterWidget from '@/Components/Users/UserRosterWidget.vue'
 
-const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) }, occupiesSeat: { type: Boolean, default: true } })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) }, occupiesSeat: { type: Boolean, default: true }, seesHomeAddress: { type: Boolean, default: false } })
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)
@@ -144,7 +174,22 @@ const form = useForm({
     role_ids: (props.user?.roles || []).map(r => r.id),
     seat_type: props.occupiesSeat ? (props.user?.seat_type || 'office') : null,
     plannable: !!props.user?.plannable,
+    /**
+     * Only for whoever may see it: anyone else's form would load it empty, and
+     * saving that back would wipe the real address.
+     */
+    ...(props.seesHomeAddress ? {
+        home_address: props.user?.home_address ?? '',
+        home_postal_code: props.user?.home_postal_code ?? '',
+        home_city: props.user?.home_city ?? '',
+    } : {}),
 })
+
+const fillHomeAddress = ({ address, postal_code, city }) => {
+    form.home_address = address
+    form.home_postal_code = postal_code
+    form.home_city = city
+}
 
 /**
  * Buiten- of binnendienst bepaalt welke plaats uit het abonnement bezet wordt.

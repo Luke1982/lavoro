@@ -581,6 +581,7 @@ import ContextMenu from '@imengyu/vue3-context-menu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
+import { DAY_END_STORAGE_KEY, DAY_START_STORAGE_KEY } from '@/Utilities/plannerDayView'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -673,8 +674,6 @@ const showProjects = computed(() => hasPermission('project.read'))
 const WEEK_STORAGE_KEY = 'lavoro_planner_week'
 const VIEW_STORAGE_KEY = 'lavoro_planner_view'
 const SLOT_STORAGE_KEY = 'lavoro_planner_slot_minutes'
-const DAY_START_STORAGE_KEY = 'lavoro_planner_day_start'
-const DAY_END_STORAGE_KEY = 'lavoro_planner_day_end'
 
 function loadInt(key, fallback) {
     const v = parseInt(localStorage.getItem(key))

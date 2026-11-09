@@ -62,6 +62,42 @@ De dienst erachter staat één vraag per seconde toe, dus het commando pauzeert 
 
 Meestal hoeft dat commando niet. Ziet het dashboard adressen die het niet kan plaatsen, dan zet het zelf een opdracht in de wachtrij om ze op te zoeken — hoogstens één per kwartier, en het opzoeken gebeurt op de achtergrond zodat de pagina er niet op wacht. De kaart vult zichzelf dus aan; het commando is er voor wie niet wil wachten. Een adres dat niets oplevert wordt een week onthouden als "niet gevonden", zodat postbussen en adressen over de grens niet elke ronde opnieuw geprobeerd worden.
 
+### Spelden en groepen op de kaart
+
+Beide kaarten openen in een eigen venster; de knop **Sluiten** rechtsboven sluit het, ook als je systeem dat venster zonder titelbalk laat zien. Op de kaart van de aankomende keuringen en die van de openstaande storingen staat één speld per adres, met het aantal machines of storingen daar erin; de legenda rechtsonder zegt wat de kleuren betekenen. Ver uitgezoomd worden spelden die over elkaar zouden vallen samen één rondje. Het cijfer daarin is de som van de cijfers op die spelden, de ring toont hun kleuren (de dringendste bovenaan), en een paars schildje betekent dat er minstens één speld met een schildje bij zit. Klik op het rondje om in te zoomen. Van dichtbij, op straatniveau, staat elke speld weer los, en een adres dat in je route zit staat altijd los.
+
+### Een route plannen
+
+Op de kaart van de aankomende keuringen en op de kaart van de openstaande storingen staat linksboven de knop **Route plannen**. Zet hem aan en klik de adressen aan die je wilt bezoeken; hun speld wordt blauw en ze komen in de lijst. Het kruisje achter een adres in de lijst haalt het er weer uit, net als nog eens klikken op de speld. Een route gaat langs hoogstens 48 adressen.
+
+De planner maakt er een **werkdag** van. Bovenaan staan het begin en het einde van de dag: de begin- en eindtijd die je in de planner voor de dagweergave hebt gekozen (in deze browser), anders 07:00 tot 18:00. Per route zijn ze aan te passen. Elk adres heeft een **tijd op locatie**, standaard de standaardduur uit de planner, een veld **vóór** en een knop **Spoed**. Vul je bij vóór een tijd in, dan begint het werk op dat adres uiterlijk om die tijd; leeg betekent dat het niet uitmaakt wanneer. De tijd moet na het begin van de werkdag liggen. Standaard zijn alle adressen even belangrijk. **Route berekenen** kiest dan, in deze volgorde:
+
+1. alle spoedadressen die in de dag passen;
+2. daarna zoveel mogelijk gewone adressen;
+3. en voor die adressen de snelste volgorde.
+
+Een spoedadres gaat dus altijd voor, ook voor een handvol gewone adressen samen. Liggen er een spoedklus en een kleine klus vlak bij elkaar, dan komen ze allebei mee zolang de dag het toelaat. Wat niet past, staat grijs onder **Past niet in de werkdag**, en bij elk adres staat waarom. Bij een gewoon adres is dat meestal dat de dag vol is. Bij een spoedadres of een adres met een vóór-tijd zoekt de planner de echte reden uit:
+
+- **Niet vóór 10:00 te halen: op zijn vroegst om 10:25 daar.** Alleen de rit erheen duurt al te lang; spoed verandert daar niets aan.
+- **Past niet in de werkdag, ook niet als enige adres.** Heen, het werk en terug duren samen langer dan de dag.
+- **Vóór 10:00 lukt niet samen met de andere spoedadressen.** Alleen zou het lukken, maar niet naast de andere spoedadressen met hun tijden.
+
+Past een spoedadres niet, of past er helemaal niets, dan staat dat ook in rood boven de lijst. Maak de dag langer, de tijd op locatie korter of een vóór-tijd later, of haal een ander spoedadres weg, en reken opnieuw. Dat uitzoeken telt als één berekening extra per drie van zulke adressen.
+
+In de route krijgt elk adres een grotere, donker omlijnde speld met zijn volgnummer en een aankomsttijd, de weg staat op de kaart, en onderaan zie je hoe laat je terug bent, hoeveel kilometer het is en hoe lang je rijdt. Files tellen niet mee. Ligt een adres te ver van een weg, dan noemt de planner het bij naam; haal het dan uit de route.
+
+Onder **Begin en einde** kies je waar de route begint en eindigt:
+
+- **Bedrijf**: het bedrijfsadres (onder Bedrijf). Is dat niet ingevuld, dan staat deze keuze grijs.
+- **Thuis: een naam**: het thuisadres van een inplanbare medewerker, uit diens profiel (zie *Gebruikers, rollen en rechten*). Wie geen thuisadres heeft, staat grijs in de lijst. Het adres zelf zie je niet; na het berekenen staat er een huisje op de kaart.
+- **Ander adres**: typ straat, huisnummer en plaats en kies het adres uit de lijst, of klik op de kaart. Versleep het huisje om het te verplaatsen. Het zoeken kent alleen Nederlandse adressen; voor een adres over de grens klik je op de kaart.
+
+Is een adres niet op de kaart te vinden, dan zegt de planner dat en kies je een ander startpunt.
+
+**Openen in Google Maps** zet de route klaar voor de navigatie op je computer of, met de Google Maps-app, op je telefoon. Google Maps neemt hoogstens tien adressen per keer, dus een langere route staat in delen klaar: open het volgende deel als je het vorige gereden hebt. De route wordt niet bewaard; zet je **Route plannen** uit, dan is hij weg.
+
+Je kunt routes plannen als je een van de twee kaarten mag zien. De berekening loopt via een routeserver: de gratis dienst van OpenRouteService of een eigen server. Daar gaan alleen coördinaten en tijden heen, geen namen of adressen. Bij OpenRouteService is het aantal routes per dag beperkt; is dat op, dan zegt de planner het en kan het de volgende dag weer. Iedereen kan hoogstens tien routes per minuut berekenen.
+
 ## Klanten
 
 Een klant heeft adresgegevens (bezoek- en postadres), meerdere e-mailadressen (algemeen, factuur, offerte), telefoonnummers, KvK-nummer en optioneel IBAN en btw-nummer (die laatste zijn afgeschermd achter een apart recht voor gevoelige gegevens). Een klant kan een **facturatieklant** hebben: dan gaan facturen naar die andere klant.
@@ -170,7 +206,7 @@ Een storing is een gemelde fout aan een machine, met een onderwerp, omschrijving
 - Een storing hoort bij één machine en kan aan één werkbon gekoppeld worden. Alleen een losse storing (nog aan geen werkbon gekoppeld) kan aan een werkbon worden gehangen.
 - Wie een storing mag zien volgt uit de machine of de werkbon erachter: kun je die zien, dan zie je de storing.
 
-De storingenlijst heeft teltegels (Open, In behandeling, Wacht op klant, Gesloten), filters op status, prioriteit, storingscode en wie hem sloot, en bulk-bewerken van de status. Er is ook een **kaartweergave** die openstaande storingen per klant/locatie op de kaart zet.
+De storingenlijst heeft teltegels (Open, In behandeling, Wacht op klant, Gesloten), filters op status, prioriteit, storingscode en wie hem sloot, en bulk-bewerken van de status. Er is ook een **kaartweergave** die openstaande storingen per klant/locatie op de kaart zet: één speld per adres, in de kleur van de hoogste prioriteit daar, met het aantal storingen erin. Een paars schildje op de speld betekent dat er een storing bij is aan een machine onder een lopend onderhoudscontract, ook als de storing aan een onderdeel van die machine hangt; in de ballon staat het bij die storing zelf. Het schildje zie je alleen als je onderhoudscontracten mag inzien. Op deze kaart plan je ook een route langs de adressen (zie *Een route plannen*).
 
 Storingen aanmaken kan vanaf de storingenlijst, de plus-knop, de machinepagina en direct vanaf een werkbon.
 
@@ -325,6 +361,8 @@ Rechten heten steeds "onderdeel punt actie" — bijvoorbeeld: werkbonnen lezen, 
 Eén recht werkt alleen samen met een ander: **contracten aanmaken** vraagt ook **financiële contractgegevens zien**, omdat je bij het aanmaken de prijs invult.
 
 **Per gebruiker** beheert de beheerder: naam, e-mail, wachtwoord, avatar, rollen (met het recht hierboven) en of iemand **inplanbaar** is (als rij in de planner verschijnt; alleen de admin). Gebruikers worden nooit echt weggegooid: verwijderen deactiveert ze, en ze zijn terug te halen.
+
+**Thuisadres**: op het profiel staat een eigen blok **Thuisadres**. Typ straat, huisnummer en plaats in het zoekveld en kies het adres uit de lijst; de velden vullen zich dan vanzelf. Je kunt ze ook zelf invullen. Een route op de kaart kan bij een inplanbare medewerker thuis beginnen en eindigen (zie *Een route plannen*). Het adres zien alleen de persoon zelf en wie gebruikers mag bewerken; wie de route plant ziet alleen het huisje op de kaart.
 
 **Rooster**: per gebruiker zijn vaste vrije momenten in te stellen (een weekdag, wekelijks of om de week, hele dag of een dagdeel, met een label zoals "papadag") en losse vrije dagen (een datum of periode). Dit rooster blokkeert de planner en telt mee wanneer beschikbaarheid wordt berekend. Wie het recht heeft beheert alleen zijn eigen rooster, of dat van iedereen.
 

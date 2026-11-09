@@ -11,7 +11,6 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
 use App\Models\Event;
-use App\Models\GeneralSetting;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\UserPlanGroup;
@@ -148,8 +147,7 @@ class FindAvailableTechnicianTool implements Tool
     {
         $availability = app(TechnicianAvailability::class);
 
-        $duration = $call->integerArgument('duration_minutes')
-            ?? (int) GeneralSetting::get('defaultplannerminutes', 480);
+        $duration = $call->integerArgument('duration_minutes') ?? $availability->defaultDurationMinutes();
 
         $given_date = $call->stringArgument('from_date');
 

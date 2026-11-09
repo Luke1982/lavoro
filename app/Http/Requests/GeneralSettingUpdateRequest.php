@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Planning\TechnicianAvailability;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +19,9 @@ class GeneralSettingUpdateRequest extends FormRequest
     {
         return [
             'value' => match ($this->route('key')) {
-                'defaultplannerminutes' => ['required', 'integer', 'min:15', 'max:1200'],
+                'defaultplannerminutes' => [
+                    'required', 'integer', 'min:15', 'max:' . TechnicianAvailability::MAX_DURATION_MINUTES,
+                ],
                 'planner_leading_color' => ['required', 'string', 'in:event,role'],
                 default => ['prohibited'],
             },

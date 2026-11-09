@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesHomeAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\SeatAvailable;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class UserUpdateRequest extends FormRequest
 {
+    use ValidatesHomeAddress;
+
     public function authorize(): bool
     {
         $route_user = $this->route('user');
@@ -91,6 +94,6 @@ class UserUpdateRequest extends FormRequest
             $rules['plannable'] = 'sometimes|boolean';
         }
 
-        return $rules;
+        return $rules + $this->homeAddressRules();
     }
 }

@@ -33,6 +33,7 @@ class UserController extends Controller
 
         return inertia('Users/EditPage', [
             'user' => null,
+            'seesHomeAddress' => true,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
             'occupiesSeat' => true,
@@ -43,9 +44,14 @@ class UserController extends Controller
     {
         abort_unless(auth()->user()->can('view', $user), 403);
         $user->load('roles:id,name');
+        $sees_home_address = auth()->user()->can('seeHomeAddress', $user);
+        if ($sees_home_address) {
+            $user->makeVisible(User::HOME_ADDRESS);
+        }
 
         return inertia('Users/EditPage', [
             'user' => $user,
+            'seesHomeAddress' => $sees_home_address,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
             /** A super admin occupies no seat; they should not see that choice. */
@@ -139,9 +145,11 @@ class UserController extends Controller
         $user = request()->user();
         abort_unless($user, 403);
         $user->load('roles:id,name');
+        $user->makeVisible(User::HOME_ADDRESS);
 
         return inertia('Users/EditPage', [
             'user' => $user,
+            'seesHomeAddress' => true,
             'allRoles' => $this->assignableRoles(),
             'seats' => $this->seats(),
             /** A super admin occupies no seat; they should not see that choice. */

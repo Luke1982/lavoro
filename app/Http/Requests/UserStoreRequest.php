@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesHomeAddress;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\SeatAvailable;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class UserStoreRequest extends FormRequest
 {
+    use ValidatesHomeAddress;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', User::class);
@@ -49,6 +52,6 @@ class UserStoreRequest extends FormRequest
             ];
         }
 
-        return $rules;
+        return $rules + $this->homeAddressRules();
     }
 }

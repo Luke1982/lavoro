@@ -9,6 +9,7 @@ use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\AssetsFactory;
 use DomainException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -245,22 +246,56 @@ class Asset extends Model
      */
     public static function treeIdsForCustomers(array $customer_ids): array
     {
-        $customer_ids = array_values(array_unique($customer_ids));
-
         if ($customer_ids === []) {
             return [];
         }
 
-        $placeholders = implode(',', array_fill(0, count($customer_ids), '?'));
+        $roots = self::query()->whereIn('customer_id', array_values(array_unique($customer_ids)))->select('id');
+
+        return self::treeIds($roots);
+    }
+
+    /**
+     * Which of the given assets are on a running maintenance contract, or are a
+     * part of a machine that is: a contract is drawn up for a machine, and what
+     * is built into it comes along. The contract trees are walked in the
+     * database and only the asked ids come back, so the question sets the size
+     * of the answer.
+     *
+     * @param  array<int, int>  $asset_ids
+     * @return array<int, int>
+     */
+    public static function idsUnderActiveContract(array $asset_ids): array
+    {
+        if ($asset_ids === []) {
+            return [];
+        }
+
+        $roots = self::whereHas('maintenanceContracts', fn ($contracts) => $contracts->active())->select('assets.id');
+
+        return self::treeIds($roots, array_values(array_unique($asset_ids)));
+    }
+
+    /**
+     * The roots and every asset hanging under them, at any depth; with $only,
+     * just those of them. The roots go in as a subquery, never as a list of
+     * placeholders, so a large tenant cannot outgrow what MySQL accepts.
+     *
+     * @param  array<int, int>|null  $only
+     * @return array<int, int>
+     */
+    private static function treeIds(Builder $roots, ?array $only = null): array
+    {
+        $filter = $only === null ? '' : ' WHERE id IN (' . implode(',', array_fill(0, count($only), '?')) . ')';
 
         return collect(DB::select(
             'WITH RECURSIVE asset_tree (id) AS ('
-            . " SELECT id FROM assets WHERE customer_id IN ({$placeholders})"
+            . $roots->toSql()
             . ' UNION ALL'
             . ' SELECT assets.id FROM assets'
             . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
-            . ') SELECT id FROM asset_tree',
-            $customer_ids
+            . ') SELECT id FROM asset_tree' . $filter,
+            [...$roots->getBindings(), ...($only ?? [])]
         ))->map(fn ($row) => (int) $row->id)->all();
     }
 

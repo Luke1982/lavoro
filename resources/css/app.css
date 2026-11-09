@@ -348,6 +348,39 @@
 }
 
 /*
+ * De kleuren op de kaarten van storingen en keuringen: de spelden, de legenda,
+ * de lijst in het routepaneel en de lijn van een berekende route. Eén plek, zodat
+ * ze alle vier hetzelfde zeggen.
+ *
+ * In elke speld staat een wit cijfer of bolletje, dus elke kleur hier moet daar
+ * genoeg contrast mee houden: amber en grijs zijn een tint donkerder dan het oog
+ * zou kiezen, en "binnen 60 dagen" is donker okergeel en geen lichtgeel. De
+ * kaart zelf is altijd licht, daarom is er geen donkere variant.
+ */
+:root {
+    --map-priority-high: #dc2626;
+    --map-priority-normal: #d97706;
+    --map-priority-low: #16a34a;
+    --map-priority-none: #6b7280;
+
+    --map-due-expired: #dc2626;
+    --map-due-month: #ea580c;
+    --map-due-two-months: #ca8a04;
+    --map-due-later: #16a34a;
+
+    --map-contract: #6d28d9;
+
+    --map-route: #1d4ed8;
+    --map-route-urgent: #dc2626;
+    --map-route-left-over: #6b7280;
+}
+
+/* Leaflet zet de kleur van een lijn als attribuut; een CSS-regel gaat daarvoor. */
+.route-line {
+    stroke: var(--map-route);
+}
+
+/*
  * Rijke tekst uit de editor: alinea's met lucht ertussen en lijsten met bolletjes.
  *
  * Nodig omdat @tailwindcss/typography hier niet geïnstalleerd is. De prose-klassen

@@ -22,6 +22,15 @@ class UserPolicy
         return !$model->isSuperAdmin() && $user->hasPermission('user.read');
     }
 
+    /**
+     * Someone's home address is theirs and the user administrator's. Whoever
+     * plans routes may start one there without seeing the address.
+     */
+    public function seeHomeAddress(User $user, User $model): bool
+    {
+        return $user->is($model) || $this->update($user, $model);
+    }
+
     public function create(User $user): bool
     {
         return $user->hasPermission('user.create');

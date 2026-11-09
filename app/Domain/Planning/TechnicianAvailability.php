@@ -5,6 +5,7 @@ namespace App\Domain\Planning;
 use App\Models\Event;
 use App\Models\GeneralSetting;
 use App\Models\User;
+use App\Support\ForgetsTenantState;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -22,9 +23,12 @@ use Illuminate\Support\Collection;
  * when people are actually busy, because an empty diary is answered on the
  * first day and stops.
  */
-class TechnicianAvailability implements \App\Support\ForgetsTenantState
+class TechnicianAvailability implements ForgetsTenantState
 {
     private const MINUTES_PER_DAY = 1440;
+
+    /** The longest appointment the planner accepts as its standard, and a route as time on site. */
+    public const MAX_DURATION_MINUTES = 1200;
 
     private ?int $work_start_hour = null;
 
@@ -47,6 +51,8 @@ class TechnicianAvailability implements \App\Support\ForgetsTenantState
     public function forgetTenantState(): void
     {
         $this->forget();
+        $this->work_start_hour = null;
+        $this->work_end_hour = null;
     }
 
     public function forget(): void
@@ -63,6 +69,12 @@ class TechnicianAvailability implements \App\Support\ForgetsTenantState
     public function workEndHour(): int
     {
         return $this->work_end_hour ??= (int) GeneralSetting::get('planner_day_end_hour', 18);
+    }
+
+    /** The planner's "standaardduur": how long a new appointment lasts unless someone says otherwise. */
+    public function defaultDurationMinutes(): int
+    {
+        return (int) GeneralSetting::get('defaultplannerminutes', 120);
     }
 
     /**

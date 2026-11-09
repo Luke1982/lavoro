@@ -78,4 +78,19 @@ return [
         'api_base' => env('SNELSTART_API_BASE', 'https://b2bapi.snelstart.nl/v2'),
     ],
 
+    /**
+     * Route planning on the maps: a VROOM server. Either HeiGIT's, at
+     * https://api.heigit.org/vroom/v0 with a free key from account.heigit.org,
+     * or one of our own, which needs no key (scripts/routeplanner/setup.sh).
+     * Without a url the maps offer no route planner.
+     *
+     * HeiGIT's old host, api.openrouteservice.org, answers the same key with a
+     * tenth of the daily quota (50 routes instead of 500) until it is switched
+     * off.
+     */
+    'routeplanner' => [
+        'url' => env('ROUTEPLANNER_URL'),
+        'key' => env('ROUTEPLANNER_KEY'),
+    ],
+
 ];

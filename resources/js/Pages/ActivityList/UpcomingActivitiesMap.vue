@@ -4,32 +4,49 @@
         <GeocodingStatusOverlay :status="geocodingStatus" :geocoded-count="geocodedCount"
             :total-to-geocode="totalToGeocode" :progress="progress" :failed-geocodes="failedGeocodes"
             :total="items.length" />
+        <MapLegend title="Eerstvolgende keuring" :entries="LEGEND" counted="machines" />
+        <RoutePlannerPanel v-if="routePlanner" ref="planner" :map="map" :config="routePlanner"
+            @chosen="keepApart" />
+        <CloseMapWindow />
     </div>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import EmptyLayout from '@/Layouts/EmptyLayout.vue';
+import CloseMapWindow from '@/Components/Map/CloseMapWindow.vue';
+import MapLegend from '@/Components/Map/MapLegend.vue';
+import RoutePlannerPanel from '@/Components/Map/RoutePlannerPanel.vue';
 import MapPopup from '@/Components/MapPopup.vue';
 import GeocodingStatusOverlay from '@/Components/GeocodingStatusOverlay.vue';
 import { useCustomerMapMarkers } from '@/Composables/useCustomerMapMarkers';
 
 defineOptions({ layout: EmptyLayout });
 
-const { items } = defineProps({
-    items: { type: Array, required: true }
+const { items, routePlanner } = defineProps({
+    items: { type: Array, required: true },
+    routePlanner: { type: Object, default: null },
 });
 
-const classifyColor = (days) => {
-    if (days === null || days === undefined) {
-        return 'gray';
+const planner = ref(null);
+
+const DUE = {
+    expired: { label: 'Verlopen', color: 'var(--map-due-expired)' },
+    month: { label: 'Binnen 30 dagen', color: 'var(--map-due-month)' },
+    twoMonths: { label: 'Binnen 60 dagen', color: 'var(--map-due-two-months)' },
+    later: { label: 'Later', color: 'var(--map-due-later)' },
+};
+const LEGEND = Object.values(DUE);
+
+const dueOf = (item) => {
+    const days = item.next_service_in_days;
+    if (item.has_expired_assets) {
+        return DUE.expired;
     }
     if (days <= 30) {
-        return 'orange';
+        return DUE.month;
     }
-    if (days <= 60) {
-        return 'yellow';
-    }
-    return 'green';
+    return days <= 60 ? DUE.twoMonths : DUE.later;
 };
 
 const scrollToCustomer = (item) => {
@@ -51,11 +68,16 @@ const scrollToCustomer = (item) => {
     }, 50);
 };
 
-const { geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
+const { map, keepApart, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
     items,
-    markerColor: (c) => c.has_expired_assets ? 'red' : classifyColor(c.next_service_in_days),
+    markerColor: (item) => dueOf(item).color,
+    markerNumber: (item) => item.assets.length,
+    colorOrder: LEGEND.map(({ color }) => color),
     popupComponent: MapPopup,
-    onMarkerClick: scrollToCustomer,
+    onMarkerClick: (item) => {
+        planner.value?.toggleStop(item);
+        scrollToCustomer(item);
+    },
     coordsUrl: (item) => item.type === 'location'
         ? `/locations/${item.id}/coords`
         : `/customers/${item.id}/coords`,

@@ -53,6 +53,7 @@ use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoutePlanController;
 use App\Http\Controllers\ServiceCheckController;
 use App\Http\Controllers\ServiceCheckGroupController;
 use App\Http\Controllers\ServiceCheckInstanceController;
@@ -196,6 +197,9 @@ Route::group(
         Route::get('combo/customers/{customer}/locations', [ComboSearchController::class, 'locationsForCustomer'])
             ->name('combo.customer.locations');
         Route::get('combo/customers', [ComboSearchController::class, 'customers'])->name('combo.customers');
+        Route::get('combo/addresses', [ComboSearchController::class, 'addresses'])
+            ->middleware('throttle:120,1')
+            ->name('combo.addresses');
         Route::get('combo/assets', [ComboSearchController::class, 'assets'])->name('combo.assets');
         Route::get('combo/users', [ComboSearchController::class, 'users'])->name('combo.users');
         Route::get('combo/eventtypes', [ComboSearchController::class, 'eventTypes'])->name('combo.eventtypes');
@@ -207,6 +211,9 @@ Route::group(
         Route::patch('customers/{customer}/coords', [CustomerController::class, 'updateCoords'])
             ->name('customers.updateCoords');
         Route::get('geocode', [GeocodeController::class, 'lookup'])->name('geocode.lookup');
+        Route::get('geocode/address', [GeocodeController::class, 'address'])
+            ->middleware('throttle:120,1')
+            ->name('geocode.address');
         Route::post('customers/import/preview', [CustomerImportController::class, 'preview'])
             ->name('customers.import.preview');
         Route::post('customers/import/confirm', [CustomerImportController::class, 'confirm'])
@@ -469,6 +476,11 @@ Route::group(
             ->name('upcomingactivities'); // requires activitylist.read
         Route::get('upcomingactivities/map', [ActivityListController::class, 'map'])
             ->name('upcomingactivities.map'); // requires activitylist.read
+
+        Route::post('routeplanner', [RoutePlanController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('routeplanner.store');
+
         Route::get('usernotifications', [UserNotificationController::class, 'index'])
             ->name('usernotifications.index');
         Route::get('usernotifications/feed', [UserNotificationController::class, 'feed'])

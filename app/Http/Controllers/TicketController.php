@@ -18,6 +18,7 @@ use App\Models\MaintenanceContract;
 use App\Models\NotificationSubscription;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\RoutePlanner;
 use Inertia\Response;
 
 class TicketController extends Controller
@@ -219,7 +220,7 @@ class TicketController extends Controller
      *
      * @return Response
      */
-    public function map(TicketListRequest $request)
+    public function map(TicketListRequest $request, RoutePlanner $route_planner)
     {
         $data = $request->validated();
 
@@ -237,11 +238,16 @@ class TicketController extends Controller
 
         $tickets = $tickets->filter(fn ($ticket) => $ticket->asset?->customer !== null)->values();
 
+        $sees_contracts = $request->user()->can('viewAny', MaintenanceContract::class);
+        $under_contract = $sees_contracts
+            ? array_flip(Asset::idsUnderActiveContract($tickets->pluck('asset_id')->all()))
+            : [];
+
         $items = $tickets
             ->groupBy(fn ($ticket) => $ticket->asset->linkedLocation
                 ? 'loc:' . $ticket->asset->linkedLocation->id
                 : 'cust:' . $ticket->asset->customer->id)
-            ->map(function ($group) {
+            ->map(function ($group) use ($under_contract) {
                 $asset = $group->first()->asset;
                 $location = $asset->linkedLocation;
                 $customer = $asset->customer;
@@ -256,11 +262,13 @@ class TicketController extends Controller
                     'city' => $location ? $location->city : $customer->city,
                     'lat' => $location ? $location->lat : $customer->lat,
                     'lon' => $location ? $location->lon : $customer->lon,
+                    'on_contract' => $group->contains(fn ($ticket) => isset($under_contract[$ticket->asset_id])),
                     'tickets' => $group->map(fn ($ticket) => [
                         'id' => $ticket->id,
                         'subject' => $ticket->subject,
                         'priority' => $ticket->priority,
                         'status' => $ticket->status,
+                        'on_contract' => isset($under_contract[$ticket->asset_id]),
                     ])->values(),
                 ];
             })
@@ -268,6 +276,8 @@ class TicketController extends Controller
 
         return inertia('Tickets/TicketsMap', [
             'items' => $items,
+            'seesContracts' => $sees_contracts,
+            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap() : null,
         ]);
     }
 

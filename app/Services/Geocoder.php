@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -78,28 +79,44 @@ class Geocoder
             return $coordinates;
         }
 
-        Cache::put($key, false, self::MISS_TTL_SECONDS);
+        if ($coordinates === false) {
+            Cache::put($key, false, self::MISS_TTL_SECONDS);
+        }
 
         return null;
     }
 
-    /** @return array{lat: float, lon: float}|null */
-    private function ask(string $address): ?array
+    /**
+     * False when Nominatim answered that there is no such place, null when it
+     * gave no usable answer at all. Only the first is worth remembering: a
+     * refusal or an outage says nothing about the address.
+     *
+     * @return array{lat: float, lon: float}|false|null
+     */
+    private function ask(string $address): array|false|null
     {
-        $response = Http::withHeaders([
-            'User-Agent' => config('app.name') . ' geocoder (' . config('app.url') . ')',
-            'Accept-Language' => 'nl',
-        ])->get('https://nominatim.openstreetmap.org/search', [
-            'q' => $address,
-            'format' => 'json',
-            'limit' => 1,
-            'countrycodes' => 'nl',
-        ]);
+        try {
+            $response = Http::withHeaders([
+                'User-Agent' => config('app.name') . ' geocoder (' . config('app.url') . ')',
+                'Accept-Language' => 'nl',
+            ])->get('https://nominatim.openstreetmap.org/search', [
+                'q' => $address,
+                'format' => 'json',
+                'limit' => 1,
+                'countrycodes' => 'nl',
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
 
-        $result = $response->ok() ? ($response->json()[0] ?? null) : null;
+        if (!$response->ok() || !is_array($response->json())) {
+            return null;
+        }
+
+        $result = $response->json()[0] ?? null;
 
         if (!$result || !isset($result['lat'], $result['lon'])) {
-            return null;
+            return false;
         }
 
         return [

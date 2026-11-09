@@ -602,6 +602,8 @@ class TenancyDoctor extends Command
             ? $this->pass('own mail server for invoices configured')
             : $this->bad('LANDLORD_MAIL_HOST is empty -- invoices to customers cannot be sent');
 
+        $this->checkRoutePlanner();
+
         $this->checkVersions();
         $this->checkDrivers();
         $this->checkInvoiceFonts();
@@ -687,13 +689,29 @@ class TenancyDoctor extends Command
     }
 
     /**
-     * The storage the design assumes.
-     *
-     * With the queue on sync, provisioning runs inside the web request as the
-     * application's account -- which may not create databases -- instead of in
-     * the worker that may. With the session not central, logging in looks for
-     * its user in the wrong database.
+     * Without a url the maps simply show no route planner, and with HeiGIT's
+     * url but no key every route is refused -- neither says a word to whoever
+     * deployed it. The old HeiGIT host still works, on a tenth of the quota.
      */
+    private function checkRoutePlanner(): void
+    {
+        $url = (string) config('services.routeplanner.url');
+
+        match (true) {
+            $url === '' => $this->bad('ROUTEPLANNER_URL is empty -- the route planner is missing from the maps'
+                . ' without a word. HeiGIT: https://api.heigit.org/vroom/v0 with a free key from account.heigit.org,'
+                . ' or the url of an own VROOM'),
+            str_contains($url, 'openrouteservice.org') => $this->bad('ROUTEPLANNER_URL points at'
+                . ' api.openrouteservice.org: a tenth of the quota, and it is being switched off.'
+                . ' Use https://api.heigit.org/vroom/v0'),
+            str_contains($url, 'heigit.org') && blank(config('services.routeplanner.key')) => $this->bad(
+                'ROUTEPLANNER_KEY is empty -- HeiGIT refuses every route without it. A free key comes from'
+                . ' account.heigit.org'
+            ),
+            default => $this->pass('route planner at ' . $url),
+        };
+    }
+
     /**
      * Does the app run on the settings that are in .env?
      *
@@ -813,6 +831,14 @@ class TenancyDoctor extends Command
                 . ' on /api and therefore no logged in user.');
     }
 
+    /**
+     * The storage the design assumes.
+     *
+     * With the queue on sync, provisioning runs inside the web request as the
+     * application's account -- which may not create databases -- instead of in
+     * the worker that may. With the session not central, logging in looks for
+     * its user in the wrong database.
+     */
     private function checkDrivers(): void
     {
         $expected = [

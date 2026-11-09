@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Scopes\HidesSuperAdmins;
+use App\Support\AddressFormatter;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,13 @@ class User extends Authenticatable
 
     use Notifiable;
     use SoftDeletes;
+
+    /** Where someone lives: theirs and the user administrator's to see, nobody else's. */
+    public const HOME_ADDRESS = [
+        'home_address',
+        'home_postal_code',
+        'home_city',
+    ];
 
     private ?bool $is_super_admin = null;
 
@@ -44,6 +52,7 @@ class User extends Authenticatable
          * filled up.
          */
         'seat_type',
+        ...self::HOME_ADDRESS,
     ];
 
     /**
@@ -54,6 +63,12 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        /**
+         * A user travels along on nearly every page -- planner rows, the people
+         * on a work order, the author of a remark. The profile pages make it
+         * visible for whoever may see it (UserPolicy::seeHomeAddress).
+         */
+        ...self::HOME_ADDRESS,
     ];
 
     /**
@@ -100,6 +115,16 @@ class User extends Authenticatable
         }
 
         return url("/files/avatars/{$this->id}");
+    }
+
+    /** The home address in one line, or null when it is too incomplete to find. */
+    public function homeAddress(): ?string
+    {
+        if (blank($this->home_address) || (blank($this->home_postal_code) && blank($this->home_city))) {
+            return null;
+        }
+
+        return AddressFormatter::format($this->home_address, $this->home_postal_code, $this->home_city);
     }
 
     /**

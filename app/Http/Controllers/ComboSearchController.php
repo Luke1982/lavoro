@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Search\SearchTerm;
+use App\Http\Requests\AddressSearchRequest;
 use App\Http\Requests\AssetSearchRequest;
 use App\Http\Requests\CustomerSearchRequest;
 use App\Http\Requests\EventTypeSearchRequest;
@@ -20,10 +21,17 @@ use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\AddressFinder;
 use Illuminate\Http\JsonResponse;
 
 class ComboSearchController extends Controller
 {
+    /** Dutch addresses matching what was typed; the id is PDOK's, for GeocodeController::address. */
+    public function addresses(AddressSearchRequest $request, AddressFinder $finder): JsonResponse
+    {
+        return response()->json($finder->suggest($request->validated('q')));
+    }
+
     public function customers(CustomerSearchRequest $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));

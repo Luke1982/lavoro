@@ -4,37 +4,56 @@
         <GeocodingStatusOverlay :status="geocodingStatus" :geocoded-count="geocodedCount"
             :total-to-geocode="totalToGeocode" :progress="progress" :failed-geocodes="failedGeocodes"
             :total="items.length" />
+        <MapLegend title="Hoogste prioriteit op het adres" :entries="LEGEND" counted="storingen"
+            :badge="seesContracts ? 'Machine onder onderhoudscontract' : null" />
+        <RoutePlannerPanel v-if="routePlanner" ref="planner" :map="map" :config="routePlanner"
+            :marker-badge="onContract" @chosen="keepApart" />
+        <CloseMapWindow />
     </div>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import EmptyLayout from '@/Layouts/EmptyLayout.vue';
+import CloseMapWindow from '@/Components/Map/CloseMapWindow.vue';
+import MapLegend from '@/Components/Map/MapLegend.vue';
+import RoutePlannerPanel from '@/Components/Map/RoutePlannerPanel.vue';
 import TicketMapPopup from '@/Components/TicketMapPopup.vue';
 import GeocodingStatusOverlay from '@/Components/GeocodingStatusOverlay.vue';
 import { useCustomerMapMarkers } from '@/Composables/useCustomerMapMarkers';
 
 defineOptions({ layout: EmptyLayout });
 
-const { items } = defineProps({
-    items: { type: Array, required: true }
+const { items, seesContracts, routePlanner } = defineProps({
+    items: { type: Array, required: true },
+    seesContracts: { type: Boolean, default: false },
+    routePlanner: { type: Object, default: null },
 });
 
-const priorityRank = { hoog: 3, normaal: 2, laag: 1 };
-const priorityColor = { hoog: '#dc2626', normaal: '#f59e0b', laag: '#16a34a' };
+const PRIORITIES = [
+    { key: 'hoog', label: 'Hoog', color: 'var(--map-priority-high)' },
+    { key: 'normaal', label: 'Normaal', color: 'var(--map-priority-normal)' },
+    { key: 'laag', label: 'Laag', color: 'var(--map-priority-low)' },
+];
+const NO_PRIORITY = { label: 'Geen prioriteit', color: 'var(--map-priority-none)' };
+const LEGEND = [...PRIORITIES, NO_PRIORITY];
 
-const markerColor = (item) => {
-    const highest = (item.tickets || []).reduce((best, ticket) => {
-        const key = (ticket.priority || '').toLowerCase();
-        const rank = priorityRank[key] ?? 0;
-        return rank > best.rank ? { rank, key } : best;
-    }, { rank: 0, key: null });
-    return priorityColor[highest.key] ?? '#9ca3af';
-};
+const planner = ref(null);
 
-const { geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
+const markerColor = (item) => (PRIORITIES.find(({ key }) => item.tickets.some(
+    (ticket) => ticket.priority?.toLowerCase() === key,
+)) ?? NO_PRIORITY).color;
+
+const onContract = (item) => item.on_contract;
+
+const { map, keepApart, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
     items,
     markerColor,
+    markerNumber: (item) => item.tickets.length,
+    markerBadge: onContract,
+    colorOrder: LEGEND.map(({ color }) => color),
     popupComponent: TicketMapPopup,
+    onMarkerClick: (item) => planner.value?.toggleStop(item),
     coordsUrl: (item) => item.type === 'location'
         ? `/locations/${item.id}/coords`
         : `/customers/${item.id}/coords`,

@@ -45,10 +45,12 @@ use App\Services\AssistantAllowance;
 use App\Support\ForgetsTenantState;
 use App\Support\MailerState;
 use App\Support\TenantMailTransport;
+use App\Support\TenantRateLimiter;
 use App\Support\TenantState;
 use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
 use Illuminate\Auth\Events\Failed;
+use Illuminate\Cache\RateLimiter as CacheRateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Http\Request;
@@ -97,12 +99,18 @@ class AppServiceProvider extends ServiceProvider
          */
         $this->app->scoped(TechnicianAvailability::class);
 
+        $this->app->extend(CacheRateLimiter::class, fn ($limiter, $app) => new TenantRateLimiter(
+            $app['cache'],
+            $app['config']->get('cache.limiter'),
+        ));
+
         $this->app->tag([
             ActivityBuffer::class,
             Signals::class,
             AssistantContext::class,
             TechnicianAvailability::class,
             MailerState::class,
+            CacheRateLimiter::class,
         ], ForgetsTenantState::class);
 
         $this->app->singleton(
@@ -199,6 +207,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn ($user) => $user instanceof User && $user->isSuperAdmin() ? true : null);
 
         Gate::define('technical.management', fn ($user) => $user->hasPermission('technical.management'));
+
+        /**
+         * Planning a route is offered on the map of upcoming maintenance and on
+         * the map of open tickets, so whoever may open either of them may plan.
+         */
+        Gate::define('routeplanner.use', fn ($user) => $user->hasPermission('activitylist.read')
+            || $user->hasPermission('ticket.see_all'));
 
         Gate::policy(Assistant::class, AssistantPolicy::class);
         Gate::policy(EventModel::class, EventPolicy::class);

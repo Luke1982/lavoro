@@ -1,6 +1,6 @@
 <template>
     <div v-if="status !== 'idle'"
-        class="fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-[1000] max-w-sm transition-colors duration-500"
+        class="fixed top-16 right-3 px-4 py-3 rounded-lg shadow-lg z-[1000] max-w-sm transition-colors duration-500"
         :class="boxClasses" @click="status === 'failed' ? (showFailedList = !showFailedList) : null">
 
         <!-- Processing State -->

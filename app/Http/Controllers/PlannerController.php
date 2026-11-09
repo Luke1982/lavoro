@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Planning\TechnicianAvailability;
 use App\Http\Requests\EventReadRequest;
 use App\Models\Customer;
 use App\Models\Event;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PlannerController extends Controller
 {
-    public function index(EventReadRequest $request)
+    public function index(EventReadRequest $request, TechnicianAvailability $availability)
     {
         $user = Auth::user();
         $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
@@ -119,7 +120,7 @@ class PlannerController extends Controller
                     'plan_group_ids' => $u->planGroups->pluck('id')->toArray(),
                 ]),
             'planGroups' => $plan_groups,
-            'defaultPlannerMinutes' => (int) GeneralSetting::get('defaultplannerminutes', 120),
+            'defaultPlannerMinutes' => $availability->defaultDurationMinutes(),
             'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
             'latestPings' => LocationPing::query()

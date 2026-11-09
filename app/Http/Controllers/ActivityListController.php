@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\EventType;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\RoutePlanner;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -247,7 +248,7 @@ class ActivityListController extends Controller
         return Asset::expired();
     }
 
-    public function map(ActivityListReadRequest $request)
+    public function map(ActivityListReadRequest $request, RoutePlanner $route_planner)
     {
         $days = (int) $request->input('days', 60);
 
@@ -310,6 +311,7 @@ class ActivityListController extends Controller
 
         return inertia('ActivityList/UpcomingActivitiesMap', [
             'items' => $items->values(),
+            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap() : null,
         ]);
     }
 }
