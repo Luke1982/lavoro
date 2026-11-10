@@ -262,7 +262,6 @@ else
         MYSQL_PWD="$ADMIN_PASSWORD" mysqldump "${ARGS[@]}" --single-transaction --routines \
             --no-tablespaces "$DB" | gzip > "${ROLLBACK}.part"
         mv "${ROLLBACK}.part" "$ROLLBACK"
-        chmod 600 "$ROLLBACK"
         green "  kept what was there: ${ROLLBACK#"$PROJECT_ROOT/"}"
 
         # The newest seven of this customer stay: a refresh is usually done a few

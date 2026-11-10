@@ -120,12 +120,19 @@ if ! LINES="$(artisan tenancy:backup-targets 2>&1)"; then
     die "Does 'php artisan tenancy:backup-targets' work as ${APP_ACCOUNT}?"
 fi
 
+# An empty run would count as a complete one, and seven nights later it would
+# have pushed out every real one.
+grep -q '^DUMP' <<< "$LINES" || die "Not a single database to dump: did the central database come up?"
+
 # The password goes to mysqldump through this file and not on the command line,
 # where anyone running ps reads it along. mktemp makes it readable to us alone.
 CONFIG="$(mktemp)"
 trap 'rm -f "$CONFIG"' EXIT
 
-mkdir -m 700 "$WORK"
+# No mode of its own: a run gets the rights of the folder it is in, ACL included.
+# A 700 here shut out the account that copies the backups off the machine, and
+# it copied empty folders night after night.
+mkdir "$WORK"
 
 DUMPED=0
 FAILED=0
@@ -155,7 +162,6 @@ while IFS=$'\t' read -r MARK NAME DB_USER DB_PASS DB_HOST DB_PORT; do
     if mysqldump --defaults-extra-file="$CONFIG" --single-transaction \
         --no-tablespaces "$NAME" | gzip > "${TARGET}.part" \
         && mv "${TARGET}.part" "$TARGET"; then
-        chmod 600 "$TARGET"
         green "  ${NAME} ($(du -h "$TARGET" | cut -f1))"
         DUMPED=$((DUMPED + 1))
     else

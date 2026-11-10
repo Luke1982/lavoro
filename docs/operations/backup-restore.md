@@ -149,9 +149,10 @@ scripts/tenancy/backup.sh --to=/backups/lavoro --keep=14
 ```
 
 It creates the folder you give it with `--to` if it does not exist, and puts a
-run folder in it as described above. The files are readable only by the account
-that ran the script (mode 600, the run folder 700), because they contain all of
-that company's data.
+run folder in it as described above. The runs get the rights of the folder they
+are in, ACL included, so whatever copies that folder off the machine can read
+them. They contain all data of every company: keep that folder itself closed to
+anyone who should not have it.
 
 `--keep=7` is the default: the newest seven complete runs in that folder stay,
 older ones go. `--keep=0` removes nothing. It only ever removes run folders it
