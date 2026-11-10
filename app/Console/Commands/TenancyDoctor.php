@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Minishlink\WebPush\VAPID;
 
 /**
  * Checks what git does not hold. Reads only; never repairs.
@@ -603,6 +604,7 @@ class TenancyDoctor extends Command
             : $this->bad('LANDLORD_MAIL_HOST is empty -- invoices to customers cannot be sent');
 
         $this->checkRoutePlanner();
+        $this->checkWebPush();
 
         $this->checkVersions();
         $this->checkDrivers();
@@ -710,6 +712,40 @@ class TenancyDoctor extends Command
             ),
             default => $this->pass('route planner at ' . $url),
         };
+    }
+
+    /**
+     * Without a VAPID pair the browser is never even offered notifications, and
+     * nothing anywhere says why. A key cut short on its way into .env, or a
+     * subject that is neither mailto: nor https:, fails later and just as
+     * quietly: on the first push, in the worker.
+     */
+    private function checkWebPush(): void
+    {
+        $public_key = (string) config('webpush.public_key');
+        $private_key = (string) config('webpush.private_key');
+        $subject = (string) config('webpush.subject');
+
+        if (blank($public_key) || blank($private_key)) {
+            $this->bad('VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is empty -- browsers are never offered'
+                . ' notifications. Run php artisan notifications:vapid-keys once, put the lines in .env'
+                . ' and never change them again: a new pair invalidates every subscription');
+
+            return;
+        }
+
+        try {
+            VAPID::validate(['subject' => $subject, 'publicKey' => $public_key, 'privateKey' => $private_key]);
+        } catch (\Throwable $e) {
+            $this->bad('the VAPID keys in .env are unusable -- ' . $e->getMessage());
+
+            return;
+        }
+
+        str_starts_with($subject, 'mailto:') || str_starts_with($subject, 'https://')
+            ? $this->pass('web push keys set')
+            : $this->bad('VAPID_SUBJECT is "' . $subject . '" -- push services want mailto: or https:,'
+                . ' and without VAPID_SUBJECT it falls back to APP_URL');
     }
 
     /**
