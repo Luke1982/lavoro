@@ -199,13 +199,6 @@ class ServiceOrder extends Model
      * Limits a query to the orders this person is allowed to see: everything if
      * they may read orders at large, otherwise only the ones that are theirs.
      *
-     * Theirs means one of two things, because a werkbon can reach someone along
-     * two paths: hij staat als uitvoerder op de werkbon zelf, of er staat een
-     * afspraak op de werkbon die hij uitvoert. Wie ergens heen gepland is moet
-     * die werkbon kunnen openen — anders staat hij voor de deur zonder te weten
-     * wat hij er komt doen. Een geannuleerde afspraak telt bewust mee: het werk
-     * ging niet door, maar wat er speelde blijft navraagbaar.
-     *
      * Anything that shows orders to a user goes through here. The rule used to be
      * written out at each call site, which is how a new reader of the data ends up
      * seeing more than the old one.
@@ -220,6 +213,27 @@ class ServiceOrder extends Model
             return $query->whereRaw('1 = 0');
         }
 
+        return $query->assignedTo($user);
+    }
+
+    /**
+     * The orders that are this person's own, whatever else they may read.
+     *
+     * Theirs means one of two things, because a werkbon can reach someone along
+     * two paths: hij staat als uitvoerder op de werkbon zelf, of er staat een
+     * afspraak op de werkbon die hij uitvoert. Wie ergens heen gepland is moet
+     * die werkbon kunnen openen — anders staat hij voor de deur zonder te weten
+     * wat hij er komt doen. Een geannuleerde afspraak telt bewust mee: het werk
+     * ging niet door, maar wat er speelde blijft navraagbaar.
+     *
+     * The machines a monteur may open from their werkbonnen follow the same rule
+     * (User::relevantAssetIds). Checking only the werkbon's own list there let a
+     * monteur open the werkbon and its keuring but not the machine on it: planning
+     * a second appointment with someone else replaces that list, while the first
+     * appointment still names them.
+     */
+    public function scopeAssignedTo($query, User $user)
+    {
         return $query->where(fn ($q) => $q
             ->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
             ->orWhereHas('events.executingUsers', fn ($sq) => $sq->where('users.id', $user->id)));

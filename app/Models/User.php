@@ -305,13 +305,12 @@ class User extends Authenticatable
     }
 
     /**
-     * ServiceOrders where user is executing.
+     * ServiceOrders where user is executing, on the order itself or on one of its
+     * appointments.
      */
     public function serviceOrdersExecuting()
     {
-        return ServiceOrder::whereHas('executingUsers', function ($q) {
-            $q->where('users.id', $this->id);
-        });
+        return ServiceOrder::assignedTo($this);
     }
 
     public function googleCalendarIntegration()
