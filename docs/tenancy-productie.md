@@ -176,7 +176,13 @@ Two of them are worth knowing about:
   `.env` — the website included — can delete any customer's database.
 - **`MAIL_MAILER=tenant`** means every customer sends mail with their own
   settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
-  invoices you send to customers.
+  invoices you send to customers. A copy of each invoice is put in that
+  mailbox's Sent folder over IMAP, with the same host, user name and password
+  unless `LANDLORD_IMAP_*` says otherwise. The folder is looked up on the server
+  (`Sent`, `INBOX.Sent`, `Verzonden items`, …); `LANDLORD_IMAP_SENT_FOLDER` is
+  only for choosing another one, and `LANDLORD_IMAP_COPY=false` switches the copy
+  off for a server that keeps its own. The doctor logs in and finds the folder
+  the same way.
 
 Then create the tables:
 

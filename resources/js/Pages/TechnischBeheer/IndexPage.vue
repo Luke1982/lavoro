@@ -89,6 +89,50 @@
                             :stored="storedSecrets.mail_smtp_password"
                             :error="integrations.errors.mail_smtp_password"
                             @forget="forgetSecret('mail_smtp_password')" />
+
+                        <div class="space-y-4 border-t border-gray-200 pt-4 dark:border-slate-700">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Kopie in de map Verzonden</p>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400">
+                                        Lavoro zet elke verstuurde mail via IMAP in jullie eigen map Verzonden. Zet dit
+                                        uit als de mailserver dat zelf al doet, zoals Gmail.
+                                    </p>
+                                </div>
+                                <SwitchComponent v-model="integrations.mail_imap_copy" title="Kopie in de map Verzonden" />
+                            </div>
+
+                            <template v-if="integrations.mail_imap_copy">
+                                <p class="text-xs text-gray-500 dark:text-slate-400">
+                                    Een lege server, gebruikersnaam of wachtwoord neemt over wat hierboven bij de
+                                    SMTP-server staat. Zonder poort is het 993 met SSL; een andere poort gebruikt
+                                    STARTTLS. Blijft de map leeg, dan zoekt Lavoro hem zelf op.
+                                </p>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="col-span-2">
+                                        <TextInput v-model="integrations.mail_imap_host" label="IMAP-server"
+                                            :placeholder="integrations.mail_smtp_host || 'mail.jouwbedrijf.nl'"
+                                            :has-error="!!integrations.errors.mail_imap_host"
+                                            :error-message="integrations.errors.mail_imap_host || ''" />
+                                    </div>
+                                    <TextInput v-model="integrations.mail_imap_port" label="Poort" type="number"
+                                        placeholder="993" :has-error="!!integrations.errors.mail_imap_port"
+                                        :error-message="integrations.errors.mail_imap_port || ''" />
+                                </div>
+                                <TextInput v-model="integrations.mail_imap_username" label="Gebruikersnaam"
+                                    :placeholder="integrations.mail_smtp_username"
+                                    :has-error="!!integrations.errors.mail_imap_username"
+                                    :error-message="integrations.errors.mail_imap_username || ''" />
+                                <SecretField v-model="integrations.mail_imap_password" label="Wachtwoord"
+                                    :stored="storedSecrets.mail_imap_password"
+                                    :error="integrations.errors.mail_imap_password"
+                                    @forget="forgetSecret('mail_imap_password')" />
+                                <TextInput v-model="integrations.mail_imap_sent_folder" label="Map"
+                                    placeholder="Automatisch (Sent, Verzonden, …)"
+                                    :has-error="!!integrations.errors.mail_imap_sent_folder"
+                                    :error-message="integrations.errors.mail_imap_sent_folder || ''" />
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -161,6 +205,7 @@ import { ref, watch } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import SecretField from '@/Components/UI/SecretField.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 
 const props = defineProps({
@@ -200,6 +245,12 @@ const integrations = useForm({
     mail_smtp_scheme: props.settings.mail_smtp_scheme || '',
     mail_smtp_username: props.settings.mail_smtp_username || '',
     mail_smtp_password: '',
+    mail_imap_copy: props.settings.mail_imap_copy ?? true,
+    mail_imap_host: props.settings.mail_imap_host || '',
+    mail_imap_port: props.settings.mail_imap_port || '',
+    mail_imap_username: props.settings.mail_imap_username || '',
+    mail_imap_password: '',
+    mail_imap_sent_folder: props.settings.mail_imap_sent_folder || '',
     snelstart_client_key: '',
     snelstart_subscription_key: '',
 })

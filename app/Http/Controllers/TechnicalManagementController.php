@@ -20,11 +20,12 @@ class TechnicalManagementController extends Controller
         'mail_transport', 'mail_from_address', 'mail_from_name',
         'graph_azure_tenant_id', 'graph_client_id', 'graph_user_id',
         'mail_smtp_host', 'mail_smtp_port', 'mail_smtp_scheme', 'mail_smtp_username',
+        'mail_imap_host', 'mail_imap_port', 'mail_imap_username', 'mail_imap_sent_folder',
     ];
 
     /** Fields the screen only gets to see as "is filled in". */
     private const SECRET_KEYS = [
-        'graph_client_secret', 'mail_smtp_password',
+        'graph_client_secret', 'mail_smtp_password', 'mail_imap_password',
         'snelstart_client_key', 'snelstart_subscription_key',
     ];
 
@@ -40,6 +41,8 @@ class TechnicalManagementController extends Controller
 
         /** Whoever chose nothing mails through Microsoft 365; that is what was there. */
         $settings['mail_transport'] = $settings['mail_transport'] ?: 'graph';
+
+        $settings['mail_imap_copy'] = ImapSentCopier::tenantWantsCopies();
 
         $stored = [];
 
@@ -60,6 +63,8 @@ class TechnicalManagementController extends Controller
         foreach (self::PLAIN_KEYS as $key) {
             GeneralSetting::set($key, $data[$key] ?? '');
         }
+
+        GeneralSetting::set('mail_imap_copy', ($data['mail_imap_copy'] ?? true) ? '1' : '0');
 
         /**
          * An empty secret means "leave it". Otherwise every visit to the screen
@@ -117,27 +122,29 @@ class TechnicalManagementController extends Controller
             return back()->with('error', 'Test e-mail kon niet worden verzonden: ' . $detail);
         }
 
-        $copier = app(ImapSentCopier::class);
+        $copier = ImapSentCopier::forMailer($mailer);
+
+        if ($copier === null) {
+            return back()->with('success', 'Test e-mail verzonden naar ' . $data['email'] . '.');
+        }
 
         if (!$copier->isConfigured()) {
             return back()->with(
                 'success',
                 'Test e-mail verzonden naar ' . $data['email'] . '.'
-                . ' Let op: IMAP niet geconfigureerd, geen kopie opgeslagen in .Sent map.'
+                . ' Let op: geen IMAP-gegevens, dus geen kopie in de map Verzonden.'
             );
         }
 
         try {
-            $copier->copy($sentRaw);
+            $folder = $copier->copy((string) $sentRaw);
         } catch (Throwable $e) {
             return back()->with(
                 'error',
                 'Test e-mail verzonden naar ' . $data['email']
-                . ', maar opslaan in IMAP .Sent map mislukt: ' . $e->getMessage()
+                . ', maar de kopie in de map Verzonden is mislukt: ' . $e->getMessage()
             );
         }
-
-        $folder = config('imap.sent_folder', '.Sent');
 
         return back()->with(
             'success',

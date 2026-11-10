@@ -37,8 +37,45 @@ class UpdateIntegrationSettingsRequest extends FormRequest
             'mail_smtp_username' => ['nullable', 'string', 'max:255'],
             'mail_smtp_password' => ['nullable', 'string', 'max:512'],
 
+            /**
+             * All optional: an empty server, user name or password is the SMTP
+             * one, an empty port 993, and an empty folder is looked up.
+             */
+            'mail_imap_copy' => ['boolean'],
+            'mail_imap_host' => ['nullable', 'string', 'max:255'],
+            'mail_imap_port' => ['nullable', 'integer', 'between:1,65535'],
+            'mail_imap_username' => ['nullable', 'string', 'max:255'],
+            'mail_imap_password' => ['nullable', 'string', 'max:512'],
+            'mail_imap_sent_folder' => ['nullable', 'string', 'max:255'],
+
             'snelstart_client_key' => ['nullable', 'string', 'max:512'],
             'snelstart_subscription_key' => ['nullable', 'string', 'max:512'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'mail_transport' => 'verzendwijze',
+            'mail_from_address' => 'afzenderadres',
+            'mail_from_name' => 'afzendernaam',
+            'graph_azure_tenant_id' => 'Directory (tenant) ID',
+            'graph_client_id' => 'Application (client) ID',
+            'graph_client_secret' => 'clientgeheim',
+            'graph_user_id' => 'mailbox',
+            'mail_smtp_host' => 'server',
+            'mail_smtp_port' => 'poort',
+            'mail_smtp_scheme' => 'beveiliging',
+            'mail_smtp_username' => 'gebruikersnaam',
+            'mail_smtp_password' => 'wachtwoord',
+            'mail_imap_copy' => 'kopie in de map Verzonden',
+            'mail_imap_host' => 'IMAP-server',
+            'mail_imap_port' => 'poort',
+            'mail_imap_username' => 'gebruikersnaam',
+            'mail_imap_password' => 'wachtwoord',
+            'mail_imap_sent_folder' => 'map',
+            'snelstart_client_key' => 'clientsleutel',
+            'snelstart_subscription_key' => 'abonnementssleutel',
         ];
     }
 

@@ -12,10 +12,13 @@ class TestMail extends Mailable
     use Queueable;
     use SerializesModels;
 
+    /** Marks the mail, so CopyMailToSentFolder leaves its copy to TechnicalManagementController. */
+    public const HEADER = 'X-Test-Mail';
+
     public function build(): self
     {
         $this->withSymfonyMessage(function (Email $email) {
-            $email->getHeaders()->addTextHeader('X-Test-Mail', '1');
+            $email->getHeaders()->addTextHeader(self::HEADER, '1');
         });
 
         return $this->subject('Test e-mail')

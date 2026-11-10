@@ -68,6 +68,21 @@ return [
                 'address' => env('LANDLORD_MAIL_FROM_ADDRESS', 'info@majorlabel.nl'),
                 'name' => env('LANDLORD_MAIL_FROM_NAME', 'MajorLabel'),
             ],
+
+            /**
+             * Where every invoice is put back in the Sent folder
+             * (ImapSentCopier). Server and login are the SMTP ones unless set
+             * -- also when set but left empty; port 993 means TLS, any other
+             * STARTTLS; without a folder it is looked up on the server.
+             */
+            'imap' => [
+                'copy' => (bool) env('LANDLORD_IMAP_COPY', true),
+                'host' => env('LANDLORD_IMAP_HOST') ?: env('LANDLORD_MAIL_HOST'),
+                'port' => (int) (env('LANDLORD_IMAP_PORT') ?: 993),
+                'username' => env('LANDLORD_IMAP_USERNAME') ?: env('LANDLORD_MAIL_USERNAME'),
+                'password' => env('LANDLORD_IMAP_PASSWORD') ?: env('LANDLORD_MAIL_PASSWORD'),
+                'sent_folder' => env('LANDLORD_IMAP_SENT_FOLDER') ?: null,
+            ],
         ],
 
         'smtp' => [

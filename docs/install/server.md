@@ -24,7 +24,7 @@ sudo apt update
 sudo apt install -y git curl acl \
     mariadb-server \
     php8.3-fpm php8.3-cli php8.3-mysql php8.3-mbstring php8.3-xml \
-    php8.3-curl php8.3-zip php8.3-gd php8.3-bcmath php8.3-intl
+    php8.3-curl php8.3-zip php8.3-gd php8.3-bcmath php8.3-intl php8.3-imap
 ```
 
 You also need:
@@ -37,7 +37,9 @@ You also need:
   sends links by email that have to work from outside.
 
 The `pcntl` and `posix` PHP extensions have to be available to the command line
-PHP, which they are in `php8.3-cli` by default. `php artisan tenancy:doctor`
+PHP, which they are in `php8.3-cli` by default. `imap` puts sent mail back in the
+Sent folder; from PHP 8.4 on it is no longer a package but comes from PECL
+(`pecl install imap`). `php artisan tenancy:doctor`
 checks for every extension it needs and names any that are missing.
 
 ## A Linux account to own the files
@@ -247,7 +249,13 @@ Two settings are worth knowing about:
   including the website — could delete any customer's database.
 - **`MAIL_MAILER=tenant`** means each customer sends email using their own mail
   settings. `LANDLORD_MAIL_*` is your own mail server, used only for the
-  invoices you send to your customers.
+  invoices you send to your customers. A copy of each invoice is put in that
+  mailbox's Sent folder over IMAP, with the same host, user name and password
+  unless `LANDLORD_IMAP_*` says otherwise. The folder is looked up on the server
+  (`Sent`, `INBOX.Sent`, `Verzonden items`, …); `LANDLORD_IMAP_SENT_FOLDER` is
+  only for choosing another one, and `LANDLORD_IMAP_COPY=false` switches the copy
+  off for a server that keeps its own. The doctor logs in and finds the folder
+  the same way.
 
 Then create the tables in the shared database:
 

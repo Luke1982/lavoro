@@ -53,13 +53,19 @@ class ImportTenantSettings extends Command
         'mail_smtp_password' => 'MAIL_PASSWORD',
         'mail_smtp_scheme' => 'MAIL_SCHEME',
 
+        'mail_imap_host' => 'IMAP_HOST',
+        'mail_imap_port' => 'IMAP_PORT',
+        'mail_imap_username' => 'IMAP_USERNAME',
+        'mail_imap_password' => 'IMAP_PASSWORD',
+        'mail_imap_sent_folder' => 'IMAP_SENT_FOLDER',
+
         'snelstart_client_key' => 'SNELSTART_CLIENT_KEY',
         'snelstart_subscription_key' => 'SNELSTART_SUBSCRIPTION_KEY',
     ];
 
     /** What is never printed back, whatever happens. */
     private const SECRET = [
-        'graph_client_secret', 'mail_smtp_password',
+        'graph_client_secret', 'mail_smtp_password', 'mail_imap_password',
         'snelstart_client_key', 'snelstart_subscription_key',
     ];
 

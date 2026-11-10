@@ -13,6 +13,7 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Demo\DemoInstaller;
+use App\Services\ImapSentCopier;
 use App\Support\ProvisionerConnection;
 use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
@@ -603,6 +604,7 @@ class TenancyDoctor extends Command
             ? $this->pass('own mail server for invoices configured')
             : $this->bad('LANDLORD_MAIL_HOST is empty -- invoices to customers cannot be sent');
 
+        $this->checkInvoiceSentFolder();
         $this->checkRoutePlanner();
         $this->checkWebPush();
 
@@ -712,6 +714,52 @@ class TenancyDoctor extends Command
             ),
             default => $this->pass('route planner at ' . $url),
         };
+    }
+
+    private function checkInvoiceSentFolder(): void
+    {
+        if (!filled(config('mail.mailers.landlord.host'))) {
+            $this->skip('copy of invoices in the Sent folder: no mail server for invoices');
+
+            return;
+        }
+
+        $copier = ImapSentCopier::forLandlord();
+
+        if ($copier === null) {
+            $this->skip('copy of invoices in the Sent folder is switched off (LANDLORD_IMAP_COPY=false)');
+
+            return;
+        }
+
+        $this->checkSentFolderCopy($copier, 'invoices', 'Check LANDLORD_IMAP_* in .env');
+    }
+
+    /**
+     * A mail that went out is copied to the sender's Sent folder over IMAP.
+     * When that fails the mail still arrives and only the log knows -- so the
+     * login and the folder are tried here, the way the copy will.
+     */
+    private function checkSentFolderCopy(ImapSentCopier $copier, string $what, string $remedy): void
+    {
+        if (!function_exists('imap_open')) {
+            $this->bad("PHP extension imap is missing, so {$what} get no copy in the Sent folder."
+                . ' Since PHP 8.4 it comes from PECL: pecl install imap');
+
+            return;
+        }
+
+        if (!$copier->isConfigured()) {
+            $this->bad("no IMAP server or login, so {$what} get no copy in the Sent folder. {$remedy}");
+
+            return;
+        }
+
+        try {
+            $this->pass("{$what} are copied to " . $copier->findSentFolder() . ' on ' . $copier->host());
+        } catch (\Throwable $e) {
+            $this->bad("{$what} get no copy in the Sent folder -- " . rtrim($e->getMessage(), '.') . ". {$remedy}");
+        }
     }
 
     /**
@@ -1460,6 +1508,29 @@ class TenancyDoctor extends Command
         }
 
         $this->pass("sends mail over {$transport}");
+
+        $this->canCopyToSentFolder();
+    }
+
+    private function canCopyToSentFolder(): void
+    {
+        if (GeneralSetting::get('mail_transport') !== 'smtp') {
+            return;
+        }
+
+        $copier = ImapSentCopier::forTenant();
+
+        if ($copier === null) {
+            $this->skip('copy in the Sent folder is switched off under Technisch beheer');
+
+            return;
+        }
+
+        $this->checkSentFolderCopy(
+            $copier,
+            'sent mails',
+            'Fill in the IMAP settings under Technisch beheer, or switch the copy off there',
+        );
     }
 
     private function webAccount(): ?string

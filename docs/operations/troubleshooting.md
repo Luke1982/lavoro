@@ -196,6 +196,16 @@ The invoices you send to your own customers are separate. They go through the
 mail server in `LANDLORD_MAIL_*` in `.env`, so they keep working even if a
 customer breaks their own settings.
 
+If a mail has gone out but there is no copy in the Sent folder, the problem is
+the IMAP side. The log has `Failed to copy sent mail to IMAP sent folder` with
+the mailer (`landlord` for your invoices, `tenant` for a customer's post) and
+the reason, and `php artisan tenancy:doctor` tries the same login and folder,
+for you and for every customer that sends over SMTP. A failed copy never stops
+the mail itself: the recipient did get it. The queue worker makes the copy a
+moment later, so while the worker is down the copies wait. A customer's IMAP
+settings are under Technisch beheer, below the SMTP server: an empty server,
+user name or password takes the SMTP one, an empty port means 993.
+
 ## The update refuses: "files have been changed on this server"
 
 `lavoro update` stops before it pulls when a file that is in git has been

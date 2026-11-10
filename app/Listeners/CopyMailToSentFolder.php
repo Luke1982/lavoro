@@ -2,36 +2,32 @@
 
 namespace App\Listeners;
 
+use App\Jobs\CopyToSentFolderJob;
+use App\Mail\TestMail;
 use App\Services\ImapSentCopier;
 use Illuminate\Mail\Events\MessageSent;
-use Throwable;
 
+/**
+ * Queues a copy of every mail that went out over SMTP for the sender's Sent
+ * folder: a customer's in their own mailbox, our invoices in ours. Test mails
+ * are copied by TechnicalManagementController itself, which reports how it
+ * went.
+ */
 class CopyMailToSentFolder
 {
     public function handle(MessageSent $event): void
     {
-        if (config('mail.default') !== 'smtp') {
+        if ($event->message->getHeaders()->has(TestMail::HEADER)) {
             return;
         }
 
-        // Test mails are handled explicitly by TechnicalManagementController
-        if ($event->message->getHeaders()->has('X-Test-Mail')) {
+        $mailer = $event->data['mailer'] ?? null;
+        $copier = ImapSentCopier::forMailer($mailer);
+
+        if ($copier === null || !$copier->isConfigured()) {
             return;
         }
 
-        $copier = app(ImapSentCopier::class);
-
-        if (!$copier->isConfigured()) {
-            return;
-        }
-
-        try {
-            $copier->copy($event->sent->toString());
-        } catch (Throwable $e) {
-            logger()->error('Failed to copy sent mail to IMAP sent folder.', [
-                'error'   => $e->getMessage(),
-                'subject' => $event->message->getSubject(),
-            ]);
-        }
+        CopyToSentFolderJob::dispatch($mailer, $event->sent->toString(), (string) $event->message->getSubject());
     }
 }
