@@ -16,9 +16,7 @@ use App\Domain\Tools\ToolRegistry;
 use App\Exceptions\GraphNotConfigured;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
-use App\Listeners\ApplyTenantSender;
 use App\Listeners\Auth\RecordAuthFailure;
-use App\Listeners\CopyMailToSentFolder;
 use App\Mail\Transports\GraphTransport;
 use App\Models\Assistant;
 use App\Models\CalendarGrant;
@@ -54,8 +52,6 @@ use Illuminate\Cache\RateLimiter as CacheRateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Http\Request;
-use Illuminate\Mail\Events\MessageSending;
-use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
@@ -348,9 +344,6 @@ class AppServiceProvider extends ServiceProvider
 
         /** Both login doors, in one file fail2ban reads. */
         Event::listen(Failed::class, [RecordAuthFailure::class, 'failed']);
-
-        Event::listen(MessageSending::class, ApplyTenantSender::class);
-        Event::listen(MessageSent::class, CopyMailToSentFolder::class);
 
         /**
          * The file route sits behind the login, so a customer on a public page
