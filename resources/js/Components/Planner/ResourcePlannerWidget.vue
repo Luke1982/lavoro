@@ -5,19 +5,23 @@
         <div
             class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap  dark:bg-slate-900">
             <h1 class="text-xl font-bold pr-4">Planning</h1>
-            <button
-                class="rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
-                @click="goToday">Vandaag</button>
-            <button v-if="showPrevButton"
-                class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
-                @click="shiftPeriod(-1)" :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'">
-                <ChevronLeftIcon class="size-4" />
-            </button>
-            <button v-if="showNextButton"
-                class="rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
-                @click="shiftPeriod(1)" :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'">
-                <ChevronRightIcon class="size-4" />
-            </button>
+            <div
+                class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm divide-x divide-gray-300 dark:divide-slate-700">
+                <button class="px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800" @click="goToDate(new Date())">
+                    Vandaag
+                </button>
+                <button class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
+                    :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'" @click="shiftPeriod(-1)">
+                    <ChevronLeftIcon class="size-4" />
+                </button>
+                <button :disabled="!canGoForward"
+                    class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-40"
+                    :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'" @click="shiftPeriod(1)">
+                    <ChevronRightIcon class="size-4" />
+                </button>
+                <PlannerDateJump :selected-start="weekStart" :selected-days="viewDayCount"
+                    :max-date="lastReachableDay?.toDate()" @select="goToDate" />
+            </div>
             <div class="font-semibold text-sm">{{ periodTitle }}</div>
 
             <!-- View mode toggle -->
@@ -552,8 +556,6 @@ import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
-import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
-import { onClickOutside } from '@vueuse/core'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
@@ -573,6 +575,8 @@ import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
+import PlannerDateJump from '@/Components/Planner/PlannerDateJump.vue'
+import { usePopover } from '@/Composables/usePopover'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
 import OverlapPickDialog from '@/Components/Planner/OverlapPickDialog.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
@@ -709,21 +713,19 @@ const weekStart = ref(loadStoredWeekStart())
 const plannerView = ref(loadStoredView())
 const selectedGroupIds = ref([])
 
-const max_forward_date = computed(() => dayjs().add(7, 'day'))
-
-const showPrevButton = computed(() => true)
-
-const showNextButton = computed(() => {
-    if (hasPermission('event.see_beyond_current_week')) return true
-    if (plannerView.value === 'day') {
-        return dayjs(weekStart.value).isBefore(max_forward_date.value, 'day')
-    }
-    return dayjs(weekStart.value).startOf('isoWeek').isBefore(max_forward_date.value.startOf('isoWeek'), 'day')
-})
-
 const rootEl = ref(null)
 
 const viewDayCount = computed(() => plannerView.value === 'day' ? 1 : 7)
+
+const lastReachableDay = computed(() => {
+    if (hasPermission('event.see_beyond_current_week')) return null
+    const limit = dayjs().add(7, 'day')
+    return plannerView.value === 'day' ? limit : limit.endOf('isoWeek')
+})
+
+const canGoForward = computed(() => !lastReachableDay.value
+    || !dayjs(weekStart.value).add(viewDayCount.value, 'day').isAfter(lastReachableDay.value, 'day'))
+
 const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
     viewDayCount,
@@ -793,35 +795,9 @@ const mapExpandedUsers = ref(new Set())
 const mapModalOpen = ref(false)
 const exportDrawerOpen = ref(false)
 
-const settingsOpen = ref(false)
 const settingsButtonRef = ref(null)
 const settingsPanelRef = ref(null)
-const settingsPanelStyle = ref({ position: 'fixed', zIndex: 9999 })
-let stopSettingsAutoUpdate = null
-
-async function updateSettingsPosition() {
-    if (!settingsButtonRef.value || !settingsPanelRef.value) return
-    const { x, y } = await computePosition(settingsButtonRef.value, settingsPanelRef.value, {
-        placement: 'bottom-end',
-        strategy: 'fixed',
-        middleware: [offset(8), flip(), shift({ padding: 8 })],
-    })
-    settingsPanelStyle.value = { position: 'fixed', zIndex: 9999, top: `${y}px`, left: `${x}px` }
-}
-
-watch(settingsPanelRef, (el) => {
-    stopSettingsAutoUpdate?.()
-    stopSettingsAutoUpdate = null
-    if (el && settingsButtonRef.value) {
-        stopSettingsAutoUpdate = autoUpdate(settingsButtonRef.value, el, updateSettingsPosition)
-    }
-})
-
-onClickOutside(settingsPanelRef, () => { settingsOpen.value = false }, { ignore: [settingsButtonRef] })
-
-function onSettingsKeydown(e) {
-    if (e.key === 'Escape') settingsOpen.value = false
-}
+const { open: settingsOpen, style: settingsPanelStyle } = usePopover(settingsButtonRef, settingsPanelRef, 'bottom-end')
 
 const {
     dialog: unavailOverrideDialog,
@@ -1170,15 +1146,12 @@ onMounted(() => {
     nextTick(() => scrollToWorkdayStart())
     startPolling()
     window.addEventListener('dragend', onPlannerDragEnd)
-    window.addEventListener('keydown', onSettingsKeydown)
 })
 onUnmounted(() => {
     if (nowInterval) clearInterval(nowInterval)
     stopPolling()
     window.removeEventListener('dragend', onPlannerDragEnd)
-    window.removeEventListener('keydown', onSettingsKeydown)
     stopDragAutoScroll()
-    stopSettingsAutoUpdate?.()
     clearTimeout(highlightTimer)
 })
 
@@ -1194,16 +1167,7 @@ watch(plannerView, () => {
 })
 
 function shiftPeriod(direction) {
-    if (!hasPermission('event.see_beyond_current_week') && direction === 1) {
-        const limit = max_forward_date.value
-        if (plannerView.value === 'day') {
-            if (!dayjs(weekStart.value).isBefore(limit, 'day')) return
-        } else {
-            if (!dayjs(weekStart.value).startOf('isoWeek').isBefore(limit.startOf('isoWeek'), 'day')) return
-        }
-    }
-    const days = plannerView.value === 'day' ? 1 : 7
-    weekStart.value = dayjs(weekStart.value).add(direction * days, 'day').toDate()
+    weekStart.value = dayjs(weekStart.value).add(direction * viewDayCount.value, 'day').toDate()
 }
 
 function setPlannerView(view) {
@@ -1221,10 +1185,13 @@ function toggleGroupFilter(groupId) {
         : [...selectedGroupIds.value, groupId]
 }
 
-function goToday() {
-    const today = new Date()
-    weekStart.value = plannerView.value === 'day' ? today : startOfWeek(today)
-    nextTick(() => plannerView.value === 'week' ? scrollToDate(today) : null)
+function goToDate(date) {
+    weekStart.value = periodStartFor(date)
+    if (plannerView.value === 'week') nextTick(() => scrollToDate(date))
+}
+
+function periodStartFor(date) {
+    return plannerView.value === 'day' ? dayjs(date).startOf('day').toDate() : startOfWeek(date)
 }
 
 function scrollToDate(date) {
@@ -1268,7 +1235,7 @@ async function jumpToEvent(opt) {
     if (!opt) return
 
     const date = new Date(opt.start)
-    weekStart.value = plannerView.value === 'day' ? dayjs(date).startOf('day').toDate() : startOfWeek(date)
+    weekStart.value = periodStartFor(date)
 
     const targetUserIds = (opt.executing_users || []).map(u => u.id)
     if (targetUserIds.length && !targetUserIds.some(uid => visibleUsers.value.some(u => u.id === uid))) {
