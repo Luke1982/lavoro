@@ -104,7 +104,7 @@ class AskWithFilesTest extends TestCase
     public function test_a_file_with_no_reading_provider_is_refused_up_front(): void
     {
         config(['assistant.providers' => [
-            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-chat', 'capability' => 6],
+            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-flash', 'capability' => 6],
         ]]);
 
         $this->actingAs($this->userWith('assistant.use'))->postJson('/assistant/ask', [
@@ -117,7 +117,7 @@ class AskWithFilesTest extends TestCase
     public function test_routing_skips_providers_that_cannot_open_a_file(): void
     {
         config(['assistant.providers' => [
-            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-chat', 'capability' => 9],
+            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-flash', 'capability' => 9],
             'anthropic' => ['api_key' => 'x', 'model' => 'claude-sonnet-5', 'capability' => 10, 'reads_documents' => true],
         ]]);
 

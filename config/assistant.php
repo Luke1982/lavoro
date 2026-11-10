@@ -112,16 +112,23 @@ return [
     | same one-to-ten scale the tools use. The cheapest model that clears what a
     | conversation needs is the one that answers it.
     |
-    | These are estimates, not measurements. Correct them against
-    | docs/development/assistant-tests.md: a model that keeps choosing the wrong tool is
-    | rated too high, and fixing that is a config change.
+    | Correct the ratings against docs/development/assistant-tests.md: a model that
+    | keeps choosing the wrong tool is rated too high, and fixing that is a
+    | config change.
+    |
+    | Haiku 5.5 and DeepSeek Flash were measured against Sonnet on 2026-11-10:
+    | that list plus five planning and create questions, 26 in all. Haiku
+    | chose the same tools and gave the same answers on every one. DeepSeek
+    | went wrong on three, each time by looking up a technician as a customer,
+    | and once told a planner that a colleague did not exist. The other
+    | ratings are estimates.
     */
 
     'providers' => [
 
         'anthropic' => [
             'driver' => AnthropicModel::class,
-            'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+            'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5-5'),
             /** De enige adapter die bijlagen echt doorgeeft; foto's dwingen deze aanbieder af. */
             'sees_images' => true,
             /** En dezelfde adapter leest pdf's; een bijlage dwingt deze aanbieder net zo goed af. */
@@ -140,9 +147,15 @@ return [
         'deepseek' => [
             'driver' => OpenAiCompatibleModel::class,
             'base_url' => env('DEEPSEEK_BASE_URL', 'https://api.deepseek.com/v1'),
-            'model' => env('DEEPSEEK_MODEL', 'deepseek-chat'),
+            'model' => env('DEEPSEEK_MODEL', 'deepseek-flash'),
             'api_key' => env('DEEPSEEK_API_KEY'),
-            'capability' => 7,
+            'capability' => 4,
+            /**
+             * deepseek-flash thinks before it answers unless told not to.
+             * deepseek-chat, the name sent before, was the same model with
+             * thinking off, and that is how it was measured.
+             */
+            'request' => ['thinking' => ['type' => 'disabled']],
         ],
 
         'mistral' => [
@@ -170,19 +183,16 @@ return [
         ],
 
         /*
-        | The same supplier and the same key, on its cheap model. Sorting questions
-        | is worth nothing without somewhere cheaper to send the easy ones, and
-        | until a second supplier has a key this is the only cheaper place there
-        | is — a third of the price for looking something up.
-        |
-        | The capability is deliberately modest. It answers lookups; anything that
-        | needs weighing goes past it to the model above.
+        | The same supplier and the same key, on its cheap model: a twentieth of
+        | the price of Sonnet, and cheaper than DeepSeek too. Rated 7 on the
+        | measurement above. ResearchTicket (8) was not part of it, so that
+        | stays with Sonnet.
         */
         'anthropic_light' => [
             'driver' => AnthropicModel::class,
-            'model' => env('ANTHROPIC_LIGHT_MODEL', 'claude-haiku-4-5-20251001'),
+            'model' => env('ANTHROPIC_LIGHT_MODEL', 'claude-haiku-5-5'),
             'api_key' => env('ANTHROPIC_API_KEY'),
-            'capability' => 4,
+            'capability' => 7,
             /** Reading a datasheet is not the same work as weighing one; the cheap one can do it. */
             'reads_documents' => true,
         ],
@@ -196,7 +206,7 @@ return [
         */
         'sorter' => [
             'driver' => AnthropicModel::class,
-            'model' => env('ASSISTANT_SORTER_MODEL', 'claude-haiku-4-5-20251001'),
+            'model' => env('ASSISTANT_SORTER_MODEL', 'claude-haiku-5-5'),
             'api_key' => env('ANTHROPIC_API_KEY'),
             'capability' => 1,
             'max_tokens' => 16,
@@ -298,15 +308,20 @@ return [
     | rates genuinely differ — writing a cache costs more than plain input,
     | reading one costs a fraction.
     |
-    | VERIFY THESE BEFORE BILLING ANYONE ON THEM. They were written on
-    | 2026-07-29 from published list prices and suppliers change them without
-    | telling you. A model with no entry is recorded as costing nothing and logs
+    | VERIFY THESE BEFORE BILLING ANYONE ON THEM. Suppliers change them without
+    | telling you. The Sonnet, Haiku and DeepSeek rows were checked against the
+    | suppliers' own price pages on 2026-11-10; the others date from
+    | 2026-07-29. A model with no entry is recorded as costing nothing and logs
     | a warning, which is deliberate: a nought that shows up beats a plausible
     | number that is wrong.
     |
-    | The Anthropic figures are list price. Sonnet is on introductory pricing
-    | until 2026-08-31, so today's rows slightly overstate the real bill — the
-    | safe direction for a number that decides when to cut someone off.
+    | DeepSeek charges double on weekdays from 01:00 to 04:00 and from 06:00 to
+    | 10:00 UTC; the second window is the Dutch working morning. Its rows hold
+    | that peak price, so a call outside those hours is recorded at twice what
+    | it cost.
+    |
+    | Haiku 5.5 charges five times as much for a call whose prompt, cached
+    | tokens included, is over 100,000 tokens. long_prompt holds those rates.
     |
     */
 
@@ -359,7 +374,8 @@ return [
     'reports_path' => env('ASSISTANT_REPORTS_PATH', 'assistant-reports'),
 
     'pricing' => [
-        'claude-sonnet-5' => ['input' => 3.00, 'output' => 15.00, 'cache_write' => 3.75, 'cache_read' => 0.30],
+        'claude-sonnet-5-5' => ['input' => 2.00, 'output' => 10.00, 'cache_write' => 2.50, 'cache_read' => 0.10],
+        'claude-sonnet-5' => ['input' => 2.00, 'output' => 10.00, 'cache_write' => 2.50, 'cache_read' => 0.20],
         'claude-opus-5' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
         'claude-opus-4-8' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
         /*
@@ -368,10 +384,17 @@ return [
         | so it is never chosen, and its usage is recorded at nought — invisible
         | twice over.
         */
+        'claude-haiku-5-5' => [
+            'input' => 0.10, 'output' => 0.50, 'cache_write' => 0.125, 'cache_read' => 0.01,
+            'long_prompt' => [
+                'above_tokens' => 100_000,
+                'input' => 0.50, 'output' => 2.50, 'cache_write' => 0.625, 'cache_read' => 0.05,
+            ],
+        ],
         'claude-haiku-4-5-20251001' => ['input' => 1.00, 'output' => 5.00, 'cache_write' => 1.25, 'cache_read' => 0.10],
 
-        'deepseek-chat' => ['input' => 0.27, 'output' => 1.10, 'cache_write' => 0.27, 'cache_read' => 0.07],
-        'deepseek-reasoner' => ['input' => 0.55, 'output' => 2.19, 'cache_write' => 0.55, 'cache_read' => 0.14],
+        'deepseek-flash' => ['input' => 0.30, 'output' => 1.20, 'cache_write' => 0.30, 'cache_read' => 0.006],
+        'deepseek-v4-pro' => ['input' => 1.32, 'output' => 3.96, 'cache_write' => 1.32, 'cache_read' => 0.044],
 
         'mistral-large-latest' => ['input' => 2.00, 'output' => 6.00, 'cache_write' => 2.00, 'cache_read' => 2.00],
         'mistral-small-latest' => ['input' => 0.20, 'output' => 0.60, 'cache_write' => 0.20, 'cache_read' => 0.20],

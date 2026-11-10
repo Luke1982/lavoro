@@ -34,13 +34,14 @@ final class UsageCost
 
     public static function forCall(string $model, TokenUsage $usage): self
     {
-        $rates = Pricing::forModel($model);
         $eur_per_usd = (float) config('assistant.eur_per_usd');
 
         $input = $usage->input;
         $output = $usage->output;
         $cache_write = $usage->cache_write;
         $cache_read = $usage->cache_read;
+
+        $rates = Pricing::forPrompt($model, prompt_tokens: $input + $cache_write + $cache_read);
 
         /**
          * An unpriced model is recorded at zero rather than guessed at. A wrong

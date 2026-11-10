@@ -41,6 +41,8 @@ class OpenAiCompatibleModel implements TalksToModel
         private readonly string $model,
         private readonly int $max_tokens,
         private readonly int $timeout_seconds = 120,
+        /** @var array<string, mixed> Fields a supplier wants on every request, from its config entry. */
+        private readonly array $request = [],
     ) {}
 
     public static function fromConfig(string $provider): self
@@ -60,6 +62,7 @@ class OpenAiCompatibleModel implements TalksToModel
             model: $settings['model'],
             max_tokens: (int) config('assistant.max_tokens'),
             timeout_seconds: (int) config('assistant.timeout_seconds', 120),
+            request: $settings['request'] ?? [],
         );
     }
 
@@ -98,7 +101,7 @@ class OpenAiCompatibleModel implements TalksToModel
                     'messages' => $messages,
                     'max_tokens' => $this->max_tokens,
                     'tools' => $tools === [] ? null : array_map(fn (array $tool) => $this->toTool($tool), $tools),
-                ], fn ($value) => $value !== null));
+                ], fn ($value) => $value !== null) + $this->request);
         } catch (ConnectionException $e) {
             throw new ModelUnavailable(ModelFailure::unreachable, $e->getMessage());
         }

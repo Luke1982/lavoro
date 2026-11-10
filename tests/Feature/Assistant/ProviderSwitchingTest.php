@@ -178,10 +178,7 @@ class ProviderSwitchingTest extends TestCase
 
     public function test_the_cheapest_model_that_clears_the_bar_is_chosen(): void
     {
-        config([
-            'assistant.providers.deepseek.api_key' => 'x',
-            'assistant.providers.anthropic.api_key' => 'x',
-        ]);
+        $this->onlyProviders(['deepseek' => 7, 'anthropic' => 9]);
 
         $picker = new ModelPicker;
 
@@ -251,7 +248,7 @@ class ProviderSwitchingTest extends TestCase
     {
         Http::fake([
             '*' => Http::response([
-                'model' => 'deepseek-chat',
+                'model' => 'deepseek-flash',
                 'choices' => [[
                     'finish_reason' => 'tool_calls',
                     'message' => [
@@ -272,7 +269,7 @@ class ProviderSwitchingTest extends TestCase
             ]),
         ]);
 
-        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-chat', 4096);
+        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-flash', 4096);
 
         $reply = $model->send(
             turns: [
@@ -326,7 +323,7 @@ class ProviderSwitchingTest extends TestCase
     {
         Http::fake(['*' => Http::response(['error' => ['message' => 'Insufficient Balance']], 400)]);
 
-        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-chat', 4096);
+        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-flash', 4096);
 
         try {
             $model->send([new UserTurn(['hoi'])], [], 'systeem');
@@ -340,7 +337,7 @@ class ProviderSwitchingTest extends TestCase
     {
         Http::fake(['*' => Http::response(['error' => ['message' => 'nope']], 401)]);
 
-        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-chat', 4096);
+        $model = new OpenAiCompatibleModel('https://example.test/v1', 'key', 'deepseek-flash', 4096);
 
         try {
             $model->send([new UserTurn(['hoi'])], [], 'systeem');

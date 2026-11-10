@@ -91,7 +91,7 @@ class AskWithImagesTest extends TestCase
     public function test_a_photo_with_no_seeing_provider_is_refused_up_front(): void
     {
         config(['assistant.providers' => [
-            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-chat', 'capability' => 6],
+            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-flash', 'capability' => 6],
         ]]);
 
         $this->actingAs($this->userWith('assistant.use'))->postJson('/assistant/ask', [
@@ -104,7 +104,7 @@ class AskWithImagesTest extends TestCase
     public function test_routing_skips_the_blind_providers_when_a_photo_rides_along(): void
     {
         config(['assistant.providers' => [
-            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-chat', 'capability' => 9],
+            'deepseek' => ['api_key' => 'x', 'model' => 'deepseek-flash', 'capability' => 9],
             'anthropic' => ['api_key' => 'x', 'model' => 'claude-sonnet-5', 'capability' => 10, 'sees_images' => true],
         ]]);
 
