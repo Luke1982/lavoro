@@ -6,8 +6,11 @@ const FLOATING = { position: 'fixed', zIndex: 9999 }
 
 /**
  * A panel that floats beside the button that opens it, teleported to <body> so
- * no scrolling ancestor can clip it. Clicking outside it or pressing Escape
- * closes it; the button itself is left to toggle `open`.
+ * no scrolling ancestor can clip it. The panel needs tabindex="-1": it takes
+ * the focus when it opens, or the keyboard could never reach it at the end of
+ * the document. Escape closes it through `close()`, which hands the focus back
+ * to the button; a click elsewhere only closes it, because that click already
+ * put the focus where the person wanted it.
  */
 export function usePopover(button, panel, placement = 'bottom-start') {
     const open = ref(false)
@@ -15,6 +18,7 @@ export function usePopover(button, panel, placement = 'bottom-start') {
 
     watch(panel, (element, _previous, onCleanup) => {
         if (!element || !button.value) return
+        element.focus({ preventScroll: true })
         onCleanup(autoUpdate(button.value, element, async () => {
             const { x, y } = await computePosition(button.value, element, {
                 placement,
@@ -25,8 +29,13 @@ export function usePopover(button, panel, placement = 'bottom-start') {
         }))
     })
 
-    onClickOutside(panel, () => { open.value = false }, { ignore: [button] })
-    onKeyStroke('Escape', () => { open.value = false })
+    function close() {
+        open.value = false
+        button.value?.focus()
+    }
 
-    return { open, style }
+    onClickOutside(panel, () => { open.value = false }, { ignore: [button] })
+    onKeyStroke('Escape', () => { if (open.value) close() })
+
+    return { open, style, close }
 }

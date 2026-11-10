@@ -15,7 +15,7 @@
                     <ChevronLeftIcon class="size-4" />
                 </button>
                 <button :disabled="!canGoForward"
-                    class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-40"
+                    class="flex items-center px-2 enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'" @click="shiftPeriod(1)">
                     <ChevronRightIcon class="size-4" />
                 </button>
@@ -108,8 +108,8 @@
                     enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
                     leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
                     leave-to-class="transform opacity-0 scale-95">
-                    <div v-if="settingsOpen" ref="settingsPanelRef" :style="settingsPanelStyle"
-                        class="w-80 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100">
+                    <div v-if="settingsOpen" ref="settingsPanelRef" :style="settingsPanelStyle" tabindex="-1"
+                        class="w-80 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100 focus:outline-none">
                         <button v-if="hasPermission('event.export')"
                             class="flex items-center justify-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800"
                             @click="settingsOpen = false; exportDrawerOpen = true">
