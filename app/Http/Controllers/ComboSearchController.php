@@ -157,11 +157,19 @@ class ComboSearchController extends Controller
         return response()->json($results);
     }
 
+    /**
+     * The orders of one customer that still wait for an appointment, newest
+     * first. The planner stays open for hours while orders are made elsewhere,
+     * so its picker asks again on every use and leaves all matching to this
+     * query: the number in any form it is written, the date as the picker shows
+     * it, the description and the customer's own order number.
+     */
     public function serviceOrders(ServiceOrderSearchRequest $request): JsonResponse
     {
         $user = $request->user();
-        $customer_id = (int) $request->validated()['customer_id'];
-        $include_id = $request->validated()['include_id'] ?? null;
+        $customer_id = (int) $request->validated('customer_id');
+        $include_id = $request->validated('include_id');
+        $term = trim((string) $request->validated('q'));
         $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
 
         $results = ServiceOrder::query()
@@ -172,6 +180,16 @@ class ComboSearchController extends Controller
                     $query->orWhere('id', $include_id);
                 }
             })
+            ->when($term !== '', fn ($query) => $query->where(function ($match) use ($term) {
+                $like = SearchTerm::like($term);
+                $match->where('description', 'like', $like)
+                    ->orWhere('external_purchaseorder_no', 'like', $like)
+                    ->orWhereRaw("DATE_FORMAT(order_date, '%d-%m-%Y') like ?", [$like]);
+                $id = ServiceOrder::idFromNumber($term);
+                if ($id !== null) {
+                    $match->orWhere('id', 'like', SearchTerm::like((string) $id));
+                }
+            }))
             ->when(!$can_read_all, fn ($query) => $query->whereHas(
                 'executingUsers',
                 fn ($uq) => $uq->where('users.id', $user->id)

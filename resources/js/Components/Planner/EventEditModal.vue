@@ -155,8 +155,11 @@
                             <template v-else>
                                 <ComboBox v-if="!form.create_service_order && !form.no_service_order" v-model="form.eventable_id"
                                     :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
-                                    placeholder="Zoek werkbon..." :hasError="Boolean(form.errors.eventable_id)"
-                                    :errorMessage="form.errors.eventable_id" />
+                                    :disabled="!selectedCustomer" has-external-searching disable-internal-filter
+                                    :searching="serviceOrderSearching" placeholder="Zoek werkbon..."
+                                    :hasError="Boolean(form.errors.eventable_id)"
+                                    :errorMessage="form.errors.eventable_id" @focus="fetchServiceOrders()"
+                                    @change="fetchServiceOrders" />
                                 <p v-else-if="form.create_service_order" class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
                                     Er wordt een nieuwe werkbon aangemaakt voor de geselecteerde klant.
                                 </p>
@@ -657,6 +660,8 @@ watch(hasLocations, (has) => {
 onMounted(() => loadCustomerLocations(selectedCustomer.value))
 
 const serviceOrderResults = ref([])
+const serviceOrderSearching = ref(false)
+let latestServiceOrderRequest = 0
 
 /**
  * The combo endpoint only lists orders of the selected customer, so an order
@@ -665,22 +670,30 @@ const serviceOrderResults = ref([])
  */
 const pinnedServiceOrder = ref(null)
 
-async function fetchServiceOrders() {
+/**
+ * Werkbonnen are made while the planner stays open, in another tab or by a
+ * colleague, so the picker asks again every time it is used: on focus for the
+ * newest orders, per typed term for the rest. The server does all the matching.
+ * Only the latest request counts; an answer overtaken by a newer one is dropped.
+ */
+async function fetchServiceOrders(q = '') {
+    const request = ++latestServiceOrderRequest
     if (!selectedCustomer.value) {
         serviceOrderResults.value = []
+        serviceOrderSearching.value = false
         return
     }
-    try {
-        const { data } = await axios.get('/combo/serviceorders', {
-            params: {
-                customer_id: selectedCustomer.value,
-                include_id: form.eventable_id || undefined,
-            },
-        })
-        serviceOrderResults.value = data
-    } catch {
-        serviceOrderResults.value = []
-    }
+    serviceOrderSearching.value = true
+    const results = await axios.get('/combo/serviceorders', {
+        params: {
+            customer_id: selectedCustomer.value,
+            include_id: form.eventable_id || undefined,
+            q: q || undefined,
+        },
+    }).then(({ data }) => data).catch(() => [])
+    if (request !== latestServiceOrderRequest) return
+    serviceOrderResults.value = results
+    serviceOrderSearching.value = false
 }
 
 const internalServiceOrders = computed(() => {
@@ -753,7 +766,7 @@ watch(selectedCustomer, (val, oldVal) => {
 function confirmServiceOrderMove() {
     pinnedServiceOrder.value = serviceOrderResults.value.find(
         so => so.id === form.eventable_id
-    ) || pinnedServiceOrder.value
+    ) || pinnedServiceOrder.value || { id: form.eventable_id }
     serviceOrderChange.value.open = false
     switchToFreeformLocation()
     loadCustomerLocations(selectedCustomer.value)

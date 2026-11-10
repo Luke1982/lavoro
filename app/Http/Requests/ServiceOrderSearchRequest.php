@@ -18,6 +18,7 @@ class ServiceOrderSearchRequest extends FormRequest
         return [
             'customer_id' => 'required|integer|exists:customers,id',
             'include_id' => 'nullable|integer|exists:service_orders,id',
+            'q' => 'nullable|string|max:100',
         ];
     }
 }

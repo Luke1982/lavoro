@@ -280,6 +280,18 @@ class ServiceOrder extends Model
         return 'WB-' . str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * De weg terug: het id uit een nummer zoals iemand het intikt -- 272, #272,
+     * WB-0272, of "Order 272" zoals de planner het toont. Null als er geen
+     * nummer staat.
+     */
+    public static function idFromNumber(string $term): ?int
+    {
+        return preg_match('/^(?:#|wb-?|order)?\s*(\d+)$/i', trim($term), $match)
+            ? (int) $match[1]
+            : null;
+    }
+
     public function getIsClosedAttribute(): bool
     {
         return $this->serviceOrderStage?->closesOrder() === true;

@@ -170,7 +170,7 @@ async function updatePosition() {
     }
 }
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'focus'])
 
 const internalSearching = ref(props.searching)
 watch(() => props.searching, (n) => {
@@ -314,6 +314,7 @@ function onFocus() {
         query.value = ''
     }
     isFocused.value = true
+    emit('focus')
 }
 function onBlur() {
     isFocused.value = false
