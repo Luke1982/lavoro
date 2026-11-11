@@ -277,7 +277,7 @@ class TicketController extends Controller
         return inertia('Tickets/TicketsMap', [
             'items' => $items,
             'seesContracts' => $sees_contracts,
-            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap() : null,
+            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap($request->user()) : null,
         ]);
     }
 

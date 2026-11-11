@@ -469,6 +469,9 @@
                                         :key="band.id" :band="band" :day-start-hour="dayStartHour"
                                         :day-end-hour="dayEndHour" :event-padding-y="paddingYFor(user.id)" />
 
+                                    <DayRouteLinks v-if="routeFor(user.id, day.iso)" :route="routeFor(user.id, day.iso)"
+                                        class="absolute top-0.5 right-0.5 z-[15]" @remove="removeRoute" />
+
                                     <!-- Live selection rectangle (click-drag-create) -->
                                     <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
                                         class="absolute top-1 bottom-1 bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-md pointer-events-none"
@@ -560,6 +563,8 @@ import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasP
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
+import { usePlannerDayRoutes } from '@/Composables/usePlannerDayRoutes'
+import DayRouteLinks from '@/Components/Planner/DayRouteLinks.vue'
 import { isBlockedAt, blockedUsersAt, unavailabilityBandsFor, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import PlannerEvent from '@/Components/Planner/PlannerEvent.vue'
 import PlannerOverlapBand from '@/Components/Planner/PlannerOverlapBand.vue'
@@ -731,6 +736,7 @@ const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFing
     viewDayCount,
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
+const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, viewDayCount)
 
 const gridScrollRef = ref(null)
 const bodyRef = ref(null)

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\GoogleIntegrationStatusController;
 use App\Http\Controllers\Api\LocationPingController;
 use App\Http\Controllers\Api\SerialOcrController;
+use App\Http\Controllers\DayRouteController;
 use App\Http\Controllers\EventApiController;
 use App\Http\Controllers\EventExecutionController;
 use App\Http\Controllers\EventStandardEmailController;
@@ -23,6 +24,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::post('device-tokens', [DeviceTokenController::class, 'upsert']);
     Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
+
+    Route::get('dayroutes', [DayRouteController::class, 'index']);
+    Route::post('dayroutes', [DayRouteController::class, 'store']);
+    Route::delete('dayroutes/{day_route}', [DayRouteController::class, 'destroy']);
 
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('events/search', [EventApiController::class, 'search']);

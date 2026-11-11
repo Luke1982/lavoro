@@ -26,8 +26,8 @@
                 <option value="company" :disabled="!config.start">
                     {{ config.start ? 'Bedrijf' : 'Bedrijf (geen adres ingevuld)' }}
                 </option>
-                <option v-for="home in config.homes" :key="home.id" :value="home.id" :disabled="!home.has_address">
-                    Thuis: {{ home.name }}{{ home.has_address ? '' : ' (geen thuisadres)' }}
+                <option v-for="person in config.people" :key="person.id" :value="person.id" :disabled="!person.has_address">
+                    Thuis: {{ person.name }}{{ person.has_address ? '' : ' (geen thuisadres)' }}
                 </option>
                 <option value="elsewhere">Ander adres</option>
             </select>
@@ -73,6 +73,27 @@
                 <p v-if="googleLinks.length > 1" class="mt-1 text-xs text-gray-500">
                     Google Maps neemt hoogstens tien adressen per keer, dus de route staat in delen klaar.
                 </p>
+
+                <form v-if="assignable.length" class="mt-3 border-t border-gray-200 pt-3" @submit.prevent="assign">
+                    <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">In planning zetten</h3>
+                    <div class="mt-1 flex items-center gap-2">
+                        <select v-model="assignee" aria-label="Monteur"
+                            class="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-gray-800">
+                            <option :value="null" disabled>Kies een monteur</option>
+                            <option v-for="person in assignable" :key="person.id" :value="person.id">
+                                {{ person.name }}
+                            </option>
+                        </select>
+                        <input v-model="assignDate" type="date" aria-label="Dag"
+                            class="rounded-md border border-gray-300 px-2 py-1 text-gray-800" />
+                    </div>
+                    <button type="submit" :disabled="assigning"
+                        class="mt-2 w-full rounded-md bg-white px-3 py-2 font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                        {{ assigning ? 'In planning zetten…' : 'In planning zetten' }}
+                    </button>
+                    <p v-if="assigned" role="status" class="mt-2 text-green-700">{{ assigned }}</p>
+                    <p v-if="assignError" class="mt-2 rounded bg-red-50 p-2 text-red-700">{{ assignError }}</p>
+                </form>
             </div>
         </div>
     </div>
@@ -88,7 +109,8 @@ import AddressSearch from '@/Components/UI/AddressSearch.vue';
 import { pinIcon } from '@/Components/Map/mapPin';
 import { stopColor } from '@/Components/Map/routeStopColor';
 import { markerKey } from '@/Composables/useCustomerMapMarkers';
-import { formatAddress } from '@/Utilities/Utilities';
+import { formatAddress, formatLocalDateAsISO } from '@/Utilities/Utilities';
+import dayjs from '@/Utilities/dayjs';
 import { formatDurationLabel, formatTimeLabel, minutesFromTimeString } from '@/Utilities/plannerOverlaps';
 import { plannerWorkday } from '@/Utilities/plannerDayView';
 
@@ -101,12 +123,16 @@ import { plannerWorkday } from '@/Utilities/plannerDayView';
  * everything of the route itself, on a layer of its own.
  *
  * `config` is what RoutePlanner::forMap() hands the page: the company start,
- * the plannable people whose home a route can start at (names only), the
- * company's working day and the planner's standard duration per visit. The
- * day this browser set up in the planner goes before the company's. A route
- * can also start at any address: searched, or clicked on the map. Chosen pins
- * let clicks through to the address underneath, which keeps its popup and
- * deselects it; `markerBadge` is the page's own badge rule, so they keep it.
+ * the plannable people (names only) whose home a route can start at and in
+ * whose day this person may put it, the company's working day and the
+ * planner's standard duration per visit. The day this browser set up in the
+ * planner goes before the company's. A route can also start at any address:
+ * searched, or clicked on the map. Chosen pins let clicks through to the
+ * address underneath, which keeps its popup and deselects it; `markerBadge` is
+ * the page's own badge rule, so they keep it.
+ *
+ * A calculated route can be put in someone's day: the planner then shows its
+ * Google Maps links at the top of that day (DayRouteController).
  */
 const props = defineProps({
     map: { type: Object, default: null },
@@ -131,6 +157,11 @@ const companyPoint = ref(props.config.start?.lat != null
 const result = ref(null);
 const error = ref(null);
 const busy = ref(false);
+const assignee = ref(null);
+const assignDate = ref(formatLocalDateAsISO(dayjs().add(1, 'day')));
+const assigning = ref(false);
+const assigned = ref(null);
+const assignError = ref(null);
 
 const panel = ref(null);
 const overlay = L.layerGroup();
@@ -178,7 +209,7 @@ const sections = computed(() => [
 
 const timeOnSite = computed(() => routeStops.value.reduce((total, stop) => total + stop.minutes * 60, 0));
 
-const home = computed(() => props.config.homes.find(({ id }) => id === startChoice.value) ?? null);
+const home = computed(() => props.config.people.find(({ id }) => id === startChoice.value) ?? null);
 
 /** A home's address stays on the server; its house shows once a route came back. */
 const startPoint = computed(() => {
@@ -202,6 +233,8 @@ const startText = computed(() => {
         ? `Vanaf en terug naar ${elsewhere.value.label}. Sleep het huisje om het te verplaatsen.`
         : 'Vanaf het huisje op de kaart. Sleep het om het te verplaatsen.';
 });
+
+const assignable = computed(() => props.config.people.filter(({ may_assign }) => may_assign));
 
 const canCalculate = computed(() => !busy.value && stops.value.length > 0
     && (startChoice.value !== 'elsewhere' || elsewhere.value !== null));
@@ -284,6 +317,8 @@ const invalidate = () => {
     revision++;
     result.value = null;
     error.value = null;
+    assigned.value = null;
+    assignError.value = null;
 };
 
 const choose = (chosen) => {
@@ -391,6 +426,43 @@ const calculate = async () => {
         busy.value = false;
     }
 };
+
+const assign = async () => {
+    const asked = revision;
+    const route = {
+        user_id: assignee.value,
+        date: assignDate.value,
+        stops: routeStops.value.map(({ item, arrival }) => ({ name: item.name, arrival })),
+        finish: clock(result.value.finish),
+        links: googleLinks.value,
+    };
+    assigning.value = true;
+    assigned.value = null;
+    assignError.value = null;
+    try {
+        await axios.get('/sanctum/csrf-cookie');
+        const { data } = await axios.post('/api/dayroutes', route);
+        if (asked === revision) {
+            assigned.value = data.replaced
+                ? `De route van ${data.user_name} voor ${data.day_label} is vervangen.`
+                : `Staat in de planning van ${data.user_name} op ${data.day_label}.`;
+        }
+    } catch (exception) {
+        if (asked === revision) {
+            assignError.value = exception.response?.status === 403
+                ? 'Je mag geen route in de planning van deze monteur zetten.'
+                : messageFrom(exception);
+        }
+    } finally {
+        assigning.value = false;
+    }
+};
+
+watch(home, (person) => {
+    if (person?.may_assign) {
+        assignee.value = person.id;
+    }
+});
 
 watch([() => props.map, active, routeStops, leftOver, startPoint], draw);
 

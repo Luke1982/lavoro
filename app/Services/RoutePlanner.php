@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Exceptions\Refusal;
 use App\Models\Company;
+use App\Models\DayRoute;
 use App\Models\User;
 use App\Support\AddressFormatter;
 use Illuminate\Http\Client\ConnectionException;
@@ -67,20 +68,21 @@ class RoutePlanner
     /**
      * What a map needs before anything is calculated: null without a route
      * server, otherwise where a route starts as far as that is known, the
-     * plannable people whose home it can start at instead, and the planner's
-     * working day and standard duration to begin from. Of those people only
-     * the name goes along, never where they live. Whether this person may plan
-     * at all is the page's question (Gate routeplanner.use).
+     * plannable people -- whose home a route can start at, and in whose day
+     * `$viewer` may put the route -- and the planner's working day and standard
+     * duration to begin from. Of those people only the name goes along, never
+     * where they live. Whether `$viewer` may plan at all is the page's question
+     * (Gate routeplanner.use).
      * Runs while a page is drawn, so it reads the geocoder's cache and never asks.
      *
      * @return array{
      *     start: array{address: string, lat: float|null, lon: float|null}|null,
-     *     homes: list<array{id: int, name: string, has_address: bool}>,
+     *     people: list<array{id: int, name: string, has_address: bool, may_assign: bool}>,
      *     workday: array{start: string, end: string},
      *     visit_minutes: int
      * }|null
      */
-    public function forMap(): ?array
+    public function forMap(User $viewer): ?array
     {
         if (!$this->isAvailable()) {
             return null;
@@ -95,7 +97,7 @@ class RoutePlanner
                 'lat' => $coordinates['lat'] ?? null,
                 'lon' => $coordinates['lon'] ?? null,
             ] : null,
-            'homes' => User::query()
+            'people' => User::query()
                 ->where('plannable', true)
                 ->orderBy('name')
                 ->get()
@@ -103,6 +105,7 @@ class RoutePlanner
                     'id' => $user->id,
                     'name' => $user->name,
                     'has_address' => $user->homeAddress() !== null,
+                    'may_assign' => $viewer->can('assign', [DayRoute::class, $user]),
                 ])
                 ->all(),
             'workday' => [

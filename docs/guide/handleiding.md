@@ -94,7 +94,9 @@ Onder **Begin en einde** kies je waar de route begint en eindigt:
 
 Is een adres niet op de kaart te vinden, dan zegt de planner dat en kies je een ander startpunt.
 
-**Openen in Google Maps** zet de route klaar voor de navigatie op je computer of, met de Google Maps-app, op je telefoon. Google Maps neemt hoogstens tien adressen per keer, dus een langere route staat in delen klaar: open het volgende deel als je het vorige gereden hebt. De route wordt niet bewaard; zet je **Route plannen** uit, dan is hij weg.
+**Openen in Google Maps** zet de route klaar voor de navigatie op je computer of, met de Google Maps-app, op je telefoon. Google Maps neemt hoogstens tien adressen per keer, dus een langere route staat in delen klaar: open het volgende deel als je het vorige gereden hebt. Zet je **Route plannen** uit, dan is de route weg, tenzij je hem in de planning hebt gezet.
+
+**In planning zetten** geeft de route aan een monteur voor een dag: kies onder de berekende route de monteur en de dag. In de planner staat dan bovenaan die dag een knop **Route** die de route in Google Maps opent (bij een lange route **Route 1**, **Route 2**, enzovoort); wijs hem aan voor het aantal adressen en hoe laat hij terug is. Op de telefoon staat de knop in de balk van die dag. Heeft de monteur zijn agenda aan Google gekoppeld, dan staat de route ook als item voor de hele dag in zijn Google Agenda, met de adressen, de aankomsttijden en de links; dat item houdt geen tijd bezet. Elke monteur heeft hoogstens één route per dag: een nieuwe route voor dezelfde dag vervangt de vorige. Met het prullenbakje naast de knop haal je de route uit de planning, ook uit Google Agenda. Alleen de monteur zelf en wie de hele planning ziet, zien de route. Een route in de planning zetten mag wie routes mag plannen én afspraken voor die monteur mag maken; de knop zet geen afspraken in de planning, alleen de route.
 
 Je kunt routes plannen als je een van de twee kaarten mag zien. De berekening loopt via een routeserver: de gratis dienst van OpenRouteService of een eigen server. Daar gaan alleen coördinaten en tijden heen, geen namen of adressen. Bij OpenRouteService is het aantal routes per dag beperkt; is dat op, dan zegt de planner het en kan het de volgende dag weer. Iedereen kan hoogstens tien routes per minuut berekenen.
 
@@ -250,6 +252,8 @@ Starten, tijden registreren, annuleren en vrijgeven komen allemaal op de tijdlij
 Afspraken kunnen gekopieerd worden naar andere dagen (inclusief werkbonkoppeling en monteurs). Vanaf een afspraak kan een **afspraakbevestiging** naar de klant worden gemaild, en de beheerder kan **standaard e-mails** aan het aanmaken, wijzigen of verwijderen van afspraken hangen (zie Instellingen en beheer).
 
 Op een telefoon toont de planner één monteur tegelijk, per week, als lijst of als baanweergave, met veeggebaren om van week te wisselen. Een afspraak aantikken opent hetzelfde bewerkscherm; onderaan dat scherm staat een knop om de afspraak te **verwijderen**, die eerst om een bevestiging vraagt. Die knop verschijnt alleen als je de afspraak mag verwijderen. Wijzigingen in de planning verschijnen — voor wie zijn agenda gekoppeld heeft — ook in Google Agenda; zie het hoofdstuk over koppelingen.
+
+**Route van de dag**: is er voor een monteur een route in de planning gezet (zie *Een route plannen*), dan staat bovenaan die dag in zijn rij een knop **Route** die de route in Google Maps opent; op de telefoon staat hij in de balk van die dag. Een dag met alleen een route en geen afspraken staat dan ook in de lijst.
 
 ## Onderhoudscontracten
 

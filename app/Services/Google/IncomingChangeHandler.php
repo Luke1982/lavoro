@@ -22,6 +22,10 @@ class IncomingChangeHandler
 
     public function apply(GoogleEvent $g_event, GoogleSyncedCalendar $cal): void
     {
+        if (DayRoutePayloadBuilder::isRoute($g_event)) {
+            return;
+        }
+
         $actor = $cal->integration->user;
         $mapping = GoogleSyncedEvent::where('google_synced_calendar_id', $cal->id)
             ->where('google_event_id', $g_event->getId())

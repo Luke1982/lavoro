@@ -2,22 +2,24 @@
 
 namespace App\Jobs\Google;
 
+use App\Domain\Planning\Clock;
+use App\Models\DayRoute;
 use App\Models\Event;
 use App\Models\GoogleSyncedCalendar;
 use App\Services\Google\GoogleCalendarApi;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 class BackfillCalendarJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public int $google_synced_calendar_id)
-    {
-    }
+    public function __construct(public int $google_synced_calendar_id) {}
 
     public function handle(GoogleCalendarApi $api): void
     {
@@ -47,12 +49,18 @@ class BackfillCalendarJob implements ShouldQueue
         foreach ($event_ids as $event_id) {
             PushEventToCalendarJob::dispatch($event_id, $cal->id, true);
         }
+
+        $day_route_ids = DayRoute::query()->where('user_id', $owner_id)->where('date', '>=', Clock::today())->pluck('id');
+
+        foreach ($day_route_ids as $day_route_id) {
+            PushDayRouteJob::dispatch($day_route_id);
+        }
     }
 
-    private function registerWatch(\App\Models\GoogleSyncedCalendar $cal, GoogleCalendarApi $api): void
+    private function registerWatch(GoogleSyncedCalendar $cal, GoogleCalendarApi $api): void
     {
-        $channel_id = (string) \Illuminate\Support\Str::uuid();
-        $token = \Illuminate\Support\Str::random(40);
+        $channel_id = (string) Str::uuid();
+        $token = Str::random(40);
         $ttl = 7 * 24 * 60 * 60;
 
         $result = $api->watchCalendar(
@@ -68,7 +76,7 @@ class BackfillCalendarJob implements ShouldQueue
             'watch_channel_id' => $channel_id,
             'watch_channel_token' => $token,
             'watch_resource_id' => $result['resource_id'],
-            'watch_expires_at' => \Carbon\Carbon::createFromTimestampMs($result['expiration']),
+            'watch_expires_at' => Carbon::createFromTimestampMs($result['expiration']),
         ]);
     }
 }

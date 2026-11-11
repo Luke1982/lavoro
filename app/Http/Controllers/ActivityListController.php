@@ -311,7 +311,7 @@ class ActivityListController extends Controller
 
         return inertia('ActivityList/UpcomingActivitiesMap', [
             'items' => $items->values(),
-            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap() : null,
+            'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap($request->user()) : null,
         ]);
     }
 }

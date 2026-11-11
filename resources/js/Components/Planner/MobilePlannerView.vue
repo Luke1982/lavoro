@@ -96,7 +96,7 @@
                 <div ref="listScrollEl" class="h-full overflow-y-auto" @touchstart.passive="onListTouchStart"
                     @touchmove.passive="onListTouchMove" @touchend.passive="onListTouchEnd"
                     @touchcancel.passive="onListTouchEnd">
-                    <div v-if="!eventsLoading && timelineEvents.length === 0 && !showsGaps"
+                    <div v-if="!eventsLoading && groupedByDay.length === 0 && !showsGaps"
                         class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
                         Geen afspraken deze week
                     </div>
@@ -105,10 +105,14 @@
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div
-                            class="sticky top-0 z-10 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
-                            {{ dayLabel(group.dayIso) }}
-                            <span v-if="showsGaps" class="font-normal normal-case">{{ dayjs(group.dayIso).format('D MMM')
-                                }}</span>
+                            class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                            <span>
+                                {{ dayLabel(group.dayIso) }}
+                                <span v-if="showsGaps" class="font-normal normal-case">{{ dayjs(group.dayIso).format('D MMM')
+                                    }}</span>
+                            </span>
+                            <DayRouteLinks v-if="shownRoute(group.dayIso)" :route="shownRoute(group.dayIso)"
+                                @remove="removeRoute" />
                         </div>
 
                         <div class="pt-4 pl-3">
@@ -249,6 +253,8 @@ import {
     formatTimeLabel,
 } from '@/Utilities/plannerOverlaps'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
+import { usePlannerDayRoutes } from '@/Composables/usePlannerDayRoutes'
+import DayRouteLinks from '@/Components/Planner/DayRouteLinks.vue'
 import {
     daySegmentsAcrossUsers,
     daySegmentsFor,
@@ -371,6 +377,8 @@ onMounted(() => {
 onUnmounted(stopPolling)
 watch(weekStart, () => { resetFingerprint(); fetchEvents() })
 
+const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, dayCount)
+
 // ── User switcher ─────────────────────────────────────────────────────────────
 
 const canSeeAll = computed(() => hasPermission('event.see_all'))
@@ -489,6 +497,11 @@ function eventItem(ev, dayIso) {
     }
 }
 
+/** A day only shows a route for one person: the one whose planning is on screen. */
+function shownRoute(dayIso) {
+    return selectedUserId.value === null ? null : routeFor(selectedUserId.value, dayIso)
+}
+
 const groupedByDay = computed(() => {
     if (!showsGaps.value) {
         const groups = []
@@ -497,7 +510,10 @@ const groupedByDay = computed(() => {
             if (groups.at(-1)?.dayIso !== dayIso) groups.push({ dayIso, items: [] })
             groups.at(-1).items.push(eventItem(ev, dayIso))
         }
-        return groups
+        const routeOnly = weekDays.value
+            .filter(day => shownRoute(day.iso) && !groups.some(group => group.dayIso === day.iso))
+            .map(day => ({ dayIso: day.iso, items: [] }))
+        return [...groups, ...routeOnly].sort((a, b) => a.dayIso.localeCompare(b.dayIso))
     }
 
     return weekDays.value
@@ -511,7 +527,7 @@ const groupedByDay = computed(() => {
             ]
             return { dayIso: day.iso, items: items.sort((a, b) => a.startMin - b.startMin) }
         })
-        .filter(group => group.items.length > 0)
+        .filter(group => group.items.length > 0 || shownRoute(group.dayIso))
 })
 
 function dayLabel(dayIso) {
