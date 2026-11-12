@@ -150,13 +150,13 @@ async function release() {
     }
 }
 
-function fillModal(data, plannedBreaktime) {
+function fillModal(data) {
     errors.value = {}
     editSignature.value = data.signature_base64 ?? ''
-    editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
-    editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
+    editStart.value = nlTime(data.actual_start ?? data.planned_start)
+    editEnd.value = nlTime(data.actual_end ?? data.planned_end)
     editTravelTime.value = data.travel_time_minutes ?? 0
-    editBreaktime.value = data.actual_breaktime_minutes ?? plannedBreaktime ?? 0
+    editBreaktime.value = data.actual_breaktime_minutes ?? data.planned_breaktime_minutes
     modalOpen.value = true
 }
 
@@ -167,7 +167,7 @@ async function openModal() {
         const { data } = await axios.get(`/api/events/${props.event.id}/execution`)
         targetUserId.value = null
         targetUserName.value = ''
-        fillModal(data, rowExecution.value?.breaktime)
+        fillModal(data)
     } finally {
         busy.value = false
     }
@@ -182,7 +182,7 @@ async function openModalForOther() {
         const { data } = await axios.get(`/api/events/${props.event.id}/users/${target.id}/execution`)
         targetUserId.value = target.id
         targetUserName.value = target.name
-        fillModal(data, target.breaktime)
+        fillModal(data)
     } finally {
         busy.value = false
     }

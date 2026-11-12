@@ -104,7 +104,7 @@ class PlannerExportService
         $sheet->setCellValue('D' . $row, $this->location_resolver->resolve($event));
         $sheet->setCellValue('E' . $row, $project?->title);
 
-        [$planned_start, $planned_end] = $this->plannedTimes($event, $member);
+        [$planned_start, $planned_end] = $event->plannedTimesFor($member, $tz);
         $this->writeDateTime($sheet, 'F' . $row, $planned_start, $tz);
         $this->writeDateTime($sheet, 'G' . $row, $planned_end, $tz);
         $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end, $planned_break_minutes));
@@ -129,22 +129,6 @@ class PlannerExportService
         }
 
         return round($start->floatDiffInHours($end) - ($breaktime_minutes / 60), 2);
-    }
-
-    private function plannedTimes(Event $event, User $member): array
-    {
-        $pivot = $member->pivot;
-
-        if ($pivot && $pivot->has_diverging_times && $pivot->diverging_start && $pivot->diverging_end) {
-            $date = $event->start->format('Y-m-d');
-
-            return [
-                Carbon::parse($date . ' ' . $pivot->diverging_start),
-                Carbon::parse($date . ' ' . $pivot->diverging_end),
-            ];
-        }
-
-        return [$event->start, $event->end];
     }
 
     private function writeDateTime(Worksheet $sheet, string $cell, ?Carbon $value, string $tz): void

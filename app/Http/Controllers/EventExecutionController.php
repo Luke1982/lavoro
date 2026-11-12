@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Signals\Appointments\ExecutionCancelled;
 use App\Domain\Signals\Appointments\ExecutionStarted;
 use App\Domain\Signals\Appointments\ExecutionTimesRegistered;
@@ -31,7 +32,7 @@ class EventExecutionController extends Controller
 
     public function show(Event $event)
     {
-        return response()->json($this->details($event->executionFor(Auth::id())));
+        return response()->json($this->details($event, Auth::id()));
     }
 
     public function transition(EventExecutionTransitionRequest $request, Event $event)
@@ -70,7 +71,7 @@ class EventExecutionController extends Controller
 
     public function showFor(EventExecutionShowOthersRequest $request, Event $event, User $target_user)
     {
-        return response()->json($this->details($event->executionFor($target_user->id)));
+        return response()->json($this->details($event, $target_user->id));
     }
 
     public function updateFor(EventExecutionUpdateOthersRequest $request, Event $event, User $target_user)
@@ -130,9 +131,23 @@ class EventExecutionController extends Controller
         return $this->payload($execution);
     }
 
-    private function details(EventUserExecution $execution): array
+    /**
+     * What the times window opens with: what was registered, and what was planned
+     * for this technician to fall back on where nothing was.
+     */
+    private function details(Event $event, int $user_id): array
     {
-        return [...$execution->only(self::REPORTED_FIELDS), 'signature_base64' => $execution->signature_base64];
+        $execution = $event->executionFor($user_id);
+        $member = $event->executingUsers->firstWhere('id', $user_id);
+        [$planned_start, $planned_end] = $event->plannedTimesFor($member, Clock::zone());
+
+        return [
+            ...$execution->only(self::REPORTED_FIELDS),
+            'signature_base64' => $execution->signature_base64,
+            'planned_start' => $planned_start,
+            'planned_end' => $planned_end,
+            'planned_breaktime_minutes' => (int) $member?->pivot->breaktime,
+        ];
     }
 
     private function payload(EventUserExecution $execution): array

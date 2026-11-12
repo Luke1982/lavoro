@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Event extends Model
 {
@@ -170,6 +171,30 @@ class Event extends Model
             ['user_id' => $user_id],
             ['completion_status' => 'Gepland'],
         );
+    }
+
+    /**
+     * When a technician is planned on this appointment: the appointment's own times,
+     * unless they have diverging times. Those are wall-clock times on the
+     * appointment's local day, so they are read in the given timezone.
+     *
+     * @param  User|null  $member  an executing user, loaded with its pivot
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    public function plannedTimesFor(?User $member, string $timezone): array
+    {
+        $pivot = $member?->pivot;
+
+        if (!$pivot?->has_diverging_times || !$pivot->diverging_start || !$pivot->diverging_end) {
+            return [$this->start, $this->end];
+        }
+
+        $local_date = $this->start->copy()->setTimezone($timezone)->toDateString();
+
+        return [
+            Carbon::parse($local_date . ' ' . $pivot->diverging_start, $timezone),
+            Carbon::parse($local_date . ' ' . $pivot->diverging_end, $timezone),
+        ];
     }
 
     public function images()
