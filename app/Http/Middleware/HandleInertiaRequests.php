@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
                 : null;
 
             $user_data = array_merge(
-                $request->user()->only(['id', 'name', 'email', 'avatar']),
+                $request->user()->only(['id', 'name', 'email', 'avatar', 'plannable']),
                 [
                     'roles' => $request->user()->roles()->pluck('name')->all(),
                     'google_integration' => $integration

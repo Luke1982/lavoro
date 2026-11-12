@@ -155,6 +155,51 @@ The app does not ask for `ACCESS_BACKGROUND_LOCATION`. A foreground service
 started while the app is open keeps its location access, and that permission
 would bring a separate, much stricter Play review.
 
+## Push notifications
+
+The app's WebView cannot receive web push, so the app gets its notifications
+through Firebase: the same ones the browser gets, plus the appointment
+reminder with its Route and Bellen buttons. One Firebase project serves every
+customer.
+
+- **In the build.**
+  - `android/app/google-services.json` is the Firebase console's client
+    configuration for the Android app `nl.lavoro.fsm`. It is committed: every
+    APK carries it, so it is no secret. The secret is the server's key below.
+  - Restrict its API key in Google Cloud to the Android app (package name and
+    signing certificate fingerprint), so nobody else can use it.
+  - Without the file, `BuildConfig.PUSH_AVAILABLE` is false and the app never
+    registers for push; registering without it would crash the app natively.
+    A debug build allows that, a release build refuses to start.
+- **On the server.**
+  - Create a service account key in the same Firebase project.
+  - Store the JSON outside the web root and set `FIREBASE_CREDENTIALS` in
+    `.env` to its path.
+  - Also set `FIREBASE_HTTP_CLIENT_TIMEOUT=10`. Without it, a Firebase call
+    that hangs holds up the reminder round until the worker gives up.
+  - `php artisan tenancy:doctor` reports a missing or unreadable key.
+  - Restart the workers afterwards, because they keep the configuration they
+    started with.
+
+The server sends data-only messages. `LavoroMessagingService` draws them
+itself, because a notification the system draws for a closed app cannot carry
+buttons. It uses three channels that people can tune in Android's settings:
+Afspraakherinneringen, Dringende meldingen and Meldingen.
+
+**Battery.**
+- For a plannable user, the app explains why reminders need to arrive on time,
+  then asks Android to exempt Lavoro from battery optimisation
+  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`). "Niet nu" holds until the app is
+  started again.
+- Google Play allows that permission only when the app's core function needs
+  it. Be ready to explain it in review: time-critical appointment reminders
+  for field technicians.
+- Some manufacturers (Xiaomi, Huawei, Samsung) have their own battery saving on
+  top. The manual tells users where to switch it off.
+
+**Logging out** deletes the phone's device token, so whoever uses the phone
+next does not get the previous user's appointments.
+
 ## Moving off the old APK
 
 The old APK, downloaded from the application and bound to `spee.lavorofsm.nl`,
@@ -184,7 +229,7 @@ and the store updates the app by itself.
   description and a link to a short video that shows logging in, the disclosure
   dialog, the permission prompt and the "Locatie actief" notification.
 - **Data safety.** At least: precise location, name and email address, photos
-  and files the user uploads, and the device token if push is ever switched on.
+  and files the user uploads, and the device token for push notifications.
   Everything is encrypted in transit. Explain how deletion is requested. Accounts
   are created by the customer's administrator, so a deletion request goes
   through them, or through MajorLabel.

@@ -127,18 +127,16 @@ import { useWebPush } from '@/Composables/useWebPush.js'
 import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 import { useHeaderReveal } from '@/Composables/useHeaderReveal.js'
 
-// Push requires a configured Firebase project (google-services.json on
-// Android). Without it, the native PushNotifications.register() throws an
-// uncatchable native fatal exception and crashes the app. Flip to true
-// only after Firebase is set up.
-const PUSH_ENABLED = false
-
 const canUseAssistant = computed(() => usePage().props?.auth?.can?.use_assistant === true)
 
 const { is_native } = useCapacitor()
 const { init: init_network } = useNetworkStatus()
 const { start: start_tracking, stop: stop_tracking } = useLocationTracker()
-const { register: register_push } = usePushNotifications()
+const {
+    register: register_push,
+    unregister: unregister_push,
+    askBatteryExemption: ask_battery_exemption,
+} = usePushNotifications()
 const { sync: sync_web_push, disable: disable_web_push } = useWebPush()
 const { init: init_deep_links } = useDeepLinks()
 
@@ -158,13 +156,7 @@ onMounted(async () => {
     try { await init_network() } catch (e) { console.error('Network initialization failed:', e) }
     if (is_native && page.props.auth?.user) {
         try { await init_deep_links() } catch (e) { console.error('Deep link init failed:', e) }
-        if (PUSH_ENABLED) {
-            try {
-                await register_push()
-            } catch (e) {
-                console.error('Push registration failed:', e)
-            }
-        }
+        await register_push()
     }
     if (!is_native && page.props.auth?.user) {
         try { await sync_web_push() } catch (e) { console.error('Web push sync failed:', e) }
@@ -175,6 +167,14 @@ onMounted(async () => {
         } catch (e) {
             console.error('GPS tracking failed to start:', e)
         }
+    }
+
+    /**
+     * Wie ingepland wordt krijgt herinneringen, en die moeten op tijd komen. Pas
+     * na de locatie: wie de vraag laat staan, houdt anders ook die op.
+     */
+    if (page.props.auth?.user?.plannable) {
+        try { await ask_battery_exemption() } catch (e) { console.error('Battery exemption failed:', e) }
     }
 })
 
@@ -206,6 +206,7 @@ const logout = async () => {
     // abonnement niet meer opgezegd worden — de server zou dan een regel houden
     // die nooit meer iets kan bezorgen.
     try { await disable_web_push() } catch (e) { console.error('Push unsubscribe failed:', e) }
+    await unregister_push()
 
     if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()

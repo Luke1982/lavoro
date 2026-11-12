@@ -3,6 +3,16 @@ apply plugin: 'com.android.application'
 def server_url = (project.findProperty('lavoroServerUrl') ?: 'https://app.lavorofsm.nl').toString().replaceAll('/+$', '')
 def server_uri = new URI(server_url)
 
+/**
+ * Push needs a Firebase project, and that comes as google-services.json. The
+ * app is told whether it was there, because registering for push without it
+ * crashes the app natively. The file is committed: it is client configuration
+ * that every APK carries anyway. A debug build may go without it; a release
+ * build may not, or it would ship an app that never receives a notification.
+ */
+def google_services = file('google-services.json')
+def push_available = google_services.exists() && !google_services.text.trim().isEmpty()
+
 def keystore_properties = new Properties()
 def keystore_file = rootProject.file('keystore.properties')
 if (keystore_file.exists()) {
@@ -20,6 +30,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "String", "SERVER_URL", "\"${server_url}\""
+        buildConfigField "boolean", "PUSH_AVAILABLE", push_available ? "true" : "false"
         manifestPlaceholders = [
             appLinkHost: server_uri.host,
             usesCleartextTraffic: server_uri.scheme == 'http' ? 'true' : 'false',
@@ -62,6 +73,9 @@ gradle.taskGraph.whenReady { graph ->
     if (building_release && !keystore_file.exists()) {
         throw new GradleException('A release build needs android/keystore.properties with the upload key; see docs/install/android.md')
     }
+    if (building_release && !push_available) {
+        throw new GradleException('A release build needs android/app/google-services.json, or the app gets no push; see docs/install/android.md')
+    }
 }
 
 repositories {
@@ -77,6 +91,12 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation "com.google.android.gms:play-services-location:21.3.0"
+
+    /**
+     * LavoroMessagingService extends the push plugin's service, which keeps
+     * Firebase to itself; the shared version keeps the two the same.
+     */
+    implementation "com.google.firebase:firebase-messaging:$firebaseMessagingVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
@@ -85,11 +105,8 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
+if (push_available) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }

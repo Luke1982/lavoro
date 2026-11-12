@@ -363,8 +363,8 @@ class User extends Authenticatable
         return $this->hasMany(NotificationSubscription::class);
     }
 
-    public function routeNotificationForFcm(): array
+    public function notificationMutes(): HasMany
     {
-        return $this->deviceTokens()->pluck('token')->toArray();
+        return $this->hasMany(NotificationMute::class);
     }
 }

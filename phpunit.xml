@@ -46,6 +46,8 @@
         <env name="EBOEKHOUDEN_SECURITY_CODE_1" value=""/>
         <env name="EBOEKHOUDEN_SECURITY_CODE_2" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
+        <env name="FIREBASE_CREDENTIALS" value=""/>
+        <env name="GOOGLE_APPLICATION_CREDENTIALS" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

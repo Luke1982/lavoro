@@ -94,20 +94,35 @@ self.addEventListener('push', (event) => {
 
     const title   = payload.notification?.title ?? 'Lavoro';
     const data    = payload.data ?? {};
+
+    // One banner per record: a second message about the same storing
+    // replaces the first instead of stacking up behind it. The server names
+    // the tag.
+    const tag = data.tag;
+
     const options = {
         body:  payload.notification?.body ?? '',
         icon:  '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
+        badge: '/icons/badge-96.png',
         data,
+        tag,
 
-        // One banner per record: a second message about the same storing
-        // replaces the first instead of stacking up behind it. The server names
-        // the tag; the Firebase shape falls back to its own type and id.
-        tag: data.tag ?? (data.type && data.id ? `${data.type}-${data.id}` : undefined),
+        /**
+         * A replacement is still news: without this, a reminder that takes the
+         * place of an earlier message about the same appointment arrives silently.
+         */
+        renotify: Boolean(tag),
 
         // Priority 3 is "hoog". Those stay on screen until they are dealt with;
         // the rest fade on their own like any other notification.
         requireInteraction: Number(data.priority) === 3,
+
+        /**
+         * Buttons the server put on it, such as the route and the customer's
+         * number on a reminder. Only the label goes here; where each one leads
+         * stays in data until it is pressed.
+         */
+        actions: (data.actions ?? []).map(({ action, title }) => ({ action, title })),
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -117,17 +132,24 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const data = event.notification.data;
 
-    // A user notification brings its own destination, worked out by the server
-    // that wrote it. The Firebase shape stays supported for the native app.
-    const url = data?.url
-        ? data.url
-        : (data?.type === 'service_order_assigned' && data?.id)
-            ? `/serviceorders/${data.id}`
-            : '/';
+    /**
+     * A button opens what it names in a window of its own, the route in Maps or
+     * the number in the dialer, and leaves the app where it was.
+     */
+    const button = data?.actions?.find((candidate) => candidate.action === event.action);
+
+    if (button) {
+        event.waitUntil(openOutside(button.url, data.url));
+        return;
+    }
+
+    // A notification brings its own destination, worked out by the server that
+    // wrote it. The native app draws its own and never comes through here.
+    const url = data?.url ?? '/';
 
     // Reuse the window that is already open rather than stacking up another one.
     event.waitUntil((async () => {
-        const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
 
         for (const client of windows) {
             if (new URL(client.url).origin !== self.location.origin) continue;
@@ -149,6 +171,26 @@ self.addEventListener('notificationclick', (event) => {
             }
         }
 
-        await clients.openWindow(url);
+        await self.clients.openWindow(url);
     })());
 });
+
+/**
+ * Only the two kinds of address a button is meant to have. The route opens Maps
+ * directly. A browser hands tel: from a notification to the dialer unreliably, so
+ * calling goes through a page of our own with one big button that does. Anything
+ * else lands where tapping the banner would have taken the person.
+ */
+async function openOutside(url, fallback) {
+    const target = url.startsWith('https://')
+        ? url
+        : url.startsWith('tel:')
+            ? '/dial?number=' + encodeURIComponent(url.slice('tel:'.length))
+            : (fallback ?? '/');
+
+    try {
+        await self.clients.openWindow(target);
+    } catch (error) {
+        console.error('notification action failed:', error);
+    }
+}

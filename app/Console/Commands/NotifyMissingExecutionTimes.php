@@ -5,11 +5,11 @@ namespace App\Console\Commands;
 use App\Enums\EventCompletionStatus;
 use App\Enums\UserNotificationPriority;
 use App\Enums\UserNotificationType;
-use App\Jobs\SendWebPushNotificationsJob;
+use App\Jobs\SendPushNotificationsJob;
 use App\Models\Event;
 use App\Models\UserNotification;
 use App\Services\EventLocationResolver;
-use App\Services\WebPushSender;
+use App\Services\Push\PushNotifications;
 use Illuminate\Console\Command;
 
 /**
@@ -36,7 +36,7 @@ class NotifyMissingExecutionTimes extends Command
 
     protected $description = 'Meldt monteurs dat er tijden van afgelopen afspraken nog niet ingevuld zijn.';
 
-    public function handle(WebPushSender $sender): int
+    public function handle(PushNotifications $push): int
     {
         $type = UserNotificationType::execution_times_missing;
         $since = now()->subDays((int) $this->option('days'))->startOfDay();
@@ -109,7 +109,7 @@ class NotifyMissingExecutionTimes extends Command
             }
         }
 
-        $this->push($sender, $written);
+        $this->push($push, $written);
 
         $this->info(count($written) . ' herinnering(en) verstuurd, ' . $skipped . ' al eerder gemeld.');
 
@@ -127,13 +127,13 @@ class NotifyMissingExecutionTimes extends Command
      *
      * @param  array<int, int>  $notification_ids
      */
-    private function push(WebPushSender $sender, array $notification_ids): void
+    private function push(PushNotifications $push, array $notification_ids): void
     {
-        if ($notification_ids === [] || $this->option('no-push') || !$sender->isConfigured()) {
+        if ($notification_ids === [] || $this->option('no-push') || !$push->isConfigured()) {
             return;
         }
 
-        SendWebPushNotificationsJob::dispatch($notification_ids);
+        SendPushNotificationsJob::dispatch($notification_ids);
     }
 
     /**

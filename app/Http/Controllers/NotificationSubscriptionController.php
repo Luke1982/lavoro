@@ -6,6 +6,7 @@ use App\Enums\UserNotificationType;
 use App\Http\Requests\NotificationSubscriptionDestroyRequest;
 use App\Http\Requests\NotificationSubscriptionListRequest;
 use App\Http\Requests\NotificationSubscriptionStoreRequest;
+use App\Models\NotificationMute;
 use App\Models\NotificationSubscription;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,8 @@ class NotificationSubscriptionController extends Controller
             ->whereNotNull('type')
             ->pluck('id', 'type');
 
+        $muted = NotificationMute::where('user_id', $subject->id)->pluck('id', 'type');
+
         $manages_others = $request->user()->can('manageOthers', NotificationSubscription::class);
 
         return inertia('NotificationSubscriptions/IndexPage', [
@@ -49,29 +52,45 @@ class NotificationSubscriptionController extends Controller
                 ? User::orderBy('name')->get(['id', 'name'])
                 : [],
             'types' => array_map(fn (UserNotificationType $type) => [
-                'value' => $type->value,
-                'label' => $type->label(),
-                'description' => $type->description(),
-                'icon' => $type->icon(),
-                'color' => $type->color(),
+                ...$this->describe($type),
                 'permissions' => $type->requiredPermissions(),
                 'allowed' => $subject->hasEveryPermission($type->requiredPermissions()),
                 'subscription_id' => $subscribed[$type->value] ?? null,
             ], UserNotificationType::subscribableCases()),
 
             /**
+             * Wat vanzelf komt tot je het uitzet. Of het voor deze persoon ooit komt
+             * staat erbij: een herinnering aan je afspraken zegt niets tegen iemand
+             * die nooit ingepland wordt.
+             */
+            'mutable' => array_map(fn (UserNotificationType $type) => [
+                ...$this->describe($type),
+                'applies' => $type->appliesTo($subject),
+                'mute_id' => $muted[$type->value] ?? null,
+            ], UserNotificationType::mutableCases()),
+
+            /**
              * Wat er altijd komt, benoemd maar zonder schakelaar. Zonder dit zou het
              * lijken alsof de lijst compleet is, en krijgt iemand berichten waarvan
              * hij nergens leest waarom.
              */
-            'always' => array_map(fn (UserNotificationType $type) => [
-                'value' => $type->value,
-                'label' => $type->label(),
-                'description' => $type->description(),
-                'icon' => $type->icon(),
-                'color' => $type->color(),
-            ], UserNotificationType::unconditionalCases()),
+            'always' => array_map(
+                fn (UserNotificationType $type) => $this->describe($type),
+                UserNotificationType::unconditionalCases()
+            ),
         ]);
+    }
+
+    /** @return array{value: string, label: string, description: string, icon: string, color: string} */
+    private function describe(UserNotificationType $type): array
+    {
+        return [
+            'value' => $type->value,
+            'label' => $type->label(),
+            'description' => $type->description(),
+            'icon' => $type->icon(),
+            'color' => $type->color(),
+        ];
     }
 
     public function store(NotificationSubscriptionStoreRequest $request): RedirectResponse

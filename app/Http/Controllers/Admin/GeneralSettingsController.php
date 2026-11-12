@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAllowOverrideUnavailabilityRequest;
+use App\Http\Requests\Admin\UpdateAppointmentReminderRequest;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
 use App\Http\Requests\Admin\UpdateMapDueColorsRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
 use App\Http\Requests\Admin\UpdateSnelStartNightlyCustomersRequest;
 use App\Models\GeneralSetting;
+use App\Services\AppointmentReminders;
 use App\Services\SnelStartClient;
 use App\Services\SnelStartImport;
 use App\Support\MapDueColors;
@@ -40,7 +42,15 @@ class GeneralSettingsController extends Controller
             ) === '1',
             'mapDueColors' => MapDueColors::get(),
             'mapDueColorsDefaults' => MapDueColors::defaults(),
+            'appointmentReminderMinutes' => AppointmentReminders::leadMinutes(),
         ]);
+    }
+
+    public function updateAppointmentReminder(UpdateAppointmentReminderRequest $request): RedirectResponse
+    {
+        AppointmentReminders::saveLeadMinutes($request->validated('minutes'));
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }
 
     public function updateServiceOrderClosingText(UpdateServiceOrderClosingTextRequest $request): RedirectResponse

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "656090618272",
+    "project_id": "lavoro-9d11e",
+    "storage_bucket": "lavoro-9d11e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:656090618272:android:f57a3ad205cb0906e82cc5",
+        "android_client_info": {
+          "package_name": "nl.lavoro.fsm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnjsj0ogVuzd01kDrhCk2xH2NLADuQaIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

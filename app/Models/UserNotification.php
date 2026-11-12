@@ -30,6 +30,8 @@ class UserNotification extends Model
         'notificationable_id',
         'title',
         'body',
+        'actions',
+        'expires_at',
         'read_at',
     ];
 
@@ -42,6 +44,8 @@ class UserNotification extends Model
     {
         return [
             'priority' => UserNotificationPriority::class,
+            'actions' => 'array',
+            'expires_at' => 'datetime',
             'read_at' => 'datetime',
         ];
     }
@@ -73,9 +77,23 @@ class UserNotification extends Model
             ServiceOrder::class => '/serviceorders/' . $this->notificationable_id,
             Customer::class => '/customers/' . $this->notificationable_id,
 
-            Event::class => $this->plannerPath(),
+            Event::class => $this->eventPath(),
             default => null,
         };
+    }
+
+    /**
+     * Een herinnering brengt je naar de werkbon: daar staat wat je gaat doen. Een
+     * afspraak zonder werkbon heeft alleen de planner.
+     */
+    private function eventPath(): ?string
+    {
+        $order = $this->type === UserNotificationType::appointment_reminder->value
+            && $this->notificationable instanceof Event
+                ? $this->notificationable->serviceOrders->first()
+                : null;
+
+        return $order ? '/serviceorders/' . $order->id : $this->plannerPath();
     }
 
     /**

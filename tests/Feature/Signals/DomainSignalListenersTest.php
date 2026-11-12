@@ -5,15 +5,14 @@ namespace Tests\Feature\Signals;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
+use App\Enums\UserNotificationType;
 use App\Models\Activity;
 use App\Models\Customer;
-use App\Models\DeviceToken;
 use App\Models\MaintenanceContract;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use App\Notifications\NewServiceOrderAssigned;
-use Illuminate\Support\Facades\Notification;
+use App\Models\UserNotification;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -32,20 +31,11 @@ class DomainSignalListenersTest extends TestCase
         ]);
     }
 
-    /**
-     * A user with no push token resolves to no channels at all, so a notification
-     * to them is never sent. Anything asserting on notifications needs one.
-     */
-    private function notifiableUser(): User
+    private function toldOfAssignment(User $user): bool
     {
-        $user = User::factory()->create();
-        DeviceToken::create([
-            'user_id' => $user->id,
-            'token' => 'test-token-' . $user->id,
-            'platform' => 'android',
-        ]);
-
-        return $user;
+        return UserNotification::where('user_id', $user->id)
+            ->where('type', UserNotificationType::assigned_to_serviceorder->value)
+            ->exists();
     }
 
     public function test_recording_an_invoice_number_moves_the_order_to_the_invoiced_stage(): void
@@ -99,23 +89,19 @@ class DomainSignalListenersTest extends TestCase
 
     public function test_assigning_users_notifies_only_the_newly_assigned_ones(): void
     {
-        Notification::fake();
-
         $order = $this->order();
-        $newcomer = $this->notifiableUser();
+        $newcomer = User::factory()->create();
 
         event(new ServiceOrderAssigned($order, [$newcomer->id]));
 
-        Notification::assertSentTo($newcomer, NewServiceOrderAssigned::class);
+        $this->assertTrue($this->toldOfAssignment($newcomer));
     }
 
     public function test_assigning_nobody_new_notifies_nobody(): void
     {
-        Notification::fake();
-
         event(new ServiceOrderAssigned($this->order(), []));
 
-        Notification::assertNothingSent();
+        $this->assertFalse(UserNotification::where('type', UserNotificationType::assigned_to_serviceorder->value)->exists());
     }
 
     public function test_a_stage_move_stamps_the_closing_date_and_clears_it_again(): void

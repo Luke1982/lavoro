@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Demo\DemoInstaller;
 use App\Services\ImapSentCopier;
+use App\Services\Push\FirebaseChannel;
 use App\Support\ProvisionerConnection;
 use App\Support\WebServerFacts;
 use App\Support\WorkerHeartbeat;
@@ -607,6 +608,7 @@ class TenancyDoctor extends Command
         $this->checkInvoiceSentFolder();
         $this->checkRoutePlanner();
         $this->checkWebPush();
+        $this->checkFirebase();
 
         $this->checkVersions();
         $this->checkDrivers();
@@ -794,6 +796,38 @@ class TenancyDoctor extends Command
             ? $this->pass('web push keys set')
             : $this->bad('VAPID_SUBJECT is "' . $subject . '" -- push services want mailto: or https:,'
                 . ' and without VAPID_SUBJECT it falls back to APP_URL');
+    }
+
+    /**
+     * Without Firebase credentials the Android app gets no notifications, its
+     * appointment reminders included, and nothing anywhere says why: the channel
+     * simply counts as not set up. A path that leads nowhere fails later and just
+     * as quietly, in the worker, on the first push.
+     */
+    private function checkFirebase(): void
+    {
+        $credentials = FirebaseChannel::credentials();
+
+        if ($credentials === '') {
+            $this->bad('FIREBASE_CREDENTIALS is empty -- the Android app gets no notifications. Put the path to the'
+                . ' service account JSON of the Firebase project in .env (docs/install/android.md)');
+
+            return;
+        }
+
+        /** Read the way the Firebase package reads it: inline JSON, or a path relative to the app. */
+        $inline = str_starts_with($credentials, '{');
+        $path = $inline || str_starts_with($credentials, '/') ? $credentials : base_path($credentials);
+        $json = $inline ? $credentials : (is_readable($path) ? file_get_contents($path) : null);
+        $account = is_string($json) ? json_decode($json, true) : null;
+
+        match (true) {
+            $json === null => $this->bad('FIREBASE_CREDENTIALS points at ' . $path . ', which cannot be read'
+                . ' -- the Android app gets no notifications'),
+            ($account['type'] ?? null) !== 'service_account' => $this->bad('FIREBASE_CREDENTIALS is not the'
+                . ' service account JSON of a Firebase project -- the Android app gets no notifications'),
+            default => $this->pass('firebase credentials for ' . ($account['project_id'] ?? 'an unnamed project')),
+        };
     }
 
     /**

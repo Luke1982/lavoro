@@ -64,9 +64,14 @@ public class MainActivity extends BridgeActivity {
         splash_screen.setOnExitAnimationListener(this::leaveSplashScreen);
 
         registerPlugin(LocationTrackerPlugin.class);
+        registerPlugin(PushSupportPlugin.class);
+
+        String start_path = savedInstanceState == null ? launchPath(getIntent()) : null;
+        setIntent(new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN));
 
         this.config = new CapConfig.Builder(this)
             .setServerUrl(BuildConfig.SERVER_URL)
+            .setStartPath(start_path)
             .setAllowNavigation(new String[] { Uri.parse(BuildConfig.SERVER_URL).getHost() })
             .setErrorPath(LavoroWebViewClient.OFFLINE_PAGE)
             .setBackgroundColor(SPLASH_BACKGROUND)
@@ -134,6 +139,43 @@ public class MainActivity extends BridgeActivity {
 
         IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         ContextCompat.registerReceiver(this, download_receiver, filter, ContextCompat.RECEIVER_EXPORTED);
+    }
+
+    /**
+     * Where a tapped notification or link asked to land, as a path on the server
+     * this app is built for; null for anything else. The app starts right there,
+     * and a running app hears about later taps through appUrlOpen, which
+     * useDeepLinks follows.
+     *
+     * Only for a fresh tap: an app restored after Android cleared it from memory,
+     * or reopened from the recent apps, still carries the intent it was first
+     * started with, and would open yesterday's werkbon again. That intent is
+     * swapped for a plain start once it has been read, because Capacitor replays
+     * the launch intent as appUrlOpen on every start, which would open the path a
+     * second time, or yesterday's after all.
+     */
+    private static String launchPath(Intent intent) {
+        boolean fresh = intent != null && (intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0;
+        Uri target = fresh && Intent.ACTION_VIEW.equals(intent.getAction()) ? intent.getData() : null;
+        Uri server = Uri.parse(BuildConfig.SERVER_URL);
+
+        if (
+            target == null
+                || !server.getScheme().equals(target.getScheme())
+                || !server.getHost().equals(target.getHost())
+                || server.getPort() != target.getPort()
+        ) {
+            return null;
+        }
+
+        String path = target.getEncodedPath();
+        String query = target.getEncodedQuery();
+
+        if (path == null || !path.startsWith("/") || path.startsWith("//")) {
+            return null;
+        }
+
+        return query == null ? path : path + "?" + query;
     }
 
     /**

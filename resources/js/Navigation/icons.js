@@ -1,4 +1,5 @@
 import {
+    AlarmClock,
     Bell,
     Box,
     Building2,
@@ -10,6 +11,7 @@ import {
     ChevronsLeft,
     CircleHelp,
     ClipboardCheck,
+    ClipboardList,
     Clock,
     Cog,
     ExternalLink,
@@ -45,6 +47,7 @@ import {
  * which is a fair guess for a machine and nonsense for a menu row.
  */
 export const NAV_ICONS = {
+    AlarmClock,
     Bell,
     Box,
     Building2,
@@ -56,6 +59,7 @@ export const NAV_ICONS = {
     ChevronsLeft,
     CircleHelp,
     ClipboardCheck,
+    ClipboardList,
     Clock,
     Cog,
     ExternalLink,

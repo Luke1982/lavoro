@@ -18,12 +18,8 @@
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ type.label }}</p>
                     <p class="text-[13px] text-gray-500 dark:text-slate-400">{{ type.description }}</p>
-                    <!--
-                        Een soort dat deze persoon niet mag lezen staat er wel, maar
-                        uit: het is geen ontbrekend soort, het is een ontbrekend recht.
-                    -->
-                    <p v-if="!type.allowed" class="mt-1 text-[13px] text-amber-600 dark:text-amber-400">
-                        {{ subject.name }} mag dit niet inzien en kan er dus geen melding van krijgen.
+                    <p v-if="type.warning" class="mt-1 text-[13px] text-amber-600 dark:text-amber-400">
+                        {{ type.warning }}
                     </p>
                 </div>
 
@@ -31,8 +27,8 @@
                     Uit is hier neutraal en niet rood: niet aanstaan is geen fout,
                     en de schakelaar kent daar een eigen stand voor.
                 -->
-                <SwitchComponent :model-value="type.subscription_id ? true : null"
-                    :disabled="!type.allowed || busy === type.value" @update="value => toggle(type, value)" />
+                <SwitchComponent :model-value="type.on ? true : null"
+                    :disabled="type.locked || busy === type.value" @update="value => toggle(type, value)" />
             </li>
         </ul>
 
@@ -78,6 +74,7 @@ import { navIcon } from '@/Navigation/icons.js'
  */
 const props = defineProps({
     types: { type: Array, required: true },
+    mutable: { type: Array, default: () => [] },
     always: { type: Array, default: () => [] },
     subject: { type: Object, required: true },
     colleagues: { type: Array, default: () => [] },
@@ -94,7 +91,32 @@ const COLORS = {
 
 const colorClass = (color) => COLORS[color] ?? COLORS.blue
 
-const rows = computed(() => props.types)
+/**
+ * Twee soorten schakelaars in één lijst, want voor wie hem omzet is er geen
+ * verschil. Een abonnement staat aan als er een rij is; wat iedereen krijgt staat
+ * aan zolang er géén rij is die het uitzet.
+ *
+ * Een soort dat deze persoon niet mag lezen staat er wel, maar uit en op slot:
+ * het is geen ontbrekend soort, het is een ontbrekend recht. Een herinnering die
+ * nooit komt omdat iemand niet ingepland wordt blijft wel om te zetten: dat kan
+ * morgen anders zijn.
+ */
+const rows = computed(() => [
+    ...props.mutable.map((type) => ({
+        ...type,
+        kind: 'mute',
+        on: !type.mute_id,
+        locked: false,
+        warning: type.applies ? null : props.subject.name + ' is niet inplanbaar en krijgt deze herinnering dus niet.',
+    })),
+    ...props.types.map((type) => ({
+        ...type,
+        kind: 'subscription',
+        on: !!type.subscription_id,
+        locked: !type.allowed,
+        warning: type.allowed ? null : props.subject.name + ' mag dit niet inzien en kan er dus geen melding van krijgen.',
+    })),
+])
 
 const subtitle = computed(() => (props.manages_others
     ? 'Instellen waarover ' + props.subject.name + ' bericht krijgt'
@@ -110,8 +132,12 @@ watch(chosen_user, (id) => {
     router.get('/notificationsubscriptions', { user_id: id }, { preserveScroll: true })
 })
 
+/**
+ * Aanzetten is bij een abonnement een rij maken en bij een herinnering een rij
+ * weghalen; uitzetten andersom.
+ */
 const toggle = (type, wanted) => {
-    if (busy.value) return
+    if (busy.value || Boolean(wanted) === type.on) return
 
     busy.value = type.value
     error.value = ''
@@ -122,15 +148,13 @@ const toggle = (type, wanted) => {
         onError: (errors) => { error.value = Object.values(errors)[0] ?? 'Dit lukte niet.' },
     }
 
-    if (wanted && !type.subscription_id) {
-        return useForm({ user_id: props.subject.id, type: type.value })
-            .post('/notificationsubscriptions', done)
+    const create = (url) => useForm({ user_id: props.subject.id, type: type.value }).post(url, done)
+    const remove = (url) => useForm({}).delete(url, done)
+
+    if (type.kind === 'mute') {
+        return wanted ? remove('/notificationmutes/' + type.mute_id) : create('/notificationmutes')
     }
 
-    if (!wanted && type.subscription_id) {
-        return useForm({}).delete('/notificationsubscriptions/' + type.subscription_id, done)
-    }
-
-    busy.value = null
+    return wanted ? create('/notificationsubscriptions') : remove('/notificationsubscriptions/' + type.subscription_id)
 }
 </script>

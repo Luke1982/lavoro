@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="${usesCleartextTraffic}"
@@ -31,6 +32,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Firebase hands a message to one service only. Ours extends the push
+             plugin's, so the plugin's own entry goes and ours takes its place:
+             it draws the notification itself, buttons included. -->
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
+        <service
+            android:name=".LavoroMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".LocationForegroundService"
             android:enabled="true"
@@ -56,4 +71,5 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>

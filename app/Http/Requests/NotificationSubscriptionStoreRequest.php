@@ -3,15 +3,17 @@
 namespace App\Http\Requests;
 
 use App\Enums\UserNotificationType;
+use App\Http\Requests\Concerns\ResolvesNotificationSubscriber;
 use App\Models\NotificationSubscription;
 use App\Models\Ticket;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class NotificationSubscriptionStoreRequest extends FormRequest
 {
+    use ResolvesNotificationSubscriber;
+
     /**
      * Wat je als los record kunt volgen. Een open lijst zou betekenen dat een
      * verzoek zelf mag kiezen welke klasse er uit de database gehaald wordt.
@@ -22,10 +24,7 @@ class NotificationSubscriptionStoreRequest extends FormRequest
         Ticket::class,
     ];
 
-    /** False until looked up, which is not the same as looked up and not found. */
-    private User|false|null $resolved_subscriber = false;
-
-    /** Idem: false betekent nog niet gezocht, null betekent gezocht en niets gevonden. */
+    /** False betekent nog niet gezocht, null betekent gezocht en niets gevonden. */
     private Model|false|null $resolved_record = false;
 
     public function authorize(): bool
@@ -179,24 +178,6 @@ class NotificationSubscriptionStoreRequest extends FormRequest
         if ($exists) {
             $fail('Dit abonnement bestaat al.');
         }
-    }
-
-    /**
-     * The subscription is for whoever is named, and for the person asking when
-     * nobody is. Resolved once: authorisation, two rules and the controller all
-     * ask, and none of them needs its own query to find out.
-     */
-    public function subscriber(): ?User
-    {
-        if ($this->resolved_subscriber !== false) {
-            return $this->resolved_subscriber;
-        }
-
-        $user_id = $this->input('user_id');
-
-        return $this->resolved_subscriber = $user_id === null
-            ? $this->user()
-            : User::find($user_id);
     }
 
     /** Het record dat gevolgd wordt, of null als er geen is of het niet bestaat. */

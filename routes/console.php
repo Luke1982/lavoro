@@ -9,6 +9,7 @@ use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
 use App\Jobs\ReinstallDemoTenantJob;
+use App\Jobs\SendAppointmentRemindersJob;
 use App\Jobs\SyncSnelStartJob;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -67,6 +68,15 @@ Schedule::call(fn () => $forEachTenant(fn () => DeleteOrphanedImagesJob::dispatc
 
 Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
     ->dailyAt('07:00')->name('notifications-missing-times')->withoutOverlapping();
+
+/**
+ * Every five minutes, so a reminder set for an hour lands between 55 and 60
+ * minutes ahead. It names the clock time, not the countdown, so it is never wrong.
+ * The overlap lock expires after ten minutes rather than the default day: a
+ * scheduler killed halfway would otherwise silence every reminder until tomorrow.
+ */
+Schedule::call(fn () => $forEachTenant(fn () => SendAppointmentRemindersJob::dispatch()))
+    ->everyFiveMinutes()->name('appointment-reminders')->withoutOverlapping(10);
 
 Schedule::call(fn () => $forEachTenant(fn () => ReconcileStorageUsageJob::dispatch()))
     ->dailyAt('03:30')->name('reconcile-storage-usage')->withoutOverlapping();

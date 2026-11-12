@@ -4,10 +4,12 @@ namespace App\Listeners;
 
 use App\Domain\Signals\Signal;
 use App\Enums\UserNotificationType;
-use App\Jobs\SendWebPushNotificationsJob;
+use App\Jobs\SendPushNotificationsJob;
+use App\Models\Event;
+use App\Models\EventReminder;
 use App\Models\User;
 use App\Models\UserNotification;
-use App\Services\WebPushSender;
+use App\Services\Push\PushNotifications;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,16 +28,16 @@ use Illuminate\Support\Facades\Log;
  *
  * The rows are written inside the transaction that raised the signal, so work
  * that rolls back takes its notifications with it and nobody is told about a
- * storing that never happened. Reaching a browser is the other half of the same
- * rule and cannot be undone, so that leaves as a job dispatched after the commit,
- * by which time the fact is certain.
+ * storing that never happened. Reaching a phone or a browser is the other half of
+ * the same rule and cannot be undone, so that leaves as a job dispatched after
+ * the commit, by which time the fact is certain.
  *
  * Whoever caused the fact is skipped. They know what they just did, and a bell
  * that rings for your own actions is a bell people stop reading.
  */
 class NotifySubscribers
 {
-    public function __construct(private WebPushSender $sender) {}
+    public function __construct(private PushNotifications $push) {}
 
     /**
      * A notification that cannot be written must not break the work it was about.
@@ -144,12 +146,29 @@ class NotifySubscribers
 
         $subject = $signal->subject();
 
-        UserNotification::whereIn('user_id', $user_ids)
+        $unread = UserNotification::whereIn('user_id', $user_ids)
             ->whereIn('type', array_column($superseded, 'value'))
             ->where('notificationable_type', $subject->getMorphClass())
             ->where('notificationable_id', $subject->getKey())
-            ->whereNull('read_at')
-            ->delete();
+            ->whereNull('read_at');
+
+        $unread_reminders = $subject instanceof Event
+            ? (clone $unread)->where('type', UserNotificationType::appointment_reminder->value)->pluck('user_id')
+            : collect();
+
+        $unread->delete();
+
+        /**
+         * Een herinnering die zo van het scherm gaat, moet terug kunnen komen: het
+         * bericht dat de afspraak verzet is noemt geen route en geen nummer. Bleef
+         * het begin gelijk (een later eind, of eraf en er meteen weer op), dan zou
+         * de claim een nieuwe herinnering tegenhouden. Dus gaat die mee, en stuurt
+         * de volgende ronde hem opnieuw, met wat dan klopt. Wie hem al gelezen had,
+         * weet waar hij heen moet en krijgt hem niet nog eens.
+         */
+        if ($unread_reminders->isNotEmpty()) {
+            EventReminder::where('event_id', $subject->getKey())->whereIn('user_id', $unread_reminders)->delete();
+        }
     }
 
     /**
@@ -165,15 +184,15 @@ class NotifySubscribers
      */
     private function pushAfterCommit(array $notification_ids): void
     {
-        if (!$this->sender->isConfigured()) {
+        if (!$this->push->isConfigured()) {
             return;
         }
 
         DB::afterCommit(function () use ($notification_ids) {
             try {
-                SendWebPushNotificationsJob::dispatch($notification_ids);
+                SendPushNotificationsJob::dispatch($notification_ids);
             } catch (\Throwable $e) {
-                Log::error('Kon browsermeldingen niet inplannen', [
+                Log::error('Kon pushberichten niet inplannen', [
                     'notification_ids' => $notification_ids,
                     'exception' => $e,
                 ]);

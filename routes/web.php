@@ -17,6 +17,7 @@ use App\Http\Controllers\CustomerImportController;
 use App\Http\Controllers\CustomerUploadController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DialController;
 use App\Http\Controllers\DocumentCategoryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\EventExportController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\MaterialSupplierController;
 use App\Http\Controllers\MaterialUsageUnitController;
+use App\Http\Controllers\NotificationMuteController;
 use App\Http\Controllers\NotificationSubscriptionController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlannerController;
@@ -493,6 +495,9 @@ Route::group(
             ->name('usernotifications.unacknowledge');
         Route::resource('notificationsubscriptions', NotificationSubscriptionController::class)
             ->only(['index', 'store', 'destroy']);
+        Route::resource('notificationmutes', NotificationMuteController::class)
+            ->only(['store', 'destroy']);
+        Route::get('dial', DialController::class)->name('dial');
         Route::post('pushsubscriptions', [PushSubscriptionController::class, 'store'])
             ->name('pushsubscriptions.store');
         Route::delete('pushsubscriptions', [PushSubscriptionController::class, 'destroy'])
@@ -571,6 +576,10 @@ Route::group(
                 'admin/settings/allow-override-unavailability',
                 [GeneralSettingsController::class, 'updateAllowOverrideUnavailability'],
             )->name('admin.settings.allow-override-unavailability');
+            Route::put(
+                'admin/settings/appointment-reminder',
+                [GeneralSettingsController::class, 'updateAppointmentReminder'],
+            )->name('admin.settings.appointment-reminder');
             Route::put(
                 'admin/settings/serviceorder-min-images',
                 [GeneralSettingsController::class, 'updateServiceOrderMinImages'],

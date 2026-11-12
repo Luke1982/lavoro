@@ -83,11 +83,12 @@ class UserNotificationController extends Controller
 
             /**
              * De afspraak wordt meegeladen omdat de link ernaartoe hem nodig heeft,
-             * en met morphWith omdat alleen afspraken hun monteurs erbij vragen: de
-             * andere soorten hebben aan hun eigen rij genoeg.
+             * en met morphWith omdat alleen afspraken hun monteurs en werkbonnen
+             * erbij vragen: een herinnering linkt naar de werkbon. De andere soorten
+             * hebben aan hun eigen rij genoeg.
              */
             ->with(['notificationable' => fn ($morph) => $morph->morphWith([
-                Event::class => ['executingUsers'],
+                Event::class => ['executingUsers', 'serviceOrders'],
             ])])
             ->when($request->boolean('unread'), fn ($query) => $query->unread())
             ->when(

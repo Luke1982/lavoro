@@ -5,6 +5,7 @@ namespace App\Enums;
 use App\Domain\Signals\Appointments\AppointmentRescheduled;
 use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
+use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Domain\Signals\Signal;
@@ -73,6 +74,19 @@ enum UserNotificationType: string
      */
     case removed_from_appointment = 'appointment.removed_for_executor';
 
+    /**
+     * Hetzelfde geval andersom: het signaal brengt mee wie er nieuw op de werkbon
+     * staat, en alleen die mensen. Wie er al op stond, wist het al.
+     */
+    case assigned_to_serviceorder = 'serviceorder.assigned_to_executor';
+
+    /**
+     * De derde zonder eigen signaal: dat een afspraak bijna begint is geen
+     * gebeurtenis maar een tijdstip. AppointmentReminders schrijft hem, met de
+     * route en het nummer van de klant als knoppen erbij.
+     */
+    case appointment_reminder = 'appointment.reminder';
+
     public function label(): string
     {
         return match ($this) {
@@ -90,6 +104,8 @@ enum UserNotificationType: string
             self::execution_times_missing => 'Tijden nog niet ingevuld',
             self::own_appointment_moved => 'Jouw afspraak verplaatst',
             self::removed_from_appointment => 'Van afspraak afgehaald',
+            self::assigned_to_serviceorder => 'Werkbon toegewezen',
+            self::appointment_reminder => 'Afspraakherinnering',
         };
     }
 
@@ -112,6 +128,9 @@ enum UserNotificationType: string
             self::execution_times_missing => 'Als je tijden van een afspraak van gisteren of eerder nog openstaan.',
             self::own_appointment_moved => 'Als een afspraak waarop jij staat een andere datum of tijd krijgt.',
             self::removed_from_appointment => 'Als een afspraak niet langer op jouw naam staat.',
+            self::assigned_to_serviceorder => 'Als je op een werkbon wordt gezet.',
+            self::appointment_reminder => 'Vlak voor elke afspraak waarop jij staat, met de route en het nummer'
+                . ' van de klant.',
         };
     }
 
@@ -125,8 +144,36 @@ enum UserNotificationType: string
     public function subscribable(): bool
     {
         return match ($this) {
-            self::execution_times_missing, self::own_appointment_moved,
-            self::removed_from_appointment => false,
+            self::execution_times_missing, self::own_appointment_moved, self::removed_from_appointment,
+            self::assigned_to_serviceorder, self::appointment_reminder => false,
+            default => true,
+        };
+    }
+
+    /**
+     * Iedereen krijgt hem, tot hij hem zelf uitzet. Een herinnering gaat over je
+     * eigen werk en hoort dus vanzelf te komen, maar wie zijn dag uit zijn hoofd
+     * kent heeft er niets aan.
+     */
+    public function mutable(): bool
+    {
+        return $this === self::appointment_reminder;
+    }
+
+    /**
+     * Te laat is erger dan niet: zo'n melding wekt de telefoon, verdwijnt niet in
+     * een samenvatting, en wordt niet meer bezorgd als het moment voorbij is.
+     */
+    public function timeCritical(): bool
+    {
+        return $this === self::appointment_reminder;
+    }
+
+    /** Of deze persoon zo'n melding ooit kan krijgen, los van of hij hem uit heeft gezet. */
+    public function appliesTo(User $user): bool
+    {
+        return match ($this) {
+            self::appointment_reminder => (bool) $user->plannable,
             default => true,
         };
     }
@@ -141,11 +188,20 @@ enum UserNotificationType: string
     }
 
     /** @return array<int, self> */
+    public static function mutableCases(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $case) => $case->mutable()
+        ));
+    }
+
+    /** @return array<int, self> */
     public static function unconditionalCases(): array
     {
         return array_values(array_filter(
             self::cases(),
-            fn (self $case) => !$case->subscribable()
+            fn (self $case) => !$case->subscribable() && !$case->mutable()
         ));
     }
 
@@ -161,15 +217,16 @@ enum UserNotificationType: string
         return match (true) {
             $signal instanceof AppointmentRescheduled && $signal->moved_in_time => [self::own_appointment_moved],
             $signal instanceof AppointmentUnassigned && $signal->removed_user_ids !== [] => [self::removed_from_appointment],
+            $signal instanceof ServiceOrderAssigned && $signal->newly_assigned_user_ids !== [] => [self::assigned_to_serviceorder],
             default => [],
         };
     }
 
     /**
-     * Wie zo'n verplichte melding krijgt. Alleen de mensen die de afspraak moeten
-     * uitvoeren: het is hun dag die verschuift. Verwijderde gebruikers vallen af,
-     * want de relatie houdt ze met opzet vast voor de geschiedenis en dat is iets
-     * anders dan iemand die nog bericht moet krijgen.
+     * Wie zo'n verplichte melding krijgt: alleen de mensen om wier eigen werk het
+     * gaat. Verwijderde gebruikers vallen af, want de relatie houdt ze met opzet
+     * vast voor de geschiedenis en dat is iets anders dan iemand die nog bericht
+     * moet krijgen.
      *
      * @return Collection<int, int>
      */
@@ -187,11 +244,25 @@ enum UserNotificationType: string
              * signaal en niet uit de tabel.
              */
             self::removed_from_appointment => $signal instanceof AppointmentUnassigned
-                ? User::whereIn('id', $signal->removed_user_ids)->pluck('id')->map(fn ($id) => (int) $id)
+                ? self::existingUsers($signal->removed_user_ids)
+                : collect(),
+
+            /** Van het signaal, want de tabel weet niet meer wie er net bij kwam. */
+            self::assigned_to_serviceorder => $signal instanceof ServiceOrderAssigned
+                ? self::existingUsers($signal->newly_assigned_user_ids)
                 : collect(),
 
             default => collect(),
         };
+    }
+
+    /**
+     * @param  array<int, int>  $user_ids
+     * @return Collection<int, int>
+     */
+    private static function existingUsers(array $user_ids): Collection
+    {
+        return User::whereIn('id', $user_ids)->pluck('id')->map(fn ($id) => (int) $id);
     }
 
     /**
@@ -228,8 +299,8 @@ enum UserNotificationType: string
             self::close_blocked_by_hidden_tasks => ['serviceorder.read', 'serviceorder.update'],
 
             /** Over je eigen uren en je eigen dag hoef je niets extra's te mogen. */
-            self::execution_times_missing, self::own_appointment_moved,
-            self::removed_from_appointment => [],
+            self::execution_times_missing, self::own_appointment_moved, self::removed_from_appointment,
+            self::assigned_to_serviceorder, self::appointment_reminder => [],
         };
     }
 
@@ -266,6 +337,8 @@ enum UserNotificationType: string
             self::execution_times_missing => 'Clock',
             self::own_appointment_moved => 'CalendarClock',
             self::removed_from_appointment => 'CalendarX',
+            self::assigned_to_serviceorder => 'ClipboardList',
+            self::appointment_reminder => 'AlarmClock',
         };
     }
 
@@ -283,6 +356,8 @@ enum UserNotificationType: string
             self::execution_times_missing => 'red',
             self::own_appointment_moved => 'amber',
             self::removed_from_appointment => 'red',
+            self::assigned_to_serviceorder => 'blue',
+            self::appointment_reminder => 'blue',
         };
     }
 
@@ -309,6 +384,8 @@ enum UserNotificationType: string
             self::execution_times_missing => 'Tijden nog niet ingevuld',
             self::own_appointment_moved => 'Jouw afspraak is verplaatst',
             self::removed_from_appointment => 'Van afspraak afgehaald',
+            self::assigned_to_serviceorder => 'Werkbon toegewezen',
+            self::appointment_reminder => 'Afspraakherinnering',
         };
     }
 
@@ -327,6 +404,8 @@ enum UserNotificationType: string
             self::execution_times_missing => 'Er staan nog tijden open.',
             self::own_appointment_moved => $this->ownAppointmentMovedBody($signal),
             self::removed_from_appointment => $this->removedFromAppointmentBody($signal),
+            self::assigned_to_serviceorder => $this->assignedToServiceOrderBody($signal),
+            self::appointment_reminder => 'Je afspraak begint bijna.',
         };
     }
 
@@ -348,6 +427,9 @@ enum UserNotificationType: string
 
             /** Jouw eigen dag die verandert is het soort bericht waarvoor je stopt. */
             self::own_appointment_moved, self::removed_from_appointment => UserNotificationPriority::hoog,
+
+            /** Nieuw werk voor jou, maar het werk zelf staat nog niet vandaag op de stoep. */
+            self::assigned_to_serviceorder => UserNotificationPriority::normaal,
             default => UserNotificationPriority::laag,
         };
     }
@@ -430,18 +512,29 @@ enum UserNotificationType: string
         return $name . ($was ? ' van ' . $was : '') . ' staat niet meer op jouw naam.';
     }
 
+    /** Welke bon en voor wie: genoeg om te weten waar het over gaat zonder hem te openen. */
+    private function assignedToServiceOrderBody(Signal $signal): string
+    {
+        $order = $this->serviceOrder($signal);
+
+        return 'Je staat op werkbon ' . $order->number
+            . ($order->customer?->name ? ' voor ' . $order->customer->name : '')
+            . ', door ' . $this->actor($signal);
+    }
+
     /**
      * Wat overbodig wordt zodra deze melding binnenkomt. Wie van een afspraak af
      * is heeft niets meer aan het bericht dat diezelfde afspraak verzet is: dat
      * wijst naar een dag die niet meer van hem is, op een scherm dat hij niet meer
-     * mag zien.
+     * mag zien. Een herinnering noemt een tijd die na het verzetten niet meer klopt.
      *
      * @return array<int, self>
      */
     public function supersedes(): array
     {
         return match ($this) {
-            self::removed_from_appointment => [self::own_appointment_moved],
+            self::own_appointment_moved => [self::appointment_reminder],
+            self::removed_from_appointment => [self::own_appointment_moved, self::appointment_reminder],
             default => [],
         };
     }

@@ -14,4 +14,16 @@
     <string name="location_notification_active">Locatie actief</string>
     <string name="location_notification_paused">Locatie gepauzeerd buiten werktijd</string>
     <string name="location_notification_body">Je locatie wordt gedeeld %1$s.</string>
+
+    <string name="battery_disclosure_title">Herinneringen op tijd</string>
+    <string name="battery_disclosure_body">Lavoro stuurt je vlak voor elke afspraak een herinnering, met de route en het nummer van de klant.\n\nOm de batterij te sparen houdt Android meldingen soms vast tot je je telefoon weer oppakt. Een herinnering komt dan pas binnen als je al te laat bent.\n\nKies hierna \"Toestaan\", dan laat Android Lavoro daarbuiten.</string>
+    <string name="battery_disclosure_accept">Verder</string>
+    <string name="battery_disclosure_decline">Niet nu</string>
+
+    <string name="channel_reminders">Afspraakherinneringen</string>
+    <string name="channel_reminders_description">Vlak voor elke afspraak waarop je staat, met de route en het nummer van de klant.</string>
+    <string name="channel_urgent">Dringende meldingen</string>
+    <string name="channel_urgent_description">Meldingen met voorrang, zoals een dringende storing of een afspraak die verzet is.</string>
+    <string name="channel_general">Meldingen</string>
+    <string name="channel_general_description">Al het andere waarover je een melding hebt aangezet.</string>
 </resources>

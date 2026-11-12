@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="lavoro_blue">#081020</color>
+    <!-- The blue of the logo's stem: the navy above would vanish in a dark notification shade. -->
+    <color name="notification_accent">#2563FF</color>
 </resources>
