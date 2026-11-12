@@ -17,104 +17,15 @@
             </template>
         </SectionHeader>
 
-        <!-- Add form -->
         <div v-auto-animate>
-            <template v-if="showAddForm && canCreate && !isClosed">
-                <!-- Quick create -->
-                <div v-if="showQuickCreate"
-                    class="flex flex-col gap-2 mb-2 p-4 rounded-lavoro-sm bg-slate-50 dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700 relative">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Nieuw materiaal aanmaken</span>
-                    <div class="flex flex-col md:flex-row items-start gap-2">
-                        <div class="flex flex-col flex-grow w-full sm:w-40">
-                            <TextInput v-model="quickForm.name" placeholder="Naam" :has-error="!!quickForm.errors.name"
-                                :error-message="quickForm.errors.name" class="bg-white" />
-                        </div>
-                        <div class="flex flex-col">
-                            <ComboBox :options="categories" v-model="quickForm.material_category_id"
-                                placeholder="Categorie" :has-error="!!quickForm.errors.material_category_id"
-                                :error-message="quickForm.errors.material_category_id" />
-                        </div>
-                        <div class="flex flex-col">
-                            <ComboBox :options="usageUnits" v-model="quickForm.material_usage_unit_id"
-                                placeholder="Eenheid" :has-error="!!quickForm.errors.material_usage_unit_id"
-                                :error-message="quickForm.errors.material_usage_unit_id" />
-                        </div>
-                        <button @click="createMaterial" :disabled="quickForm.processing" :class="[
-                            'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-                            quickForm.processing
-                                ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-                                : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
-                        ]">
-                            Aanmaken
-                        </button>
-                    </div>
-                    <button class="absolute top-2 right-2" @click="showQuickCreate = false">
-                        <XCircleIcon class="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300" />
-                    </button>
-                </div>
-                <div
-                    class="flex flex-col md:flex-row items-center gap-2 mb-4 p-0 sm:p-4 rounded-lavoro-sm dark:bg-slate-800/50 sm:border border-gray-200/70 dark:border-slate-700">
-                    <div
-                        class="flex flex-col flex-grow w-full sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4 py-2">
-                        <div class="flex items-center justify-between mb-0.5">
-                            <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Kies een materiaal</span>
-                        </div>
-                        <div class="flex">
-                            <button v-if="canCreateMaterial" type="button" @click="showQuickCreate = !showQuickCreate"
-                                class="inline-flex items-center gap-1 text-xs font-semibold bg-lavoro-blue text-white p-0.5 px-2 mr-2 rounded-lavoro-sm"
-                                v-tooltip="showQuickCreate ? 'Sluit snel aanmaken' : 'Snel materiaal aanmaken'">
-                                <WandIcon class="size-5" />
-                            </button>
-                            <ComboBox :options="comboMaterials" v-model="materialToAdd"
-                                :has-external-searching="materialsUseAjax" :searching="materialSearching"
-                                @change="searchMaterials" class="flex-grow" />
-                        </div>
-                    </div>
-                    <div class="flex flex-col w-full md:w-28">
-                        <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
-                        <TextInput v-model="form.quantity" type="number" placeholder="Aantal" />
-                    </div>
-                    <div v-if="showUnforseen" class="flex flex-col items-center gap-1 w-full md:w-auto">
-                        <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Onvoorzien</span>
-                        <SwitchComponent v-model="form.unforseen" />
-                    </div>
-                    <button @click="attachMaterial" :disabled="sentToAdministration || !materialToAdd" :class="[
-                        'w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors mt-4',
-                        (sentToAdministration || !materialToAdd)
-                            ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-                            : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
-                    ]">
-                        Toevoegen
-                    </button>
-                </div>
-            </template>
+            <MaterialPicker v-if="showAddForm && canCreate && !isClosed" :endpoint="base" :all-materials="allMaterials"
+                :materials-use-ajax="materialsUseAjax" :categories="categories" :usage-units="usageUnits"
+                :sent-to-administration="sentToAdministration" :show-unforseen="showUnforseen"
+                @added="showAddForm = false" />
         </div>
 
-        <!-- Freeform material row -->
-        <div v-if="canCreateFreeform && !isClosed && !sentToAdministration"
-            class="flex flex-col sm:flex-row sm:items-start gap-2 mb-4 p-4 rounded-lavoro-sm bg-slate-50 dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700">
-            <div class="flex flex-col w-full sm:w-28">
-                <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
-                <TextInput v-model="freeformForm.quantity" type="number" placeholder="Aantal"
-                    :has-error="!!freeformForm.errors.quantity" :error-message="freeformForm.errors.quantity"
-                    class="bg-white" />
-            </div>
-            <div class="flex flex-col flex-grow">
-                <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Omschrijving</span>
-                <TextInput v-model="freeformForm.description" placeholder="Vrije materiaalregel"
-                    :has-error="!!freeformForm.errors.description" :error-message="freeformForm.errors.description"
-                    class="bg-white" />
-            </div>
-            <div v-if="showUnforseen" class="flex flex-col items-center gap-1 w-full sm:w-auto">
-                <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Onvoorzien</span>
-                <SwitchComponent v-model="freeformForm.unforseen" class="mt-1" />
-            </div>
-            <button @click="addFreeformMaterial" :disabled="freeformForm.processing"
-                v-tooltip="'Vrije materiaalregel toevoegen'"
-                class="flex items-center justify-center w-full sm:w-8.5 h-8.5 mt-4.5 rounded-md bg-lavoro-blue text-white hover:bg-lavoro-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-none">
-                <PlusIcon class="size-5" />
-            </button>
-        </div>
+        <FreeformMaterialForm v-if="canCreateFreeform && !isClosed && !sentToAdministration" :endpoint="base"
+            :show-unforseen="showUnforseen" />
 
         <!-- Sent-to-admin warning -->
         <div v-if="sentToAdministration"
@@ -165,10 +76,10 @@
                     <!-- Quantity -->
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-center mt-2 md:mt-0">
-                        <template v-if="canUpdate && !sentToAdministration && !isClosed && !isForeign(material)">
+                        <template v-if="!locked && canEditLine(material)">
                             <EditableTextField inputType="number" v-model="material.pivot.quantity" class="w-full md:w-20"
-                                :error="quantityErrors[material.pivot.id]"
-                                @update="val => { form.quantity = Number(val); updateQuantity(material.pivot.id) }">
+                                :error="quantityError(material)"
+                                @update="val => updateLine(material, { quantity: Number(val) })">
                                 <template #display>
                                     <span class="text-xs">{{ material.pivot.quantity }}{{ material.usage_unit ? ' ' +
                                         material.usage_unit.name
@@ -186,8 +97,8 @@
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
                         <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!material.pivot.unforseen"
-                            :disabled="!canUpdate || sentToAdministration || isClosed || isForeign(material)"
-                            @update:model-value="val => updateUnforseen(material.pivot.id, val)"
+                            :disabled="locked || !canEditLine(material)"
+                            @update:model-value="val => updateLine(material, { unforseen: val })"
                             v-tooltip="material.pivot.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
 
@@ -210,9 +121,9 @@
 
                     <!-- Delete -->
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
-                        <TrashIcon v-if="canDelete && !sentToAdministration && !isClosed && canDeleteRow(material)"
+                        <TrashIcon v-if="!locked && canRemoveLine(material)"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
-                            @click="detachMaterial(material)"
+                            @click="removeLine(material)"
                             v-tooltip="'Verwijder dit materiaal van de werkbon'" />
                     </div>
                 </div>
@@ -227,9 +138,9 @@
                             <PencilIcon class="size-5 text-indigo-500 dark:text-indigo-400" />
                         </div>
                         <div class="flex flex-grow flex-col min-w-0">
-                            <template v-if="canUpdateFreeform && !sentToAdministration && !isClosed && !isForeign(freeform)">
+                            <template v-if="!locked && canEditLine(freeform)">
                                 <EditableTextField v-model="freeform.description"
-                                    @update="val => updateFreeformMaterial(freeform.id, { description: val })">
+                                    @update="val => updateLine(freeform, { description: val })">
                                     <template #display>
                                         <span
                                             class="font-semibold text-sm text-gray-900 dark:text-slate-100 truncate">{{
@@ -249,9 +160,9 @@
                     <div :class="showFinancial ? 'col-span-12 md:col-span-2' : (showUnforseen ? 'col-span-12 md:col-span-5' : 'col-span-12 md:col-span-6')"
                         class="flex items-start mt-2 md:mt-0">
                         <template
-                            v-if="canUpdateFreeform && !sentToAdministration && !isClosed && !isForeign(freeform)">
+                            v-if="!locked && canEditLine(freeform)">
                             <EditableTextField inputType="number" v-model="freeform.quantity" class="w-full md:w-20"
-                                @update="val => updateFreeformMaterial(freeform.id, { quantity: Number(val) })">
+                                @update="val => updateLine(freeform, { quantity: Number(val) })">
                                 <template #display>
                                     <span class="text-xs">{{ freeform.quantity }}</span>
                                 </template>
@@ -263,8 +174,8 @@
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
                         <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!freeform.unforseen"
-                            :disabled="!canUpdateFreeform || sentToAdministration || isClosed || isForeign(freeform)"
-                            @update:model-value="val => updateFreeformMaterial(freeform.id, { unforseen: val })"
+                            :disabled="locked || !canEditLine(freeform)"
+                            @update:model-value="val => updateLine(freeform, { unforseen: val })"
                             v-tooltip="freeform.unforseen ? 'Onvoorzien' : 'Voorzien'" />
                     </div>
                     <div v-if="showFinancial" class="col-span-6 md:col-span-2 mt-2 md:mt-0 pl-0 sm:pl-3">
@@ -275,9 +186,9 @@
                     </div>
                     <div class="absolute top-2 right-2 md:static md:col-span-1 flex justify-end pr-0 sm:pr-2">
                         <TrashIcon
-                            v-if="canDeleteFreeform && !sentToAdministration && !isClosed && canDeleteRow(freeform)"
+                            v-if="!locked && canRemoveLine(freeform)"
                             class="size-5 text-red-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer transition-colors"
-                            @click="deleteFreeformMaterial(freeform)" v-tooltip="'Verwijder deze vrije regel'" />
+                            @click="removeLine(freeform)" v-tooltip="'Verwijder deze vrije regel'" />
                     </div>
                 </div>
             </div>
@@ -310,17 +221,16 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
-import { Package, Plus as PlusIcon, Trash2 as TrashIcon, WandIcon, XCircleIcon, Pencil as PencilIcon } from '@lucide/vue'
+import { Package, Plus as PlusIcon, Trash2 as TrashIcon, Pencil as PencilIcon } from '@lucide/vue'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline'
 import { getIconByName } from '@/Utilities/lucideIconMap.js'
-import { hasPermission, nlCurrency } from '@/Utilities/Utilities.js'
-import ComboBox from '@/Components/UI/ComboBox.vue'
-import TextInput from '@/Components/UI/TextInput.vue'
+import { nlCurrency } from '@/Utilities/Utilities.js'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
-import { useComboSearch } from '@/Composables/useComboSearch'
+import MaterialPicker from '@/Components/Materials/MaterialPicker.vue'
+import FreeformMaterialForm from '@/Components/Materials/FreeformMaterialForm.vue'
+import { useMaterialLines } from '@/Composables/useMaterialLines.js'
 
 const props = defineProps({
     serviceOrderId: {
@@ -378,62 +288,27 @@ const props = defineProps({
     },
 })
 
-const base = computed(() => props.endpointBase ?? `/serviceorders/${props.serviceOrderId}`)
-
-/**
- * A line booked against a different owner shows up here read-only for edits: its pivot
- * belongs elsewhere, so quantities are corrected on that task's tile, not in this list.
- * It can still be deleted from here — the call is routed to its own owner below.
- */
-function isForeign(row) {
-    return !!row.task_instance_id && row.task_instance_id !== props.taskInstanceId
-}
-
-/** Where a row's own mutations go: its task when it belongs to one, otherwise this widget's owner. */
-function ownerBase(row) {
-    return row.task_instance_id ? `/serviceordertaskinstances/${row.task_instance_id}` : base.value
-}
-
-/**
- * A line from a task the viewer may not see arrives without a label. It still counts toward
- * the total, but deleting something you cannot identify is withheld — the trash is hidden.
- */
-function canDeleteRow(row) {
-    return !isForeign(row) || !!row.task_label
-}
+const {
+    base,
+    canSeeFinancials,
+    canCreate,
+    canCreateFreeform,
+    isForeign,
+    canEditLine,
+    canRemoveLine,
+    quantityError,
+    updateLine,
+    removeLine,
+} = useMaterialLines({
+    serviceOrderId: () => props.serviceOrderId,
+    endpointBase: () => props.endpointBase,
+    taskInstanceId: () => props.taskInstanceId,
+})
 
 const showAddForm = ref(false)
 const showFinancial = ref(false)
-const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'))
-const canCreate = computed(() => hasPermission('materiable.create.serviceorder'))
-const canCreateMaterial = computed(() => hasPermission('material.create'))
-const canUpdate = computed(() => hasPermission('materiable.update.serviceorder'))
-const canDelete = computed(() => hasPermission('materiable.delete.serviceorder'))
-const canCreateFreeform = computed(() => hasPermission('freeformmaterial.create'))
-const canUpdateFreeform = computed(() => hasPermission('freeformmaterial.update'))
-const canDeleteFreeform = computed(() => hasPermission('freeformmaterial.delete'))
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
-
-const materialToAdd = ref(null)
-
-const form = useForm({ quantity: 1, unforseen: false })
-
-const { options: materialOptions, searching: materialSearching, search: searchMaterials } =
-    useComboSearch('materials', props.allMaterials, props.materialsUseAjax)
-
-const comboMaterials = computed(() => {
-    return materialOptions.value.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
-        const parts = [m.name]
-        if (m.code) {
-            parts.push(`code ${m.code}`)
-        }
-        parts.push(`voorraad ${m.stock}`)
-        if (canSeeFinancials.value) {
-            parts.push(`prijs € ${m.price}`)
-        }
-        return { id: m.id, name: parts.join(', ') }
-    })
-})
+const locked = computed(() => props.isClosed || props.sentToAdministration)
 
 function getMaterialIcon(material) {
     return getIconByName(material.category?.icon ?? null)
@@ -458,84 +333,4 @@ const forseenSubtotal = computed(() =>
 const unforseenSubtotal = computed(() =>
     props.materials.filter(m => !!m.pivot.unforseen).reduce((sum, m) => sum + Number(m.pivot.quantity) * Number(m.price), 0)
 )
-
-const showQuickCreate = ref(false)
-const page = usePage()
-const quickForm = useForm({
-    name: '',
-    material_category_id: null,
-    material_usage_unit_id: null,
-})
-
-function createMaterial() {
-    quickForm.post('/materials', {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => {
-            const created = page.props.flash?.extra
-            if (created) {
-                materialOptions.value = [created, ...materialOptions.value]
-                materialToAdd.value = created.id
-            }
-            showQuickCreate.value = false
-            quickForm.reset()
-        },
-    })
-}
-
-function attachMaterial() {
-    if (!materialToAdd.value || form.quantity <= 0) return
-    form.post(`${base.value}/materials/${materialToAdd.value}`, {
-        preserveScroll: true,
-        onSuccess: () => { showAddForm.value = false },
-    })
-}
-
-function detachMaterial(material) {
-    form.delete(`${ownerBase(material)}/materials/${material.pivot.id}`, {
-        preserveScroll: true,
-    })
-}
-
-const quantityErrors = ref({})
-
-function updateQuantity(materiableId) {
-    quantityErrors.value[materiableId] = ''
-    form.transform(data => ({ quantity: data.quantity }))
-        .put(`${base.value}/materials/${materiableId}`, {
-            preserveScroll: true,
-            onSuccess: () => { form.reset(); quantityErrors.value[materiableId] = '' },
-            onError: (errors) => { quantityErrors.value[materiableId] = errors.quantity ?? '' },
-        })
-}
-
-function updateUnforseen(materiableId, value) {
-    useForm({ unforseen: value }).put(
-        `${base.value}/materials/${materiableId}`,
-        { preserveScroll: true }
-    )
-}
-
-const freeformForm = useForm({ quantity: 1, description: '', unforseen: true })
-
-function addFreeformMaterial() {
-    freeformForm.post(`${base.value}/freeform-materials`, {
-        preserveScroll: true,
-        onSuccess: () => freeformForm.reset(),
-    })
-}
-
-function updateFreeformMaterial(freeformMaterialId, payload) {
-    useForm(payload).put(
-        `${base.value}/freeform-materials/${freeformMaterialId}`,
-        { preserveScroll: true }
-    )
-}
-
-function deleteFreeformMaterial(freeform) {
-    useForm({}).delete(
-        `${ownerBase(freeform)}/freeform-materials/${freeform.id}`,
-        { preserveScroll: true }
-    )
-}
 </script>

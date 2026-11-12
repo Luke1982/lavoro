@@ -1,6 +1,6 @@
 <template>
-    <component :is="boxed ? BoxComponent : 'div'">
-        <SectionHeader :icon="ClipboardListIcon" title="Werkbontaken"
+    <component :is="boxed && !compact ? BoxComponent : 'div'">
+        <SectionHeader v-if="!compact" :icon="ClipboardListIcon" title="Werkbontaken"
             subtitle="De taken die op deze werkbon uitgevoerd moeten worden." chapter="serviceorders">
             <template v-if="canCreate" #actions>
                 <button type="button" @click="addDrawerOpen = true"
@@ -11,16 +11,28 @@
             </template>
         </SectionHeader>
 
-        <div v-auto-animate>
-            <p v-if="hiddenCount > 0"
-                class="flex items-start gap-1.5 text-xs text-gray-500 dark:text-slate-400 py-2 border-b border-gray-100 dark:border-slate-800/60">
-                <EyeOffIcon class="w-3.5 h-3.5 mt-px flex-none" />
-                <span>
-                    Er {{ hiddenCount === 1 ? 'is 1 taak' : `zijn ${hiddenCount} taken` }} op deze bon die jij niet kunt
-                    zien. {{ hiddenCount === 1 ? 'Die hoort' : 'Die horen' }} bij een rol waarin jij deze werkbon niet
-                    uitvoert.
-                </span>
-            </p>
+        <p v-if="hiddenCount > 0" class="flex items-start gap-1.5 text-xs text-gray-500 dark:text-slate-400"
+            :class="compact ? 'pb-1' : 'py-2 border-b border-gray-100 dark:border-slate-800/60'">
+            <EyeOffIcon class="w-3.5 h-3.5 mt-px flex-none" />
+            <span>
+                Er {{ hiddenCount === 1 ? 'is 1 taak' : `zijn ${hiddenCount} taken` }} op deze bon die jij niet kunt
+                zien. {{ hiddenCount === 1 ? 'Die hoort' : 'Die horen' }} bij een rol waarin jij deze werkbon niet
+                uitvoert.
+            </span>
+        </p>
+
+        <div v-if="compact" class="flex flex-col gap-2" v-auto-animate>
+            <WorkItemRow v-for="instance in internalInstances" :key="instance.id" :icon="ListChecksIcon" tone="green"
+                :title="taskInstanceTitle(instance)" :subtitle="taskInstanceDescription(instance) || productLine(instance)"
+                action-label="Afvinken" :action-icon="CheckIcon" done-label="Afgevinkt" :done="instance.is_complete"
+                :disabled="!canToggle" :muted="instance.is_cancelled" muted-label="Geannuleerd"
+                @action="toggleComplete(instance, !instance.is_complete)">
+                <SerialProgressBadge v-if="summaries[instance.id]?.expected" class="mt-1"
+                    :filled="summaries[instance.id].filled" :expected="summaries[instance.id].expected"
+                    :clickable="canToggle" @click="canToggle && openSerialDrawer(instance)" />
+            </WorkItemRow>
+        </div>
+        <div v-else v-auto-animate>
             <div v-if="internalInstances.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-2">
                 {{ hiddenCount > 0 ? 'Verder staan er geen taken op deze bon.' : 'Nog geen taken toegevoegd.' }}
             </div>
@@ -39,7 +51,7 @@
                             {{ taskInstanceDescription(instance) }}
                         </p>
                         <p v-if="instance.product" class="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">
-                            {{ instance.quantity }}× {{ instance.product.brand.name }} {{ instance.product.model }}
+                            {{ productLine(instance) }}
                         </p>
                         <p v-if="summaries[instance.id]?.parts.length"
                             class="text-xs text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-2">
@@ -50,17 +62,9 @@
                             </span>
                         </p>
                         <div v-if="summaries[instance.id]?.expected" class="mt-1">
-                            <component :is="canToggle ? 'button' : 'span'" :type="canToggle ? 'button' : null"
-                                @click="canToggle && openSerialDrawer(instance)" :class="[
-                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors',
-                                    canToggle ? 'cursor-pointer hover:opacity-80' : '',
-                                    summaries[instance.id].filled >= summaries[instance.id].expected
-                                        ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
-                                        : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400',
-                                ]">
-                                <ScanBarcodeIcon class="w-3 h-3" />
-                                {{ summaries[instance.id].filled }}/{{ summaries[instance.id].expected }} machines
-                            </component>
+                            <SerialProgressBadge :filled="summaries[instance.id].filled"
+                                :expected="summaries[instance.id].expected" :clickable="canToggle"
+                                @click="canToggle && openSerialDrawer(instance)" />
                         </div>
                         <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
                             <span v-for="role in instance.user_roles" :key="role.id"
@@ -501,7 +505,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, ScanBarcode as ScanBarcodeIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon } from '@lucide/vue'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon, ListChecks as ListChecksIcon } from '@lucide/vue'
 import { hasPermission, hasAnyPermission, nlDate, nlTime, taskInstanceTitle, taskInstanceDescription } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -515,6 +519,8 @@ import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
 import FlexPartsFieldset from '@/Components/ServiceOrders/FlexPartsFieldset.vue'
+import WorkItemRow from '@/Components/ServiceOrders/WorkItemRow.vue'
+import SerialProgressBadge from '@/Components/ServiceOrders/SerialProgressBadge.vue'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -534,7 +540,20 @@ const props = defineProps({
     boxed: { type: Boolean, default: true },
     /** Tasks on this order that fall outside the reader's roles, and so never reach the list below. */
     hiddenCount: { type: Number, default: 0 },
+    /**
+     * The monteur's checklist: one row and one button per task, no header and none of the
+     * management around it. Ticking off still goes through the same windows — serial
+     * numbers, a signed task — as the full list.
+     */
+    compact: { type: Boolean, default: false },
 })
+
+/** "2× Daikin FTXM35R": what a task installs, when it installs something. */
+function productLine(instance) {
+    return instance.product
+        ? instance.quantity + '× ' + instance.product.brand.name + ' ' + instance.product.model
+        : ''
+}
 
 const canManageMaterials = computed(() => hasAnyPermission([
     'material.read.serviceorder',

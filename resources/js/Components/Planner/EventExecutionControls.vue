@@ -2,23 +2,29 @@
     <div v-if="isMine || showsCancellation || canRelease || executeOthersTarget" class="flex items-center gap-1" @click.stop @pointerdown.stop>
         <template v-if="isMine">
             <template v-if="status === 'Afgerond'">
-                <Check class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
+                <Check v-if="!labelled" class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
             </template>
 
             <template v-else-if="status === 'Geannuleerd'">
-                <Ban class="size-4 text-gray-400" v-tooltip="'Geannuleerd'" />
+                <Ban v-if="!labelled" class="size-4 text-gray-400" v-tooltip="'Geannuleerd'" />
             </template>
 
             <template v-else>
-                <button type="button" v-tooltip="'Tijden en handtekening registreren'"
-                    class="p-1 rounded text-blue-600 hover:bg-blue-50 disabled:opacity-40"
+                <button type="button" v-tooltip="labelled ? null : 'Tijden en handtekening registreren'"
+                    :class="labelled
+                        ? 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-lavoro-sm bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40'
+                        : 'p-1 rounded text-blue-600 hover:bg-blue-50 disabled:opacity-40'"
                     :disabled="busy" @click="openModal">
                     <Clock class="size-4" />
+                    <template v-if="labelled">Tijden invullen</template>
                 </button>
-                <button type="button" v-tooltip="'Annuleren'"
-                    class="p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-40"
+                <button type="button" v-tooltip="labelled ? null : 'Annuleren'"
+                    :class="labelled
+                        ? 'whitespace-nowrap rounded-lavoro-sm px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-900/20'
+                        : 'p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-40'"
                     :disabled="busy" @click="cancel">
-                    <X class="size-4" />
+                    <template v-if="labelled">Annuleren</template>
+                    <X v-else class="size-4" />
                 </button>
             </template>
         </template>
@@ -72,6 +78,11 @@ import { isCancelledForUser, isClosedForUser } from '@/Utilities/plannerOverlaps
 const props = defineProps({
     event: { type: Object, required: true },
     userId: { type: Number, default: null },
+    /**
+     * Buttons that say in words what they do, for a screen with room for it rather than a
+     * planner cell. The state itself (times registered, cancelled) is left to that screen.
+     */
+    labelled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['changed'])

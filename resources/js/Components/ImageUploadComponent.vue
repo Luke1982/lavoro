@@ -1,6 +1,6 @@
 <template>
     <div class="w-full mx-auto" v-if="mayUpload() || maySee()">
-        <SectionHeader :icon="PhotoIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
+        <SectionHeader v-if="!bare" :icon="PhotoIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
             chapter="photos" />
         <div v-if="mayUpload()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop" :class="[
@@ -269,6 +269,11 @@ const props = defineProps({
     subtitle: {
         type: String,
         default: ''
+    },
+    /** Without its own heading, for a box that already says what it holds. */
+    bare: {
+        type: Boolean,
+        default: false
     },
 });
 

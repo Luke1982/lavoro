@@ -63,7 +63,7 @@
                     <!-- De grote knop steekt boven de kaart uit, met zijn naam eronder. -->
                     <button v-if="tab.variant === 'fab'" type="button" :aria-expanded="creating"
                         :class="[TAB_CLASS, 'text-lavoro-blue']" @click="creating = !creating">
-                        <span
+                        <span ref="fabEls"
                             class="-mt-8 flex size-14 items-center justify-center rounded-full bg-lavoro-blue text-white shadow-lg transition-transform duration-200"
                             :class="creating ? 'rotate-45' : ''">
                             <Plus class="size-7" />
@@ -120,12 +120,14 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Link, usePage } from '@inertiajs/vue3'
 import { ChevronLeft, ChevronRight, Plus } from '@lucide/vue'
 import CreateDrawer from '@/Components/Layout/CreateDrawer.vue'
 import { navIcon } from '@/Navigation/icons.js'
 import { useMenu } from '@/Composables/useMenu.js'
+import { useTabBar } from '@/Composables/useTabBar.js'
+import { useSwipe } from '@/Composables/useSwipe.js'
 
 /**
  * De balk onderaan op een telefoon. Welke knoppen erin staan en wat de grote
@@ -165,57 +167,63 @@ watch(() => page.url, () => { creating.value = false })
 /**
  * De balk opzij vegen.
  *
- * Hij blijft weg waar je hem liet, ook na een verversing: iemand die hem opzij
- * schuift om de onderste rij van een lijst te kunnen zien, wil hem niet bij elke
- * pagina terug hebben. Vandaar de localStorage en niet een ref die leegloopt.
+ * Waar hij ligt staat in useTabBar en niet hier: een knop die onderin zweeft,
+ * zoals het afronden van een werkbon, schuift mee de vrijgekomen ruimte in.
  *
  * De richting wordt onthouden en niet alleen het feit dat hij weg is, want het
  * lipje hoort te staan waar je hem heen duwde.
  */
-const TUCK_KEY = 'lavoro_tabbar_tucked'
-
-/** Zover moet de vinger zijn gekomen voordat wegvegen telt. */
-const COMMIT_AT = 64
-
-/** Of zoveel sneller: een korte tik met vaart legt hem net zo goed opzij. */
-const FLICK_SPEED = 0.5
-
-/** En zoveel beweging voordat de veeg zich vastlegt op zijwaarts of op en neer. */
-const AXIS_LOCK = 8
+const { tucked, clearance } = useTabBar()
 
 const navEl = ref(null)
-const tucked = ref(readTuck())
-const dragging = ref(false)
-const drag = ref(0)
+/** De grote knop steekt boven de balk uit. Hij staat in de lus van tabbladen, dus Vue geeft hem als lijst. */
+const fabEls = ref([])
 
-let pointer_id = null
-let start_x = 0
-let start_y = 0
-let anchor_x = 0
-let last_x = 0
-let last_time = 0
-let speed = 0
-let axis = null
-let just_dragged = false
+const { dragging, dragStyle, onPointerDown, onPointerMove, onPointerUp, onClickCapture } = useSwipe(navEl, (side) => {
+    tucked.value = side
+    creating.value = false
+})
 
-function readTuck() {
-    try {
-        const side = localStorage.getItem(TUCK_KEY)
+/**
+ * Hoe hoog de balk boven zijn eigen onderlijn uitsteekt, tot de top van de
+ * grote knop gemeten. De onderlijn is de marge voor de streep van het toestel;
+ * wat erboven zweeft staat op dezelfde lijn en schuift precies zoveel omhoog.
+ * Verborgen, zoals op een computer, is dat niets.
+ */
+function measure() {
+    const nav = navEl.value
 
-        return side === 'left' || side === 'right' ? side : null
-    } catch {
-        return null
+    if (!nav || nav.getClientRects().length === 0) {
+        clearance.value = 0
+        return
     }
+
+    const top = Math.min(
+        nav.getBoundingClientRect().top,
+        ...fabEls.value.map(fab => fab.getBoundingClientRect().top),
+    )
+
+    const baseline = parseFloat(getComputedStyle(nav).paddingBottom) || 0
+
+    clearance.value = Math.max(0, Math.round(window.innerHeight - baseline - top))
 }
 
-/** Een browser die niets wil onthouden hoeft niets te onthouden. */
-watch(tucked, (side) => {
-    try {
-        if (side) localStorage.setItem(TUCK_KEY, side)
-        else localStorage.removeItem(TUCK_KEY)
-    } catch {
-        /* niets aan te doen, en de balk werkt verder gewoon */
+let resize_observer = null
+
+onMounted(() => {
+    measure()
+    window.addEventListener('resize', measure)
+
+    if (typeof ResizeObserver !== 'undefined' && navEl.value) {
+        resize_observer = new ResizeObserver(measure)
+        resize_observer.observe(navEl.value)
     }
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', measure)
+    resize_observer?.disconnect()
+    clearance.value = 0
 })
 
 const tuckClass = computed(() => {
@@ -225,88 +233,4 @@ const tuckClass = computed(() => {
 
     return 'translate-x-0'
 })
-
-/**
- * Onder de vinger staat de verplaatsing in de stijl en de overgang uit: een
- * animatie die achter je hand aan hobbelt voelt als vertraging. Bij het loslaten
- * valt de stijl weg en neemt de klasse het over, met overgang, zodat hij naar
- * buiten glijdt of terugveert.
- */
-const dragStyle = computed(() => (dragging.value ? { transform: 'translateX(' + drag.value + 'px)' } : {}))
-
-const onPointerDown = (event) => {
-    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
-
-    pointer_id = event.pointerId
-    start_x = last_x = event.clientX
-    start_y = event.clientY
-    last_time = event.timeStamp
-    speed = 0
-    axis = null
-    drag.value = 0
-}
-
-const onPointerMove = (event) => {
-    if (pointer_id !== event.pointerId) return
-
-    const dx = event.clientX - start_x
-    const dy = event.clientY - start_y
-
-    /**
-     * Vanaf hier meelopen, en niet vanaf waar de vinger neerkwam: anders springt
-     * de balk de eerste acht pixels in één keer bij, en juist dat sprongetje
-     * verraadt dat er iets tussen jou en het ding in zit.
-     */
-    if (axis === null) {
-        if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return
-
-        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
-
-        if (axis === 'x') {
-            anchor_x = event.clientX
-            dragging.value = true
-            navEl.value?.setPointerCapture(event.pointerId)
-        }
-
-        return
-    }
-
-    if (axis !== 'x') return
-
-    const elapsed = event.timeStamp - last_time
-
-    if (elapsed > 0) speed = (event.clientX - last_x) / elapsed
-
-    last_x = event.clientX
-    last_time = event.timeStamp
-    drag.value = event.clientX - anchor_x
-}
-
-const onPointerUp = (event) => {
-    if (pointer_id !== event.pointerId) return
-
-    const moved = Math.abs(drag.value)
-    const flicked = moved > 12 && Math.abs(speed) > FLICK_SPEED && Math.sign(speed) === Math.sign(drag.value)
-
-    if (axis === 'x' && (moved >= COMMIT_AT || flicked)) {
-        tucked.value = drag.value < 0 ? 'left' : 'right'
-        creating.value = false
-    }
-
-    /** Wie de balk verschoven heeft, bedoelde geen tik op de knop eronder. */
-    just_dragged = moved > 4
-
-    dragging.value = false
-    drag.value = 0
-    pointer_id = null
-    axis = null
-}
-
-const onClickCapture = (event) => {
-    if (!just_dragged) return
-
-    just_dragged = false
-    event.preventDefault()
-    event.stopPropagation()
-}
 </script>

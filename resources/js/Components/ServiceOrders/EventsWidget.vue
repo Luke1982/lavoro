@@ -50,13 +50,13 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
-import axios from 'axios'
+import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { Clock, MapPin } from '@lucide/vue'
-import { nlDate, nlTime, roleInitials, eventStatusBadgeClass, mapsLinkFromAddress } from '@/Utilities/Utilities'
+import { nlDate, nlTime, roleInitials, eventStatusBadgeClass, mapsLinkFromAddress, eventTitle } from '@/Utilities/Utilities'
 import { useEventLeadingColor } from '@/Composables/useEventLeadingColor'
 import EventExecutionControls from '@/Components/Planner/EventExecutionControls.vue'
+import { useServiceOrderEvents } from '@/Composables/useServiceOrderEvents.js'
 
 const props = defineProps({
     serviceOrderId: { type: [Number, String], required: true },
@@ -73,8 +73,7 @@ const currentUserId = usePage().props.auth?.user?.id ?? null
 
 const closedStatusses = ['Afgerond', 'Geannuleerd']
 
-const localEvents = ref(props.events)
-watch(() => props.events, (value) => { localEvents.value = value })
+const { events: localEvents, refresh } = useServiceOrderEvents(() => props.serviceOrderId, () => props.events)
 
 const formatDateTime = (iso) => iso ? nlDate(iso) + ' ' + nlTime(iso) : ''
 
@@ -92,7 +91,7 @@ const mappedEvents = computed(() => localEvents.value
 
         return {
             id: ev.id,
-            title: `${ev.event_type?.name || 'Afspraak'}${ev.name ? ': ' + ev.name : ''}`,
+            title: eventTitle(ev),
             status: ev.status || null,
             location: ev.location || null,
             startFormatted: formatDateTime(ev.start),
@@ -113,8 +112,6 @@ const mappedEvents = computed(() => localEvents.value
     }))
 
 const onChanged = async () => {
-    const { data } = await axios.get(`/api/serviceorders/${props.serviceOrderId}/event-widget`)
-    localEvents.value = data.events
-    emit('times-updated', data.users_missing_times)
+    emit('times-updated', await refresh())
 }
 </script>

@@ -43,21 +43,42 @@ class EventLocationResolver
 
     public function resolve(Event $event): ?string
     {
+        return $this->resolveWithSource($event)['address'];
+    }
+
+    /**
+     * The address together with the rung it came from, so a screen can say why
+     * the monteur is sent there: 'event_location', 'location', 'event_text',
+     * 'execution_location', 'project' or 'customer'.
+     *
+     * An address typed on the appointment that merely copies the inherited one
+     * (the planner prefills and saves it back verbatim) reports the rung it was
+     * copied from: that is the real reason the address is what it is.
+     *
+     * @return array{address: ?string, source: ?string}
+     */
+    public function resolveWithSource(Event $event): array
+    {
         if ($event->location_id) {
-            return $event->linkedLocation?->addressLine();
+            return $this->rung($event->linkedLocation?->addressLine(), 'event_location');
         }
 
         $order = $event->serviceOrders->first();
 
         if ($order?->location_id) {
-            return $order->linkedLocation?->addressLine();
+            return $this->rung($order->linkedLocation?->addressLine(), 'location');
         }
+
+        $inherited = $this->inheritedWithSource($event);
 
         if (!empty($event->location)) {
-            return $event->location;
+            return [
+                'address' => $event->location,
+                'source' => $this->deviatesFromInherited($event) ? 'event_text' : $inherited['source'],
+            ];
         }
 
-        return $this->inherited($event);
+        return $inherited;
     }
 
     /**
@@ -108,21 +129,37 @@ class EventLocationResolver
      */
     public function inherited(Event $event): ?string
     {
+        return $this->inheritedWithSource($event)['address'];
+    }
+
+    /**
+     * @return array{address: ?string, source: ?string}
+     */
+    private function inheritedWithSource(Event $event): array
+    {
         $order = $event->serviceOrders->first();
 
         if ($order?->location_id) {
-            return $order->linkedLocation?->addressLine();
+            return $this->rung($order->linkedLocation?->addressLine(), 'location');
         }
 
         if (!empty($order?->execution_location)) {
-            return $order->execution_location;
+            return $this->rung($order->execution_location, 'execution_location');
         }
 
         if (!empty($order?->project?->location)) {
-            return $order->project->location;
+            return $this->rung($order->project->location, 'project');
         }
 
-        return $this->customerAddress($event);
+        return $this->rung($this->customerAddress($event), 'customer');
+    }
+
+    /**
+     * @return array{address: ?string, source: ?string}
+     */
+    private function rung(?string $address, string $source): array
+    {
+        return ['address' => $address, 'source' => $address ? $source : null];
     }
 
     /**

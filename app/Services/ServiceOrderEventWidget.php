@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class ServiceOrderEventWidget
 {
+    public function __construct(private EventLocationResolver $locations) {}
+
     public function events(ServiceOrder $service_order, User $user): Collection
     {
         $can_see_all = $user->isAdmin() || $user->hasPermission('serviceorder.see_events_widget');
@@ -68,6 +70,7 @@ class ServiceOrderEventWidget
     private function shape($event, Collection $roles_by_userable): array
     {
         $executions_by_user = $event->executions->keyBy('user_id');
+        $location = $this->locations->resolveWithSource($event);
 
         $executing_users = $event->executingUsers->map(function ($executing_user) use ($roles_by_userable, $executions_by_user) {
             $execution = $executions_by_user->get($executing_user->id);
@@ -80,6 +83,8 @@ class ServiceOrderEventWidget
                 'completion_status' => $execution->completion_status ?? 'Gepland',
                 'actual_start' => $execution?->actual_start,
                 'actual_end' => $execution?->actual_end,
+                'actual_breaktime_minutes' => $execution?->actual_breaktime_minutes,
+                'travel_time_minutes' => $execution?->travel_time_minutes,
             ];
         })->values();
 
@@ -89,7 +94,8 @@ class ServiceOrderEventWidget
             'status' => $event->status,
             'start' => $event->start,
             'end' => $event->end,
-            'location' => $event->display_location,
+            'location' => $location['address'],
+            'location_source' => $location['source'],
             'event_type' => $event->eventType ? [
                 'id' => $event->eventType->id,
                 'name' => $event->eventType->name,

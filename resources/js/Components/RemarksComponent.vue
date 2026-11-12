@@ -1,6 +1,6 @@
 <template>
     <div v-if="comments.length > 0 || !disabled">
-        <SectionHeader :icon="ChatBubbleLeftRightIcon" :subtitle="resolvedSubtitle" :internal="internal"
+        <SectionHeader v-if="!bare" :icon="ChatBubbleLeftRightIcon" :subtitle="resolvedSubtitle" :internal="internal"
             chapter="remarks">
             {{ title }}
             <span v-if="comments.length > 0"
@@ -71,7 +71,7 @@
                 <div class="flex justify-end px-3 pb-3">
                     <button type="button" @click="addComment"
                         class="inline-flex items-center gap-x-1.5 rounded-lavoro-sm bg-lavoro-blue p-2.5 mt-2 text-sm font-semibold text-white hover:bg-lavoro-blue/85 transition-colors">
-                        Opmerking plaatsen
+                        {{ submitLabel }}
                         <PaperAirplaneIcon class="h-4 w-4" />
                     </button>
                 </div>
@@ -90,7 +90,7 @@ import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import axios from 'axios';
 
-const { comments, remarkableType, remarkableId, disabled, internal, apiMode, title, subtitle } = defineProps({
+const { comments, remarkableType, remarkableId, disabled, internal, apiMode, title, subtitle, bare } = defineProps({
     comments: Array,
     title: {
         type: String,
@@ -114,6 +114,11 @@ const { comments, remarkableType, remarkableId, disabled, internal, apiMode, tit
     apiMode: {
         type: Boolean,
         default: false
+    },
+    /** Without its own heading, for a box that already says what it holds. */
+    bare: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -125,6 +130,21 @@ const emit = defineEmits(['created', 'deleted'])
  * op dat moment gold.
  */
 const authorName = (comment) => comment.user?.name || comment.author_name || 'Onbekend'
+
+/**
+ * Alleen een werkbon houdt twee lijsten bij, een interne en een voor de klant;
+ * daar zegt de knop in welke van de twee je plaatst. Elders is een opmerking
+ * gewoon een opmerking, en zou "extern" iets beloven dat er niet is.
+ */
+const SPLIT_INTERNAL_EXTERNAL = ['ServiceOrder']
+
+const submitLabel = computed(() => {
+    if (internal) return 'Interne opmerking plaatsen'
+
+    return SPLIT_INTERNAL_EXTERNAL.includes(remarkableType?.split('\\').pop())
+        ? 'Externe opmerking plaatsen'
+        : 'Opmerking plaatsen'
+})
 
 const resolvedSubtitle = computed(() => subtitle || (internal
     ? subjectSubtitle(

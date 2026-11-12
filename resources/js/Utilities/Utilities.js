@@ -40,6 +40,28 @@ export const nlRelativeDateTime = (date) => {
 export const mapsLinkFromAddress = (address) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
+/**
+ * Why an address is the one shown: the rung of the location escalation it came
+ * from, as the server reports it next to the address.
+ */
+const LOCATION_SOURCE_LABELS = {
+    event_location: "Locatie van de afspraak",
+    event_text: "Adres ingevuld bij de afspraak",
+    location: "Locatie van de werkbon",
+    execution_location: "Uitvoeringslocatie van de werkbon",
+    project: "Locatie van het project",
+    customer: "Adres van de klant",
+};
+
+export const locationSourceLabel = (source) => LOCATION_SOURCE_LABELS[source] ?? "";
+
+/** "Onderhoud: jaarlijkse beurt" — the appointment's type, with its own name after it when it has one. */
+export const eventTitle = (event) =>
+    (event.event_type?.name || "Afspraak") + (event.name ? ": " + event.name : "");
+
+/** A number as people type it ("06 - 12 34 56 78") made dialable: only its digits and plus sign remain. */
+export const phoneLink = (number) => "tel:" + String(number).replace(/[^\d+]/g, "");
+
 export const mapsLinkFromCustomer = (customer) =>
     mapsLinkFromAddress(
         customer.address + " " + customer.postal_code + " " + customer.city,

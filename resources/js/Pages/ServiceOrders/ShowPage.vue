@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+    <div v-if="!isMonteurView" class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div class="inline sm:flex items-center">
             <Link href="/serviceorders" class="text-slate-400 text-sm font-medium inline">Werkbonnen</Link>
             <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
@@ -20,24 +20,34 @@
             </button>
         </div>
     </div>
-    <div class="flex flex-col sm:flex-row items-start sm:items-center my-4 gap-2">
-        <h1 class="text-2xl font-bold">
-            Werkbon #{{ serviceOrder.id }}
-        </h1>
-        <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
-            {{ serviceOrder.service_order_stage.name }}
-        </BadgeComponent>
-        <BadgeComponent color="purple" :hasDot="false" v-if="serviceOrder.maintenance_contract_id"
-            :url="`/maintenancecontracts/${serviceOrder.maintenance_contract_id}`">
-            Onderhoudscontract {{ serviceOrder.maintenance_contract_id }}
-        </BadgeComponent>
-        <BadgeComponent color="orange" v-if="missingTimes.length"
-            :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
-            Tijden ontbreken: {{ missingTimes.join(', ') }}
-        </BadgeComponent>
-        <PlanInPlannerButton :serviceorder="serviceOrder" variant="button" />
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2"
+        :class="isMonteurView ? 'mx-auto mb-4 max-w-3xl' : 'my-4'">
+        <template v-if="!isMonteurView">
+            <h1 class="text-2xl font-bold">
+                Werkbon #{{ serviceOrder.id }}
+            </h1>
+            <BadgeComponent color="blue" :hasDot="false" v-if="serviceOrder.service_order_stage">
+                {{ serviceOrder.service_order_stage.name }}
+            </BadgeComponent>
+            <BadgeComponent color="purple" :hasDot="false" v-if="serviceOrder.maintenance_contract_id"
+                :url="`/maintenancecontracts/${serviceOrder.maintenance_contract_id}`">
+                Onderhoudscontract {{ serviceOrder.maintenance_contract_id }}
+            </BadgeComponent>
+            <BadgeComponent color="orange" v-if="missingTimes.length"
+                :tooltip="'Deze uitvoerders hebben nog geen tijden ingevuld'">
+                Tijden ontbreken: {{ missingTimes.join(', ') }}
+            </BadgeComponent>
+            <PlanInPlannerButton :serviceorder="serviceOrder" variant="button" />
+        </template>
+        <SegmentedToggle v-model="view" :options="viewOptions" class="w-full sm:w-auto sm:ml-auto" />
     </div>
-    <ChaptersComponent>
+    <MechanicView v-if="isMonteurView" :service-order="serviceOrder" :events="eventWidgetEvents"
+        :map-location="mapLocation" :materials="combinedMaterials" :freeform-materials="combinedFreeformMaterials"
+        :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
+        :material-usage-units="materialUsageUnits" :hidden-task-count="hiddenTaskCount" :is-signed="isSigned"
+        :closed-stage-id="closedStageId" @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
+        @close-service-order="closeViaStage" />
+    <ChaptersComponent v-else>
         <template v-if="chapterHeaders.length > 1">
             <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
             <ChapterHeaders>
@@ -267,7 +277,7 @@
                             </div>
                         </BoxComponent>
                         <BoxComponent
-                            v-if="hasAnyPermission(['material.read.serviceorder', 'freeformmaterial.create', 'freeformmaterial.delete', 'freeformmaterial.update', 'freeformmaterial.read'])"
+                            v-if="canSeeMaterials"
                             class="mb-4 sm:mb-0">
                             <MaterialsWidget :service-order-id="serviceOrder.id" :materials="combinedMaterials"
                                 :freeform-materials="combinedFreeformMaterials" :all-materials="allMaterials"
@@ -280,7 +290,7 @@
                     <template #sidebar>
                         <BoxComponent padding="p-0" extra-classes="overflow-hidden">
                             <OpenStreetMapWidget :key="mapLocation.address"
-                                :address="mapLocation.address ?? ''" :source-label="mapSourceLabel" />
+                                :address="mapLocation.address ?? ''" :source-label="locationSourceLabel(mapLocation.source)" />
                         </BoxComponent>
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
                             <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
@@ -641,7 +651,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle } from '@/Utilities/Utilities';
+import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
 import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
@@ -664,7 +674,7 @@ import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import { ticketPriorities } from '@/Components/data/TicketData';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { BadgeCheck, ChevronRightIcon, Euro as EuroIcon, Package, Signature, TimelineIcon } from '@lucide/vue';
+import { BadgeCheck, ChevronRightIcon, Euro as EuroIcon, HardHat, LayoutList, Package, Signature, TimelineIcon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue';
@@ -672,6 +682,10 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
+import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
+import MechanicView from '@/Components/ServiceOrders/Mechanic/MechanicView.vue';
+import { useServiceOrderView } from '@/Composables/useServiceOrderView.js';
+import { useMaterialPermissions } from '@/Composables/useMaterialLines.js';
 
 const props = defineProps({
     customerAssets: { type: Array, default: () => [] },
@@ -708,7 +722,18 @@ const props = defineProps({
     defaultLeadingColor: { type: String, default: 'event' },
     eventWidgetEvents: { type: Array, default: () => [] },
     mapLocation: { type: Object, default: () => ({ address: null, source: null }) },
+    /** Whether the reader executes this werkbon, on it or on one of its appointments. */
+    viewerExecutes: { type: Boolean, default: false },
 });
+
+const { view } = useServiceOrderView(() => props.viewerExecutes);
+const isMonteurView = computed(() => view.value === 'monteur');
+const { canSee: canSeeMaterials } = useMaterialPermissions();
+
+const viewOptions = [
+    { value: 'standaard', label: 'Standaard', icon: LayoutList },
+    { value: 'monteur', label: 'Monteur', icon: HardHat },
+];
 
 const missingTimes = ref(props.usersMissingTimes);
 watch(() => props.usersMissingTimes, (value) => { missingTimes.value = value });
@@ -850,15 +875,6 @@ const selectedLocation = computed(() => {
 });
 
 // Combo options carry `name` ("titel – plaats"); the eager-loaded relation carries `title`.
-const mapSourceLabels = {
-    location: 'Locatie',
-    execution_location: 'Uitvoeringslocatie',
-    project: 'Projectlocatie',
-    customer: 'Klantadres',
-};
-
-const mapSourceLabel = computed(() => mapSourceLabels[props.mapLocation.source] ?? '');
-
 const selectedLocationLabel = computed(() =>
     selectedLocation.value ? (selectedLocation.value.name ?? selectedLocation.value.title) : null
 );
@@ -872,8 +888,13 @@ const onLocationChange = (value) => {
 
 onMounted(() => loadLocations(form.customer_id));
 
+/**
+ * A location belongs to one customer, so another customer empties the field. Going back
+ * to the saved customer, by cancelling or by a refused save, brings its saved location
+ * back with it rather than leaving the werkbon looking as if it never had one.
+ */
 watch(() => form.customer_id, (customerId) => {
-    form.location_id = null;
+    form.location_id = customerId === props.serviceOrder.customer_id ? props.serviceOrder.location_id : null;
     loadLocations(customerId);
 });
 
@@ -1014,6 +1035,11 @@ const typeOptions = [
     { value: 'mixed', title: 'Gemengd' },
 ]
 
+/**
+ * Saves each edited field as it changes. It stands aside while the customer differs from
+ * the saved one: emptying the location is part of a customer change, and saving it on its
+ * own would carry the new customer along before anyone was asked about the machines.
+ */
 watch(
     [
         () => form.description,
@@ -1031,6 +1057,9 @@ watch(
     () => {
         if (isReverting.value) {
             isReverting.value = false;
+            return;
+        }
+        if (form.customer_id !== props.serviceOrder.customer_id) {
             return;
         }
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
@@ -1064,7 +1093,7 @@ watch(() => form.customer_id, (customerId) => {
         return;
     }
 
-    if (!props.jobs.length) {
+    if (!props.serviceOrder.servicejobs.length) {
         form.put(`/serviceorders/${props.serviceOrder.id}`, {
             preserveScroll: true,
             onSuccess: () => form.defaults(),
@@ -1250,7 +1279,7 @@ const timelineItems = computed(() => {
     const evts = (props.serviceOrder.events || []).map(e => ({
         id: `evt-${e.id}`,
         category: 'event',
-        rendered: `${e.event_type?.name || 'Afspraak'}${e.name ? ': ' + e.name : ''}`,
+        rendered: eventTitle(e),
         description: e.description || '',
         created_at: e.start || e.created_at,
         color: e.event_type?.color || null,

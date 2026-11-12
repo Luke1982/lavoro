@@ -196,6 +196,7 @@ class ServiceOrderController extends Controller
         $service_order = ServiceOrder::with([
             'serviceOrderStage',
             'servicejobs.asset.product.brand',
+            'servicejobs.asset.product.productType',
             'tickets.asset.product.brand',
             'tickets.asset.product.productType',
             'materials.category',
@@ -328,6 +329,7 @@ class ServiceOrderController extends Controller
             'serviceOrder' => $service_order,
             'documentCategories' => DocumentCategory::forPicker(),
             'mapLocation' => ServiceOrderLocationResolver::resolve($service_order),
+            'viewerExecutes' => ServiceOrder::assignedTo($user)->whereKey($service_order->id)->exists(),
             'customerAssets' => $customer_assets,
             'customerTickets' => $customer_tickets,
             'allTaskInstances' => $all_task_instances,

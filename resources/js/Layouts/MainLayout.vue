@@ -54,9 +54,12 @@
         <!--
             Zoals in het ontwerp: het logo links, zoeken en meldingen rechts, en
             verder niets. Het menu en het profiel staan onderin binnen duimbereik,
-            dus die hoeven hier niet nog een keer.
+            dus die hoeven hier niet nog een keer. Naar beneden scrollen schuift
+            hem weg, omhoog haalt hem terug.
         -->
-        <div class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 lg:hidden">
+        <div ref="headerEl"
+            class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden"
+            :class="headerHidden ? '-translate-y-full' : 'translate-y-0'" @focusin="revealHeader">
             <img src="/img/logo-neg.svg" class="h-8" alt="Lavoro">
             <div class="flex items-center gap-x-1">
                 <button type="button" class="p-2 text-sidebar-muted hover:text-lavoro-green" @click="openNavigator">
@@ -122,6 +125,7 @@ import { useLocationTracker } from '@/Composables/useLocationTracker.js'
 import { usePushNotifications } from '@/Composables/usePushNotifications.js'
 import { useWebPush } from '@/Composables/useWebPush.js'
 import { useDeepLinks } from '@/Composables/useDeepLinks.js'
+import { useHeaderReveal } from '@/Composables/useHeaderReveal.js'
 
 // Push requires a configured Firebase project (google-services.json on
 // Android). Without it, the native PushNotifications.register() throws an
@@ -140,6 +144,9 @@ const { init: init_deep_links } = useDeepLinks()
 
 const page = usePage()
 const { authUser, collapsed, loggingOut, setLoggingOut } = useMenu()
+
+const headerEl = ref(null)
+const { hidden: headerHidden, reveal: revealHeader } = useHeaderReveal(headerEl)
 
 onMounted(async () => {
     /**
