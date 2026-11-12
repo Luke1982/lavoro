@@ -114,12 +114,20 @@ export function useWebPush() {
     const can_ask = computed(() => is_supported.value && permission.value === 'default' && !dismissed.value)
     const is_enabled = computed(() => is_supported.value && permission.value === 'granted')
 
+    /**
+     * Een browser die de vraag wegklikt of stil onderdrukt (Chrome en Edge in
+     * de rustige stand, Firefox bij "Niet nu") laat de toestemming op 'default'
+     * staan. Zonder dat te onthouden staat de balk bij elke keer laden weer in
+     * beeld voor iemand die al gekozen heeft.
+     */
     async function enable() {
         if (!is_supported.value) return false
 
         permission.value = await Notification.requestPermission()
 
         if (permission.value !== 'granted') {
+            dismiss()
+
             return false
         }
 
