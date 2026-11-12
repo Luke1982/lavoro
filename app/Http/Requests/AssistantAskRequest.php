@@ -24,7 +24,7 @@ class AssistantAskRequest extends FormRequest
             'page' => ['nullable', 'string', 'max:2048'],
             /** Which thread this belongs to, so the turns can be read back together. */
             'conversation' => ['nullable', 'uuid'],
-            'history' => ['nullable', 'array', 'max:6'],
+            'history' => ['nullable', 'array', 'max:12'],
             'history.*.question' => ['required', 'string', 'max:2000'],
             'history.*.answer' => ['required', 'string', 'max:8000'],
             /**

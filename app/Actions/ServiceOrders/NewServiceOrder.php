@@ -2,6 +2,8 @@
 
 namespace App\Actions\ServiceOrders;
 
+use App\Enums\ServiceOrderTypes;
+
 /**
  * Everything needed to open a werkbon, however the request arrived.
  *
@@ -21,5 +23,6 @@ final class NewServiceOrder
         public readonly ?string $description = null,
         public readonly array $asset_ids = [],
         public readonly array $ticket_ids = [],
+        public readonly ?ServiceOrderTypes $type = null,
     ) {}
 }

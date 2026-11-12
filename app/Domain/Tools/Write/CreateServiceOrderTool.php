@@ -9,6 +9,7 @@ use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
+use App\Enums\ServiceOrderTypes;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
@@ -51,6 +52,12 @@ class CreateServiceOrderTool implements Confirmable, Tool
                 'description' => [
                     'type' => 'string',
                     'description' => 'Waar de werkbon over gaat.',
+                ],
+                'type' => [
+                    'type' => 'string',
+                    'enum' => array_column(ServiceOrderTypes::cases(), 'value'),
+                    'description' => 'Soort werkbon: installation als er apparatuur geplaatst of geleverd wordt, '
+                        . 'service bij storingen, onderhoud en keuringen, mixed als het allebei is.',
                 ],
                 'asset_ids' => [
                     'type' => 'array',
@@ -104,7 +111,10 @@ class CreateServiceOrderTool implements Confirmable, Tool
             $tickets ? $tickets . ' storing(en)' : null,
         ]);
 
+        $type = ServiceOrderTypes::tryFrom((string) $call->stringArgument('type'));
+
         return 'Werkbon aanmaken'
+            . ($type ? ' (' . $type->label() . ')' : '')
             . ($customer ? ' voor ' . $customer->name : '')
             . (blank($call->stringArgument('description')) ? '' : ' — ' . $call->stringArgument('description'))
             . ($extras ? ' (met ' . implode(' en ', $extras) . ')' : '');
@@ -180,6 +190,12 @@ class CreateServiceOrderTool implements Confirmable, Tool
             );
         }
 
+        $type = ServiceOrderTypes::tryFrom((string) $call->stringArgument('type'));
+
+        if ($type === null && filled($call->stringArgument('type'))) {
+            return ToolResult::failed('Soort werkbon is installation, service of mixed.');
+        }
+
         $location_id = $call->integerArgument('location_id');
 
         if ($location_id !== null && !Location::where('id', $location_id)->where('customer_id', $customer->id)->exists()) {
@@ -193,6 +209,7 @@ class CreateServiceOrderTool implements Confirmable, Tool
             description: $call->stringArgument('description'),
             asset_ids: $assets->pluck('id')->all(),
             ticket_ids: $tickets->pluck('id')->all(),
+            type: $type,
         ));
 
         return ToolResult::ok(
@@ -202,6 +219,7 @@ class CreateServiceOrderTool implements Confirmable, Tool
                 'customer_id' => $customer->id,
                 'customer' => $customer->name,
                 'description' => $order->description,
+                'type' => $order->type?->value,
                 'assets' => $assets->pluck('serial_number')->all(),
                 'tickets' => $tickets->pluck('id')->all(),
                 'link' => '/serviceorders/' . $order->id,

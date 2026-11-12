@@ -48,6 +48,7 @@ class ReferenceCheck
         'projects',
         'products',
         'locations',
+        'maintenancecontracts',
     ];
 
     /**

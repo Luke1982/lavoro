@@ -817,7 +817,12 @@ function serialCounts(instance) {
 
     return {
         expected: slots.reduce((total, group) => total + group.expected, 0),
-        filled: slots.reduce((total, group) => total + Math.min(group.expected, group.assets.length), 0),
+        // A machine registered ahead with a placeholder serial still waits for its real one.
+        filled: slots.reduce((total, group) => {
+            const real = group.assets.filter(asset => !asset.is_placeholder).length
+
+            return total + Math.min(group.expected, real)
+        }, 0),
     }
 }
 
@@ -870,6 +875,7 @@ function buildSerialGroups(instance) {
             requires_serial: group.requires_serial,
             serial_number: asset?.serial_number ?? '',
             saved_serial: asset?.serial_number ?? '',
+            is_placeholder: asset?.is_placeholder ?? false,
             error: '',
         })
 
@@ -946,7 +952,10 @@ const serialHasDirty = computed(() => serialRows().some(rowIsDirty))
 const serialCanComplete = computed(() => {
     if (!serialInstance.value || serialInstance.value.is_complete || serialInstance.value.is_cancelled) return false
 
-    return serialRows().every(row => row.asset_id || !row.requires_serial || row.serial_number.trim() !== '')
+    const unchangedPlaceholder = row => row.is_placeholder && row.serial_number === row.saved_serial
+
+    return serialRows().every(row => !unchangedPlaceholder(row)
+        && (row.asset_id || !row.requires_serial || row.serial_number.trim() !== ''))
 })
 
 const serialPrimaryLabel = computed(() => {

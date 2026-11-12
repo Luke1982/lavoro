@@ -10,6 +10,7 @@ use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\Placeholder;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -26,9 +27,6 @@ use Illuminate\Database\Eloquent\Builder;
 class FindPlaceholderRecordsTool implements Tool
 {
     use ReportsTheWholeCount;
-
-    /** What people actually type when they mean "I will sort this out later". */
-    private const MARKERS = ['onbekend', 'unknown', 'onbekende', 'nnb', 'n.v.t.', 'tbd'];
 
     public static function name(): string
     {
@@ -117,10 +115,10 @@ class FindPlaceholderRecordsTool implements Tool
         $rows = $assets->map(fn (Asset $asset) => [
             'asset_id' => $asset->id,
             'serial_number' => $asset->serial_number,
-            'serial_is_placeholder' => $this->looksLikePlaceholder($asset->serial_number),
+            'serial_is_placeholder' => Placeholder::looksLikeOne($asset->serial_number),
             'product_id' => $asset->product_id,
             'product' => $asset->product?->display_name,
-            'product_is_placeholder' => $this->looksLikePlaceholder($asset->product?->model),
+            'product_is_placeholder' => Placeholder::looksLikeOne($asset->product?->model),
             'customer_id' => $asset->customer_id,
             'customer' => $asset->customer?->name,
             'link' => '/assets/' . $asset->id,
@@ -146,26 +144,11 @@ class FindPlaceholderRecordsTool implements Tool
     /** @param \Illuminate\Contracts\Database\Query\Builder|Builder $query */
     private function markedIn($query, string $column): void
     {
-        foreach (self::MARKERS as $index => $marker) {
+        foreach (Placeholder::MARKERS as $index => $marker) {
             $query->{$index === 0 ? 'whereRaw' : 'orWhereRaw'}(
                 'LOWER(' . $column . ') LIKE ?',
                 ['%' . $marker . '%']
             );
         }
-    }
-
-    private function looksLikePlaceholder(?string $value): bool
-    {
-        if (blank($value)) {
-            return true;
-        }
-
-        foreach (self::MARKERS as $marker) {
-            if (str_contains(mb_strtolower($value), $marker)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

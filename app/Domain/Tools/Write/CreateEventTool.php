@@ -7,12 +7,14 @@ use App\Actions\Appointments\CreateAppointmentAction;
 use App\Actions\Appointments\NewAppointment;
 use App\Domain\Planning\Clock;
 use App\Domain\Planning\TechnicianAvailability;
+use App\Domain\Tools\ChecksBeforeConfirming;
 use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Read\Concerns\OffersAChoice;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
+use App\Domain\Tools\Write\Concerns\ResolvesBeforeConfirming;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\EventType;
@@ -36,9 +38,10 @@ use Illuminate\Support\Collection;
  * but because it is being trusted with somebody's Tuesday: a misread date is
  * indistinguishable from a correct one until a van turns up.
  */
-class CreateEventTool implements Confirmable, Tool
+class CreateEventTool implements ChecksBeforeConfirming, Confirmable, Tool
 {
     use OffersAChoice;
+    use ResolvesBeforeConfirming;
 
     public static function name(): string
     {
@@ -262,6 +265,91 @@ class CreateEventTool implements Confirmable, Tool
 
     public function execute(ToolCall $call): ToolResult
     {
+        $resolved = $this->resolve($call);
+
+        if ($resolved instanceof ToolResult) {
+            return $resolved;
+        }
+
+        [
+            'starts_at' => $starts_at,
+            'ends_at' => $ends_at,
+            'mechanics' => $mechanics,
+            'service_order_id' => $service_order_id,
+            'location_id' => $location_id,
+            'customer' => $customer,
+            'event_type_id' => $event_type_id,
+            'event_type' => $event_type,
+            'role_id' => $role_id,
+            'role' => $role,
+        ] = $resolved;
+
+        $event = app(CreateAppointmentAction::class)->execute(new NewAppointment(
+            attributes: [
+                'event_type_id' => $event_type_id,
+                'start' => $starts_at->format('Y-m-d H:i:s'),
+                'end' => $ends_at->format('Y-m-d H:i:s'),
+                /** The column is called name; "subject" is only what it is to a reader. */
+                'name' => $call->stringArgument('subject'),
+                'location_id' => $location_id,
+                'status' => 'Gepland',
+            ],
+            eventable_type: $service_order_id ? ServiceOrder::class : null,
+            eventable_id: $service_order_id,
+            create_service_order: $customer !== null,
+            no_service_order: $service_order_id === null && $customer === null,
+            customer_id: $customer?->id,
+            assignment: new AppointmentAssignment(
+                user_ids: $mechanics->pluck('id')->all(),
+                /** The same role for everyone on it, keyed the way the pivot expects. */
+                user_roles: $role_id === null
+                    ? []
+                    : $mechanics->mapWithKeys(fn ($mechanic) => [$mechanic->id => [$role_id]])->all(),
+            ),
+            service_order_description: $call->stringArgument('service_order_description')
+                ?: $call->stringArgument('subject'),
+        ));
+
+        $order_id = $event->serviceOrders()->value('service_orders.id') ?? $service_order_id;
+
+        return ToolResult::ok(
+            [
+                'event_id' => $event->id,
+                'starts_at' => Clock::toLocal($starts_at)->format('Y-m-d H:i'),
+                'ends_at' => Clock::toLocal($ends_at)->format('Y-m-d H:i'),
+                'mechanics' => $mechanics->pluck('name')->all(),
+                /** The numbers beside the names, so a follow-up need not look them up again. */
+                'user_ids' => $mechanics->pluck('id')->all(),
+                /**
+                 * One line saying what this is, which is what the conversation
+                 * keeps as its note — an afspraak recorded as a bare number tells
+                 * the next question nothing about who is going or when.
+                 */
+                'what' => Clock::toLocal($starts_at)->format('d-m-Y H:i')
+                    . ' met ' . $mechanics->pluck('name')->implode(', '),
+                'event_type' => $event_type,
+                'user_role' => $role,
+                'service_order_id' => $order_id,
+                'link' => '/serviceorders/' . $order_id,
+            ],
+            'Afspraak ingepland op ' . Clock::toLocal($starts_at)->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ')
+            . ($customer !== null && $order_id ? ', op nieuwe werkbon #' . $order_id : '') . '.',
+        );
+    }
+
+    /**
+     * The proposal checked and looked up, or the reason it cannot be carried out:
+     * the times, the people, the soort afspraak, the site, and whether the diary
+     * has room. Found only on the click, a missing soort afspraak turned
+     * "Bevestigen" into a question — the planner agreed to an appointment and got
+     * none. Checked again when it runs, because the diary can fill up in between.
+     *
+     * @return ToolResult|array{starts_at: CarbonImmutable, ends_at: CarbonImmutable, mechanics: Collection<int, User>,
+     *     service_order_id: ?int, location_id: ?int, customer: ?Customer, event_type_id: int, event_type: string,
+     *     role_id: ?int, role: ?string}
+     */
+    private function resolve(ToolCall $call): ToolResult|array
+    {
         $starts_at = $this->moment($call->stringArgument('starts_at'));
         $ends_at = $this->moment($call->stringArgument('ends_at'));
 
@@ -387,57 +475,18 @@ class CreateEventTool implements Confirmable, Tool
             );
         }
 
-        $event = app(CreateAppointmentAction::class)->execute(new NewAppointment(
-            attributes: [
-                'event_type_id' => $event_type_id,
-                'start' => $starts_at->format('Y-m-d H:i:s'),
-                'end' => $ends_at->format('Y-m-d H:i:s'),
-                /** The column is called name; "subject" is only what it is to a reader. */
-                'name' => $call->stringArgument('subject'),
-                'location_id' => $location_id,
-                'status' => 'Gepland',
-            ],
-            eventable_type: $service_order_id ? ServiceOrder::class : null,
-            eventable_id: $service_order_id,
-            create_service_order: $customer !== null,
-            no_service_order: $service_order_id === null && $customer === null,
-            customer_id: $customer?->id,
-            assignment: new AppointmentAssignment(
-                user_ids: $mechanics->pluck('id')->all(),
-                /** The same role for everyone on it, keyed the way the pivot expects. */
-                user_roles: $role_id === null
-                    ? []
-                    : $mechanics->mapWithKeys(fn ($mechanic) => [$mechanic->id => [$role_id]])->all(),
-            ),
-            service_order_description: $call->stringArgument('service_order_description')
-                ?: $call->stringArgument('subject'),
-        ));
-
-        $order_id = $event->serviceOrders()->value('service_orders.id') ?? $service_order_id;
-
-        return ToolResult::ok(
-            [
-                'event_id' => $event->id,
-                'starts_at' => Clock::toLocal($starts_at)->format('Y-m-d H:i'),
-                'ends_at' => Clock::toLocal($ends_at)->format('Y-m-d H:i'),
-                'mechanics' => $mechanics->pluck('name')->all(),
-                /** The numbers beside the names, so a follow-up need not look them up again. */
-                'user_ids' => $mechanics->pluck('id')->all(),
-                /**
-                 * One line saying what this is, which is what the conversation
-                 * keeps as its note — an afspraak recorded as a bare number tells
-                 * the next question nothing about who is going or when.
-                 */
-                'what' => Clock::toLocal($starts_at)->format('d-m-Y H:i')
-                    . ' met ' . $mechanics->pluck('name')->implode(', '),
-                'event_type' => $types[$event_type_id],
-                'user_role' => $role_id === null ? null : $roles[$role_id],
-                'service_order_id' => $order_id,
-                'link' => '/serviceorders/' . $order_id,
-            ],
-            'Afspraak ingepland op ' . Clock::toLocal($starts_at)->format('d-m-Y H:i') . ' met ' . $mechanics->pluck('name')->implode(', ')
-            . ($customer !== null && $order_id ? ', op nieuwe werkbon #' . $order_id : '') . '.',
-        );
+        return [
+            'starts_at' => $starts_at,
+            'ends_at' => $ends_at,
+            'mechanics' => $mechanics,
+            'service_order_id' => $service_order_id,
+            'location_id' => $location_id,
+            'customer' => $customer,
+            'event_type_id' => $event_type_id,
+            'event_type' => $types[$event_type_id],
+            'role_id' => $role_id,
+            'role' => $role_id === null ? null : $roles[$role_id],
+        ];
     }
 
     /**

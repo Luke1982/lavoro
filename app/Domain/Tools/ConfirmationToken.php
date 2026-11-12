@@ -37,18 +37,24 @@ final class ConfirmationToken
         public readonly array $arguments,
         public readonly int $user_id,
         public readonly int $expires_at,
+        public readonly ?string $conversation = null,
     ) {}
 
     /**
+     * The conversation is sealed in with the arguments: what gets carried out
+     * on the click is what was proposed in that conversation, and the click
+     * cannot point it at the files of another one.
+     *
      * @param  array<string, mixed>  $arguments
      */
-    public static function for(string $tool, array $arguments, User $user): self
+    public static function for(string $tool, array $arguments, User $user, ?string $conversation = null): self
     {
         return new self(
             tool: $tool,
             arguments: $arguments,
             user_id: $user->id,
             expires_at: now()->addMinutes(self::LIFETIME_MINUTES)->timestamp,
+            conversation: $conversation,
         );
     }
 
@@ -83,6 +89,7 @@ final class ConfirmationToken
             'arguments' => $this->arguments,
             'user_id' => $this->user_id,
             'expires_at' => $this->expires_at,
+            'conversation' => $this->conversation,
         ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     }
 
@@ -132,6 +139,7 @@ final class ConfirmationToken
             arguments: is_array($payload['arguments'] ?? null) ? $payload['arguments'] : [],
             user_id: (int) $payload['user_id'],
             expires_at: (int) $payload['expires_at'],
+            conversation: is_string($payload['conversation'] ?? null) ? $payload['conversation'] : null,
         );
     }
 }

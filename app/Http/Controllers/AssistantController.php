@@ -82,8 +82,14 @@ class AssistantController extends Controller
         $conversation = (string) $request->validated('conversation');
         $question = (string) $request->validated('question');
 
-        $pictures = $this->imagesAsAttachments($request->validated('images') ?? []);
-        $files = $this->documentsAsAttachments($request->validated('documents') ?? []);
+        if ($this->isSomebodyElses($user, $conversation)) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
+
+        $uploaded_pictures = $this->imagesAsAttachments($request->validated('images') ?? []);
+        $uploaded_files = $this->documentsAsAttachments($request->validated('documents') ?? []);
+        $pictures = $uploaded_pictures;
+        $files = $uploaded_files;
 
         /**
          * A photo stays with the conversation, not with the one message it came
@@ -104,9 +110,14 @@ class AssistantController extends Controller
             $pictures = app(ConversationPhotos::class)->parked($conversation);
         }
 
-        /** And a datasheet is the same story, told about a file instead of a photo. */
+        /**
+         * And a datasheet is the same story, told about a file instead of a
+         * photo — until something was noted from it. From then on the note goes
+         * up instead, and the model opens the file itself when the note falls
+         * short, rather than "offerte" in a button's text sending it every time.
+         */
         if ($files === [] && filled($conversation) && NeedsTheFile::inQuestion($question)) {
-            $files = app(ConversationFiles::class)->parked($conversation);
+            $files = app(ConversationFiles::class)->unnoted($conversation);
         }
 
         /**
@@ -132,14 +143,18 @@ class AssistantController extends Controller
          * storage — that space is theirs and counts against their limits, so
          * nothing lands there without them saying so.
          *
-         * Files wait too, but only so the rest of the conversation can keep
-         * reading them; they are never offered a home in somebody's storage,
-         * because a document without a category filed by itself is a document
-         * nobody will find again.
+         * Files wait too, so the rest of the conversation can keep reading
+         * them. One only ever leaves that corner on a click, filed on a werkbon
+         * in a category somebody chose; a document filed by itself is a
+         * document nobody will find again.
+         *
+         * What arrived with this question, never what was fetched back for it:
+         * parked a second time, a file was there twice, and asked "which one"
+         * the conversation could no longer tell its own copies apart.
          */
         if (filled($conversation)) {
-            app(ConversationPhotos::class)->stash($conversation, $pictures);
-            app(ConversationFiles::class)->stash($conversation, $files);
+            app(ConversationPhotos::class)->stash($conversation, $uploaded_pictures);
+            app(ConversationFiles::class)->stash($conversation, $uploaded_files);
         }
 
         $attachments = array_merge($pictures, $files);
@@ -153,6 +168,7 @@ class AssistantController extends Controller
                     $user,
                     $pages->describe($request->validated('page')),
                     $facts->sentence($facts->for($request->validated('conversation'), $user)),
+                    app(ConversationFiles::class)->reminder($conversation),
                 ),
                 history: $request->validated('history') ?? [],
                 onTool: $this->toolWatcher(
@@ -177,6 +193,7 @@ class AssistantController extends Controller
                 needs_vision: $this->willLookAtPictures($request),
                 /** And a conversation that had a file stays with a provider that can open one. */
                 needs_documents: filled($conversation) && app(ConversationFiles::class)->has($conversation),
+                conversation: filled($conversation) ? $conversation : null,
             );
         } catch (ModelUnavailable $e) {
             $this->remember($request, $user, $tools, failure: $this->explain($e));
@@ -253,6 +270,12 @@ class AssistantController extends Controller
         $pending = [];
         $choices = [];
         $ignored = [];
+        $conversation = (string) $request->validated('conversation');
+        $files = app(ConversationFiles::class);
+
+        if ($this->isSomebodyElses($user, $conversation)) {
+            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
+        }
 
         try {
             $answer = $loop->ask(
@@ -266,6 +289,7 @@ class AssistantController extends Controller
                     $user,
                     $pages->describe($request->validated('page')),
                     $facts->sentence($facts->for($request->validated('conversation'), $user)),
+                    $files->reminder($conversation),
                 ),
                 onTool: $this->toolWatcher(
                     $tools,
@@ -275,7 +299,17 @@ class AssistantController extends Controller
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
                 ),
                 history: $request->validated('history'),
+                /**
+                 * A file goes back up after a click only until something was noted
+                 * from it. A signed offerte is worked through one click at a time,
+                 * and the steps near the end need lines from it that have long
+                 * scrolled out of the history — the lines, not the pages they
+                 * were printed on.
+                 */
+                attachments: $files->unnoted($conversation),
                 needs_vision: $this->willLookAtPictures($request),
+                needs_documents: $files->has($conversation),
+                conversation: filled($conversation) ? $conversation : null,
             );
         } catch (ModelUnavailable $e) {
             $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $this->explain($e), continuation: true);
@@ -529,6 +563,7 @@ class AssistantController extends Controller
             arguments: $approval->arguments,
             user: $user,
             confirmation_token: $request->validated('token'),
+            conversation: $approval->conversation,
         ));
 
         /**
@@ -684,6 +719,19 @@ class AssistantController extends Controller
     }
 
     /**
+     * A new conversation is nobody's yet; one with somebody else's turns in it
+     * holds their parked photos and files, which a click could otherwise file on
+     * a werkbon of yours.
+     */
+    private function isSomebodyElses(User $user, string $conversation): bool
+    {
+        return $conversation !== '' && AssistantQuestion::query()
+            ->where('conversation_id', $conversation)
+            ->where('user_id', '!=', $user->id)
+            ->exists();
+    }
+
+    /**
      * Writes one conversation out as a file somebody can hand over.
      *
      * A transcript copied off the screen leaves out the half that matters: what
@@ -728,15 +776,6 @@ class AssistantController extends Controller
     }
 
     /**
-     * Data-URLs into attachments, dropping anything that does not decode.
-     *
-     * The shape is already validated; this is the base64 itself. A corrupt image
-     * costs its own slot, never the question.
-     *
-     * @param  array<int, string>  $images
-     * @return array<int, Attachment>
-     */
-    /**
      * Whether this turn is going to end up looking at pictures.
      *
      * Decided before the first round because it cannot be decided later: an
@@ -744,8 +783,11 @@ class AssistantController extends Controller
      * cannot change providers halfway. Parked photos are certain; the words are
      * a guess, and a cheap one to get wrong — the cost of guessing yes is a
      * dearer model, the cost of guessing no is a tool that has to refuse.
+     *
+     * Carrying on after a click asks it too, with no question of its own:
+     * typed for questions only, every step after a click died on the call.
      */
-    private function willLookAtPictures(AssistantAskRequest $request): bool
+    private function willLookAtPictures(AssistantAskRequest|AssistantContinueRequest $request): bool
     {
         if (app(ConversationPhotos::class)->has((string) $request->validated('conversation'))) {
             return true;
@@ -754,7 +796,15 @@ class AssistantController extends Controller
         return NeedsEyes::inQuestion($request->validated('question'));
     }
 
-    /** @return array<int, Attachment> */
+    /**
+     * Data-URLs into attachments, dropping anything that does not decode.
+     *
+     * The shape is already validated; this is the base64 itself. A corrupt image
+     * costs its own slot, never the question.
+     *
+     * @param  array<int, string>  $images
+     * @return array<int, Attachment>
+     */
     private function imagesAsAttachments(array $images): array
     {
         $attachments = [];
@@ -973,6 +1023,7 @@ class AssistantController extends Controller
             '- machine: [#173](/assets/173)',
             '- klant: [Bouwbedrijf Kreeft](/customers/4)',
             '- project: [#12](/projects/12)',
+            '- onderhoudscontract: [#117](/maintenancecontracts/117)',
             'Alleen voor records waarvan je het nummer echt uit een tool hebt. Verzin nooit',
             'een link, en gebruik geen andere paden dan deze.',
             '',
@@ -1054,6 +1105,49 @@ class AssistantController extends Controller
             'het product op zodat je het echte nummer hebt, en zet het als taak op de werkbon.',
             'Vraag dat vóórdat je iets voorstelt: "installatie airco" is geen opdracht waar een',
             'monteur mee op pad kan.',
+            '',
+            'Krijg je een getekende offerte of opdrachtbevestiging, dan zet je de klus daaruit op,',
+            'in deze volgorde. Elke stap die iets aanmaakt is één voorstel met één knop; stel de',
+            'volgende stap pas voor als de vorige is uitgevoerd, want die heeft het nummer nodig.',
+            'Een stap die al "[al uitgevoerd]" is sla je over.',
+            '1. Leg met note_file vast wat de stappen hierna uit de offerte nodig hebben: het',
+            '   offertenummer, de klant met adres, telefoon en e-mail, de regels met aantal, merk,',
+            '   soort, model en prijs, de levertijd ("installatie 2 - 3 weken na opdracht"), wat er',
+            '   over onderhoud staat (startjaar, frequentie, prijs) en de voorwaarden die de monteur',
+            '   moet weten. Na de eerste knop zie je de offerte zelf niet meer, alleen die',
+            '   aantekening. Een regel met aantal 0 is een optie die niet gekozen is: laat die weg.',
+            '   Begin je antwoord met een korte tabel: de klant met adres, de regels met aantal, en',
+            '   eronder de levertijd.',
+            '2. Klant: zoek met find_customer op de achternaam of bedrijfsnaam, met de plaats. Past',
+            '   er één, gebruik die. Past er niets, leg dan met ask_which_one de keuze voor: een',
+            '   nieuwe klant aanmaken met de gegevens van de offerte, of zoeken op een andere naam',
+            '   (stel er een of twee voor). Nieuw: create_customer.',
+            '3. Locatie: vraag met ask_which_one of het werk op het adres van de klant gebeurt of op',
+            '   een ander adres. Ander adres: create_location.',
+            '4. Producten: zoek elk apparaat van de offerte met find_products. Staat het er niet,',
+            '   maak het aan met create_product, met merk, soort en model zoals op de offerte.',
+            '   Montagemateriaal dat in de prijs zit, voorrijkosten en voorwaarden zijn geen product.',
+            '5. Werkbon: create_service_order met type installation als er apparatuur geleverd of',
+            '   geplaatst wordt, service bij onderhoud of storingen, mixed als het allebei is. Zet',
+            '   het offertenummer in de omschrijving, met de regels en voorwaarden die de monteur',
+            '   moet weten (meegeleverde meters leiding, meerprijzen, kleur).',
+            '6. Taken en machines: add_service_order_task met tasks, per product één taak',
+            '   "Leveren en monteren" met het aantal van de offerte, en register_machines. De',
+            '   machines komen dan op de taak met een tijdelijk serienummer dat de monteur bij het',
+            '   plaatsen invult; maak ze niet nog eens los aan met create_asset.',
+            '7. Planning: vraag hoeveel uur werk het is; dat staat niet op de offerte. Kies zelf de',
+            '   plangroep die bij het product past en zoek met find_available_technician, met',
+            '   plan_group, product_ids, job_type gelijk aan het type van de werkbon, en',
+            '   total_work_minutes. Noemt de offerte een levertijd, geef dan from_date mee:',
+            '   vandaag plus de kortste termijn (bij 2 - 3 weken: over 2 weken).',
+            '   Plan de gekozen optie in met create_event op de werkbon, één afspraak per dag.',
+            '8. Onderhoudscontract: staat dat op de offerte, vraag dan met ask_which_one of het',
+            '   aangemaakt moet worden. Ja: create_maintenance_contract met de machines uit stap 6',
+            '   en wat de offerte zegt over startjaar, frequentie en prijs.',
+            '9. Vraag met ask_which_one of de offerte zelf bij de werkbon bewaard moet worden.',
+            '   Ja: save_document.',
+            'Staat er "[niet gelukt]" bij een stap, dan is die stap niet uitgevoerd: zeg dat en',
+            'los het op voordat je verder gaat.',
         ]);
     }
 
@@ -1061,7 +1155,7 @@ class AssistantController extends Controller
      * Everything that changes per person, per day and per page, kept out of the
      * system prompt so the cached prefix stays byte-for-byte identical.
      */
-    private function context(User $user, string $page, string $settled = ''): string
+    private function context(User $user, string $page, string $settled = '', string $noted = ''): string
     {
         $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . Clock::today() . '.'];
 
@@ -1076,6 +1170,11 @@ class AssistantController extends Controller
          */
         if ($settled !== '') {
             $lines[] = $settled;
+        }
+
+        /** And what was taken from the files, so they need not go up again whole. */
+        if ($noted !== '') {
+            $lines[] = $noted;
         }
 
         return implode(' ', $lines);

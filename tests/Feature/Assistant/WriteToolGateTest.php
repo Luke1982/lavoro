@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Domain\Assistant\Contracts\Attachment;
+use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Planning\Clock;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
@@ -9,12 +11,16 @@ use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolRegistry;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\DocumentCategory;
 use App\Models\Event;
+use App\Models\EventType;
 use App\Models\Product;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -129,6 +135,7 @@ class WriteToolGateTest extends TestCase
                     $arguments,
                     $user,
                     confirmation_token: $arguments['confirmation_token'] ?? null,
+                    conversation: $this->conversationWithAFile(),
                 ));
 
                 $this->assertStringNotContainsString(
@@ -164,6 +171,7 @@ class WriteToolGateTest extends TestCase
                 $tool::name(),
                 $this->plausibleFor($tool::name()),
                 $user,
+                conversation: $this->conversationWithAFile(),
             ));
 
             /**
@@ -188,7 +196,7 @@ class WriteToolGateTest extends TestCase
             $this->assertStringContainsString('nog niets gewijzigd', $result->content['note'] ?? '');
         }
 
-        $this->assertSame(6, $proposed, 'a write tool was added or lost without this test noticing');
+        $this->assertSame(10, $proposed, 'a write tool was added or lost without this test noticing');
     }
 
     /**
@@ -205,8 +213,8 @@ class WriteToolGateTest extends TestCase
             'create_event' => [
                 'starts_at' => Clock::todayAsDate()->addDay()->toDateString() . ' 08:00',
                 'ends_at' => Clock::todayAsDate()->addDay()->toDateString() . ' 10:00',
-                'user_ids' => [$this->admin()->id],
-                'event_type' => 'Onderhoud',
+                'user_ids' => [User::factory()->create(['plannable' => true])->id],
+                'event_type' => EventType::firstOrCreate(['name' => 'Onderhoud'])->name,
             ],
             'create_ticket' => [
                 'asset_id' => Asset::factory()->create([
@@ -231,7 +239,54 @@ class WriteToolGateTest extends TestCase
                 'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
                 'description' => 'Filter vervangen',
             ],
+            'create_customer' => ['name' => 'Spee ' . Str::random(8)],
+            'create_location' => [
+                'customer_id' => $customer->id,
+                'title' => 'Woonhuis',
+                'address' => 'Greveslag 52',
+            ],
+            'create_maintenance_contract' => [
+                'customer_id' => $customer->id,
+                'start_date' => Clock::todayAsDate()->addYear()->toDateString(),
+                'price' => 0,
+                'price_interval' => 'Jaarlijks',
+                'frequency' => 'Jaarlijks',
+            ],
+            'save_document' => [
+                'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
+                'category' => DocumentCategory::firstOrCreate(['name' => 'Offertes'])->name,
+            ],
             default => [],
         };
+    }
+
+    private ?string $conversation = null;
+
+    /**
+     * A conversation that had a file dropped into it, the way every tool call
+     * from the chat arrives: the tool filing that file needs one to exist.
+     */
+    private function conversationWithAFile(): string
+    {
+        if ($this->conversation === null) {
+            $this->conversation = (string) Str::uuid();
+
+            app(ConversationFiles::class)->stash($this->conversation, [new Attachment(
+                name: 'Offerte 55420.pdf',
+                media_type: 'application/pdf',
+                base64: base64_encode('%PDF-1.4 offerte'),
+            )]);
+        }
+
+        return $this->conversation;
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->conversation !== null) {
+            app(ConversationFiles::class)->discard($this->conversation);
+        }
+
+        parent::tearDown();
     }
 }

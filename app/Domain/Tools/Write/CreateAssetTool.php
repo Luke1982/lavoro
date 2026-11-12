@@ -12,6 +12,7 @@ use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\Placeholder;
 
 /**
  * Registers a machine at a customer, serial number and all.
@@ -31,7 +32,8 @@ class CreateAssetTool implements Confirmable, Tool
     {
         return 'Registreert een machine bij een klant, met serienummer. Het product moet al in het '
             . 'assortiment staan — zoek het met find_products, of maak het eerst met create_product '
-            . 'als het er niet is. Neem het serienummer letterlijk over van het typeplaatje. Er '
+            . 'als het er niet is. Neem het serienummer letterlijk over van het typeplaatje; is het nog '
+            . 'niet bekend, geef dan placeholder_serial. Er '
             . 'wordt nog niets vastgelegd: je krijgt terug dat er bevestiging nodig is en het '
             . 'systeem legt de gebruiker de knop voor.';
     }
@@ -52,6 +54,10 @@ class CreateAssetTool implements Confirmable, Tool
                 'serial_number' => [
                     'type' => 'string',
                     'description' => 'Het serienummer, letterlijk van het typeplaatje.',
+                ],
+                'placeholder_serial' => [
+                    'type' => 'boolean',
+                    'description' => 'Geef de machine een tijdelijk serienummer dat de monteur later invult.',
                 ],
                 'location_id' => [
                     'type' => 'integer',
@@ -96,9 +102,13 @@ class CreateAssetTool implements Confirmable, Tool
                 ->first();
 
         $serial = $call->stringArgument('serial_number');
+        $serial_text = match (true) {
+            $this->wantsPlaceholder($call) => ' met tijdelijk serienummer',
+            blank($serial) => ' zonder serienummer',
+            default => ' met serienummer ' . $serial,
+        };
 
-        return 'Machine registreren: ' . ($product?->display_name ?? 'onbekend product')
-            . (blank($serial) ? ' zonder serienummer' : ' met serienummer ' . $serial)
+        return 'Machine registreren: ' . ($product?->display_name ?? 'onbekend product') . $serial_text
             . ' bij ' . ($customer?->name ?? 'onbekende klant')
             . ($location ? ' op ' . $location->addressLine() : '');
     }
@@ -121,12 +131,13 @@ class CreateAssetTool implements Confirmable, Tool
         }
 
         $serial = trim((string) $call->stringArgument('serial_number'));
+        $placeholder = $this->wantsPlaceholder($call);
 
         /**
          * The same serial twice is almost always the same machine photographed
          * twice, and the second row splits its history in two.
          */
-        if ($serial !== '') {
+        if ($serial !== '' && !$placeholder) {
             $twin = Asset::query()
                 ->whereRaw('LOWER(serial_number) = ?', [mb_strtolower($serial)])
                 ->first();
@@ -150,7 +161,7 @@ class CreateAssetTool implements Confirmable, Tool
         $asset = Asset::create([
             'customer_id' => $customer->id,
             'product_id' => $product->id,
-            'serial_number' => $serial ?: null,
+            'serial_number' => $placeholder ? Placeholder::serialFor($product->id) : ($serial ?: null),
             'location_id' => $location_id,
             'status' => 'Actief',
         ]);
@@ -163,9 +174,21 @@ class CreateAssetTool implements Confirmable, Tool
                 'product_id' => $product->id,
                 'serial_number' => $asset->serial_number,
                 'link' => '/assets/' . $asset->id,
-                'what' => ($product->display_name ?? 'machine') . ($serial !== '' ? ' (' . $serial . ')' : ''),
+                'what' => ($product->display_name ?? 'machine')
+                    . (filled($asset->serial_number) ? ' (' . $asset->serial_number . ')' : ''),
             ],
             'Machine #' . $asset->id . ' geregistreerd bij ' . $customer->name . '.',
         );
+    }
+
+    /**
+     * Asked for outright, or implied by a serial that is itself a placeholder.
+     * "onbekend" typed in as the serial means the same thing, and taken
+     * literally it collides with every other "onbekend" of this product.
+     */
+    private function wantsPlaceholder(ToolCall $call): bool
+    {
+        return filter_var($call->argument('placeholder_serial', false), FILTER_VALIDATE_BOOLEAN)
+            || Placeholder::isOne($call->stringArgument('serial_number'));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Asset;
 use App\Models\Product;
 use App\Models\ServiceOrderTaskInstance;
+use App\Support\Placeholder;
 use Illuminate\Support\Collection;
 
 /**
@@ -40,7 +41,7 @@ class TaskInstanceSerialSlotService
      *
      * @return array<int, array{key: string, container_index: ?int, container_label: ?string,
      *                          product_id: int, label: string, requires_serial: bool,
-     *                          expected: int, assets: array<int, array{id: int, serial_number: ?string}>}>
+     *                          expected: int, assets: array<int, array{id: int, serial_number: ?string, is_placeholder: bool}>}>
      */
     public function groups(ServiceOrderTaskInstance $instance): array
     {
@@ -81,11 +82,17 @@ class TaskInstanceSerialSlotService
 
     /**
      * A taak without a product registers no machines, so it has nothing left to fill.
+     *
+     * A machine registered ahead of time with a placeholder serial is in its slot
+     * but not filled in: the taak completes once the mechanic has typed the real
+     * serial, not because the assistant put "onbekend-1" there when the offerte
+     * was signed.
      */
     public function allSlotsFilled(ServiceOrderTaskInstance $instance): bool
     {
-        return collect($this->groups($instance))
-            ->every(fn (array $group) => count($group['assets']) >= $group['expected']);
+        return collect($this->groups($instance))->every(fn (array $group) => collect($group['assets'])
+            ->reject(fn (array $asset) => $asset['is_placeholder'])
+            ->count() >= $group['expected']);
     }
 
     /**
@@ -111,6 +118,7 @@ class TaskInstanceSerialSlotService
                 ->map(fn (Asset $asset) => [
                     'id' => $asset->id,
                     'serial_number' => $asset->serial_number,
+                    'is_placeholder' => $product->requiresSerial() && Placeholder::wasHandedOut($asset->serial_number),
                 ])
                 ->values()
                 ->all(),

@@ -4,6 +4,7 @@ namespace App\Domain\Tools;
 
 use App\Domain\Assistant\AssistantContext;
 use App\Models\AssistantToolCall;
+use Closure;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -79,6 +80,14 @@ class ToolExecutor
             $approval = ConfirmationToken::decode($call->confirmation_token, $call->user);
 
             if ($approval === null || $approval->tool !== $call->name) {
+                $refusal = $tool instanceof ChecksBeforeConfirming
+                    ? $this->safely($call, fn () => $tool->refusalBeforeConfirming($call))
+                    : null;
+
+                if ($refusal !== null) {
+                    return $this->record($call, $refusal, 'refused_before_confirmation', $started_at);
+                }
+
                 return $this->record(
                     $call,
                     ToolResult::ok(
@@ -88,7 +97,12 @@ class ToolExecutor
                                 ? $tool->previewOf($call)
                                 : 'Deze actie wacht op bevestiging.',
                             'proposed' => $call->arguments,
-                            'confirmation_token' => ConfirmationToken::for($call->name, $call->arguments, $call->user)->encoded(),
+                            'confirmation_token' => ConfirmationToken::for(
+                                $call->name,
+                                $call->arguments,
+                                $call->user,
+                                $call->conversation,
+                            )->encoded(),
                             'note' => 'Er is nog niets gewijzigd. Vertel de gebruiker precies wat je wilt doen '
                                 . 'en vraag om bevestiging; het systeem laat de knop zien.',
                         ],
@@ -110,28 +124,31 @@ class ToolExecutor
                 );
             }
 
-            $call = $call->withArguments($approval->arguments);
+            $call = $call->withArguments($approval->arguments)->inConversation($approval->conversation);
         }
 
+        $result = $this->safely($call, fn () => $tool->execute($call));
+
+        return $this->record($call, $result, $result->is_error ? 'error' : 'ok', $started_at);
+    }
+
+    /**
+     * Tool code, run as the person who asked, with whatever it throws kept in
+     * the log. A driver's own words carry table and column names, and they
+     * reach the model, which relays them to somebody who asked when a boiler
+     * was last serviced.
+     *
+     * @param  Closure(): ?ToolResult  $work
+     */
+    private function safely(ToolCall $call, Closure $work): ?ToolResult
+    {
         try {
-            $result = $this->context->run($call->user, fn () => $tool->execute($call));
+            return $this->context->run($call->user, $work);
         } catch (Throwable $e) {
             Log::error('Tool mislukt', ['tool' => $call->name, 'exception' => $e]);
 
-            /**
-             * What went wrong stays in the log. A driver's own words carry table
-             * and column names, and they reach the model, which relays them to
-             * somebody who asked when a boiler was last serviced.
-             */
-            return $this->record(
-                $call,
-                ToolResult::failed('Deze tool liep vast. Probeer het anders te vragen of gebruik een andere tool.'),
-                'error',
-                $started_at,
-            );
+            return ToolResult::failed('Deze tool liep vast. Probeer het anders te vragen of gebruik een andere tool.');
         }
-
-        return $this->record($call, $result, $result->is_error ? 'error' : 'ok', $started_at);
     }
 
     /**

@@ -35,8 +35,12 @@ class ToolSchemaBudgetTest extends TestCase
      * and are read rather than rewritten. What is worth watching at seventeen is
      * not the size but the choosing: every tool added is one more thing to pick
      * wrongly from, and that shows up as a bad answer rather than a bill.
+     *
+     * 34000 for turning a signed offerte into a werkbon: creating a customer, a
+     * location and a maintenance contract, filing the offerte itself, and a
+     * planner that keeps to the right group and weighs experience by product.
      */
-    private const ROOM_FOR = 27000;
+    private const ROOM_FOR = 34000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

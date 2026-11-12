@@ -88,8 +88,9 @@ class AvailabilityToolHonestyTest extends TestCase
     }
 
     /**
-     * Filling a crew from outside the group asked for beats having no plan, but
-     * saying so is the whole difference between a useful answer and a wrong one.
+     * Filling a crew from outside the group asked for is a question for the
+     * planner, never something done quietly: first it asks, and once allowed it
+     * still says who is not from the group.
      */
     public function test_a_crew_it_could_not_fill_from_the_group_says_who_is_not_in_it(): void
     {
@@ -100,10 +101,20 @@ class AvailabilityToolHonestyTest extends TestCase
 
         User::factory()->create(['plannable' => true, 'name' => 'Zzz Buitenstaander']);
 
+        $asked = app(ToolExecutor::class)->run(new ToolCall('find_available_technician', [
+            'total_work_minutes' => 480,
+            'plan_group' => 'Stucadoors',
+            'crew_size' => 2,
+        ], $this->admin()));
+
+        $this->assertSame([], $asked->content['options'] ?? null, 'an outsider was put in the crew without asking');
+        $this->assertArrayHasKey('choice', $asked->content);
+
         $result = app(ToolExecutor::class)->run(new ToolCall('find_available_technician', [
             'total_work_minutes' => 480,
             'plan_group' => 'Stucadoors',
             'crew_size' => 2,
+            'include_other_groups' => true,
         ], $this->admin()));
 
         $option = $result->content['options'][0] ?? null;

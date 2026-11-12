@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Location;
+use App\Support\PostalCode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,9 +43,21 @@ class LocationStoreRequest extends FormRequest
 
     public function sanitized(): array
     {
-        $data = $this->validated();
+        return self::normalize($this->validated());
+    }
+
+    /**
+     * The stored form of validated input: postal code upper case without
+     * spaces. Static so the assistant's create_location stores a location
+     * exactly as this form does.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalize(array $data): array
+    {
         if (!empty($data['postal_code'])) {
-            $data['postal_code'] = strtoupper(preg_replace('/\s|-/', '', (string) $data['postal_code']));
+            $data['postal_code'] = PostalCode::normalize((string) $data['postal_code']);
         }
 
         return $data;

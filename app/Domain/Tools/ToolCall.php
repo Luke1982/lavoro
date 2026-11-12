@@ -24,6 +24,7 @@ final class ToolCall
         public readonly User $user,
         public readonly ?string $external_id = null,
         public readonly ?string $confirmation_token = null,
+        public readonly ?string $conversation = null,
     ) {}
 
     /**
@@ -36,7 +37,34 @@ final class ToolCall
      */
     public function withArguments(array $arguments): self
     {
-        return new self($this->name, $arguments, $this->user, $this->external_id, $this->confirmation_token);
+        return new self(
+            $this->name,
+            $arguments,
+            $this->user,
+            $this->external_id,
+            $this->confirmation_token,
+            $this->conversation,
+        );
+    }
+
+    /**
+     * The same call, placed in a conversation.
+     *
+     * A file dropped into the chat lives with the conversation, not with any one
+     * call, so a tool that reads, notes or files it needs to know which
+     * conversation it is running in — and gets that from here, never from an
+     * argument the model could fill in with somebody else's.
+     */
+    public function inConversation(?string $conversation): self
+    {
+        return new self(
+            $this->name,
+            $this->arguments,
+            $this->user,
+            $this->external_id,
+            $this->confirmation_token,
+            $conversation,
+        );
     }
 
     public function argument(string $key, mixed $default = null): mixed

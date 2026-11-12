@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Customers\CreateCustomerAction;
 use App\Enums\ContractInterval;
 use App\Enums\ProjectStatuses;
 use App\Http\Requests\CustomerReadRequest;
@@ -17,7 +18,6 @@ use App\Services\SnelStartClient;
 use App\Traits\OffersContractTemplates;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CustomerController extends Controller
 {
@@ -181,13 +181,7 @@ class CustomerController extends Controller
      */
     public function store(CustomerStoreRequest $request)
     {
-        $data = $request->sanitized();
-
-        if (empty($data['snelstart_id'] ?? null)) {
-            $data['snelstart_id'] = (string) Str::uuid();
-        }
-
-        $customer = Customer::create($data);
+        $customer = app(CreateCustomerAction::class)->execute($request->sanitized());
 
         /** Net als bij een storing reist het nieuwe record mee terug. */
         return redirect()->back()->with([

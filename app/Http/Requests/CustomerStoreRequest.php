@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PostalCode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,6 +14,7 @@ class CustomerStoreRequest extends FormRequest
         if (!$user) {
             return false;
         }
+
         return $user->isAdmin() || $user->hasPermission('customer.create');
     }
 
@@ -41,6 +43,7 @@ class CustomerStoreRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
             'location_code' => ['nullable', 'string', 'max:255'],
+            'contactname' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -69,6 +72,9 @@ class CustomerStoreRequest extends FormRequest
 
             'location_code.string' => 'Locatiecode moet een tekst zijn.',
             'location_code.max' => 'Locatiecode mag niet langer zijn dan :max tekens.',
+
+            'contactname.string' => 'Contactpersoon moet een tekst zijn.',
+            'contactname.max' => 'Contactpersoon mag niet langer zijn dan :max tekens.',
         ];
     }
 
@@ -83,18 +89,32 @@ class CustomerStoreRequest extends FormRequest
             'city' => 'plaats',
             'country' => 'land',
             'location_code' => 'locatiecode',
+            'contactname' => 'contactpersoon',
         ];
     }
 
     public function sanitized(): array
     {
-        $data = $this->validated();
+        return self::normalize($this->validated());
+    }
+
+    /**
+     * The stored form of validated input: phone as bare digits, postal code
+     * upper case without spaces. Static so the assistant's create_customer
+     * stores a customer exactly as this form does.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalize(array $data): array
+    {
         if (array_key_exists('phone', $data) && $data['phone'] !== null) {
             $data['phone'] = preg_replace('/\D+/', '', (string) $data['phone']);
         }
         if (array_key_exists('postal_code', $data) && $data['postal_code'] !== null) {
-            $data['postal_code'] = strtoupper(preg_replace('/\s|-/', '', (string) $data['postal_code']));
+            $data['postal_code'] = PostalCode::normalize((string) $data['postal_code']);
         }
+
         return $data;
     }
 }

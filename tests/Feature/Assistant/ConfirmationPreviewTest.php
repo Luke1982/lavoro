@@ -9,6 +9,7 @@ use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\EventType;
 use App\Models\Location;
 use App\Models\Product;
 use Tests\Concerns\CreatesAuthenticatedUsers;
@@ -99,7 +100,9 @@ class ConfirmationPreviewTest extends TestCase
      */
     public function test_planning_an_appointment_shows_both_ends_of_it_and_where(): void
     {
-        $user = $this->userWith('event.create');
+        $user = $this->userWithPermissions('event.create', 'serviceorder.create');
+        $user->update(['plannable' => true]);
+        EventType::firstOrCreate(['name' => 'Onderhoud']);
         $customer = Customer::factory()->create(['name' => 'Jansen Elektrotechniek']);
         $site = Location::factory()->create([
             'customer_id' => $customer->id,
@@ -131,11 +134,14 @@ class ConfirmationPreviewTest extends TestCase
      * Asked to plan at Majorlabel, the button read "Dalidastraat 25, Lent" — a
      * real address, of a different customer, on a location the write itself would
      * have refused. Reading that, you approve a morning at the wrong building; the
-     * only reason it did not happen is that the write said no afterwards.
+     * only reason it did not happen is that the write said no afterwards. Now it
+     * says no before there is a button at all.
      */
     public function test_a_location_belonging_to_another_customer_is_not_shown_as_the_address(): void
     {
-        $user = $this->userWith('event.create');
+        $user = $this->userWithPermissions('event.create', 'serviceorder.create');
+        $user->update(['plannable' => true]);
+        EventType::firstOrCreate(['name' => 'Onderhoud']);
         $mine = Customer::factory()->create(['name' => 'Majorlabel']);
         $theirs = Customer::factory()->create(['name' => 'Iemand anders']);
 
@@ -148,16 +154,19 @@ class ConfirmationPreviewTest extends TestCase
 
         $day = Clock::todayAsDate()->addDay()->toDateString();
 
-        $preview = app(ToolExecutor::class)->run(new ToolCall('create_event', [
+        $result = app(ToolExecutor::class)->run(new ToolCall('create_event', [
             'starts_at' => $day . ' 07:00',
             'ends_at' => $day . ' 15:00',
             'user_ids' => [$user->id],
             'event_type' => 'Onderhoud',
             'location_id' => $elsewhere->id,
             'create_service_order_for_customer_id' => $mine->id,
-        ], $user))->content['preview'];
+        ], $user));
 
-        $this->assertStringNotContainsString('Dalidastraat', $preview, "another customer's address was presented as the site");
-        $this->assertStringContainsString('hoort niet bij deze klant', $preview, 'nothing said the location was wrong');
+        $said = $result->toModelContent();
+
+        $this->assertTrue($result->is_error, 'a button was offered for a site the write would refuse');
+        $this->assertStringNotContainsString('Dalidastraat', $said, "another customer's address was presented as the site");
+        $this->assertStringContainsString('hoort niet bij deze klant', $said, 'nothing said the location was wrong');
     }
 }

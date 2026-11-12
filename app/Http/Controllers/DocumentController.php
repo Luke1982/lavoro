@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Documents\AttachDocumentAction;
 use App\Domain\Signals\Attachments\DocumentRemoved;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\DocumentBulkCategoryRequest;
@@ -20,27 +21,17 @@ class DocumentController extends Controller
     {
         $documentable_record = new ($request->documentable_type);
         $documentable_record = $documentable_record->find($request->documentable_id);
-        $model_name = strtolower(class_basename($documentable_record));
-
         $created_documents = [];
 
         foreach ($request->file('documents') as $document_file) {
-            $path = $document_file->store('uploaded/' . $model_name . '/' . $request->documentable_id . '/documents', 'public');
-            $original_name = $document_file->getClientOriginalName();
-
-            $document = Document::create([
-                'name' => $original_name,
-                'path' => $path,
-                'size' => $document_file->getSize(),
-                'title' => $this->titleFromFilename($original_name),
-                'document_category_id' => $request->document_category_id,
-                'user_id' => $request->user()->id,
-            ]);
-
-            $documentable_record->documents()->attach($document->id, [
-                'internal' => $request->boolean('internal', false),
-            ]);
-            $created_documents[] = $document;
+            $created_documents[] = app(AttachDocumentAction::class)->execute(
+                $documentable_record,
+                $document_file,
+                $document_file->getClientOriginalName(),
+                $request->document_category_id,
+                $request->user()->id,
+                $request->boolean('internal', false),
+            );
         }
 
         if ($request->wantsJson()) {
@@ -104,13 +95,6 @@ class DocumentController extends Controller
 
         Storage::disk('public')->delete($document->path);
         $document->delete();
-    }
-
-    private function titleFromFilename(string $filename): string
-    {
-        $base_name = pathinfo($filename, PATHINFO_FILENAME);
-
-        return trim(preg_replace('/[\s_]+/', ' ', $base_name));
     }
 
     public function download(DocumentViewRequest $request, Document $document)

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Signals\Contracts\ContractAssetAttached;
+use App\Actions\Contracts\AttachContractAssetAction;
+use App\Actions\Contracts\CreateMaintenanceContractAction;
+use App\Domain\Contracts\ContractLabels;
 use App\Domain\Signals\Contracts\ContractAssetDetached;
 use App\Domain\Signals\Contracts\ContractAssetFrequencyChanged;
 use App\Domain\Signals\Contracts\ContractAutoGenerationDisabled;
 use App\Domain\Signals\Contracts\ContractAutoGenerationEnabled;
 use App\Domain\Signals\Contracts\ContractCancelled;
-use App\Domain\Signals\Contracts\ContractCreated;
 use App\Domain\Signals\Contracts\ContractCustomerChanged;
 use App\Domain\Signals\Contracts\ContractFieldChanged;
 use App\Domain\Signals\Contracts\ContractFrequencyModeChanged;
@@ -143,20 +144,7 @@ class MaintenanceContractController extends Controller
 
     public function store(MaintenanceContractStoreRequest $request)
     {
-        $maintenancecontract = MaintenanceContract::create($request->validated());
-        Signals::dispatch(new ContractCreated($maintenancecontract));
-
-        /**
-         * A contract can start out generating its own work orders, straight from a
-         * template. Reported here as well as on the toggle, so the timeline never
-         * has work orders appearing out of nowhere.
-         */
-        if ($maintenancecontract->auto_generate) {
-            Signals::dispatch(new ContractAutoGenerationEnabled(
-                $maintenancecontract,
-                $this->autoGenerationLabel($maintenancecontract)
-            ));
-        }
+        app(CreateMaintenanceContractAction::class)->execute($request->validated());
 
         return redirect()->back()->with('success', 'Onderhoudscontract aangemaakt.');
     }
@@ -227,7 +215,7 @@ class MaintenanceContractController extends Controller
             if ($will_be_auto && !$was_auto) {
                 Signals::dispatch(new ContractAutoGenerationEnabled(
                     $maintenancecontract,
-                    $this->autoGenerationLabel($maintenancecontract)
+                    ContractLabels::autoGeneration($maintenancecontract)
                 ));
             } elseif (!$will_be_auto && $was_auto) {
                 Signals::dispatch(new ContractAutoGenerationDisabled($maintenancecontract));
@@ -338,18 +326,13 @@ class MaintenanceContractController extends Controller
         Asset $asset
     ) {
         $validated = $request->validated();
-        $frequency = $validated['frequency'] ?? null;
-        $frequency_days = $validated['frequency_days'] ?? null;
-        $maintenancecontract->assets()->attach($asset->id, [
-            'frequency' => $frequency,
-            'frequency_days' => $frequency_days,
-        ]);
 
-        Signals::dispatch(new ContractAssetAttached(
+        app(AttachContractAssetAction::class)->execute(
             $maintenancecontract,
-            $this->assetLabel($asset),
-            $frequency ? $this->frequencyLabel($frequency, $frequency_days) : null,
-        ));
+            $asset,
+            $validated['frequency'] ?? null,
+            $validated['frequency_days'] ?? null,
+        );
 
         return redirect()->back()->with('success', 'Machine gekoppeld aan het contract.');
     }
@@ -369,8 +352,8 @@ class MaintenanceContractController extends Controller
             $updated = $maintenancecontract->assets()->newPivotQuery()->where('assetables.id', $assetable_id)->first();
             Signals::dispatch(new ContractAssetFrequencyChanged(
                 $maintenancecontract,
-                $this->assetLabel($asset),
-                $this->frequencyLabel($updated->frequency, $updated->frequency_days),
+                ContractLabels::asset($asset),
+                ContractLabels::frequency($updated->frequency, $updated->frequency_days),
             ));
         }
 
@@ -390,51 +373,9 @@ class MaintenanceContractController extends Controller
 
         Signals::dispatch(new ContractAssetDetached(
             $maintenancecontract,
-            $asset ? $this->assetLabel($asset) : null,
+            $asset ? ContractLabels::asset($asset) : null,
         ));
 
         return redirect()->back()->with('success', 'Machine losgekoppeld van het contract.');
-    }
-
-    private function assetLabel(Asset $asset): string
-    {
-        $asset->loadMissing('product.brand');
-        $name = trim(implode(' ', array_filter([
-            $asset->product?->brand?->name,
-            $asset->product?->model,
-        ])));
-
-        if ($asset->serial_number) {
-            return $name !== '' ? "{$name} ({$asset->serial_number})" : $asset->serial_number;
-        }
-
-        return $name !== '' ? $name : ('#' . $asset->id);
-    }
-
-    /**
-     * How often this contract will generate work orders, read off the contract
-     * itself rather than off the request: no interval of its own means it follows
-     * the contract frequency, and only the saved contract knows which it is.
-     */
-    private function autoGenerationLabel(MaintenanceContract $maintenancecontract): string
-    {
-        $interval = $maintenancecontract->auto_generate_interval?->value;
-
-        return $interval
-            ? $this->frequencyLabel($interval, $maintenancecontract->auto_generate_interval_days)
-            : 'contractfrequentie';
-    }
-
-    private function frequencyLabel(?string $frequency, ?int $frequency_days): string
-    {
-        if (!$frequency) {
-            return 'onbekend';
-        }
-
-        if ($frequency === ContractInterval::aangepast->value && $frequency_days) {
-            return $frequency . ' (' . $frequency_days . ' dagen)';
-        }
-
-        return $frequency;
     }
 }

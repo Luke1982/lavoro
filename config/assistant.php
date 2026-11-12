@@ -10,7 +10,9 @@ use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\FindPlaceholderRecordsTool;
 use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
+use App\Domain\Tools\Read\NoteFileTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
+use App\Domain\Tools\Read\ReadFileTool;
 use App\Domain\Tools\Read\ReadManualTool;
 use App\Domain\Tools\Read\ReportFindingsTool;
 use App\Domain\Tools\Read\ResearchTicketTool;
@@ -20,10 +22,14 @@ use App\Domain\Tools\Read\SummarizeCustomerTool;
 use App\Domain\Tools\Read\ViewImagesTool;
 use App\Domain\Tools\Write\AddServiceOrderTaskTool;
 use App\Domain\Tools\Write\CreateAssetTool;
+use App\Domain\Tools\Write\CreateCustomerTool;
 use App\Domain\Tools\Write\CreateEventTool;
+use App\Domain\Tools\Write\CreateLocationTool;
+use App\Domain\Tools\Write\CreateMaintenanceContractTool;
 use App\Domain\Tools\Write\CreateProductTool;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
+use App\Domain\Tools\Write\SaveDocumentTool;
 
 return [
 
@@ -66,6 +72,12 @@ return [
         CreateAssetTool::class,
         AddServiceOrderTaskTool::class,
         ReadManualTool::class,
+        SaveDocumentTool::class,
+        CreateCustomerTool::class,
+        CreateLocationTool::class,
+        CreateMaintenanceContractTool::class,
+        NoteFileTool::class,
+        ReadFileTool::class,
     ],
 
     /*

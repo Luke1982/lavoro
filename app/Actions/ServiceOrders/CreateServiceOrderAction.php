@@ -33,6 +33,7 @@ class CreateServiceOrderAction
                 'project_id' => $order->project_id,
                 'location_id' => $order->location_id,
                 'description' => $order->description,
+                'type' => $order->type?->value,
             ]);
 
             $this->attachTickets($service_order, $order->ticket_ids);

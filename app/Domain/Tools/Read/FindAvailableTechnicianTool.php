@@ -5,31 +5,29 @@ namespace App\Domain\Tools\Read;
 use App\Domain\Planning\Clock;
 use App\Domain\Planning\CrewPlanner;
 use App\Domain\Planning\TechnicianAvailability;
+use App\Domain\Planning\TechnicianExperience;
+use App\Domain\Planning\TechnicianRanking;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
-use App\Models\Asset;
+use App\Enums\ServiceOrderTypes;
 use App\Models\Event;
-use App\Models\Ticket;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\UserPlanGroup;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Who can take a job, and when.
  *
- * Ranked the way a planner ranks: first by who is free soonest, because a
- * perfect match next Friday is no use for a job on Tuesday. Only where two
- * people come free at the same moment does it start asking who is the better
- * fit — the right group first, then whoever has closed the most tickets on that
- * kind of machine.
- *
- * The second tie-break is only as good as the data behind it. If nobody records
- * who closed a ticket it contributes nothing and the ordering quietly falls back
- * to group and name, which is the right way for it to degrade.
+ * The right group comes first, and it is a boundary rather than a preference.
+ * Asked for an airco installer, this looks at airco installers only; when none
+ * of them can, it says so and offers to look wider, instead of quietly putting a
+ * plumber on the job because he happened to be free at eight. Within the group
+ * it ranks the way a planner ranks: who is free soonest, then who has done the
+ * most of this kind of work (TechnicianExperience).
  */
 class FindAvailableTechnicianTool implements Tool
 {
@@ -62,9 +60,10 @@ class FindAvailableTechnicianTool implements Tool
 
     public function description(): string
     {
-        return 'Zoekt wanneer een klus gedaan kan worden en door wie, gesorteerd op wie het eerst kan. '
+        return 'Zoekt wanneer een klus gedaan kan worden en door wie. '
             . 'Gebruik dit voor elke vraag over inplannen — "wie kan er dinsdag", "wanneer kan deze klus". '
-            . 'Geef asset_id mee als het om een specifieke machine gaat, dan weegt ervaring met dat merk mee. '
+            . 'Vraagt de klus een specialisme, kies dan zelf de plan_group die bij het werk past; kan '
+            . 'niemand uit die groep, dan krijg je een vraag voor de gebruiker terug. '
             . 'Duurt de klus langer dan een dag, of kan hij met meer mensen sneller, geef dan '
             . 'total_work_minutes in manminuten: je krijgt per ploeggrootte terug op welke dagen het past '
             . 'en welke monteurs dan samen vrij zijn. Zonder total_work_minutes kijkt hij per monteur '
@@ -86,11 +85,28 @@ class FindAvailableTechnicianTool implements Tool
                 ],
                 'plan_group' => [
                     'type' => 'string',
-                    'description' => 'Naam van de groep die de voorkeur heeft, bijvoorbeeld Electriciens.',
+                    'description' => 'De groep waar de klus bij hoort, bijvoorbeeld Electriciens. Er wordt '
+                        . 'alleen daarbinnen gezocht.',
+                ],
+                'include_other_groups' => [
+                    'type' => 'boolean',
+                    'description' => 'Zoek ook buiten plan_group; alleen als de gebruiker daar ja op zei.',
                 ],
                 'asset_id' => [
                     'type' => 'integer',
-                    'description' => 'De machine waar de klus over gaat, zodat ervaring met dat merk meeweegt.',
+                    'description' => 'De machine waar de klus over gaat; ervaring met dat soort weegt mee.',
+                ],
+                'product_ids' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'integer'],
+                    'description' => 'De producten die geplaatst of onderhouden worden; ervaring daarmee '
+                        . 'weegt mee.',
+                ],
+                'job_type' => [
+                    'type' => 'string',
+                    'enum' => array_column(ServiceOrderTypes::cases(), 'value'),
+                    'description' => 'installation (plaatsen), service (storing, onderhoud) of mixed: '
+                        . 'welke ervaring het zwaarst telt.',
                 ],
                 'total_work_minutes' => [
                     'type' => 'integer',
@@ -177,7 +193,7 @@ class FindAvailableTechnicianTool implements Tool
         $days = self::WINDOW_DAYS;
         $limit = (int) config('assistant.max_results', 25);
 
-        $wanted_group = $call->stringArgument('plan_group');
+        $wanted_group = $call->stringArgument('plan_group') ?: null;
 
         /**
          * A group nobody is in and a group that does not exist give the same
@@ -187,14 +203,42 @@ class FindAvailableTechnicianTool implements Tool
          * specialisatie", which is a confident answer to something that was
          * never looked up.
          */
-        if (filled($wanted_group)) {
-            $known = UserPlanGroup::orderBy('name')->pluck('name');
+        $known = UserPlanGroup::orderBy('name')->pluck('name');
 
-            if (!$known->contains($wanted_group)) {
+        if ($wanted_group !== null && !$known->contains($wanted_group)) {
+            /**
+             * "Airco" for "Team Airco" is not a guess when it is the only group
+             * with that word in it; refusing it cost a round trip every time.
+             */
+            $containing = $known->filter(
+                fn (string $name) => str_contains(mb_strtolower($name), mb_strtolower($wanted_group))
+            );
+
+            if ($containing->count() !== 1) {
                 return ToolResult::failed(
                     'Onbekende groep "' . $wanted_group . '". Bestaande groepen: ' . $known->implode(', ') . '.'
                 );
             }
+
+            $wanted_group = $containing->first();
+        }
+
+        /**
+         * Work on a particular kind of machine is specialist work, and skipping
+         * the group is how a plumber ends up on an airco: free soonest, never
+         * asked about. So the group is chosen on purpose — one of them, or
+         * explicitly none — rather than left out by accident.
+         */
+        $product_ids = $call->integerListArgument('product_ids');
+        $asset_id = $call->integerArgument('asset_id');
+        $widened = filter_var($call->argument('include_other_groups', false), FILTER_VALIDATE_BOOLEAN);
+
+        if (($product_ids !== [] || $asset_id !== null) && $wanted_group === null && !$widened && $known->isNotEmpty()) {
+            return ToolResult::failed(
+                'Kies de plangroep die bij dit werk past en zoek opnieuw met plan_group. Bestaande groepen: '
+                    . $known->implode(', ') . '. Past geen enkele groep, zoek dan opnieuw met '
+                    . 'include_other_groups: true.'
+            );
         }
 
         $working_day = ($availability->workEndHour() - $availability->workStartHour()) * 60;
@@ -214,8 +258,23 @@ class FindAvailableTechnicianTool implements Tool
                 . 'over meerdere dagen of meerdere monteurs verdeeld mag worden.'
             );
         }
-        $brand_id = $this->brandOf($call->integerArgument('asset_id'));
-        $closed_by_brand = $brand_id ? $this->ticketsClosedPerUser($brand_id) : [];
+
+        $job_type = ServiceOrderTypes::tryFrom($call->stringArgument('job_type') ?: 'mixed');
+
+        if ($job_type === null) {
+            return ToolResult::failed('job_type is installation, service of mixed.');
+        }
+
+        $unknown_products = array_diff($product_ids, Product::whereIn('id', $product_ids)->pluck('id')->all());
+
+        if ($unknown_products !== []) {
+            return ToolResult::notFound('Product(en) ' . implode(', ', $unknown_products));
+        }
+
+        $ranking = new TechnicianRanking(
+            $wanted_group,
+            app(TechnicianExperience::class)->of($product_ids, $asset_id, $job_type),
+        );
 
         $users = $availability->plannableUsers();
         $only = $call->integerListArgument('user_ids');
@@ -230,6 +289,26 @@ class FindAvailableTechnicianTool implements Tool
             }
         }
 
+        /**
+         * Kept to the group unless somebody agreed to more. A question about
+         * Jeremy by name is a question about Jeremy, so naming people overrules
+         * the group: whoever they are, they were asked for.
+         */
+        $kept_to_group = $wanted_group !== null && !$widened && $only === [];
+
+        if ($kept_to_group) {
+            $users = $users->filter(fn (User $user) => $ranking->inGroup($user))->values();
+
+            if ($users->isEmpty()) {
+                return $this->nobodyInGroup(
+                    $wanted_group,
+                    $from,
+                    'Er zit geen inplanbare monteur in de groep ' . $wanted_group . '.',
+                    can_wait: false,
+                );
+            }
+        }
+
         if ($total_work !== null) {
             return $this->crewOptions(
                 $users,
@@ -237,8 +316,8 @@ class FindAvailableTechnicianTool implements Tool
                 $total_work,
                 $call->integerArgument('crew_size'),
                 $wanted_group,
-                $brand_id,
-                $closed_by_brand,
+                $kept_to_group,
+                $ranking,
                 $days,
             );
         }
@@ -253,8 +332,6 @@ class FindAvailableTechnicianTool implements Tool
                 continue;
             }
 
-            $groups = $user->planGroups->pluck('name')->all();
-
             $candidates[] = [
                 'user_id' => $user->id,
                 'name' => $user->name,
@@ -263,13 +340,13 @@ class FindAvailableTechnicianTool implements Tool
                     'from' => $this->clock($slot['start_min']),
                     'until' => $this->clock($slot['end_min']),
                 ],
-                'plan_groups' => $groups,
-                'in_requested_group' => $wanted_group !== null && in_array($wanted_group, $groups, true),
-                'closed_tickets_on_this_brand' => $closed_by_brand[$user->id] ?? 0,
+                'plan_groups' => $user->planGroups->pluck('name')->all(),
+                'in_requested_group' => $wanted_group !== null && $ranking->inGroup($user),
+                'experience' => $ranking->experienceOf($user->id),
                 '_sort' => [
+                    !$ranking->inGroup($user),
                     $slot['date'] . str_pad((string) $slot['start_min'], 4, '0', STR_PAD_LEFT),
-                    ($wanted_group !== null && in_array($wanted_group, $groups, true)) ? 0 : 1,
-                    -($closed_by_brand[$user->id] ?? 0),
+                    -$ranking->score($user),
                     $user->name,
                 ],
             ];
@@ -283,6 +360,16 @@ class FindAvailableTechnicianTool implements Tool
             return $candidate;
         }, array_slice($candidates, 0, $limit));
 
+        if ($candidates === [] && $kept_to_group) {
+            return $this->nobodyInGroup(
+                $wanted_group,
+                $from,
+                'Niemand uit de groep ' . $wanted_group . ' heeft tussen ' . $from->toDateString() . ' en '
+                    . $from->addDays($days - 1)->toDateString() . ' een aaneengesloten blok van ' . $duration
+                    . ' minuten vrij.',
+            );
+        }
+
         if ($candidates === []) {
             return ToolResult::ok(
                 ['technicians' => [], 'note' => 'Niemand heeft in deze periode een aaneengesloten blok van '
@@ -294,7 +381,12 @@ class FindAvailableTechnicianTool implements Tool
         return ToolResult::ok(
             [
                 'technicians' => $candidates,
-                'searched' => ['from' => $from->toDateString(), 'days' => $days, 'duration_minutes' => $duration],
+                'searched' => [
+                    'from' => $from->toDateString(),
+                    'days' => $days,
+                    'duration_minutes' => $duration,
+                    'only_plan_group' => $kept_to_group ? $wanted_group : null,
+                ],
             ],
             count($candidates) . ' monteur(s) met ruimte gevonden.',
         );
@@ -309,7 +401,6 @@ class FindAvailableTechnicianTool implements Tool
      * empty, so what comes back is a list of things that can actually be done.
      *
      * @param  Collection<int, User>  $users
-     * @param  array<int, int>  $closed_by_brand
      */
     private function crewOptions(
         Collection $users,
@@ -317,8 +408,8 @@ class FindAvailableTechnicianTool implements Tool
         int $total_work,
         ?int $crew_size,
         ?string $wanted_group,
-        ?int $brand_id,
-        array $closed_by_brand,
+        bool $kept_to_group,
+        TechnicianRanking $ranking,
         int $days,
     ): ToolResult {
         if ($total_work < 1) {
@@ -332,6 +423,20 @@ class FindAvailableTechnicianTool implements Tool
          */
         $largest = min(self::LARGEST_CREW, max($users->count(), 1));
 
+        /**
+         * A crew bigger than the group is a crew that needs outsiders, which is
+         * the question to put to the planner — not a complaint about crew_size.
+         */
+        if ($kept_to_group && $crew_size !== null && $crew_size > $users->count()) {
+            return $this->nobodyInGroup(
+                $wanted_group,
+                $from,
+                'De groep ' . $wanted_group . ' heeft ' . $users->count() . ' inplanbare monteur(s); een ploeg van '
+                    . $crew_size . ' kan alleen met iemand van buiten de groep.',
+                can_wait: false,
+            );
+        }
+
         if ($crew_size !== null && ($crew_size < 1 || $crew_size > $largest)) {
             return ToolResult::failed(
                 'crew_size moet tussen 1 en ' . $largest . ' liggen (' . $users->count()
@@ -339,11 +444,11 @@ class FindAvailableTechnicianTool implements Tool
             );
         }
 
-        $ranking = $this->rankingFor($users, $wanted_group, $closed_by_brand);
+        $positions = $ranking->positions($users);
         $planner = app(CrewPlanner::class);
         $names = $this->labels($users);
         $in_group = $users
-            ->mapWithKeys(fn (User $user) => [$user->id => $this->groupRank($user, $wanted_group) === 0])
+            ->mapWithKeys(fn (User $user) => [$user->id => $ranking->inGroup($user)])
             ->all();
 
         $sizes = $crew_size !== null
@@ -364,14 +469,14 @@ class FindAvailableTechnicianTool implements Tool
         $options = [];
 
         foreach ($sizes as $size) {
-            $option = $planner->optionFrom($grid, $users, $from, $total_work, $size, $ranking, $days);
+            $option = $planner->optionFrom($grid, $users, $from, $total_work, $size, $positions, $days);
             $overrides = [];
 
             if ($option === null) {
                 $lenient ??= $availability->segmentsFor($users, $from, $days, ignore_time_off: true);
                 $time_off ??= $availability->timeOffFor($users, $from, $days);
 
-                $option = $planner->optionFrom($lenient, $users, $from, $total_work, $size, $ranking, $days);
+                $option = $planner->optionFrom($lenient, $users, $from, $total_work, $size, $positions, $days);
 
                 if ($option === null) {
                     continue;
@@ -419,6 +524,10 @@ class FindAvailableTechnicianTool implements Tool
                  */
                 'crew_user_ids' => array_values($option['crew']),
                 'not_in_requested_group' => $outsiders,
+                'experience' => array_combine(
+                    array_map(fn (int $id) => $names[$id] ?? ('#' . $id), $option['crew']),
+                    array_map($ranking->experienceOf(...), $option['crew']),
+                ),
                 'costs_someone_their_day_off' => $overrides,
                 'same_crew_throughout' => $option['same_crew_throughout'],
                 'days' => array_map(fn (array $day) => $this->dayOf($day['date']) + [
@@ -430,6 +539,16 @@ class FindAvailableTechnicianTool implements Tool
                         : array_map(fn (int $id) => $names[$id] ?? ('#' . $id), array_slice($day['user_ids'], 0, $option['crew_size'])),
                 ], $option['days']),
             ];
+        }
+
+        if ($options === [] && $kept_to_group) {
+            return $this->nobodyInGroup(
+                $wanted_group,
+                $from,
+                'Met de ' . $users->count() . ' monteur(s) uit de groep ' . $wanted_group . ' past '
+                    . $total_work . ' manminuten werk niet tussen ' . $from->toDateString() . ' en '
+                    . $from->addDays($days - 1)->toDateString() . '.',
+            );
         }
 
         if ($options === []) {
@@ -451,6 +570,8 @@ class FindAvailableTechnicianTool implements Tool
                     'from' => $from->toDateString(),
                     'days' => $days,
                     'total_work_minutes' => $total_work,
+                    'only_plan_group' => $kept_to_group ? $wanted_group : null,
+                    'people_in_plan_group' => $kept_to_group ? $users->count() : null,
                 ],
                 'note' => 'Elke optie is een manier om dezelfde hoeveelheid werk te verdelen; de monteurs '
                     . 'daarin zijn op die dagen tegelijk vrij. Onder availability staat per monteur per dag '
@@ -638,66 +759,46 @@ class FindAvailableTechnicianTool implements Tool
     }
 
     /**
-     * Who to pick first when more people are free than the crew needs: the right
-     * group, then whoever has seen most of this kind of machine, then by name so
-     * the same question twice gives the same answer.
+     * Nobody from the group can, said as a question rather than solved quietly.
      *
-     * @param  Collection<int, User>  $users
-     * @param  array<int, int>  $closed_by_brand
-     * @return array<int, int>
+     * Two ways on, both as buttons: let others in, or keep to the group and look
+     * further ahead. Which one is right is the planner's call — a specialist in
+     * three weeks can be better than a stand-in tomorrow.
      */
-    private function rankingFor(Collection $users, ?string $wanted_group, array $closed_by_brand): array
+    private function nobodyInGroup(string $group, CarbonImmutable $from, string $why, bool $can_wait = true): ToolResult
     {
-        $ordered = $users->sortBy([
-            fn (User $a, User $b) => $this->groupRank($a, $wanted_group) <=> $this->groupRank($b, $wanted_group),
-            fn (User $a, User $b) => ($closed_by_brand[$b->id] ?? 0) <=> ($closed_by_brand[$a->id] ?? 0),
-            fn (User $a, User $b) => $a->name <=> $b->name,
-        ])->values();
+        $later = $from->addDays(self::WINDOW_DAYS);
 
-        $ranking = [];
+        $options = [[
+            'label' => 'Ook monteurs buiten ' . $group,
+            'reference' => 'zoek opnieuw met include_other_groups',
+            'link' => null,
+        ]];
 
-        foreach ($ordered as $position => $user) {
-            $ranking[$user->id] = $position;
+        if ($can_wait) {
+            $options[] = [
+                'label' => 'Alleen ' . $group . ', vanaf ' . $later->format('d-m'),
+                'reference' => 'zoek binnen ' . $group . ' vanaf ' . $later->toDateString(),
+                'link' => null,
+            ];
         }
 
-        return $ranking;
-    }
-
-    private function groupRank(User $user, ?string $wanted_group): int
-    {
-        if ($wanted_group === null) {
-            return 0;
-        }
-
-        return in_array($wanted_group, $user->planGroups->pluck('name')->all(), true) ? 0 : 1;
-    }
-
-    /**
-     * How often each person has closed a ticket on a machine of this brand. The
-     * signal a planner actually uses is "has this person seen one of these
-     * before", and the brand is the closest thing the data holds to that.
-     *
-     * @return array<int, int>
-     */
-    private function ticketsClosedPerUser(int $brand_id): array
-    {
-        return Ticket::query()
-            ->whereNotNull('closed_by_id')
-            ->whereHas('asset.product', fn ($q) => $q->where('brand_id', $brand_id))
-            ->select('closed_by_id', DB::raw('count(*) as total'))
-            ->groupBy('closed_by_id')
-            ->pluck('total', 'closed_by_id')
-            ->map(fn ($total) => (int) $total)
-            ->all();
-    }
-
-    private function brandOf(?int $asset_id): ?int
-    {
-        if ($asset_id === null) {
-            return null;
-        }
-
-        return Asset::with('product:id,brand_id')->find($asset_id)?->product?->brand_id;
+        return ToolResult::ok(
+            [
+                'technicians' => [],
+                'options' => [],
+                'note' => $why . ' Er is alleen binnen de groep gezocht. Vraag de gebruiker of je ook buiten '
+                    . 'de groep mag zoeken (dan opnieuw met include_other_groups: true)'
+                    . ($can_wait ? ' of dat je binnen de groep verder vooruit zoekt (dan opnieuw met from_date '
+                        . $later->toDateString() . ')' : '')
+                    . '. De gebruiker krijgt dat als knoppen; vraag het niet nog eens in tekst.',
+                'choice' => [
+                    'question' => 'Niemand uit ' . $group . ' kan. Hoe verder?',
+                    'options' => $options,
+                ],
+            ],
+            'Niemand uit ' . $group . ' kan.',
+        );
     }
 
     /**

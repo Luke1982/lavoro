@@ -64,6 +64,7 @@ class AssistantLoop
         array $attachments = [],
         bool $needs_vision = false,
         bool $needs_documents = false,
+        ?string $conversation = null,
     ): AssistantAnswer {
         /**
          * The meter first, only then the model. The question costs nothing as
@@ -189,7 +190,7 @@ class AssistantLoop
             $turns[] = new AssistantTurn($reply->raw);
 
             $attachments = [];
-            $turns[] = new ToolResultsTurn($this->run($reply->tool_calls, $user, $onTool, $attachments));
+            $turns[] = new ToolResultsTurn($this->run($reply->tool_calls, $user, $onTool, $attachments, $conversation));
 
             /**
              * Files a tool handed back go in as their own turn, after the results
@@ -216,8 +217,13 @@ class AssistantLoop
     /**
      * @param  array<int, Attachment>  $attachments  Filled with anything the tools want shown.
      */
-    private function run(array $calls, User $user, ?Closure $onTool, array &$attachments = []): array
-    {
+    private function run(
+        array $calls,
+        User $user,
+        ?Closure $onTool,
+        array &$attachments = [],
+        ?string $conversation = null,
+    ): array {
         $results = [];
 
         foreach ($calls as $call) {
@@ -226,6 +232,7 @@ class AssistantLoop
                 arguments: $call->arguments,
                 user: $user,
                 external_id: $call->id,
+                conversation: $conversation,
             ));
 
             $onTool && $onTool($call->name, $call->arguments, $result->is_error, $result);

@@ -196,7 +196,8 @@
 
                                 <div v-for="(action, actionIndex) in exchange.pendingActions" :key="'p' + actionIndex"
                                     class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 ring-1" :class="[
-                                        action.done ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : '',
+                                        action.done && !action.failed ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : '',
+                                        action.failed ? 'bg-red-50 text-red-900 ring-red-200' : '',
                                         action.stale ? 'bg-slate-50 text-slate-500 ring-slate-200' : '',
                                         !action.done && !action.stale ? 'bg-amber-50 text-amber-900 ring-amber-200' : '',
                                     ]">
@@ -729,8 +730,13 @@ const ASK_TIMEOUT_MS = 180000
 const openingQuestion = computed(() => exchanges.value.find((exchange) => exchange.question)?.question ?? '')
 
 // What goes back to the model as history. The request rejects more, and a
-// follow-up needs what was just said rather than everything ever asked.
-const REMEMBERED_EXCHANGES = 6
+// follow-up needs what was just said rather than everything ever asked. Twelve,
+// because working through a signed offerte is a dozen steps of one thread.
+const REMEMBERED_EXCHANGES = 12
+
+// What stands in for the question on a step taken after a click; the server
+// records those turns under the same words.
+const CARRIED_ON = '(verder na bevestiging)'
 
 // The request refuses a longer answer than this, and a refusal would wedge the
 // conversation for good: every follow-up would fail on history it cannot change.
@@ -753,6 +759,15 @@ const TOOL_LABELS = {
     create_ticket: 'Storing vastleggen',
     create_service_order: 'Werkbon aanmaken',
     add_service_order_task: 'Taak op werkbon zetten',
+    create_customer: 'Klant aanmaken',
+    create_location: 'Locatie toevoegen',
+    create_product: 'Product aanmaken',
+    create_asset: 'Machine registreren',
+    create_maintenance_contract: 'Onderhoudscontract aanmaken',
+    save_document: 'Document bewaren',
+    note_file: 'Bestand samenvatten',
+    read_file: 'Bestand opnieuw lezen',
+    ask_which_one: 'Keuze voorleggen',
 }
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
@@ -1183,18 +1198,25 @@ function openRecord(path) {
     router.visit(path)
 }
 
-/** What the model is sent as the story so far, including what has been done. */
+/**
+ * What the model is sent as the story so far, including what has been done.
+ *
+ * A step the assistant took by itself after a click counts as much as one
+ * somebody asked for. Left out, a chain of confirmations forgets its own
+ * middle: from the second click on, what the earlier clicks carried out is no
+ * longer in the history, and "the action above" points at nothing.
+ */
 function historyForModel() {
     return exchanges.value
-        .filter((exchange) => exchange.answer && exchange.question)
+        .filter((exchange) => exchange.answer || exchange.pendingActions.some((action) => action.done))
         .slice(-REMEMBERED_EXCHANGES)
         .map((exchange) => ({
-            question: exchange.question,
+            question: exchange.question || CARRIED_ON,
             answer: [
                 exchange.answer,
                 ...exchange.pendingActions
                     .filter((action) => action.done)
-                    .map((action) => '[al uitgevoerd] ' + action.done),
+                    .map((action) => (action.failed ? '[niet gelukt] ' : '[al uitgevoerd] ') + action.done),
             ].join('\n\n').slice(0, REMEMBERED_ANSWER_CHARS),
         }))
 }
@@ -1215,7 +1237,10 @@ async function confirmAction(action) {
         action.done = data.message
         proceed()
     } catch (e) {
+        // Remembered as a failure, not as done: read back as "[al uitgevoerd]", a
+        // refused appointment was reported to the planner as booked.
         action.done = e.response?.data?.message || 'Het is niet gelukt.'
+        action.failed = true
     } finally {
         action.busy = false
         scrollToLatest()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Locations\CreateLocationAction;
 use App\Domain\Search\SearchTerm;
 use App\Http\Requests\LocationDestroyRequest;
 use App\Http\Requests\LocationReadRequest;
@@ -49,7 +50,7 @@ class LocationController extends Controller
 
     public function store(LocationStoreRequest $request)
     {
-        Location::create($request->sanitized());
+        app(CreateLocationAction::class)->execute($request->sanitized());
 
         return redirect()->back()->with('success', 'Locatie aangemaakt.');
     }
