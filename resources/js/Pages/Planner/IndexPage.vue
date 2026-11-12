@@ -124,11 +124,23 @@ function onDeleteServiceOrder(serviceorder) {
     })
 }
 
+/**
+ * Inertia keeps the props this page was opened with in the browser history, and
+ * Back rebuilds the page from them without asking the server. The refs below
+ * change on the spot, but that copy never saw it: a monteur just made
+ * unplannable stood in the planner again, ticked, after Back. So every change
+ * the server accepted is read back into the props too.
+ */
+function reconcilePlanUsers() {
+    router.reload({ only: ['plannableUsers', 'allPlanUsers', 'planGroups'] })
+}
+
 async function onGroupCreated(data) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post('/api/plan-groups', data)
         planGroupsRef.value = [...planGroupsRef.value, { ...r.data, user_ids: [] }]
+        reconcilePlanUsers()
     } catch (e) {
         page.props.flash.error = e.response?.data?.message || 'Kon groep niet aanmaken'
     }
@@ -142,6 +154,7 @@ async function onGroupUpdated(id, patch) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.put(`/api/plan-groups/${id}`, patch)
+        reconcilePlanUsers()
     } catch (e) {
         planGroupsRef.value[idx] = original
         page.props.flash.error = e.response?.data?.message || 'Kon groep niet bijwerken'
@@ -162,6 +175,7 @@ async function onGroupDeleted(id) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.delete(`/api/plan-groups/${id}`)
+        reconcilePlanUsers()
     } catch (e) {
         planGroupsRef.value = originalGroups
         page.props.flash.error = e.response?.data?.message || 'Kon groep niet verwijderen'
@@ -175,6 +189,7 @@ async function onGroupReordered(ids) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.put('/api/plan-groups/reorder', { ids })
+        reconcilePlanUsers()
     } catch (e) {
         planGroupsRef.value = original
         page.props.flash.error = e.response?.data?.message || 'Kon volgorde niet opslaan'
@@ -204,6 +219,7 @@ async function onUserGroupsSynced(userId, groupIds) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.put(`/api/users/${userId}/plan-groups`, { group_ids: groupIds })
+        reconcilePlanUsers()
     } catch (e) {
         allPlanUsersRef.value = prevAllPlan
         plannableUsersRef.value = prevPlannable
@@ -225,6 +241,7 @@ async function onPlannableToggled(userId, value) {
     try {
         await axios.get('/sanctum/csrf-cookie')
         await axios.patch(`/api/users/${userId}/plannable`, { plannable: value })
+        reconcilePlanUsers()
     } catch (e) {
         allPlanUsersRef.value = allPlanUsersRef.value.map(u => u.id === userId ? { ...u, plannable: !value } : u)
         if (!value) {
