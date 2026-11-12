@@ -42,6 +42,12 @@
                         Opnieuw proberen
                     </button>
                 </div>
+                <ul v-if="queueHasFailures"
+                    class="mt-1 max-h-32 space-y-0.5 overflow-y-auto text-xs text-red-600 dark:text-red-400">
+                    <li v-for="item in failedItems" :key="item.id" class="break-words">
+                        <span class="font-medium">{{ item.name }}</span> — {{ item.error }}
+                    </li>
+                </ul>
             </div>
         </div>
         <div v-else-if="maySee() && existing.length === 0"
@@ -378,6 +384,7 @@ const {
 });
 
 const stagedItems = computed(() => queueItems.value.filter((item) => item.status === 'staged'));
+const failedItems = computed(() => queueItems.value.filter((item) => item.status === 'failed'));
 const showProgress = computed(() => queueTotal.value > 0 && stagedItems.value.length === 0);
 
 const openFilePicker = () => {

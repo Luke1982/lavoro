@@ -9,7 +9,8 @@ const MEGABYTE = 1024 * 1024;
  * disk into the request body, so a queue of 20MB documents costs no more than a
  * queue of empty ones. Callers that do need the bytes (image downscaling) pass a
  * `prepare` hook; its output replaces the file for that upload and is dropped
- * again the moment the chunk lands.
+ * again the moment the chunk lands. When it throws, only that file fails, and
+ * the error's message is shown after prepareFailureMessage.
  *
  * Preparing forty files in a tight loop starves the browser of the gaps it needs
  * to paint, handle taps and reclaim memory, so every file is followed by a
@@ -72,6 +73,10 @@ export function useUploadQueue({
         }
     }
 
+    function withReason(heading, reason) {
+        return reason ? heading + ': ' + reason : heading;
+    }
+
     function failureMessage(error) {
         const data = error?.response?.data;
         const first_field = data?.errors ? Object.values(data.errors)[0] : null;
@@ -80,7 +85,18 @@ export function useUploadQueue({
             return first_field[0];
         }
 
-        return data?.message || 'Uploaden is mislukt';
+        if (data?.message) {
+            return data.message;
+        }
+
+        if (error?.response) {
+            return 'Uploaden is mislukt (HTTP ' + error.response.status + ')';
+        }
+
+        return withReason(
+            'Uploaden is mislukt',
+            error?.code === 'ERR_NETWORK' ? 'geen verbinding met de server' : error?.message
+        );
     }
 
     function add(files, { staged = false } = {}) {
@@ -183,9 +199,9 @@ export function useUploadQueue({
                     item.prepared = prepare ? await prepare(item.file) : item.file;
                     prepared_bytes = item.prepared.size || 0;
                     item.status = 'ready';
-                } catch {
+                } catch (error) {
                     item.status = 'failed';
-                    item.error = prepareFailureMessage;
+                    item.error = withReason(prepareFailureMessage, error?.message);
                 }
 
                 await yieldToBrowser();
