@@ -2,22 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class EventExecutionUpdateOthersRequest extends FormRequest
+class EventExecutionUpdateOthersRequest extends EventExecutionUpdateRequest
 {
     public function authorize(): bool
     {
         return $this->user()->can('executeOthers', [$this->route('event'), (int) $this->route('target_user')->id]);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'actual_start' => ['required', 'date'],
-            'actual_end' => ['required', 'date', 'after:actual_start'],
-            'travel_time_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
-            'signature_base64' => ['required', 'string'],
-        ];
     }
 }

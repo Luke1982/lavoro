@@ -29,6 +29,7 @@ use App\Mail\ServiceOrderWithJobsPdfMail;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
+use App\Models\EventUserExecution;
 use App\Models\GeneralSetting;
 use App\Models\Material;
 use App\Models\MaterialCategory;
@@ -765,21 +766,17 @@ class ServiceOrderController extends Controller
         $executing_users = $serviceorder->events
             ->sortBy('start')
             ->flatMap(fn ($event) => $event->executingUsers->map(function ($user) use ($event, $display_timezone) {
-                $execution = $event->executions->firstWhere('user_id', $user->id);
-                $actual_start = $execution?->actual_start;
-                $actual_end = $execution?->actual_end;
-                $breaktime_minutes = (int) $user->pivot->breaktime;
+                $execution = $event->executions->firstWhere('user_id', $user->id) ?? new EventUserExecution;
+                $planned_break_minutes = (int) $user->pivot->breaktime;
 
                 return [
                     'name' => $user->name,
                     'date' => $event->start->copy()->setTimezone($display_timezone),
-                    'actual_start' => $actual_start?->copy()->setTimezone($display_timezone),
-                    'actual_end' => $actual_end?->copy()->setTimezone($display_timezone),
-                    'travel_time_minutes' => (int) ($execution?->travel_time_minutes ?? 0),
-                    'breaktime' => $user->pivot->breaktime,
-                    'hours' => $actual_start && $actual_end
-                        ? round($actual_start->floatDiffInHours($actual_end) - ($breaktime_minutes / 60), 2)
-                        : null,
+                    'actual_start' => $execution->actual_start?->copy()->setTimezone($display_timezone),
+                    'actual_end' => $execution->actual_end?->copy()->setTimezone($display_timezone),
+                    'travel_time_minutes' => (int) $execution->travel_time_minutes,
+                    'breaktime' => $execution->breakMinutes($planned_break_minutes),
+                    'hours' => $execution->hoursWorked($planned_break_minutes),
                 ];
             }))
             ->values();

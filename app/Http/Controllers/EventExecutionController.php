@@ -15,22 +15,23 @@ use App\Http\Requests\EventExecutionUpdateOthersRequest;
 use App\Http\Requests\EventExecutionUpdateRequest;
 use App\Http\Requests\EventReleaseTimesRequest;
 use App\Models\Event;
+use App\Models\EventUserExecution;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class EventExecutionController extends Controller
 {
+    private const REPORTED_FIELDS = [
+        'completion_status',
+        'actual_start',
+        'actual_end',
+        'travel_time_minutes',
+        'actual_breaktime_minutes',
+    ];
+
     public function show(Event $event)
     {
-        $execution = $event->executionFor(Auth::id());
-
-        return response()->json([
-            'completion_status' => $execution->completion_status,
-            'actual_start' => $execution->actual_start,
-            'actual_end' => $execution->actual_end,
-            'travel_time_minutes' => $execution->travel_time_minutes,
-            'signature_base64' => $execution->signature_base64,
-        ]);
+        return response()->json($this->details($event->executionFor(Auth::id())));
     }
 
     public function transition(EventExecutionTransitionRequest $request, Event $event)
@@ -64,49 +65,17 @@ class EventExecutionController extends Controller
 
     public function update(EventExecutionUpdateRequest $request, Event $event)
     {
-        $execution = $event->executionFor(Auth::id());
-        $before = $execution->snapshot();
-
-        $execution->actual_start = $request->validated('actual_start');
-        $execution->actual_end = $request->validated('actual_end');
-        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
-        $execution->signature_base64 = $request->validated('signature_base64');
-        $execution->completion_status = EventCompletionStatus::completed->value;
-        $execution->save();
-
-        Signals::dispatch(new ExecutionTimesRegistered($event, $request->user(), $before, $execution->snapshot()));
-
-        return response()->json($this->payload($execution));
+        return response()->json($this->register($request, $event, $request->user()));
     }
 
     public function showFor(EventExecutionShowOthersRequest $request, Event $event, User $target_user)
     {
-        $execution = $event->executionFor($target_user->id);
-
-        return response()->json([
-            'completion_status' => $execution->completion_status,
-            'actual_start' => $execution->actual_start,
-            'actual_end' => $execution->actual_end,
-            'travel_time_minutes' => $execution->travel_time_minutes,
-            'signature_base64' => $execution->signature_base64,
-        ]);
+        return response()->json($this->details($event->executionFor($target_user->id)));
     }
 
     public function updateFor(EventExecutionUpdateOthersRequest $request, Event $event, User $target_user)
     {
-        $execution = $event->executionFor($target_user->id);
-        $before = $execution->snapshot();
-
-        $execution->actual_start = $request->validated('actual_start');
-        $execution->actual_end = $request->validated('actual_end');
-        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
-        $execution->signature_base64 = $request->validated('signature_base64');
-        $execution->completion_status = EventCompletionStatus::completed->value;
-        $execution->save();
-
-        Signals::dispatch(new ExecutionTimesRegistered($event, $target_user, $before, $execution->snapshot()));
-
-        return response()->json($this->payload($execution));
+        return response()->json($this->register($request, $event, $target_user));
     }
 
     /**
@@ -135,6 +104,7 @@ class EventExecutionController extends Controller
             'actual_start' => null,
             'actual_end' => null,
             'travel_time_minutes' => 0,
+            'actual_breaktime_minutes' => null,
         ]);
 
         Signals::dispatch(new ExecutionTimesReleased($event, $target_user, $before, $execution->snapshot()));
@@ -142,14 +112,31 @@ class EventExecutionController extends Controller
         return response()->json($this->payload($execution));
     }
 
-    private function payload($execution): array
+    private function register(EventExecutionUpdateRequest $request, Event $event, User $executor): array
     {
-        return [
-            'completion_status' => $execution->completion_status,
-            'actual_start' => $execution->actual_start,
-            'actual_end' => $execution->actual_end,
-            'travel_time_minutes' => $execution->travel_time_minutes,
-            'has_signature' => filled($execution->signature_base64),
-        ];
+        $execution = $event->executionFor($executor->id);
+        $before = $execution->snapshot();
+
+        $execution->actual_start = $request->validated('actual_start');
+        $execution->actual_end = $request->validated('actual_end');
+        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
+        $execution->actual_breaktime_minutes = $request->validated('actual_breaktime_minutes');
+        $execution->signature_base64 = $request->validated('signature_base64');
+        $execution->completion_status = EventCompletionStatus::completed->value;
+        $execution->save();
+
+        Signals::dispatch(new ExecutionTimesRegistered($event, $executor, $before, $execution->snapshot()));
+
+        return $this->payload($execution);
+    }
+
+    private function details(EventUserExecution $execution): array
+    {
+        return [...$execution->only(self::REPORTED_FIELDS), 'signature_base64' => $execution->signature_base64];
+    }
+
+    private function payload(EventUserExecution $execution): array
+    {
+        return [...$execution->only(self::REPORTED_FIELDS), 'has_signature' => filled($execution->signature_base64)];
     }
 }

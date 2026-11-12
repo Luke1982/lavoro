@@ -28,6 +28,7 @@ abstract class ExecutionSignal extends BaseSignal
         'actual_start' => 'Starttijd',
         'actual_end' => 'Eindtijd',
         'travel_time_minutes' => 'Reistijd',
+        'actual_breaktime_minutes' => 'Pauze',
     ];
 
     /**
@@ -102,6 +103,10 @@ abstract class ExecutionSignal extends BaseSignal
             $sentence .= ', reistijd ' . $state['travel_time_minutes'] . ' min';
         }
 
+        if ($state['actual_breaktime_minutes'] !== null) {
+            $sentence .= ', pauze ' . $state['actual_breaktime_minutes'] . ' min';
+        }
+
         return $sentence;
     }
 
@@ -118,7 +123,7 @@ abstract class ExecutionSignal extends BaseSignal
 
         return match ($field) {
             'actual_start', 'actual_end' => $this->clockTime($value),
-            'travel_time_minutes' => $value . ' min',
+            'travel_time_minutes', 'actual_breaktime_minutes' => $value . ' min',
             default => (string) $value,
         };
     }

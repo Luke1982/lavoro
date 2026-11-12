@@ -46,9 +46,14 @@
                 <p v-if="targetUserName" class="col-span-2 text-xs text-gray-500 dark:text-slate-400">
                     Namens: {{ targetUserName }}
                 </p>
-                <TextInput v-model="editStart" type="time" label="Starttijd" />
-                <TextInput v-model="editEnd" type="time" label="Eindtijd" />
-                <TextInput v-model="editTravelTime" type="number" min="0" max="1440" label="Reistijd (min)" />
+                <TextInput v-model="editStart" type="time" label="Starttijd"
+                    :has-error="!!errors.actual_start" :error-message="errors.actual_start" />
+                <TextInput v-model="editEnd" type="time" label="Eindtijd"
+                    :has-error="!!errors.actual_end" :error-message="errors.actual_end" />
+                <TextInput v-model="editTravelTime" type="number" min="0" max="1440" label="Reistijd (min)"
+                    :has-error="!!errors.travel_time_minutes" :error-message="errors.travel_time_minutes" />
+                <TextInput v-model="editBreaktime" type="number" min="0" max="1440" label="Pauze (min)"
+                    :has-error="!!errors.actual_breaktime_minutes" :error-message="errors.actual_breaktime_minutes" />
             </div>
         </ExecutionModal>
     </div>
@@ -81,6 +86,8 @@ const editSignature = ref('')
 const editStart = ref('')
 const editEnd = ref('')
 const editTravelTime = ref(0)
+const editBreaktime = ref(0)
+const errors = ref({})
 const targetUserId = ref(null)
 const targetUserName = ref('')
 
@@ -143,6 +150,16 @@ async function release() {
     }
 }
 
+function fillModal(data, plannedBreaktime) {
+    errors.value = {}
+    editSignature.value = data.signature_base64 ?? ''
+    editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
+    editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
+    editTravelTime.value = data.travel_time_minutes ?? 0
+    editBreaktime.value = data.actual_breaktime_minutes ?? plannedBreaktime ?? 0
+    modalOpen.value = true
+}
+
 async function openModal() {
     if (busy.value) return
     busy.value = true
@@ -150,11 +167,7 @@ async function openModal() {
         const { data } = await axios.get(`/api/events/${props.event.id}/execution`)
         targetUserId.value = null
         targetUserName.value = ''
-        editSignature.value = data.signature_base64 ?? ''
-        editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
-        editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
-        editTravelTime.value = data.travel_time_minutes ?? 0
-        modalOpen.value = true
+        fillModal(data, rowExecution.value?.breaktime)
     } finally {
         busy.value = false
     }
@@ -169,11 +182,7 @@ async function openModalForOther() {
         const { data } = await axios.get(`/api/events/${props.event.id}/users/${target.id}/execution`)
         targetUserId.value = target.id
         targetUserName.value = target.name
-        editSignature.value = data.signature_base64 ?? ''
-        editStart.value = data.actual_start ? nlTime(data.actual_start) : nlTime(props.event.start)
-        editEnd.value = data.actual_end ? nlTime(data.actual_end) : nlTime(props.event.end)
-        editTravelTime.value = data.travel_time_minutes ?? 0
-        modalOpen.value = true
+        fillModal(data, target.breaktime)
     } finally {
         busy.value = false
     }
@@ -192,10 +201,16 @@ async function onModalConfirm(signature) {
             actual_start: localToUtcDatetime(date_iso, editStart.value),
             actual_end: localToUtcDatetime(date_iso, editEnd.value),
             travel_time_minutes: Number(editTravelTime.value) || 0,
+            actual_breaktime_minutes: Number(editBreaktime.value) || 0,
             signature_base64: signature,
         })
         emit('changed')
         modalOpen.value = false
+    } catch (error) {
+        if (error.response?.status !== 422) throw error
+        errors.value = Object.fromEntries(
+            Object.entries(error.response.data.errors ?? {}).map(([field, messages]) => [field, messages[0]])
+        )
     } finally {
         busy.value = false
     }

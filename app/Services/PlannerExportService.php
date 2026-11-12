@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Models\EventUserExecution;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -26,7 +28,8 @@ class PlannerExportService
         'Werkelijke eind',
         'Werkelijke uren (excl. pauze)',
         'Reistijd (uren)',
-        'Pauze (uren)',
+        'Geplande pauze (uren)',
+        'Werkelijke pauze (uren)',
         'Status',
     ];
 
@@ -63,8 +66,10 @@ class PlannerExportService
             $sheet = new Worksheet($spreadsheet, $this->sheetTitle($user->name, $index, $used_titles));
             $spreadsheet->addSheet($sheet);
 
+            $last_column = Coordinate::stringFromColumnIndex(count(self::HEADERS));
+
             $sheet->fromArray([self::HEADERS], null, 'A1');
-            $sheet->getStyle('A1:N1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:' . $last_column . '1')->getFont()->setBold(true);
 
             $row = 2;
             foreach ($events as $event) {
@@ -77,7 +82,7 @@ class PlannerExportService
                 $row++;
             }
 
-            foreach (range('A', 'N') as $column) {
+            foreach (range('A', $last_column) as $column) {
                 $sheet->getColumnDimension($column)->setAutoSize(true);
             }
         }
@@ -90,8 +95,8 @@ class PlannerExportService
         $service_order = $event->serviceOrders->first();
         $project = $service_order?->project;
         $customer = $service_order?->customer;
-        $execution = $event->executions->firstWhere('user_id', $user->id);
-        $breaktime_minutes = (int) ($member->pivot->breaktime ?? 0);
+        $execution = $event->executions->firstWhere('user_id', $user->id) ?? new EventUserExecution;
+        $planned_break_minutes = (int) ($member->pivot->breaktime ?? 0);
 
         $sheet->setCellValue('A' . $row, $event->name ?: $event->eventType?->name);
         $sheet->setCellValue('B' . $row, $service_order?->number);
@@ -102,17 +107,19 @@ class PlannerExportService
         [$planned_start, $planned_end] = $this->plannedTimes($event, $member);
         $this->writeDateTime($sheet, 'F' . $row, $planned_start, $tz);
         $this->writeDateTime($sheet, 'G' . $row, $planned_end, $tz);
-        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end, $breaktime_minutes));
-        $this->writeDateTime($sheet, 'I' . $row, $execution?->actual_start, $tz);
-        $this->writeDateTime($sheet, 'J' . $row, $execution?->actual_end, $tz);
-        $sheet->setCellValue(
-            'K' . $row,
-            $this->hours($execution?->actual_start, $execution?->actual_end, $breaktime_minutes)
-        );
+        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end, $planned_break_minutes));
+        $this->writeDateTime($sheet, 'I' . $row, $execution->actual_start, $tz);
+        $this->writeDateTime($sheet, 'J' . $row, $execution->actual_end, $tz);
+        $sheet->setCellValue('K' . $row, $execution->hoursWorked($planned_break_minutes));
+        $sheet->setCellValue('L' . $row, $this->asHours((int) $execution->travel_time_minutes));
+        $sheet->setCellValue('M' . $row, $this->asHours($planned_break_minutes));
+        $sheet->setCellValue('N' . $row, $this->asHours($execution->actual_breaktime_minutes));
+        $sheet->setCellValue('O' . $row, $execution->completion_status ?? 'Gepland');
+    }
 
-        $sheet->setCellValue('L' . $row, round((int) ($execution?->travel_time_minutes ?? 0) / 60, 2));
-        $sheet->setCellValue('M' . $row, round($breaktime_minutes / 60, 2));
-        $sheet->setCellValue('N' . $row, $execution?->completion_status ?? 'Gepland');
+    private function asHours(?int $minutes): ?float
+    {
+        return $minutes === null ? null : round($minutes / 60, 2);
     }
 
     private function hours(?Carbon $start, ?Carbon $end, int $breaktime_minutes): ?float

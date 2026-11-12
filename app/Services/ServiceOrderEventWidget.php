@@ -76,6 +76,7 @@ class ServiceOrderEventWidget
                 'id' => $executing_user->id,
                 'name' => $executing_user->name,
                 'user_role_ids' => $roles_by_userable->get($executing_user->pivot->id, []),
+                'breaktime' => (int) $executing_user->pivot->breaktime,
                 'completion_status' => $execution->completion_status ?? 'Gepland',
                 'actual_start' => $execution?->actual_start,
                 'actual_end' => $execution?->actual_end,
