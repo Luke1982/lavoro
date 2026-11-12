@@ -23,30 +23,28 @@ import { useCustomerMapMarkers } from '@/Composables/useCustomerMapMarkers';
 
 defineOptions({ layout: EmptyLayout });
 
-const { items, routePlanner } = defineProps({
+const { items, routePlanner, dueColors } = defineProps({
     items: { type: Array, required: true },
     routePlanner: { type: Object, default: null },
+    dueColors: { type: Object, required: true },
 });
 
 const planner = ref(null);
 
-const DUE = {
-    expired: { label: 'Verlopen', color: 'var(--map-due-expired)' },
-    month: { label: 'Binnen 30 dagen', color: 'var(--map-due-month)' },
-    twoMonths: { label: 'Binnen 60 dagen', color: 'var(--map-due-two-months)' },
-    later: { label: 'Later', color: 'var(--map-due-later)' },
-};
-const LEGEND = Object.values(DUE);
+const EXPIRED = { label: 'Verlopen', color: dueColors.expired };
+const BANDS = dueColors.bands.map(({ days, color }) => ({
+    days,
+    label: `Binnen ${days} ${days === 1 ? 'dag' : 'dagen'}`,
+    color,
+}));
+const LATER = { label: 'Later', color: dueColors.later };
+const LEGEND = [EXPIRED, ...BANDS, LATER];
 
 const dueOf = (item) => {
-    const days = item.next_service_in_days;
     if (item.has_expired_assets) {
-        return DUE.expired;
+        return EXPIRED;
     }
-    if (days <= 30) {
-        return DUE.month;
-    }
-    return days <= 60 ? DUE.twoMonths : DUE.later;
+    return BANDS.find(({ days }) => item.next_service_in_days <= days) ?? LATER;
 };
 
 const scrollToCustomer = (item) => {

@@ -354,19 +354,16 @@
  *
  * In elke speld staat een wit cijfer of bolletje, dus elke kleur hier moet daar
  * genoeg contrast mee houden: amber en grijs zijn een tint donkerder dan het oog
- * zou kiezen, en "binnen 60 dagen" is donker okergeel en geen lichtgeel. De
- * kaart zelf is altijd licht, daarom is er geen donkere variant.
+ * zou kiezen. De kaart zelf is altijd licht, daarom is er geen donkere variant.
+ *
+ * De kleuren van de keuringskaart staan hier niet: die stelt een beheerder in,
+ * en de standaardkleuren staan in App\Support\MapDueColors.
  */
 :root {
     --map-priority-high: #dc2626;
     --map-priority-normal: #d97706;
     --map-priority-low: #16a34a;
     --map-priority-none: #6b7280;
-
-    --map-due-expired: #dc2626;
-    --map-due-month: #ea580c;
-    --map-due-two-months: #ca8a04;
-    --map-due-later: #16a34a;
 
     --map-contract: #6d28d9;
 

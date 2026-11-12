@@ -579,6 +579,10 @@ Route::group(
                 'admin/settings/snelstart-nightly-customers',
                 [GeneralSettingsController::class, 'updateSnelStartNightlyCustomers'],
             )->name('admin.settings.snelstart-nightly-customers');
+            Route::put(
+                'admin/settings/map-due-colors',
+                [GeneralSettingsController::class, 'updateMapDueColors'],
+            )->name('admin.settings.map-due-colors');
         });
     }
 );

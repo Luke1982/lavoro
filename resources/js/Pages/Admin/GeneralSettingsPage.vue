@@ -114,6 +114,66 @@
             </div>
         </section>
 
+        <section class="mt-10">
+            <h2 class="text-base font-semibold text-gray-900 mb-1">Kaart aankomende keuringen</h2>
+            <p class="text-xs text-gray-500 mb-4">
+                De kleuren van de spelden en de legenda. Een adres krijgt de kleur van de eerste groep waarbinnen
+                zijn eerstvolgende keuring valt; wat na de laatste groep komt, krijgt de kleur van Later.
+            </p>
+
+            <form @submit.prevent="submitMapDueColors" class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <input type="color" v-model="mapDueForm.expired" :class="COLOR_INPUT" />
+                    <span class="text-sm text-gray-700">Verlopen</span>
+                </div>
+                <p v-if="mapDueForm.errors.expired" class="text-xs text-red-600">{{ mapDueForm.errors.expired }}</p>
+
+                <div v-for="(band, index) in mapDueForm.bands" :key="index">
+                    <div class="flex items-center gap-3">
+                        <input type="color" v-model="band.color" :class="COLOR_INPUT" />
+                        <span class="text-sm text-gray-700">Binnen</span>
+                        <input type="number" v-model.number="band.days"
+                            class="w-20 rounded-md border-gray-300 shadow-sm text-sm focus:border-lavoro-blue focus:ring-lavoro-blue bg-white" />
+                        <span class="text-sm text-gray-700">{{ band.days === 1 ? 'dag' : 'dagen' }}</span>
+                        <button type="button" title="Groep verwijderen" class="text-gray-400 hover:text-red-600"
+                            @click="removeDueBand(index)">
+                            <TrashIcon class="size-4" />
+                        </button>
+                    </div>
+                    <p v-if="mapDueForm.errors[`bands.${index}.days`]" class="mt-1 text-xs text-red-600">
+                        {{ mapDueForm.errors[`bands.${index}.days`] }}
+                    </p>
+                    <p v-if="mapDueForm.errors[`bands.${index}.color`]" class="mt-1 text-xs text-red-600">
+                        {{ mapDueForm.errors[`bands.${index}.color`] }}
+                    </p>
+                </div>
+
+                <button type="button" class="flex items-center gap-1 text-sm text-lavoro-blue hover:underline"
+                    @click="addDueBand">
+                    <PlusIcon class="size-4" />
+                    Groep toevoegen
+                </button>
+                <p v-if="mapDueForm.errors.bands" class="text-xs text-red-600">{{ mapDueForm.errors.bands }}</p>
+
+                <div class="flex items-center gap-3">
+                    <input type="color" v-model="mapDueForm.later" :class="COLOR_INPUT" />
+                    <span class="text-sm text-gray-700">Later</span>
+                </div>
+                <p v-if="mapDueForm.errors.later" class="text-xs text-red-600">{{ mapDueForm.errors.later }}</p>
+
+                <div class="flex items-center gap-4 pt-2">
+                    <button type="submit" :disabled="mapDueForm.processing"
+                        class="inline-flex items-center rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-lavoro-blue disabled:opacity-50">
+                        Opslaan
+                    </button>
+                    <button type="button" class="text-sm text-gray-600 hover:underline"
+                        @click="loadDueColors(mapDueColorsDefaults)">
+                        Standaardkleuren terugzetten
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <section v-if="snelStartConnected" class="mt-10">
             <h2 class="text-base font-semibold text-gray-900 mb-4">SnelStart</h2>
 
@@ -133,6 +193,7 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
+import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 
 const props = defineProps({
@@ -142,7 +203,38 @@ const props = defineProps({
     serviceOrderMinImages: { type: Number, default: 0 },
     snelStartConnected: { type: Boolean, default: false },
     snelStartNightlyUpdatesCustomers: { type: Boolean, default: true },
+    mapDueColors: { type: Object, required: true },
+    mapDueColorsDefaults: { type: Object, required: true },
 })
+
+const COLOR_INPUT = 'h-8 w-8 shrink-0 cursor-pointer rounded border border-gray-300 bg-white p-0.5'
+
+const copyDueColors = ({ expired, bands, later }) => ({
+    expired,
+    bands: bands.map((band) => ({ ...band })),
+    later,
+})
+
+const mapDueForm = useForm(copyDueColors(props.mapDueColors))
+
+const loadDueColors = (colors) => Object.assign(mapDueForm, copyDueColors(colors))
+
+function addDueBand() {
+    const lastDays = Number(mapDueForm.bands.at(-1)?.days) || 0
+    mapDueForm.bands.push({ days: lastDays + 30, color: '#6b7280' })
+}
+
+function removeDueBand(index) {
+    mapDueForm.bands.splice(index, 1)
+    mapDueForm.clearErrors()
+}
+
+function submitMapDueColors() {
+    mapDueForm.put('/admin/settings/map-due-colors', {
+        preserveScroll: true,
+        onSuccess: () => loadDueColors(props.mapDueColors),
+    })
+}
 
 const DAYS = [
     { value: 1, label: 'Ma' },

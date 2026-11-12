@@ -10,6 +10,7 @@ use App\Models\EventType;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\RoutePlanner;
+use App\Support\MapDueColors;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -311,6 +312,7 @@ class ActivityListController extends Controller
 
         return inertia('ActivityList/UpcomingActivitiesMap', [
             'items' => $items->values(),
+            'dueColors' => MapDueColors::get(),
             'routePlanner' => $request->user()->can('routeplanner.use') ? $route_planner->forMap($request->user()) : null,
         ]);
     }

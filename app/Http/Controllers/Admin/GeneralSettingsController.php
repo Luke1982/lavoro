@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAllowOverrideUnavailabilityRequest;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
+use App\Http\Requests\Admin\UpdateMapDueColorsRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
 use App\Http\Requests\Admin\UpdateSnelStartNightlyCustomersRequest;
 use App\Models\GeneralSetting;
 use App\Services\SnelStartClient;
 use App\Services\SnelStartImport;
+use App\Support\MapDueColors;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,6 +38,8 @@ class GeneralSettingsController extends Controller
                 SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS,
                 '1'
             ) === '1',
+            'mapDueColors' => MapDueColors::get(),
+            'mapDueColorsDefaults' => MapDueColors::defaults(),
         ]);
     }
 
@@ -75,6 +79,13 @@ class GeneralSettingsController extends Controller
     public function updateServiceOrderMinImages(UpdateServiceOrderMinImagesRequest $request): RedirectResponse
     {
         GeneralSetting::set('serviceorder_min_images', $request->validated()['min_images']);
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
+    }
+
+    public function updateMapDueColors(UpdateMapDueColorsRequest $request): RedirectResponse
+    {
+        MapDueColors::save($request->validated());
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }
