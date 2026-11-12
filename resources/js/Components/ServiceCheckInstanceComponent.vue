@@ -1,5 +1,5 @@
 <template>
-    <div class="h-full">
+    <div class="h-full wrap-anywhere">
         <BoxComponent padding="p-4" class="h-full">
         <div class="flex flex-col gap-3" v-auto-animate>
             <!-- Card header: type icon + name + action icons + status -->
