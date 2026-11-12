@@ -94,7 +94,7 @@ Onder **Begin en einde** kies je waar de route begint en eindigt:
 
 Is een adres niet op de kaart te vinden, dan zegt de planner dat en kies je een ander startpunt.
 
-**Andersom**, naast de tijd van terugkomst, rijdt dezelfde route in omgekeerde volgorde: hetzelfde begin en einde, dezelfde adressen, de laatste eerst. De aankomsttijden worden opnieuw berekend; dat telt als één berekening. Haalt de route zo een vóór-tijd niet, dan staat de aankomsttijd bij dat adres in rood met **Niet vóór 10:00 te halen**, en kom je na het einde van de werkdag terug, dan staat dat boven de lijst. Er valt dan geen adres af: kijk zelf of je zo wilt rijden. Klik nog eens op **Andersom** voor de eerste volgorde. Zet je de route daarna in de planning, dan gaat de volgorde mee die je ziet.
+**Andersom**, naast de tijd van terugkomst, rijdt dezelfde route in omgekeerde volgorde: hetzelfde begin en einde, dezelfde adressen, de laatste eerst. De aankomsttijden worden opnieuw berekend; de eerste keer telt dat als één berekening. Haalt de route zo een vóór-tijd niet, of kom je na het einde van de werkdag terug, dan staat dat in rood boven de lijst, en bij zo'n adres staat de aankomsttijd in rood met **Niet vóór 10:00 te halen**. Er valt geen adres af: kijk zelf of je zo wilt rijden. Nog eens op **Andersom** klikken geeft de eerste volgorde terug. **In planning zetten** neemt de volgorde die je ziet.
 
 **Openen in Google Maps** zet de route klaar voor de navigatie op je computer of, met de Google Maps-app, op je telefoon. Google Maps neemt hoogstens tien adressen per keer, dus een langere route staat in delen klaar: open het volgende deel als je het vorige gereden hebt. Zet je **Route plannen** uit, dan is de route weg, tenzij je hem in de planning hebt gezet.
 

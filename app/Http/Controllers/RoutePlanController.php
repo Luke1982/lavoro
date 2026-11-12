@@ -19,6 +19,7 @@ class RoutePlanController extends Controller
             $request->validated('stops'),
             $home ? User::findOrFail($home) : $request->validated('start'),
             $request->validated('workday'),
+            $request->validated('order'),
         ));
     }
 }

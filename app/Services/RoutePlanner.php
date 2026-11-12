@@ -123,6 +123,11 @@ class RoutePlanner
      *
      * Times in the answer are seconds after the start of the working day.
      *
+     * With `$order` nothing is chosen: the route visits exactly those stops in
+     * that order, as when a calculated route is driven the other way round,
+     * and only the times are worked out. Nothing is dropped then: a stop
+     * reached after its vóór-time, or a day that ends late, shows in the times.
+     *
      * @param  list<array{
      *     lat: float|string,
      *     lon: float|string,
@@ -133,6 +138,7 @@ class RoutePlanner
      * }>  $stops
      * @param  array{lat: float|string, lon: float|string}|User|null  $start
      * @param  array{start: string, end: string}  $workday  as HH:MM
+     * @param  list<int|string>|null  $order  positions in $stops
      * @return array{
      *     start: array{lat: float, lon: float},
      *     order: list<int>,
@@ -144,7 +150,7 @@ class RoutePlanner
      *     path: list<array{0: float, 1: float}>
      * }
      */
-    public function plan(array $stops, array|User|null $start, array $workday): array
+    public function plan(array $stops, array|User|null $start, array $workday, ?array $order = null): array
     {
         $stops = array_values($stops);
         $start = match (true) {
@@ -152,21 +158,36 @@ class RoutePlanner
             $start !== null => ['lat' => (float) $start['lat'], 'lon' => (float) $start['lon']],
             default => $this->companyStart(),
         };
+        $car = self::car(1, $start, $workday);
+
+        if ($order !== null) {
+            $order = array_map('intval', $order);
+            $car['steps'] = [
+                ['type' => 'start'],
+                ...array_map(fn ($index) => ['type' => 'job', 'id' => self::jobId($index)], $order),
+                ['type' => 'end'],
+            ];
+        }
 
         $answer = $this->ask([
             'jobs' => array_map(
-                fn ($stop, $index) => self::job($stop, $index, $workday['start']),
-                $stops,
-                array_keys($stops)
+                fn ($index) => self::job($stops[$index], $index, $workday['start']),
+                $order ?? array_keys($stops)
             ),
-            'vehicles' => [self::car(1, $start, $workday)],
-            'options' => ['g' => true],
+            'vehicles' => [$car],
+            'options' => array_filter(['g' => true, 'c' => $order !== null]),
         ], $stops, $start);
+
+        $route = self::readRoute($answer);
+
+        if ($order !== null && $route['order'] !== $order) {
+            throw new RuntimeException('The route server changed a fixed order: it does not run plan mode (-c)');
+        }
 
         $left_over = array_map(fn ($job) => self::stopIndex($job['id']), $answer['unassigned'] ?? []);
 
         return ['start' => $start]
-            + self::readRoute($answer)
+            + $route
             + ['unassigned' => $this->explain($left_over, $stops, $start, $workday)];
     }
 

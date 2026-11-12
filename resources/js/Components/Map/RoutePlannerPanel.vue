@@ -34,7 +34,9 @@
             <AddressSearch v-if="startChoice === 'elsewhere'" class="mt-2" @pick="pickStart" />
             <p class="mt-2 text-gray-600">{{ startText }}</p>
 
-            <p v-if="warning" role="alert" class="mt-3 rounded bg-red-50 p-2 font-medium text-red-700">{{ warning }}</p>
+            <div v-if="warnings.length" role="alert" class="mt-3 space-y-1 rounded bg-red-50 p-2 font-medium text-red-700">
+                <p v-for="text in warnings" :key="text">{{ text }}</p>
+            </div>
 
             <template v-for="section in sections" :key="section.id">
                 <h3 class="mt-4 text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -60,11 +62,23 @@
             </button>
 
             <div v-else-if="result.order.length" class="mt-3 border-t border-gray-200 pt-3">
-                <p class="font-medium text-gray-900">Terug om {{ clock(result.finish) }}</p>
-                <p class="text-xs text-gray-500">
-                    {{ formatMeters(result.distance) }} · {{ formatSeconds(result.duration) }} rijden ·
-                    {{ formatSeconds(timeOnSite) }} op locatie, zonder files.
-                </p>
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <p class="font-medium text-gray-900">Terug om {{ clock(result.finish) }}</p>
+                        <p class="text-xs text-gray-500">
+                            {{ formatMeters(result.distance) }} · {{ formatSeconds(result.duration) }} rijden ·
+                            {{ formatSeconds(timeOnSite) }} op locatie, zonder files.
+                        </p>
+                    </div>
+                    <button v-if="result.order.length > 1" type="button" :aria-pressed="reversed"
+                        :disabled="busy || assigning" title="Dezelfde adressen in omgekeerde volgorde, met hetzelfde begin en einde"
+                        class="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-50"
+                        :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'"
+                        @click="reverse">
+                        <ArrowsRightLeftIcon class="h-4 w-4" />
+                        {{ busy ? 'Andersom…' : 'Andersom' }}
+                    </button>
+                </div>
                 <a v-for="(link, index) in googleLinks" :key="link" :href="link" target="_blank" rel="noopener"
                     class="mt-2 flex items-center justify-center gap-2 rounded-md bg-white px-3 py-2 font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50">
                     <ArrowTopRightOnSquareIcon class="h-4 w-4" />
@@ -87,7 +101,7 @@
                         <input v-model="assignDate" type="date" aria-label="Dag"
                             class="rounded-md border border-gray-300 px-2 py-1 text-gray-800" />
                     </div>
-                    <button type="submit" :disabled="assigning"
+                    <button type="submit" :disabled="assigning || busy"
                         class="mt-2 w-full rounded-md bg-white px-3 py-2 font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
                         {{ assigning ? 'In planning zetten…' : 'In planning zetten' }}
                     </button>
@@ -103,7 +117,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import L from 'leaflet';
 import axios from 'axios';
-import { ArrowTopRightOnSquareIcon, MapIcon } from '@heroicons/vue/24/outline';
+import { ArrowsRightLeftIcon, ArrowTopRightOnSquareIcon, MapIcon } from '@heroicons/vue/24/outline';
 import RouteStopRow from '@/Components/Map/RouteStopRow.vue';
 import AddressSearch from '@/Components/UI/AddressSearch.vue';
 import { pinIcon } from '@/Components/Map/mapPin';
@@ -131,8 +145,11 @@ import { plannerWorkday } from '@/Utilities/plannerDayView';
  * address underneath, which keeps its popup and deselects it; `markerBadge` is
  * the page's own badge rule, so they keep it.
  *
- * A calculated route can be put in someone's day: the planner then shows its
- * Google Maps links at the top of that day (DayRouteController).
+ * A calculated route can be driven the other way round: the same stops, start
+ * and end, with the times worked out again, and flagged where that misses a
+ * vóór-time or the end of the day. It can also be put in someone's day: the
+ * planner then shows its Google Maps links at the top of that day
+ * (DayRouteController).
  */
 const props = defineProps({
     map: { type: Object, default: null },
@@ -154,7 +171,11 @@ const elsewhere = ref(null);
 const companyPoint = ref(props.config.start?.lat != null
     ? { lat: props.config.start.lat, lon: props.config.start.lon }
     : null);
-const result = ref(null);
+const calculated = ref(null);
+const turned = ref(null);
+const reversed = ref(false);
+/** The route as shown: as calculated, or the same stops the other way round. */
+const result = computed(() => (reversed.value ? turned.value : calculated.value));
 const error = ref(null);
 const busy = ref(false);
 const assignee = ref(null);
@@ -169,37 +190,55 @@ let revision = 0;
 
 const clock = (seconds) => formatTimeLabel(minutesFromTimeString(workdayStart.value) + Math.round(seconds / 60));
 
+/** By the minute, as `clock` shows it: a flag never contradicts the time beside it. */
+const isAfter = (seconds, time) => Math.round(seconds / 60)
+    > minutesFromTimeString(time) - minutesFromTimeString(workdayStart.value);
+
 const routeStops = computed(() => {
     if (!result.value) {
         return stops.value.map((stop) => ({ ...stop, number: null, arrival: null, fits: true }));
     }
     const { order, arrivals } = result.value;
-    return order.map((index, position) => ({
-        ...stops.value[index],
-        number: position + 1,
-        arrival: clock(arrivals[position]),
-        fits: true,
-    }));
+    return order.map((index, position) => {
+        const stop = stops.value[index];
+        const late = Boolean(stop.before) && isAfter(arrivals[position], stop.before);
+        return {
+            ...stop,
+            number: position + 1,
+            arrival: clock(arrivals[position]),
+            fits: true,
+            late,
+            reason: late ? `Niet vóór ${stop.before} te halen.` : null,
+        };
+    });
 });
 
-const leftOver = computed(() => (result.value
-    ? result.value.unassigned.map(({ stop, reason }) => ({ ...stops.value[stop], number: null, arrival: null, fits: false, reason }))
+/** What did not fit is the calculation's: the other way round drives only what did. */
+const leftOver = computed(() => (calculated.value
+    ? calculated.value.unassigned.map(({ stop, reason }) => ({ ...stops.value[stop], number: null, arrival: null, fits: false, reason }))
     : []));
 
-const warning = computed(() => {
+/**
+ * What did not fit, and where the route as shown misses a vóór-time or the end
+ * of the day: a calculated route never does, the other way round may.
+ */
+const warnings = computed(() => {
     if (!result.value) {
-        return null;
+        return [];
     }
     if (!result.value.order.length) {
-        return 'Geen van de adressen past in deze werkdag. Bij elk adres staat waarom.';
+        return ['Geen van de adressen past in deze werkdag. Bij elk adres staat waarom.'];
     }
     const urgent = leftOver.value.filter((stop) => stop.urgent).length;
-    if (urgent === 0) {
-        return null;
-    }
-    return urgent === 1
-        ? 'Een spoedadres past niet in deze werkdag. Onderaan staat waarom.'
-        : `${urgent} spoedadressen passen niet in deze werkdag. Onderaan staat waarom.`;
+    const late = routeStops.value.filter((stop) => stop.late).length;
+    return [
+        urgent === 1 && 'Een spoedadres past niet in deze werkdag. Onderaan staat waarom.',
+        urgent > 1 && `${urgent} spoedadressen passen niet in deze werkdag. Onderaan staat waarom.`,
+        late === 1 && 'In deze volgorde wordt een vóór-tijd niet gehaald. Bij het adres staat welke.',
+        late > 1 && `In deze volgorde worden ${late} vóór-tijden niet gehaald. Bij de adressen staat welke.`,
+        isAfter(result.value.finish, workdayEnd.value)
+            && `In deze volgorde ben je pas om ${clock(result.value.finish)} terug, na het einde van de werkdag.`,
+    ].filter(Boolean);
 });
 
 const sections = computed(() => [
@@ -315,7 +354,9 @@ const showRoute = (path) => {
 
 const invalidate = () => {
     revision++;
-    result.value = null;
+    calculated.value = null;
+    turned.value = null;
+    reversed.value = false;
     error.value = null;
     assigned.value = null;
     assignError.value = null;
@@ -385,7 +426,12 @@ const messageFrom = (exception) => {
     return 'De route kon niet worden berekend. Probeer het later opnieuw.';
 };
 
-const calculate = async () => {
+/**
+ * The route for what is in the panel now, or null when it failed or something
+ * changed while it was on its way. With `order` the stops are driven in that
+ * order instead of the fastest one.
+ */
+const ask = async (order = null) => {
     const asked = revision;
     const question = {
         stops: stops.value.map(({ item, minutes, urgent, before }) => ({
@@ -399,31 +445,50 @@ const calculate = async () => {
         start: startChoice.value === 'elsewhere' ? { lat: elsewhere.value.lat, lon: elsewhere.value.lon } : null,
         start_user_id: home.value?.id ?? null,
         workday: { start: workdayStart.value, end: workdayEnd.value },
+        order,
     };
     busy.value = true;
     error.value = null;
     try {
         await axios.get('/sanctum/csrf-cookie');
         if (asked !== revision) {
-            return;
+            return null;
         }
         const { data } = await axios.post('/routeplanner', question);
-        if (asked !== revision) {
-            return;
-        }
-        result.value = data;
-        if (startChoice.value === 'company') {
-            companyPoint.value = data.start;
-        }
-        if (data.path.length) {
-            showRoute(data.path);
-        }
+        return asked === revision ? data : null;
     } catch (exception) {
         if (asked === revision) {
             error.value = messageFrom(exception);
         }
+        return null;
     } finally {
         busy.value = false;
+    }
+};
+
+const calculate = async () => {
+    const data = await ask();
+    if (!data) {
+        return;
+    }
+    calculated.value = data;
+    if (startChoice.value === 'company') {
+        companyPoint.value = data.start;
+    }
+    if (data.path.length) {
+        showRoute(data.path);
+    }
+};
+
+/** The other way round is calculated once; after that the button only switches. */
+const reverse = async () => {
+    if (!turned.value) {
+        turned.value = await ask([...calculated.value.order].reverse());
+    }
+    if (turned.value) {
+        reversed.value = !reversed.value;
+        assigned.value = null;
+        assignError.value = null;
     }
 };
 

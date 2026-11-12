@@ -9,7 +9,8 @@
                 <span class="block truncate font-medium text-gray-900">{{ stop.item.name }}</span>
                 <span class="block truncate text-xs text-gray-500">{{ stop.item.city }}</span>
             </span>
-            <span v-if="stop.arrival" class="whitespace-nowrap text-xs text-gray-500" title="Aankomst, zonder files">
+            <span v-if="stop.arrival" class="whitespace-nowrap text-xs" title="Aankomst, zonder files"
+                :class="stop.late ? 'font-medium text-red-700' : 'text-gray-500'">
                 {{ stop.arrival }}
             </span>
             <button type="button" title="Uit de route halen" aria-label="Uit de route halen"
@@ -38,7 +39,7 @@
                 Spoed
             </button>
         </div>
-        <p v-if="stop.reason" class="mt-1 ml-8 text-xs" :class="stop.urgent ? 'font-medium text-red-700' : 'text-gray-600'">
+        <p v-if="stop.reason" class="mt-1 ml-8 text-xs" :class="stop.urgent || stop.late ? 'font-medium text-red-700' : 'text-gray-600'">
             {{ stop.reason }}
         </p>
     </li>
