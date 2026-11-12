@@ -1,7 +1,7 @@
 <template>
     <IndexHeaderComponent title="Aankomende activiteiten" subtitle="Machines en storingen die gepland moeten worden"
         :icon="CalendarCogIcon" search-url="/upcomingactivities"
-        search-placeholder="Zoek op klantnaam, merk, model of serienummer" :search-other-params="{ days: form.days }"
+        search-placeholder="Zoek op klantnaam, merk, model of serienummer" :search-other-params="searchOtherParams"
         local-storage-key="upcomingActivitiesSearch" input-id="upcomingActivitiesSearchInput">
         <template #actions>
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-end">
@@ -14,7 +14,13 @@
             </div>
         </template>
     </IndexHeaderComponent>
-    <div v-if="expiredAssets.length > 0" class="mb-8">
+    <div class="mb-4 flex flex-wrap items-start gap-2">
+        <UpcomingAssetsFilters v-if="view === 'table'" :options="table.filters" :query="table.query" />
+        <SegmentedToggle v-model="chosenView" :options="viewOptions" class="ml-auto" />
+    </div>
+    <UpcomingAssetsTable v-if="view === 'table'" :table="table" v-model:selected-assets="form.selectedAssets"
+        v-model:selected-tickets="form.selectedTickets" />
+    <div v-if="view === 'list' && expiredAssets.length > 0" class="mb-8">
         <h3 class="text-lg font-medium text-red-600 dark:text-red-400 mb-4">Klanten met vervallen machines</h3>
         <div v-for="mainAsset in expiredAssets" :key="`expiredAsset${mainAsset.id}`"
             :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
@@ -24,7 +30,7 @@
                 @select-all="selectAllFor" :is-expired="true" />
         </div>
     </div>
-    <div v-if="upcomingAssets.length > 0" class="mb-8">
+    <div v-if="view === 'list' && upcomingAssets.length > 0" class="mb-8">
         <h3 class="text-lg font-medium text-green-600 dark:text-green-400 mb-4">Klanten met aankomende machines</h3>
 
         <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
@@ -35,8 +41,13 @@
                 @select-all="selectAllFor" />
         </div>
     </div>
+    <div v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder" class="h-40" aria-hidden="true"></div>
     <div class="fixed right-4 bottom-4 z-30">
         <div v-auto-animate class="flex flex-col gap-2">
+            <p v-if="form.errors.assets"
+                class="rounded-md bg-red-50 p-2 text-sm text-red-700 shadow-lg ring-1 ring-red-600/20 dark:bg-red-950 dark:text-red-300">
+                {{ form.errors.assets }}
+            </p>
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
                 :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(false)" v-auto-animate
                 class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
@@ -140,24 +151,39 @@
 <script setup>
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
+import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
 import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
-import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon } from '@lucide/vue';
-import { useForm, usePage, router } from '@inertiajs/vue3';
-import { watch, ref, computed } from 'vue';
+import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon, LayoutListIcon, TableIcon } from '@lucide/vue';
+import { useForm, usePage } from '@inertiajs/vue3';
+import { watch, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
+import { useQueryParams } from '@/Composables/useQueryParams';
 import TextInput from '@/Components/UI/TextInput.vue';
 import axios from 'axios';
 import CustomerUpcomingActivity from '@/Components/CustomerUpcomingActivity.vue';
+import UpcomingAssetsFilters from '@/Components/ActivityList/UpcomingAssetsFilters.vue';
+import UpcomingAssetsTable from '@/Components/ActivityList/UpcomingAssetsTable.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 
-const { upcomingAssets, expiredAssets, eventTypes, allUsers } = defineProps({
+const { view, table, upcomingAssets, expiredAssets, eventTypes, allUsers } = defineProps({
+    /** 'list': a card per customer, 'table': a row per machine. */
+    view: {
+        type: String,
+        required: true
+    },
+    /** Only sent for the table view. */
+    table: {
+        type: Object,
+        default: null
+    },
+    /** Only sent for the list view. */
     upcomingAssets: {
         type: Array,
-        required: true
+        default: () => []
     },
     expiredAssets: {
         type: Array,
-        required: true
+        default: () => []
     },
     eventTypes: {
         type: Array,
@@ -205,7 +231,37 @@ const eventForm = useForm({
 
 const daysIcon = computed(() => loading.value ? LoaderCircle : CalendarDaysIcon);
 
-const canCreateWorkOrder = ref('no');
+const { params, visit } = useQueryParams();
+
+/** A search keeps the view, the window and the table's filters, but starts on page 1. */
+const searchOtherParams = computed(() => Object.fromEntries(
+    Object.entries(params.value).filter(([key]) => key !== 'search' && key !== 'page')
+));
+
+const viewOptions = [
+    { value: 'list', label: 'Per klant', icon: LayoutListIcon },
+    { value: 'table', label: 'Tabel', icon: TableIcon },
+];
+
+/** Follows the toggle at once; the page itself follows `view` once the other view has loaded. */
+const chosenView = ref(view);
+watch(() => view, (value) => { chosenView.value = value; });
+watch(chosenView, (value) => {
+    if (value !== view) {
+        visit({ view: value });
+    }
+});
+
+/** A werkbon is for one customer, so a selection spanning two cannot become one. */
+const canCreateWorkOrder = computed(() => {
+    if (form.selectedAssets.length === 0) {
+        return 'no';
+    }
+    const customers = new Set([...form.selectedAssets, ...form.selectedTickets].map(item => item.customer_id));
+    return customers.size > 1 ? 'diffCustomers' : 'yes';
+});
+
+watch([() => form.selectedAssets, () => form.selectedTickets], () => form.clearErrors('assets'));
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'));
 
@@ -218,25 +274,13 @@ const daysOptions = [
 
 watch(() => form.days, (newValue) => {
     loading.value = true;
-    const search = new URL(window.location.href).searchParams.get('search') ?? '';
-    const params = { days: newValue };
-    if (search) params.search = search;
-    router.get('/upcomingactivities', params, {
-        preserveScroll: true,
+    visit({ days: newValue }, {
         onFinish: () => {
             loading.value = false;
             usePage().props.flash.success = `Activiteiten voor de aankomende ${newValue} dagen zijn geladen.`;
         },
     });
 });
-
-watch(
-    [() => form.selectedAssets, () => form.selectedTickets],
-    () => {
-        canCreateWorkOrder.value = form.selectedAssets.length > 0 ? 'yes' : 'no';
-    },
-    { deep: true }
-);
 
 const createServiceOrder = (redirect) => {
     if (canCreateWorkOrder.value !== 'yes') {
@@ -415,37 +459,53 @@ const customerState = (customerId) => {
     return { all: selected === total, some: selected > 0 && selected < total };
 };
 
-// expose scroll function for popup window
-if (typeof window !== 'undefined') {
-    const scrollFunc = (id) => {
-        const el = document.getElementById(`customer-section-${id}`);
-        if (!el) return;
-        // identify scroll container (page) - prefer window, else nearest scrollable parent
-        let container = window;
-        let parent = el.parentElement;
-        while (parent && parent !== document.body) {
-            const style = getComputedStyle(parent);
-            const overflowY = style.overflowY;
-            if (/(auto|scroll)/.test(overflowY)) { container = parent; break; }
-            parent = parent.parentElement;
+const scrollToCustomerSection = (id) => {
+    const el = document.getElementById(`customer-section-${id}`);
+    if (!el) return;
+    let container = window;
+    let parent = el.parentElement;
+    while (parent && parent !== document.body) {
+        if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) { container = parent; break; }
+        parent = parent.parentElement;
+    }
+    if (container === window) {
+        const currentTop = window.scrollY || document.documentElement.scrollTop;
+        window.scrollTo({ top: currentTop + el.getBoundingClientRect().top, behavior: 'smooth' });
+    } else {
+        container.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
+    }
+};
+
+/**
+ * A pin clicked on the map window points at its customer here: the list scrolls to their
+ * card, the table narrows to their machines.
+ */
+const showCustomer = (id) => {
+    if (view === 'table') {
+        if (table.filters.customers.some(customer => customer.id === id)) {
+            visit({ customer: id });
         }
-        const headerOffset = 0; // adjust if fixed header present
-        if (container === window) {
-            const rect = el.getBoundingClientRect();
-            const currentTop = window.scrollY || document.documentElement.scrollTop;
-            const targetY = currentTop + rect.top - headerOffset;
-            window.scrollTo({ top: targetY, behavior: 'smooth' });
-        } else {
-            container.scrollTo({ top: el.offsetTop - headerOffset, behavior: 'smooth' });
-        }
-        window.focus();
-    };
-    window.scrollToCustomer = scrollFunc;
-    window.addEventListener('message', (e) => {
-        if (!e.data || e.data.type !== 'scrollToCustomer') return;
-        scrollFunc(e.data.id);
-    });
-}
+    } else {
+        scrollToCustomerSection(id);
+    }
+    window.focus();
+};
+
+const onMapMessage = (event) => {
+    if (event.origin === window.location.origin && event.data?.type === 'scrollToCustomer') {
+        showCustomer(event.data.id);
+    }
+};
+
+onMounted(() => {
+    window.scrollToCustomer = showCustomer;
+    window.addEventListener('message', onMapMessage);
+});
+
+onBeforeUnmount(() => {
+    delete window.scrollToCustomer;
+    window.removeEventListener('message', onMapMessage);
+});
 
 const openMap = () => {
     window.open(`/upcomingactivities/map?days=${form.days}`, 'customerMap', 'width=1200,height=800');

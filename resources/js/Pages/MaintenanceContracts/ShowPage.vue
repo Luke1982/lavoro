@@ -108,8 +108,8 @@
             <BoxComponent class="mt-4">
                 <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen" :subtitle="autoGenerateSummary"
                     chapter="serviceorders">
-                    <template v-if="canUpdate || canGenerate" #actions>
-                        <div v-if="canUpdate" class="flex items-center gap-2">
+                    <template v-if="canSchedule || canGenerate" #actions>
+                        <div v-if="canSchedule" class="flex items-center gap-2">
                             <span class="text-xs text-gray-500 dark:text-slate-400">Automatisch genereren</span>
                             <SwitchComponent v-model="autoGenerateSwitch" @update="handleAutoGenerateToggle" />
                         </div>
@@ -240,7 +240,10 @@ const props = defineProps({
 })
 
 const canUpdate = computed(() => hasPermission('maintenancecontract.update'))
-const canGenerate = computed(() => hasPermission('maintenancecontract.generate'))
+/** Making werkbonnen from a contract, by hand or on a schedule, takes the right to create them. */
+const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'))
+const canGenerate = computed(() => hasPermission('maintenancecontract.generate') && canCreateServiceOrder.value)
+const canSchedule = computed(() => canUpdate.value && canCreateServiceOrder.value)
 
 const contractLocations = computed(() => {
     const map = new Map()

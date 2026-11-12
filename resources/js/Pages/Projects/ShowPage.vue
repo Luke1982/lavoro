@@ -291,7 +291,7 @@
                         <BoxComponent class="mt-4 grow">
                             <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
                                 subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
-                                <template #actions>
+                                <template v-if="canCreateServiceOrder" #actions>
                                     <button @click="createServiceOrder"
                                         class="px-3 py-1.5 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90">
                                         Werkbon aanmaken
@@ -453,6 +453,7 @@ const sortedMilestones = computed(() =>
 )
 
 const canUpdate = computed(() => hasPermission('project.update'))
+const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'))
 const canCreateMilestone = computed(() => hasPermission('projectmilestone.create'))
 const canUpdateMilestone = computed(() => hasPermission('projectmilestone.update'))
 const canDeleteMilestone = computed(() => hasPermission('projectmilestone.delete'))

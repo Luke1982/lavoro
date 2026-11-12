@@ -24,6 +24,7 @@ vi.mock('@inertiajs/vue3', async () => {
                 clearErrors: () => {},
             })
         },
+        usePage: () => ({ props: { auth: { permissions: ['serviceorder.create'] } } }),
     }
 })
 

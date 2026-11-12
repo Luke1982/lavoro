@@ -166,7 +166,8 @@
                                 <p v-else class="text-sm italic text-gray-500 dark:text-gray-400 py-2">
                                     Deze afspraak heeft geen werkbon nodig.
                                 </p>
-                                <label v-if="!editingExisting || linkingServiceOrder" class="flex items-center gap-2 mt-2 select-none"
+                                <label v-if="canCreateServiceOrder && (!editingExisting || linkingServiceOrder)"
+                                    class="flex items-center gap-2 mt-2 select-none"
                                     :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
                                     <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
                                         class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
@@ -960,6 +961,8 @@ function standardEmailList(response, key) {
     const list = response.data?.[key]
     return Array.isArray(list) ? list : []
 }
+
+const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'))
 
 /**
  * Deletion is judged on the appointment as it is stored: an unsaved edit to the

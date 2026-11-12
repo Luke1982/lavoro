@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
+use App\Enums\TicketStatusses;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\AssetsFactory;
@@ -98,16 +99,30 @@ class Asset extends Model
     {
         return $query->whereBetween('next_service_date', [now(), now()->addDays($days)])
             ->where('status', '!=', AssetStatusses::inactive->value)
-            ->whereDoesntHave('servicejobs', function ($query) {
-                $query->whereNull('completed_on')
-                    ->whereHas('serviceOrder', function ($query) {
-                        $query->where('status', '!=', 'closed')
-                            ->whereHas('events', function ($query) {
-                                $query->where('status', '!=', EventStatusses::completed->value)
-                                    ->where('start', '>', now());
-                            });
-                    });
-            });
+            ->unplanned();
+    }
+
+    /**
+     * Machines waiting on an open keuring whose werkbon has an afspraak still to come.
+     */
+    public function scopePlanned($query)
+    {
+        return $query->whereHas('servicejobs', fn (Builder $jobs) => self::constrainToPlannedJobs($jobs));
+    }
+
+    public function scopeUnplanned($query)
+    {
+        return $query->whereDoesntHave('servicejobs', fn (Builder $jobs) => self::constrainToPlannedJobs($jobs));
+    }
+
+    private static function constrainToPlannedJobs(Builder $jobs): void
+    {
+        $jobs->whereNull('completed_on')
+            ->whereHas('serviceOrder', fn (Builder $order) => $order
+                ->where('status', '!=', 'closed')
+                ->whereHas('events', fn (Builder $events) => $events
+                    ->where('status', '!=', EventStatusses::completed->value)
+                    ->where('start', '>', now())));
     }
 
     public function scopeExpired($query)
@@ -149,6 +164,16 @@ class Asset extends Model
     public function pendingTickets()
     {
         return $this->hasMany(Ticket::class)->where('status', 'In behandeling');
+    }
+
+    /**
+     * The storingen still waiting for a werkbon: open or in behandeling, and on none yet.
+     */
+    public function plannableTickets()
+    {
+        return $this->hasMany(Ticket::class)
+            ->whereIn('status', [TicketStatusses::open->value, TicketStatusses::in_behandeling->value])
+            ->whereNull('service_order_id');
     }
 
     public function closedTickets()

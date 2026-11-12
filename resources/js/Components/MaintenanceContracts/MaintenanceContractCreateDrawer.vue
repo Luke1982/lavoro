@@ -90,7 +90,7 @@
                     </div>
                 </div>
             </template>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div v-if="canSchedule" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">
                     Automatisch werkbonnen genereren
                 </label>
@@ -145,7 +145,7 @@ import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
 import {
-    CUSTOM_CONTRACT_INTERVAL, contractAutoGenerateFollowsLabel, fillContractTitlePlaceholders, todayIso,
+    CUSTOM_CONTRACT_INTERVAL, contractAutoGenerateFollowsLabel, fillContractTitlePlaceholders, hasPermission, todayIso,
 } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -158,6 +158,9 @@ const props = defineProps({
     templates: { type: Array, default: () => [] },
     contractIntervalOptions: { type: Array, default: () => [] },
 })
+
+/** A contract that makes its own werkbonnen is only offered to whoever may create them. */
+const canSchedule = computed(() => hasPermission('serviceorder.create'))
 
 const open = defineModel({ type: Boolean, default: false })
 
@@ -240,7 +243,7 @@ function contractValuesFrom(template) {
         manage_frequency_per_asset: Boolean(template.manage_frequency_per_asset),
         frequency: template.frequency ?? templatedDefaults.frequency,
         frequency_days: template.frequency_days ?? null,
-        auto_generate: Boolean(template.auto_generate),
+        auto_generate: Boolean(template.auto_generate) && canSchedule.value,
         auto_generate_interval: template.auto_generate_interval ?? null,
         auto_generate_interval_days: template.auto_generate_interval_days ?? null,
     }

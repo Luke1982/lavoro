@@ -1,7 +1,7 @@
 <template>
     <Link v-if="url" :href="url" v-tooltip="tooltip">
         <span
-            :class="['inline-flex items-center gap-x-1.5 rounded-full px-4 py-2 text-xs font-medium ring-1 ring-inset', theme.span]">
+            :class="['inline-flex items-center gap-x-1.5 rounded-full text-xs font-medium ring-1 ring-inset', sizeClasses, theme.span]">
             <svg v-if="hasDot" :class="['w-2.5 h-2.5', theme.dot]" viewBox="0 0 6 6" aria-hidden="true">
                 <circle cx="3" cy="3" r="3" />
             </svg>
@@ -9,7 +9,7 @@
         </span>
     </Link>
     <span v-else v-tooltip="tooltip"
-        :class="['inline-flex items-center gap-x-1.5 rounded-full px-4 py-2 text-xs font-medium ring-1 ring-inset', theme.span]">
+        :class="['inline-flex items-center gap-x-1.5 rounded-full text-xs font-medium ring-1 ring-inset', sizeClasses, theme.span]">
         <svg v-if="hasDot" :class="['w-2.5 h-2.5', theme.dot]" viewBox="0 0 6 6" aria-hidden="true">
             <circle cx="3" cy="3" r="3" />
         </svg>
@@ -41,7 +41,14 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    /** 'sm' fits a badge into a table row or a dense list. */
+    size: {
+        type: String,
+        default: 'md',
+    },
 });
+
+const sizeClasses = computed(() => props.size === 'sm' ? 'px-2 py-0.5' : 'px-4 py-2');
 
 const themes = {
     red: { span: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-500/30', dot: 'fill-red-500 dark:fill-red-400' },

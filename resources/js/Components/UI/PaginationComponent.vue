@@ -4,7 +4,7 @@
         <div class="flex-1">
             <Link v-if="prevUrl" :href="appendParams(prevUrl)"
                 class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
-                preserve-scroll>
+                preserve-scroll :preserve-state="preserveState">
                 <ChevronLeftIcon class="h-4 w-4" />
             </Link>
         </div>
@@ -13,7 +13,7 @@
                 <Link v-if="link.url" :href="appendParams(link.url)"
                     class="px-4 py-2 text-sm font-medium border rounded-md"
                     :class="link.active ? 'bg-lavoro-blue text-white' : 'border-transparent text-gray-500 dark:text-gray-300'"
-                    preserve-scroll>
+                    preserve-scroll :preserve-state="preserveState">
                     <span v-html="decodeEntities(link.label)"></span>
                 </Link>
                 <span v-else class="px-3 py-1 text-sm font-medium border rounded"
@@ -25,7 +25,7 @@
         <div class="flex-1 text-right">
             <Link v-if="nextUrl" :href="appendParams(nextUrl)"
                 class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
-                preserve-scroll>
+                preserve-scroll :preserve-state="preserveState">
                 <ChevronRightIcon class="h-4 w-4" />
             </Link>
         </div>
@@ -39,7 +39,9 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 
 const props = defineProps({
     paginator: { type: Object, required: true },
-    params: { type: Object, default: () => ({}) }
+    params: { type: Object, default: () => ({}) },
+    /** Keep the page's own state, such as a selection, while moving between pages. */
+    preserveState: { type: Boolean, default: false },
 })
 
 function decodeEntities(str) {

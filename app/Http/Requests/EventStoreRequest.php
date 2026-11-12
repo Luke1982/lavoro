@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuthorizesServiceOrderAlongside;
 use App\Http\Requests\Concerns\ResolvesEventLocation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,6 +21,7 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class EventStoreRequest extends FormRequest
 {
+    use AuthorizesServiceOrderAlongside;
     use ResolvesEventLocation;
 
     /**
@@ -29,7 +31,9 @@ class EventStoreRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user && ($user->isAdmin() || $user->hasPermission('event.create'));
+        return $user
+            && $this->mayCreateServiceOrderAlongside($user)
+            && ($user->isAdmin() || $user->hasPermission('event.create'));
     }
 
     /**

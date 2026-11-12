@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuthorizesServiceOrderAlongside;
 use App\Http\Requests\Concerns\ResolvesEventLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EventUpdateRequest extends FormRequest
 {
+    use AuthorizesServiceOrderAlongside;
     use ResolvesEventLocation;
 
     public function authorize(): bool
@@ -14,9 +16,10 @@ class EventUpdateRequest extends FormRequest
         $event = $this->route('event');
         $user = $this->user();
 
-        if (!$user || !$event) {
+        if (!$user || !$event || !$this->mayCreateServiceOrderAlongside($user)) {
             return false;
         }
+
         if ($user->isAdmin() || $user->hasPermission('event.update_others')) {
             return true;
         }

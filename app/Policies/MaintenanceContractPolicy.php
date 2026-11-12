@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\MaintenanceContract;
+use App\Models\ServiceOrder;
 use App\Models\User;
 
 class MaintenanceContractPolicy
@@ -51,9 +52,19 @@ class MaintenanceContractPolicy
         return $user->hasPermission('assetable.delete.maintenancecontract');
     }
 
+    /**
+     * A werkbon made from a contract is a werkbon all the same, so making one takes the
+     * right to create werkbonnen as well as the right to generate them.
+     */
     public function generateServiceOrders(User $user, MaintenanceContract $maintenanceContract): bool
     {
-        return $user->hasPermission('maintenancecontract.generate');
+        return $user->hasPermission('maintenancecontract.generate') && $user->can('create', ServiceOrder::class);
+    }
+
+    /** Switching automatic generation on makes werkbonnen later, without anyone pressing a button. */
+    public function autoGenerate(User $user): bool
+    {
+        return $user->can('create', ServiceOrder::class);
     }
 
     /** Price and price interval. Asked of the class: the answer is the same for every contract. */

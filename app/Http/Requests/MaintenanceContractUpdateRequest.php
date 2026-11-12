@@ -12,7 +12,11 @@ class MaintenanceContractUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('maintenancecontract'));
+        $contract = $this->route('maintenancecontract');
+        $switches_generation_on = $this->boolean('auto_generate') && !$contract->auto_generate;
+
+        return $this->user()->can('update', $contract)
+            && (!$switches_generation_on || $this->user()->can('autoGenerate', MaintenanceContract::class));
     }
 
     /**

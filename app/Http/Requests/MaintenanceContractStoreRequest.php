@@ -11,7 +11,8 @@ class MaintenanceContractStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', MaintenanceContract::class);
+        return $this->user()->can('create', MaintenanceContract::class)
+            && (!$this->boolean('auto_generate') || $this->user()->can('autoGenerate', MaintenanceContract::class));
     }
 
     public function rules(): array

@@ -1,10 +1,10 @@
 <template>
-    <PageSizeSelect :model-value="perPage" :total="total" :label="label" @update:model-value="onChange" />
+    <PageSizeSelect :model-value="perPage" :total="total" :label="label" @update:model-value="size => visit({ perPage: size })" />
 </template>
 
 <script setup>
-import { router, usePage } from '@inertiajs/vue3'
 import PageSizeSelect from '@/Components/UI/PageSizeSelect.vue'
+import { useQueryParams } from '@/Composables/useQueryParams'
 
 defineProps({
     total: { type: Number, required: true },
@@ -12,12 +12,5 @@ defineProps({
     label: { type: String, default: 'records' },
 })
 
-function onChange(value) {
-    const page = usePage()
-    const current = page.url
-    const url = new URL(current, window.location.origin)
-    url.searchParams.set('perPage', value)
-    url.searchParams.delete('page')
-    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true })
-}
+const { visit } = useQueryParams()
 </script>

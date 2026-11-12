@@ -118,11 +118,19 @@ class CreateMaintenanceContractTool implements ChecksBeforeConfirming, Confirmab
     /**
      * The contract screen asks two questions for this: whether somebody may make
      * a contract, and separately whether they may put machines on one. A
-     * contract arriving with its machines needs both answers.
+     * contract arriving with its machines needs both answers, and one that makes
+     * its own werkbonnen needs the right to create werkbonnen too.
      */
     public function authorize(User $user, array $arguments): bool
     {
         if (!$user->can('create', MaintenanceContract::class)) {
+            return false;
+        }
+
+        if (
+            filter_var($arguments['auto_generate'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            && !$user->can('autoGenerate', MaintenanceContract::class)
+        ) {
             return false;
         }
 

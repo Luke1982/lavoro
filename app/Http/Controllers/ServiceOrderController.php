@@ -20,6 +20,7 @@ use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
 use App\Http\Requests\ServiceOrderIndexRequest;
+use App\Http\Requests\ServiceOrderStoreRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
@@ -61,7 +62,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class ServiceOrderController extends Controller
 {
@@ -145,24 +145,16 @@ class ServiceOrderController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ServiceOrderStoreRequest $request)
     {
-        $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'project_id' => 'nullable|exists:projects,id',
-            'location_id' => [
-                'nullable',
-                Rule::exists('locations', 'id')
-                    ->where(fn ($q) => $q->where('customer_id', $request->input('customer_id'))),
-            ],
-        ]);
+        $validated = $request->validated();
 
         $serviceorder = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
             customer_id: (int) $validated['customer_id'],
             project_id: isset($validated['project_id']) ? (int) $validated['project_id'] : null,
             location_id: isset($validated['location_id']) ? (int) $validated['location_id'] : null,
-            asset_ids: array_map('intval', $request->input('assets', [])),
-            ticket_ids: array_map('intval', $request->input('tickets', [])),
+            asset_ids: array_map('intval', $validated['assets'] ?? []),
+            ticket_ids: array_map('intval', $validated['tickets'] ?? []),
         ));
 
         $redirect = $request->has('tickets') || $request->has('assets')

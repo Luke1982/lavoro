@@ -221,7 +221,11 @@ class MaintenanceContractTemplateTest extends TestCase
     public function test_a_contract_is_created_with_the_auto_generation_a_template_carries(): void
     {
         $customer = Customer::factory()->create();
-        $creator = $this->userWith(['maintenancecontract.create', 'maintenancecontract.see_financials']);
+        $creator = $this->userWith([
+            'maintenancecontract.create',
+            'maintenancecontract.see_financials',
+            'serviceorder.create',
+        ]);
 
         $this->actingAs($creator)->post('/maintenancecontracts', [
             'customer_id' => $customer->id,

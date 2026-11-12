@@ -216,6 +216,24 @@ Mist een keuring keurpunten die later aan het producttype zijn toegevoegd, dan i
 
 Elke keuring heeft een eigen PDF-rapport dat je kunt genereren en naar de klant kunt mailen (los, of gebundeld met de werkbon-PDF).
 
+### Aankomende keuringen
+
+De pagina **Aankomende keuringen** (onder Lijsten) toont de machines waarvan de keuring verlopen is of binnen de gekozen periode valt (60, 90, 180 of 365 dagen), met hun storingen, zodat je er werkbonnen voor maakt. Rechtsboven de lijst wissel je tussen twee weergaven; de pagina opent de volgende keer in de weergave die je het laatst koos.
+
+- **Per klant**: een kaart per klant met daarin de machines, gegroepeerd per locatie, en de storingen die je los kunt aanvinken.
+- **Tabel**: één rij per machine, met foto, serienummer, merk en model, klant, locatie, keuringsdatum, status en het aantal storingen dat nog op geen werkbon staat (het sleuteltje). Heeft de klant nog meer machines in de lijst, ook op een andere pagina, dan staat achter de klantnaam hoeveel: *+3*. Een onderdeel staat er als eigen rij, met de klant en locatie van de machine waar het in zit en een link naar die machine. Staat de machine al op een werkbon, dan staat die werkbon onder de naam, met de datum van de afspraak als die er is.
+
+In de tabel:
+
+- **Status** heeft dezelfde groepen en kleuren als de spelden op de kaart (zie *Spelden en groepen op de kaart*): Verlopen, Binnen 30 dagen, enzovoort.
+- **Sorteren**: klik op een kolomkop. De eerste klik sorteert oplopend, de tweede aflopend en de derde zet de standaardvolgorde terug: wat het eerst verloopt bovenaan. Binnen dezelfde klant, locatie of machine blijft de vroegste datum bovenaan.
+- **Filteren** op klant, type, status, storingen (met of zonder) en planning. Een filter biedt alleen wat er in de gekozen periode voorkomt. Staat een filter aan, dan begint de lijst met de weg terug (*Alle klanten*, *Alle types*, *Alle statussen*, *Met en zonder storingen*, *Gepland en niet gepland*); dat, of nog eens klikken op de gekozen waarde, maakt het vak weer leeg. Een leeg vak filtert niets. **Planning** staat bij het openen op *Niet gepland*: een machine geldt als gepland als hij op een werkbon staat met een afspraak die nog moet komen. Kies *Al gepland* om alleen die te zien, of maak het vak leeg voor allebei.
+- **Zoeken** kijkt naar serienummer, merk, model, type, klant en locatie; een onderdeel vind je ook op de naam van de klant van zijn machine.
+- **Bladeren**: onderaan kies je hoeveel rijen er op een pagina staan en blader je verder.
+- Klik je op de kaart (knop **Kaart**) op een speld, dan toont de tabel alleen de machines van die klant. In de weergave per klant springt de pagina naar die klant.
+
+**Een werkbon maken** gaat in beide weergaven hetzelfde: vink machines aan en kies onderaan rechts **Maak een werkbon aan en blijf hier**, **… en open die** of **Maak werkbon en plan deze in**. In de tabel blijven je vinkjes staan als je sorteert, filtert of bladert, ook als de aangevinkte machine even niet in beeld is. Vink je in de tabel een machine aan, dan biedt de pagina aan wat je op dezelfde rit kunt meenemen: de storingen van die machine die nog op geen werkbon staan, en de andere machines van dezelfde klant in de lijst, ook als die verderop of op een andere pagina staan. Alles staat aangevinkt; vink per storing of per machine uit wat niet mee moet, of in één keer met het vinkje boven de lijst. **Alleen deze machine** neemt niets mee. Haal je het vinkje van een machine weer weg, dan gaan ook haar storingen eraf. Een werkbon is voor één klant: vink je machines of storingen van twee klanten aan, dan wordt de knop rood en zegt hij *Selecteer storingen en keuringen van één klant*, en ook Lavoro zelf weigert zo'n werkbon. Een werkbon aanmaken kan alleen met het recht om werkbonnen aan te maken; zonder dat recht staan de knoppen er niet, ook niet bij een project of als vinkje *Maak een nieuwe werkbon aan* bij een afspraak in de planner.
+
 ## Storingen
 
 Een storing is een gemelde fout aan een machine, met een onderwerp, omschrijving, **status** (Open, In behandeling, Wacht op terugkoppeling klant, Gesloten), **prioriteit** (Laag, Normaal, Hoog) en optioneel een storingscode.
@@ -283,7 +301,7 @@ De **status** volgt uit de datums: toekomstig (nog niet begonnen), actief, verlo
 
 De lijst met gekoppelde machines toont per machine het **producttype** en het serienummer, zodat je zonder doorklikken ziet wat er onder het contract valt.
 
-**Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Zit er een bundel bij, dan krijgen de onderdelen daarvan hun eigen deelkeuring, net als wanneer je de machine met de hand aan een werkbon toevoegt. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren.
+**Werkbonnen genereren**: staat automatische generatie aan, dan kijkt het systeem elk uur welke machines aan de beurt zijn (op basis van de frequentie en wanneer er voor het laatst gegenereerd is) en maakt werkbonnen aan — **één werkbon per locatie**, met alle machines van die locatie als keuringen erop. Zit er een bundel bij, dan krijgen de onderdelen daarvan hun eigen deelkeuring, net als wanneer je de machine met de hand aan een werkbon toevoegt. Er kan een afwijkend generatie-interval ingesteld worden. Met de knop "werkbonnen genereren" doe je hetzelfde direct, voor alle machines van het contract, ongeacht of ze al aan de beurt waren. Een werkbon uit een contract is gewoon een werkbon, dus daarvoor is ook het recht om werkbonnen aan te maken nodig: zonder dat recht staat de knop er niet, en kun je automatische generatie niet aanzetten, ook niet via een sjabloon dat het aan heeft: een contract uit zo'n sjabloon komt er dan zonder automatische generatie uit.
 
 Verhuist een machine naar een andere klant, dan wordt hij automatisch van contracten van de oude klant losgekoppeld.
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Search\SearchTerm;
 use App\Enums\AssetStatusses;
 use App\Http\Requests\ActivityListReadRequest;
 use App\Models\Asset;
@@ -10,23 +11,42 @@ use App\Models\EventType;
 use App\Models\Location;
 use App\Models\User;
 use App\Services\RoutePlanner;
+use App\Services\UpcomingAssetTable;
+use App\Support\AssetOwnership;
 use App\Support\MapDueColors;
+use App\Traits\ReadsPerPage;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 
 class ActivityListController extends Controller
 {
-    private const MAX_PARENT_DEPTH = 10;
+    use ReadsPerPage;
 
-    public function getUpcomingActivities(ActivityListReadRequest $request)
+    private const VIEW_SESSION_KEY = 'upcomingactivities.view';
+
+    /**
+     * Two views of the same work: one card per customer, or one row per machine. The page
+     * opens in whichever one this person picked last.
+     */
+    public function getUpcomingActivities(ActivityListReadRequest $request, UpcomingAssetTable $table)
     {
         $days = (int) $request->input('days', 60);
         $search = $request->filled('search') ? trim($request->input('search')) : null;
+        if ($request->filled('view')) {
+            $request->session()->put(self::VIEW_SESSION_KEY, $request->input('view'));
+        }
+
+        $view = $request->session()->get(self::VIEW_SESSION_KEY, 'list');
+        $content = $view === 'table'
+            ? ['table' => $table->build($days, $search, $request->tableQuery(), $this->perPage($request))]
+            : [
+                'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search),
+                'expiredAssets' => $this->buildCustomerAssetList('expired', $days, $search),
+            ];
 
         return inertia('ActivityList/UpcomingActivities', [
-            'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search),
-            'expiredAssets' => $this->buildCustomerAssetList('expired', $days, $search),
+            ...$content,
+            'view' => $view,
             'eventTypes' => EventType::all(),
             'allUsers' => User::all(['id', 'name']),
         ]);
@@ -43,7 +63,7 @@ class ActivityListController extends Controller
             ->orderBy('next_service_date')
             ->get();
 
-        $ownership = $this->resolveRootOwnership($candidates);
+        $ownership = AssetOwnership::resolve($candidates);
 
         $main_assets = $candidates
             ->filter(fn ($a) => isset($ownership[$a->id]))
@@ -68,7 +88,7 @@ class ActivityListController extends Controller
 
         $customer_ids = $main_assets->map(fn ($a) => $ownership[$a->id]['customer_id'])->unique()->values();
 
-        $child_ownership = collect($this->resolveRootOwnership(
+        $child_ownership = collect(AssetOwnership::resolve(
             $this->applyServiceDateWindow(
                 Asset::query()->whereNull('customer_id')->where('status', 'Actief'),
                 $type,
@@ -151,59 +171,6 @@ class ActivityListController extends Controller
             ->orderBy('next_service_date', 'desc');
     }
 
-    /**
-     * Maps each asset onto the customer and location of its root asset. A child asset carries
-     * neither of its own, so ownership resolves up the parent chain — one query per level rather
-     * than one per asset. Assets whose chain leads nowhere are left out entirely.
-     *
-     * @return array<int, array{customer_id: int, location_id: int|null}>
-     */
-    private function resolveRootOwnership(Collection $assets): array
-    {
-        $resolved = [];
-        $pending = [];
-
-        foreach ($assets as $asset) {
-            if ($asset->customer_id !== null) {
-                $resolved[$asset->id] = [
-                    'customer_id' => $asset->customer_id,
-                    'location_id' => $asset->location_id,
-                ];
-            } elseif ($asset->parent_asset_id !== null) {
-                $pending[$asset->id] = $asset->parent_asset_id;
-            }
-        }
-
-        for ($depth = 0; !empty($pending) && $depth < self::MAX_PARENT_DEPTH; $depth++) {
-            $parents = Asset::whereIn('id', array_unique(array_values($pending)))
-                ->get(['id', 'customer_id', 'parent_asset_id', 'location_id'])
-                ->keyBy('id');
-
-            $unresolved = [];
-
-            foreach ($pending as $asset_id => $parent_id) {
-                $parent = $parents->get($parent_id);
-
-                if (!$parent) {
-                    continue;
-                }
-
-                if ($parent->customer_id !== null) {
-                    $resolved[$asset_id] = [
-                        'customer_id' => $parent->customer_id,
-                        'location_id' => $parent->location_id,
-                    ];
-                } elseif ($parent->parent_asset_id !== null) {
-                    $unresolved[$asset_id] = $parent->parent_asset_id;
-                }
-            }
-
-            $pending = $unresolved;
-        }
-
-        return $resolved;
-    }
-
     private function attachEarlierPlannedEvents(Asset $asset): void
     {
         $earlier = [];
@@ -229,14 +196,14 @@ class ActivityListController extends Controller
             return $query;
         }
 
-        return $query->where(function (Builder $q) use ($search) {
-            $q->whereHas('customer', fn (Builder $c) => $c->where('name', 'like', "%{$search}%"))
-                ->orWhere('serial_number', 'like', "%{$search}%")
-                ->orWhereHas('product', function (Builder $p) use ($search) {
-                    $p->where('model', 'like', "%{$search}%")
-                        ->orWhereHas('brand', fn (Builder $b) => $b->where('name', 'like', "%{$search}%"));
-                });
-        });
+        $like = SearchTerm::like($search);
+
+        return $query->where(fn (Builder $q) => $q
+            ->whereHas('customer', fn (Builder $c) => $c->where('name', 'like', $like))
+            ->orWhere('serial_number', 'like', $like)
+            ->orWhereHas('product', fn (Builder $p) => $p
+                ->where('model', 'like', $like)
+                ->orWhereHas('brand', fn (Builder $b) => $b->where('name', 'like', $like))));
     }
 
     private function getUpcomingAssetsQuery(int $days)
