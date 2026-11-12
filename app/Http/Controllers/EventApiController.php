@@ -7,6 +7,7 @@ use App\Actions\Appointments\CancelAppointmentAction;
 use App\Actions\Appointments\CreateAppointmentAction;
 use App\Actions\Appointments\NewAppointment;
 use App\Actions\Appointments\UpdateAppointmentAction;
+use App\Domain\Planning\Clock;
 use App\Domain\Signals\ServiceOrders\AppointmentConfirmationEmailed;
 use App\Domain\Signals\Signals;
 use App\Enums\EventTrigger;
@@ -272,7 +273,7 @@ class EventApiController extends Controller
 
     public function copy(EventCopyRequest $request, Event $event)
     {
-        $offsets = $request->validated()['offsets'];
+        $offsets = $request->offsets();
 
         $service_orders = $event->serviceOrders()->get();
         $executing_user_ids = $event->executingUsers()->pluck('users.id')->all();
@@ -286,8 +287,8 @@ class EventApiController extends Controller
                 'description' => $event->description,
                 'event_type_id' => $event->event_type_id,
                 'status' => $event->status,
-                'start' => $event->start->copy()->addDays($days),
-                'end' => $event->end->copy()->addDays($days),
+                'start' => Clock::toLocal($event->start)->addDays($days)->utc(),
+                'end' => Clock::toLocal($event->end)->addDays($days)->utc(),
                 'location' => $event->location,
                 'location_id' => $event->location_id,
                 'is_preliminary' => $event->is_preliminary,

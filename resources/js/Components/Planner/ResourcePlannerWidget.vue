@@ -515,6 +515,8 @@
             </div>
         </ModalDialog>
 
+        <CopyEventToDateDialog v-model:open="copyToDate.open" :event="copyToDate.event" @copied="onEventsCopied" />
+
         <PlannerExportDrawer v-model="exportDrawerOpen" :plannable-users="plannableUsers" />
 
         <UnavailabilityOverrideDialog
@@ -584,6 +586,7 @@ import PlannerDateJump from '@/Components/Planner/PlannerDateJump.vue'
 import { usePopover } from '@/Composables/usePopover'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'
 import OverlapPickDialog from '@/Components/Planner/OverlapPickDialog.vue'
+import CopyEventToDateDialog from '@/Components/Planner/CopyEventToDateDialog.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import ContextMenu from '@imengyu/vue3-context-menu'
@@ -1722,6 +1725,7 @@ function onEventContextMenu(e, ev) {
                     { label: 'Naar morgen', onClick: () => copyEvent(ev, [1]) },
                     { label: 'Rest van de week', onClick: () => copyEvent(ev, restOfWeekOffsets(ev)) },
                     { label: 'Naar volgende week', onClick: () => copyEvent(ev, [7]) },
+                    { label: 'Naar datum…', onClick: () => openCopyToDate(ev) },
                 ],
             })
         }
@@ -1907,13 +1911,23 @@ async function copyEvent(ev, offsets) {
         await axios.get('/sanctum/csrf-cookie')
         const r = await axios.post(`/api/events/${ev.id}/copy`, { offsets })
         if (r.status !== 201) throw new Error('bad response')
-        fetchEvents()
-        const n = r.data.length
-        page.props.flash.success = `${n} afspraak${n !== 1 ? 'en' : ''} gekopieerd`
+        onEventsCopied(r.data)
     } catch (e) {
         console.error('Failed to copy event', e)
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet kopiëren'
     }
+}
+
+const copyToDate = ref({ open: false, event: null })
+
+function openCopyToDate(ev) {
+    copyToDate.value = { open: true, event: ev }
+}
+
+function onEventsCopied(copies) {
+    fetchEvents()
+    const n = copies.length
+    page.props.flash.success = `${n} afspraak${n !== 1 ? 'en' : ''} gekopieerd`
 }
 
 function shiftTimeString(hhmm, deltaMin) {
