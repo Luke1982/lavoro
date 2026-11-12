@@ -26,8 +26,8 @@ android {
         applicationId "nl.lavoro.fsm"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0"
+        versionCode 3
+        versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "String", "SERVER_URL", "\"${server_url}\""
         buildConfigField "boolean", "PUSH_AVAILABLE", push_available ? "true" : "false"
