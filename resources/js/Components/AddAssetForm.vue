@@ -6,17 +6,15 @@
         </div>
         <div>
             <div class="p-6 grid grid-cols-1 gap-3">
-                <ComboBox v-if="showCustomer" :options="customerComboOptions" v-model="assetForm.customer_id"
+                <CustomerPicker v-if="showCustomer" :options="customerComboOptions" v-model="assetForm.customer_id"
                     :has-external-searching="customersUseAjax" :searching="customerSearching"
-                    @change="searchCustomers" placeholder="Selecteer klant" />
-                <p v-if="showCustomer && assetForm.errors.customer_id" class="text-xs text-red-600">{{
-                    assetForm.errors.customer_id }}</p>
+                    @change="searchCustomers" @created="option => customerComboOptions.unshift(option)"
+                    :has-error="Boolean(assetForm.errors.customer_id)" :error-message="assetForm.errors.customer_id" />
 
-                <ComboBox v-if="showProduct" :options="productComboOptions" v-model="assetForm.product_id"
+                <ProductPicker v-if="showProduct" :options="productComboOptions" v-model="assetForm.product_id"
                     :has-external-searching="productsUseAjax" :searching="productSearching"
-                    @change="searchProducts" placeholder="Selecteer product" />
-                <p v-if="showProduct && assetForm.errors.product_id" class="text-xs text-red-600">{{
-                    assetForm.errors.product_id }}</p>
+                    @change="searchProducts" @created="option => productComboOptions.unshift(option)"
+                    :has-error="Boolean(assetForm.errors.product_id)" :error-message="assetForm.errors.product_id" />
 
                 <div class="flex items-start gap-2">
                     <TextInput v-model="assetForm.serial_number" class="flex-1" :placeholder="serialPlaceholder"
@@ -28,10 +26,7 @@
             </div>
             <div class="border-t border-gray-200 my-3"></div>
             <div class="p-6 grid grid-cols-1 gap-3">
-                <Transition enter-active-class="transition-all duration-300 ease-out"
-                    enter-from-class="opacity-0 translate-y-2" enter-to-class="opacity-100 translate-y-0"
-                    leave-active-class="transition-all duration-200 ease-in"
-                    leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-2">
+                <Transition v-bind="fadeUp">
                     <BundlePartsFields v-model="assetForm.child_assets" :product-id="assetForm.product_id"
                         :bundle-parts="bundlePartsByProduct" :errors="assetForm.errors" />
                 </Transition>
@@ -60,15 +55,17 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
-import ComboBox from '@/Components/UI/ComboBox.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import BundlePartsFields from '@/Components/BundlePartsFields.vue';
+import ProductPicker from '@/Components/Products/ProductPicker.vue';
+import CustomerPicker from '@/Components/Customers/CustomerPicker.vue';
 import { PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import { todayIso, nextServiceIso } from '@/Utilities/Utilities';
+import { fadeUp } from '@/Utilities/transitions';
 import { useComboSearch } from '@/Composables/useComboSearch';
 
 const emit = defineEmits(['created']);

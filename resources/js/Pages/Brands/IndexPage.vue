@@ -1,7 +1,7 @@
 <template>
     <IndexHeaderComponent title="Merken" subtitle="Hieronder een lijst van alle merken" search-url="/brands"
         search-label="Zoek binnen merken" search-placeholder="bijv. 'Verloop'" :paginator="false"
-        add-label="Voeg merk toe" @add="() => brandFormRef?.show()" />
+        add-label="Voeg merk toe" :can-add="hasPermission('brand.create')" @add="() => brandFormRef?.show()" />
     <div v-auto-animate class="mb-4">
         <CreateRecordForm ref="brandFormRef" external-trigger action="/brands" :fields="brandFields"
             add-button-label="Voeg merk toe" submit-label="Toevoegen" />
@@ -45,6 +45,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import { TagIcon } from '@lucide/vue'
+import { hasPermission } from '@/Utilities/Utilities'
 
 const brandFormRef = ref(null)
 

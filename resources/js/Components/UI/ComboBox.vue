@@ -1,5 +1,5 @@
 <template>
-    <Combobox as="div" v-model="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id"
+    <Combobox as="div" :model-value="internalValue" @update:modelValue="onSelect" :multiple="multiple" by="id"
         v-slot="{ open }">
         <ComboboxLabel v-if="label" class="block text-xs font-bold mb-1.5 text-gray-600 dark:text-slate-300">
             {{ label }}
@@ -26,7 +26,7 @@
             <Teleport to="body">
                 <div v-if="open && hasPanelContent" ref="floatingRef"
                     data-combobox-dropdown :style="dropdownStyle">
-                    <ComboboxOptions v-if="filteredOptions.length > 0"
+                    <ComboboxOptions v-if="filteredOptions.length > 0 || showCreate"
                         class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
                         <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"
                             v-slot="{ active, selected }">
@@ -50,6 +50,13 @@
                                 </span>
                             </li>
                         </ComboboxOption>
+                        <ComboboxOption v-if="showCreate" :value="createOption" as="template" v-slot="{ active }">
+                            <li data-combobox-create
+                                :class="['relative flex cursor-default select-none items-center gap-2 py-2 pl-3 pr-9', filteredOptions.length > 0 && 'border-t border-gray-100 dark:border-slate-700', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-indigo-600 dark:text-indigo-400']">
+                                <PlusIcon class="h-4 w-4 flex-none" aria-hidden="true" />
+                                <span class="truncate">{{ createLabel }} ‘{{ createOption.name }}’</span>
+                            </li>
+                        </ComboboxOption>
                     </ComboboxOptions>
                     <div v-else role="status"
                         class="rounded-md bg-white dark:bg-slate-900 py-3 px-3 text-sm text-gray-500 dark:text-slate-400 shadow-lg ring-1 ring-black/5 dark:ring-slate-500 sm:text-sm">
@@ -65,7 +72,7 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
-import { CheckIcon, ChevronUpDownIcon, MagnifyingGlassIcon } from '@heroicons/vue/20/solid'
+import { CheckIcon, ChevronUpDownIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/vue/20/solid'
 import {
     Combobox,
     ComboboxButton,
@@ -143,6 +150,16 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    /**
+     * Offer to make what is not in the list: the last row reads this label and
+     * what was typed, and picking it emits `create` with that text instead of
+     * selecting anything. Making the record is the parent's, which knows the
+     * endpoint and whether this person may. Empty, the box never offers it.
+     */
+    createLabel: {
+        type: String,
+        default: '',
+    },
 })
 
 const inputRef = ref(null)
@@ -170,7 +187,7 @@ async function updatePosition() {
     }
 }
 
-const emit = defineEmits(['update:modelValue', 'change', 'focus'])
+const emit = defineEmits(['update:modelValue', 'change', 'focus', 'create'])
 
 const internalSearching = ref(props.searching)
 watch(() => props.searching, (n) => {
@@ -290,7 +307,27 @@ const listMessage = computed(() => {
         : `Geen resultaten voor ‘${query.value}’`
 })
 
-const hasPanelContent = computed(() => filteredOptions.value.length > 0 || listMessage.value !== '')
+const CREATE_OPTION_ID = '__combobox_create__'
+
+const createOption = computed(() => ({ id: CREATE_OPTION_ID, name: query.value.trim() }))
+
+/**
+ * Only once something is typed, only when it is not already in the list, and
+ * not while the server is still looking: a row offered before the results are
+ * in makes a second of what was about to be found.
+ */
+const showCreate = computed(() => {
+    if (!props.createLabel || props.multiple || searchingExternally.value) return false
+
+    const term = forMatching(createOption.value.name)
+    if (term === '') return false
+
+    return !props.options.some(option => forMatching(option.name) === term)
+})
+
+const hasPanelContent = computed(() =>
+    filteredOptions.value.length > 0 || listMessage.value !== '' || showCreate.value
+)
 
 // display logic
 const isFocused = ref(false)
@@ -344,6 +381,12 @@ watch(() => query.value, (newVal) => {
 })
 
 function onSelect(newOption) {
+    if (newOption?.id === CREATE_OPTION_ID) {
+        showSelectedOnFocus.value = true
+        query.value = ''
+        emit('create', newOption.name)
+        return
+    }
     if (!props.multiple) {
         const newPayload = props.emitValue ? newOption.name : newOption.id
         const wasSelected = props.modelValue != null && newPayload === props.modelValue

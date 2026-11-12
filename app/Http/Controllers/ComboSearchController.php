@@ -132,14 +132,7 @@ class ComboSearchController extends Controller
             ->orderBy('model')
             ->limit(25)
             ->get()
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => "{$p->brand->name} {$p->model} ({$p->productType->name})",
-                'bundle' => $p->bundle,
-                'registable' => $p->registable,
-                'typical_certificate_days' => $p->typical_certificate_days,
-                'product_type_typical_certificate_days' => $p->productType->typical_certificate_days,
-            ]);
+            ->map->toMachineOption();
 
         return response()->json($results);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use App\Models\ProductAttributeValue;
 use App\Rules\DbRange;
 use Illuminate\Validation\Validator;
@@ -27,7 +28,7 @@ class ProductStoreRequest extends ProductRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('create', Product::class) ?? false;
     }
 
     /**

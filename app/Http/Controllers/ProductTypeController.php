@@ -2,33 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProductType;
 use App\Http\Requests\ProductTypeReadRequest;
+use App\Http\Requests\ProductTypeStoreRequest;
 use App\Http\Requests\ProductTypeStoreUpdateRequest;
+use App\Models\ProductType;
 
 class ProductTypeController extends Controller
 {
     public function index(ProductTypeReadRequest $request)
     {
-        $data   = $request->validated();
+        $data = $request->validated();
         $search = $data['search'] ?? null;
 
         if ($search) {
             $types = self::getByTerm($search)
-                ->with(['products' => fn($q) => $q
+                ->with(['products' => fn ($q) => $q
                     ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name')])
                 ->orderBy('name')
                 ->get();
 
             return inertia('ProductTypes/IndexPage', [
                 'productTypes' => $types,
-                'treeMode'     => false,
-                'search'       => $search,
+                'treeMode' => false,
+                'search' => $search,
             ]);
         }
 
         $types = ProductType::with([
-            'products' => fn($q) => $q
+            'products' => fn ($q) => $q
                 ->select('id', 'product_type_id', 'model', 'brand_id')->with('brand:id,name'),
         ])
             ->orderBy('name')
@@ -36,8 +37,8 @@ class ProductTypeController extends Controller
 
         return inertia('ProductTypes/IndexPage', [
             'productTypes' => $types,
-            'treeMode'     => true,
-            'search'       => null,
+            'treeMode' => true,
+            'search' => null,
         ]);
     }
 
@@ -57,9 +58,13 @@ class ProductTypeController extends Controller
         return $query;
     }
 
-    public function store(ProductTypeStoreUpdateRequest $request)
+    public function store(ProductTypeStoreRequest $request)
     {
         $type = ProductType::create($request->validated());
+
+        if ($request->wantsJson()) {
+            return response()->json($type, 201);
+        }
 
         return redirect()
             ->route('producttypes.index')

@@ -183,6 +183,10 @@ class CustomerController extends Controller
     {
         $customer = app(CreateCustomerAction::class)->execute($request->sanitized());
 
+        if ($request->wantsJson()) {
+            return response()->json($customer->toComboOption(), 201);
+        }
+
         /** Net als bij een storing reist het nieuwe record mee terug. */
         return redirect()->back()->with([
             'success' => 'Klant aangemaakt.',

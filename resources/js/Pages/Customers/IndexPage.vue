@@ -81,67 +81,7 @@
 
     <DrawerComponent v-if="canCreate" v-model="addCustomerDrawerOpen" title="Nieuwe klant toevoegen"
         subtitle="Vul onderstaande velden in om een nieuwe klant toe te voegen.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Naam <span class="text-red-500">*</span></label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.name" placeholder="Naam klant"
-                        :hasError="Boolean(newCustomerForm.errors.name)"
-                        :errorMessage="newCustomerForm.errors.name" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">E-mail</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.email" type="email" placeholder="info@bedrijf.nl"
-                        :hasError="Boolean(newCustomerForm.errors.email)"
-                        :errorMessage="newCustomerForm.errors.email" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Telefoon</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.phone" placeholder="0612345678"
-                        :hasError="Boolean(newCustomerForm.errors.phone)"
-                        :errorMessage="newCustomerForm.errors.phone" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Adres</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.address" placeholder="Straatnaam 1"
-                        :hasError="Boolean(newCustomerForm.errors.address)"
-                        :errorMessage="newCustomerForm.errors.address" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Postcode / Plaats</label>
-                <div class="sm:col-span-2 grid grid-cols-2 gap-2">
-                    <TextInput v-model="newCustomerForm.postal_code" placeholder="1234AB"
-                        :hasError="Boolean(newCustomerForm.errors.postal_code)"
-                        :errorMessage="newCustomerForm.errors.postal_code" />
-                    <TextInput v-model="newCustomerForm.city" placeholder="Plaats"
-                        :hasError="Boolean(newCustomerForm.errors.city)"
-                        :errorMessage="newCustomerForm.errors.city" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Land</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.country" placeholder="Nederland"
-                        :hasError="Boolean(newCustomerForm.errors.country)"
-                        :errorMessage="newCustomerForm.errors.country" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatiecode</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newCustomerForm.location_code" placeholder="Locatiecode"
-                        :hasError="Boolean(newCustomerForm.errors.location_code)"
-                        :errorMessage="newCustomerForm.errors.location_code" />
-                </div>
-            </div>
-        </div>
+        <CustomerFormFields :form="newCustomerForm" />
         <template #footer>
             <div class="flex justify-end gap-2">
                 <button type="button" @click="closeCustomerDrawer"
@@ -318,7 +258,8 @@ import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
+import CustomerFormFields from '@/Components/Customers/CustomerFormFields.vue';
+import { useCustomerForm } from '@/Composables/useCustomerForm';
 import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
@@ -400,16 +341,7 @@ const handleCancel = () => {
     router.get('/customers')
 }
 
-const newCustomerForm = useForm({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    postal_code: '',
-    city: '',
-    country: '',
-    location_code: '',
-})
+const newCustomerForm = useCustomerForm()
 
 function closeCustomerDrawer() {
     addCustomerDrawerOpen.value = false

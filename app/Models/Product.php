@@ -237,6 +237,23 @@ class Product extends Model
             ->values();
     }
 
+    /**
+     * A product as the machine forms pick it. Bundle and registable decide whether
+     * the form asks for a serienummer; the two typical durations set the first
+     * keuring of the machine being registered.
+     */
+    public function toMachineOption(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->brand->name . ' ' . $this->model . ' (' . $this->productType->name . ')',
+            'bundle' => $this->bundle,
+            'registable' => $this->registable,
+            'typical_certificate_days' => $this->typical_certificate_days,
+            'product_type_typical_certificate_days' => $this->productType->typical_certificate_days,
+        ];
+    }
+
     public function toComboOption(): array
     {
         $attributes = $this->searchableAttributes();

@@ -429,15 +429,7 @@ class AssetController extends Controller
             ->orderBy('product_types.name', 'ASC')
             ->select('products.*')
             ->get()
-            ->map(fn (Product $product) => [
-                'id' => $product->id,
-                'name' => $product->brand->name . ' ' . $product->model
-                    . ' (' . $product->productType->name . ')',
-                'bundle' => $product->bundle,
-                'registable' => $product->registable,
-                'typical_certificate_days' => $product->typical_certificate_days,
-                'product_type_typical_certificate_days' => $product->productType->typical_certificate_days,
-            ]);
+            ->map->toMachineOption();
     }
 
     /**

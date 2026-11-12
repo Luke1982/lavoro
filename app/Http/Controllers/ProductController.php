@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProductBulkUpdateRequest;
+use App\Http\Requests\ProductCreateRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
@@ -17,7 +18,9 @@ use App\Models\ProductType;
 use App\Models\Supplier;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -76,20 +79,7 @@ class ProductController extends Controller
                         return $p;
                     }),
                 'search' => $search,
-                'brands' => Brand::all(),
-                'productTypes' => ProductType::flatListWithPath(),
-                'productAttributes' => ProductAttribute::with(['values', 'productTypes'])
-                    ->get()
-                    ->filter(fn ($attr) => $attr->values->isNotEmpty())
-                    ->map(fn ($attr) => [
-                        'id' => $attr->id,
-                        'name' => $attr->name,
-                        'values' => $attr->values
-                            ->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])
-                            ->values(),
-                        'product_type_ids' => $attr->productTypes->pluck('id')->values(),
-                    ])
-                    ->values(),
+                ...$this->formOptions(),
                 'onlyType' => $onlyType,
                 'onlyBrand' => $onlyBrand,
                 'onlyAttributeValues' => $onlyAttributeValues,
@@ -237,6 +227,41 @@ class ProductController extends Controller
     }
 
     /**
+     * What a new product is made from, for a form that is not on the products page:
+     * the machine form makes a missing product on the spot.
+     */
+    public function create(ProductCreateRequest $request): JsonResponse
+    {
+        return response()->json($this->formOptions());
+    }
+
+    /**
+     * The brands, types and attributes a product form offers. An attribute without
+     * values has nothing to pick, so it is left out.
+     *
+     * @return array{brands: Collection, productTypes: array, productAttributes: Collection}
+     */
+    private function formOptions(): array
+    {
+        return [
+            'brands' => Brand::all(),
+            'productTypes' => ProductType::flatListWithPath(),
+            'productAttributes' => ProductAttribute::with(['values', 'productTypes'])
+                ->get()
+                ->filter(fn ($attr) => $attr->values->isNotEmpty())
+                ->map(fn ($attr) => [
+                    'id' => $attr->id,
+                    'name' => $attr->name,
+                    'values' => $attr->values
+                        ->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])
+                        ->values(),
+                    'product_type_ids' => $attr->productTypes->pluck('id')->values(),
+                ])
+                ->values(),
+        ];
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(ProductStoreRequest $request)
@@ -259,6 +284,10 @@ class ProductController extends Controller
 
             return $product;
         });
+
+        if ($request->wantsJson()) {
+            return response()->json($product->refresh()->toMachineOption(), 201);
+        }
 
         return redirect()
             ->route('products.index')

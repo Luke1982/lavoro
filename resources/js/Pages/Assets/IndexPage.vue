@@ -45,35 +45,37 @@
     </IndexHeaderComponent>
     <DrawerComponent v-if="canCreate" v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen"
         subtitle="Vul onderstaande velden in om een nieuwe machine toe te voegen.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700" v-auto-animate>
+        <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Product</label>
                 <div class="sm:col-span-2">
-                    <ComboBox :options="productOptions" v-model="newAssetForm.product_id"
-                        placeholder="Selecteer product" :has-external-searching="productsUseAjax"
-                        :searching="productSearching" @change="searchProducts"
-                        :hasError="Boolean(newAssetForm.errors.product_id)"
-                        :errorMessage="newAssetForm.errors.product_id" />
+                    <ProductPicker :options="productOptions" v-model="newAssetForm.product_id"
+                        :has-external-searching="productsUseAjax" :searching="productSearching"
+                        @change="searchProducts" @created="option => productOptions.unshift(option)"
+                        :has-error="Boolean(newAssetForm.errors.product_id)"
+                        :error-message="newAssetForm.errors.product_id" />
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
                 <div class="sm:col-span-2">
-                    <ComboBox :options="customerOptions" v-model="newAssetForm.customer_id"
-                        placeholder="Selecteer klant" :has-external-searching="customersUseAjax"
-                        :searching="customerSearching" @change="searchCustomers"
-                        :hasError="Boolean(newAssetForm.errors.customer_id)"
-                        :errorMessage="newAssetForm.errors.customer_id" />
+                    <CustomerPicker :options="customerOptions" v-model="newAssetForm.customer_id"
+                        :has-external-searching="customersUseAjax" :searching="customerSearching"
+                        @change="searchCustomers" @created="option => customerOptions.unshift(option)"
+                        :has-error="Boolean(newAssetForm.errors.customer_id)"
+                        :error-message="newAssetForm.errors.customer_id" />
                 </div>
             </div>
-            <div v-if="newAssetLocationOptions.length"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatie</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="newAssetLocationOptions" v-model="newAssetForm.location_id"
-                        :empty-message="newAssetLocationMessage" placeholder="Geen locatie" />
+            <Transition v-bind="fadeUp">
+                <div v-if="newAssetLocationOptions.length"
+                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatie</label>
+                    <div class="sm:col-span-2">
+                        <ComboBox :options="newAssetLocationOptions" v-model="newAssetForm.location_id"
+                            :empty-message="newAssetLocationMessage" placeholder="Geen locatie" />
+                    </div>
                 </div>
-            </div>
+            </Transition>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
                 <div class="sm:col-span-2 flex items-start gap-2">
@@ -85,8 +87,10 @@
                         @picked="newAssetForm.serial_number = $event" />
                 </div>
             </div>
-            <BundlePartsFields v-model="newAssetForm.child_assets" :product-id="newAssetForm.product_id"
-                :bundle-parts="bundlePartsByProduct" :errors="newAssetForm.errors" class="px-4 sm:px-6 py-4" />
+            <Transition v-bind="fadeUp">
+                <BundlePartsFields v-model="newAssetForm.child_assets" :product-id="newAssetForm.product_id"
+                    :bundle-parts="bundlePartsByProduct" :errors="newAssetForm.errors" class="px-4 sm:px-6 py-4" />
+            </Transition>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">In gebruikname</label>
                 <div class="sm:col-span-2">
@@ -237,7 +241,10 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import BundlePartsFields from '@/Components/BundlePartsFields.vue';
+import ProductPicker from '@/Components/Products/ProductPicker.vue';
+import CustomerPicker from '@/Components/Customers/CustomerPicker.vue';
 import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
+import { fadeUp } from '@/Utilities/transitions';
 import { useComboSearch } from '@/Composables/useComboSearch';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';

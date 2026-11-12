@@ -219,111 +219,8 @@
         :title="isCopyingProduct ? 'Product kopiëren' : 'Nieuw product toevoegen'"
         :subtitle="isCopyingProduct ? 'Pas de gegevens aan en sla op als nieuw product.' : 'Vul onderstaande velden in om een nieuw product toe te voegen.'"
         max-width-class="max-w-2xl">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Producttype</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="productTypes" v-model="newProductForm.product_type_id"
-                        placeholder="Selecteer producttype" :hasError="Boolean(newProductForm.errors.product_type_id)"
-                        :errorMessage="newProductForm.errors.product_type_id" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Merk</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="brands" v-model="newProductForm.brand_id" placeholder="Selecteer merk"
-                        :hasError="Boolean(newProductForm.errors.brand_id)"
-                        :errorMessage="newProductForm.errors.brand_id" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Model</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newProductForm.model" type="text"
-                        :hasError="Boolean(newProductForm.errors.model)" :errorMessage="newProductForm.errors.model" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-start">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 sm:pt-2">Beschrijving</label>
-                <div class="sm:col-span-2">
-                    <textarea v-model="newProductForm.description" rows="3"
-                        class="block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm p-2"
-                        placeholder="Optioneel"></textarea>
-                    <p v-if="newProductForm.errors.description" class="text-red-600 text-sm mt-1">{{
-                        newProductForm.errors.description }}</p>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Artikelnummer</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newProductForm.part_no" type="text" placeholder="Optioneel"
-                        :hasError="Boolean(newProductForm.errors.part_no)"
-                        :errorMessage="newProductForm.errors.part_no" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Start verkoop</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newProductForm.start_sell" type="date"
-                        :hasError="Boolean(newProductForm.errors.start_sell)"
-                        :errorMessage="newProductForm.errors.start_sell" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einde verkoop</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newProductForm.end_sell" type="date"
-                        :hasError="Boolean(newProductForm.errors.end_sell)"
-                        :errorMessage="newProductForm.errors.end_sell" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Verkoopprijs</label>
-                <div class="sm:col-span-2">
-                    <CurrencyInput v-model="newProductForm.retail_price" placeholder="Optioneel"
-                        :hasError="Boolean(newProductForm.errors.retail_price)"
-                        :errorMessage="newProductForm.errors.retail_price" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Inkoopprijs</label>
-                <div class="sm:col-span-2">
-                    <CurrencyInput v-model="newProductForm.purchase_price" placeholder="Optioneel"
-                        :hasError="Boolean(newProductForm.errors.purchase_price)"
-                        :errorMessage="newProductForm.errors.purchase_price" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 flex">
-                    Bundel
-                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
-                        v-tooltip="'Een gebundeld product wordt gebruikt om andere producten te groeperen. Machines die van bundels gemaakt worden krijgen geen serienummer.'" />
-                </label>
-                <div class="sm:col-span-2">
-                    <SwitchComponent v-model="newProductForm.bundle" />
-                </div>
-            </div>
-            <div v-if="!newProductForm.bundle"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200 flex">
-                    Registreerbaar
-                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
-                        v-tooltip="'Machines van een registreerbaar product worden stuk voor stuk op serienummer vastgelegd. Zet dit uit voor producten die per stuk geteld worden, zoals zonnepanelen.'" />
-                </label>
-                <div class="sm:col-span-2">
-                    <SwitchComponent v-model="newProductForm.registable" />
-                </div>
-            </div>
-            <div v-for="attr in newProductAttributes" :key="attr.id"
-                class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">{{ attr.name }}</label>
-                <div class="sm:col-span-2">
-                    <ComboBox :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
-                        v-model="newProductAttributeValues[attr.id]"
-                        :placeholder="`Selecteer ${attr.name.toLowerCase()}`" />
-                </div>
-            </div>
-        </div>
+        <ProductFormFields :form="newProductForm" :attribute-values="newProductAttributeValues"
+            :attributes="newProductAttributes" :brands="brands" :product-types="productTypes" />
         <template #footer>
             <div class="flex justify-end gap-2">
                 <button type="button" @click="closeProductDrawer"
@@ -421,23 +318,23 @@
 
 <script setup>
 import { Link, useForm, router } from '@inertiajs/vue3'
-import { ref, computed, reactive, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
-import TextInput from '@/Components/UI/TextInput.vue'
-import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon } from '@heroicons/vue/24/outline'
 import { formatProductSalePeriod, hasPermission } from '@/Utilities/Utilities'
-import { CopyIcon, EyeIcon, InfoIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
+import { BoxIcon, CopyIcon, EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
+import ProductFormFields from '@/Components/Products/ProductFormFields.vue'
+import { useProductForm } from '@/Composables/useProductForm'
 
 const { products, brands, productTypes, productAttributes, perPage } = defineProps({
     products: { type: Object, required: true },
@@ -544,43 +441,18 @@ function saveBulkEdit() {
     })
 }
 
-const newProductForm = useForm({
-    product_type_id: null,
-    brand_id: null,
-    model: '',
-    description: '',
-    part_no: '',
-    start_sell: null,
-    end_sell: null,
-    retail_price: null,
-    purchase_price: null,
-    bundle: false,
-    registable: true,
-})
-
-const newProductAttributeValues = reactive({})
-
-const newProductAttributes = computed(() =>
-    newProductForm.product_type_id
-        ? productAttributes.filter(attr => attr.product_type_ids.includes(newProductForm.product_type_id))
-        : []
-)
-
-watch(() => newProductForm.product_type_id, () => {
-    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
-})
+const {
+    form: newProductForm,
+    attributeValues: newProductAttributeValues,
+    attributesForType: newProductAttributes,
+    payload: newProductPayload,
+    reset: resetNewProductForm,
+    fill: fillNewProductForm,
+} = useProductForm(() => productAttributes)
 
 function submitNewProduct() {
     newProductForm
-        .transform(data => ({
-            ...data,
-            attributes: newProductAttributes.value
-                .filter(attr => newProductAttributeValues[attr.id])
-                .map(attr => ({
-                    product_attribute_id: attr.id,
-                    product_attribute_value_id: newProductAttributeValues[attr.id]?.id ?? newProductAttributeValues[attr.id],
-                })),
-        }))
+        .transform(newProductPayload)
         .post('/products', {
             preserveScroll: true,
             onSuccess: () => {
@@ -591,38 +463,15 @@ function submitNewProduct() {
         })
 }
 
-function resetNewProductForm() {
-    newProductForm.reset()
-    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
-}
-
 function openNewProductDrawer() {
     isCopyingProduct.value = false
     resetNewProductForm()
-    newProductForm.clearErrors()
     showProductDrawer.value = true
 }
 
 async function copyProduct(product) {
     resetNewProductForm()
-    newProductForm.clearErrors()
-    newProductForm.product_type_id = product.product_type_id
-    newProductForm.brand_id = product.brand_id
-    newProductForm.model = product.model
-    newProductForm.description = product.description ?? ''
-    newProductForm.part_no = product.part_no ?? ''
-    newProductForm.start_sell = product.start_sell ?? null
-    newProductForm.end_sell = product.end_sell ?? null
-    newProductForm.retail_price = product.retail_price ?? null
-    newProductForm.purchase_price = product.purchase_price ?? null
-    newProductForm.bundle = Boolean(product.bundle)
-    newProductForm.registable = product.registable ?? true
-
-    await nextTick()
-    Object.keys(newProductAttributeValues).forEach(key => delete newProductAttributeValues[key])
-    ;(product.product_attribute_valueables ?? []).forEach(pav => {
-        newProductAttributeValues[pav.product_attribute_id] = pav.product_attribute_value_id
-    })
+    await fillNewProductForm(product)
 
     isCopyingProduct.value = true
     showProductDrawer.value = true
@@ -632,7 +481,6 @@ function closeProductDrawer() {
     showProductDrawer.value = false
     isCopyingProduct.value = false
     resetNewProductForm()
-    newProductForm.clearErrors()
 }
 
 const openIds = ref(new Set())

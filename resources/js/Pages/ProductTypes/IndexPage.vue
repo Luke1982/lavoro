@@ -2,7 +2,7 @@
     <IndexHeaderComponent title="Producttypen" subtitle="Hieronder een lijst van alle producttypen"
         search-url="/producttypes" search-label="Zoek binnen producttypen"
         search-placeholder="bijv. 'Viergastester'" :paginator="false" add-label="Voeg producttype toe"
-        @add="() => typeFormRef?.show()" />
+        :can-add="hasPermission('producttype.create')" @add="() => typeFormRef?.show()" />
     <div class="mt-0 mb-4" v-auto-animate>
         <CreateRecordForm ref="typeFormRef" external-trigger action="/producttypes" :fields="typeFields"
             add-button-label="Voeg producttype toe" submit-label="Toevoegen" />
@@ -36,6 +36,7 @@ import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ProductTypeTreeNode from '@/Components/ProductTypes/ProductTypeTreeNode.vue'
 import { LayersIcon } from '@lucide/vue'
+import { hasPermission } from '@/Utilities/Utilities'
 
 const typeFormRef = ref(null)
 const addingChildTo = reactive({})

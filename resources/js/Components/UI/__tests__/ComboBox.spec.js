@@ -123,3 +123,96 @@ describe('ComboBox', () => {
         expect(panel().textContent).toContain('Geen resultaten voor ‘Rust’')
     })
 })
+
+/**
+ * A picker that may make what it does not have. Whoever cannot find a brand
+ * while adding a product types it, and the last row offers to make exactly
+ * that — the parent makes it, because only the parent knows the endpoint and
+ * whether this person is allowed to.
+ */
+describe('ComboBox offering to make what is missing', () => {
+    const bosch = { id: 1, name: 'Bosch' }
+
+    const createRow = () => document.querySelector('[data-combobox-create]')
+
+    /** Headless UI picks an option on mousedown, not on click. */
+    const pick = async (element) => {
+        element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+        await settle()
+    }
+
+    it('offers to make what was typed when the list does not have it', async () => {
+        const wrapper = combobox({ options: [bosch], createLabel: 'Nieuw merk' })
+
+        await type(wrapper, 'Makita')
+
+        expect(createRow().textContent).toContain('Nieuw merk ‘Makita’')
+    })
+
+    it('hands what was typed to the parent and selects nothing itself', async () => {
+        const wrapper = combobox({ options: [bosch], createLabel: 'Nieuw merk' })
+
+        await type(wrapper, '  Makita ')
+        await pick(createRow())
+
+        expect(wrapper.emitted('create')).toEqual([['Makita']])
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
+    it('keeps the choice already made while the new one is being made', async () => {
+        const wrapper = combobox({ options: [bosch], modelValue: 1, createLabel: 'Nieuw merk' })
+
+        await type(wrapper, 'Makita')
+        await pick(createRow())
+
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+        expect(wrapper.find('input').element.value).toBe('Bosch')
+    })
+
+    it('keeps the choice even when a search has replaced the list it came from', async () => {
+        const wrapper = combobox({ options: [bosch], modelValue: 1, createLabel: 'Nieuw merk' })
+
+        await wrapper.setProps({ options: [{ id: 2, name: 'Makita' }] })
+        await type(wrapper, 'Metabo')
+        await pick(createRow())
+
+        expect(wrapper.find('input').element.value).toBe('Bosch')
+    })
+
+    it('does not offer a second of what is already in the list', async () => {
+        const wrapper = combobox({ options: [bosch], createLabel: 'Nieuw merk' })
+
+        await type(wrapper, 'bosch')
+
+        expect(createRow()).toBeNull()
+    })
+
+    it('waits for a name before offering to make anything', async () => {
+        const wrapper = combobox({ options: [bosch], createLabel: 'Nieuw merk' })
+
+        await openBox(wrapper)
+
+        expect(createRow()).toBeNull()
+    })
+
+    it('offers to make it once the server found nothing, and not while it is still looking', async () => {
+        const wrapper = combobox({ options: [], hasExternalSearching: true, createLabel: 'Nieuw product' })
+
+        await wrapper.setProps({ searching: true })
+        await type(wrapper, 'GSR 18')
+        expect(createRow()).toBeNull()
+
+        await wrapper.setProps({ searching: false })
+        await settle()
+
+        expect(createRow().textContent).toContain('Nieuw product ‘GSR 18’')
+    })
+
+    it('never offers to make anything without being asked to', async () => {
+        const wrapper = combobox({ options: [bosch] })
+
+        await type(wrapper, 'Makita')
+
+        expect(createRow()).toBeNull()
+    })
+})

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BrandReadRequest;
+use App\Http\Requests\BrandStoreRequest;
 use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,15 +51,13 @@ class BrandController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(BrandStoreRequest $request)
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')],
-        ]);
+        $brand = Brand::create($request->validated());
 
-        $brand = Brand::create([
-            'name' => $request->name,
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json($brand, 201);
+        }
 
         return redirect()->route('brands.index')->with('success', 'Merk aangemaakt.')->with('extra', $brand);
     }

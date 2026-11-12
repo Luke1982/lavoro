@@ -40,7 +40,7 @@
                     v-tooltip="'Verwijderen'">
                     <TrashIcon class="h-4 w-4 cursor-pointer text-red-500" @click="onDelete(type)" />
                 </div>
-                <button type="button" @click="onToggleAdding(type.id)"
+                <button v-if="canCreate" type="button" @click="onToggleAdding(type.id)"
                     :class="isAdding ? 'text-gray-400 hover:text-gray-600' : 'text-lavoro-blue hover:text-lavoro-darkerblue'"
                     class="font-bold text-lg leading-none w-5 text-center"
                     :title="isAdding ? 'Annuleren' : 'Subtype toevoegen'">
@@ -85,6 +85,7 @@ import { computed, inject } from 'vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import { TrashIcon } from '@lucide/vue'
 import ProductTypeTreeNode from './ProductTypeTreeNode.vue'
+import { hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     type: { type: Object, required: true },
@@ -102,4 +103,5 @@ const indentPx = computed(() => props.depth * 32)
 const archX    = computed(() => props.depth * 32 - 16)
 const spineX   = computed(() => props.depth * 32 + 16)
 const isAdding = computed(() => !!addingChildTo[props.type.id])
+const canCreate = hasPermission('producttype.create')
 </script>
