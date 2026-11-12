@@ -1,9 +1,11 @@
 <template>
-    <TransitionRoot as="template" :show="open">
+    <TransitionRoot as="template" :show="open" appear>
         <Dialog class="relative z-50" @close="open = false">
-            <TransitionChild as="template" enter="ease-in-out duration-500" enter-from="opacity-0" enter-to=""
-                leave="ease-in-out duration-500" leave-from="" leave-to="opacity-0">
-                <div class="fixed inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/50"></div>
+            <TransitionChild as="template" enter="ease-in-out duration-500" :enter-from="backdropHidden" enter-to=""
+                leave="ease-in-out duration-500" leave-from="" :leave-to="backdropHidden">
+                <div data-dialog-backdrop
+                    :class="['fixed inset-0 bg-gray-500/75 transition-opacity dark:bg-gray-900/50', backdropHidden]">
+                </div>
             </TransitionChild>
 
             <div class="fixed inset-0 overflow-hidden">
@@ -12,10 +14,10 @@
                         class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                         <TransitionChild as="template"
                             enter="transform transition ease-in-out duration-500 sm:duration-700"
-                            enter-from="translate-x-full" enter-to="translate-x-0"
+                            :enter-from="panelOffScreen" enter-to="translate-x-0"
                             leave="transform transition ease-in-out duration-500 sm:duration-700"
-                            leave-from="translate-x-0" leave-to="translate-x-full">
-                            <DialogPanel :class="['pointer-events-auto w-screen min-w-0', maxWidthClass]">
+                            leave-from="translate-x-0" :leave-to="panelOffScreen">
+                            <DialogPanel :class="['pointer-events-auto w-screen min-w-0', panelOffScreen, maxWidthClass]">
                                 <div
                                     class="relative flex h-full flex-col bg-white shadow-xl dark:bg-gray-800 dark:after:absolute dark:after:inset-y-0 dark:after:left-0 dark:after:w-px dark:after:bg-white/10">
                                     <div
@@ -71,6 +73,18 @@ defineProps({
     subtitle: { type: String, default: '' },
     maxWidthClass: { type: String, default: 'max-w-md' },
 })
+
+/**
+ * Where the panel and backdrop start and end, and where they are drawn from the
+ * first moment. Headless UI only adds its enter-from classes after the content
+ * has mounted, and content that measures itself while mounting (auto-animate,
+ * the signature pad) makes the browser fix the panel's position right then: it
+ * fixed the end, and the drawer popped open instead of sliding in. Headless
+ * removes these classes as it moves the panel; `appear` makes it do so for a
+ * drawer created already open too, which would otherwise stay off-screen.
+ */
+const panelOffScreen = 'translate-x-full'
+const backdropHidden = 'opacity-0'
 
 const viewportContainer = ref(null)
 
