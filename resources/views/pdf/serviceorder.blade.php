@@ -407,6 +407,22 @@
                             @endif
                         </td>
                     </tr>
+                    @if (!empty($taskCheckLines[$instance->id] ?? []))
+                        <tr>
+                            <td colspan="4" class="muted" style="font-size:10px; padding-top:0;">
+                                @foreach ($taskCheckLines[$instance->id] as $line)
+                                    <div>
+                                        @if ($line['label'])
+                                            <strong>{{ $line['label'] }}:</strong>
+                                        @endif
+                                        @foreach ($line['items'] as $item)
+                                            @if (!$loop->first) · @endif✓ {{ $item }}
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </td>
+                        </tr>
+                    @endif
                 @endforeach
             </tbody>
         </table>

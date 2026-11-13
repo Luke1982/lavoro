@@ -2,9 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ReadsTaskInstanceForm;
 use App\Http\Requests\Concerns\ValidatesFlexQuantities;
 use App\Models\Product;
 use App\Models\ServiceOrderTaskInstance;
+use App\Services\TaskChecks\TaskCheckExtras;
+use App\Services\TaskChecks\TaskCheckUnits;
+use App\Services\TaskChecks\TaskInstanceChecks;
 use App\Services\TaskInstanceBundleService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +16,7 @@ use Illuminate\Validation\Validator;
 
 class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
 {
+    use ReadsTaskInstanceForm;
     use ValidatesFlexQuantities;
 
     public function authorize(): bool
@@ -24,14 +29,14 @@ class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
     public function rules(): array
     {
         return array_merge([
-            'is_complete' => ['sometimes', 'boolean'],
             'product_id' => ['sometimes', 'nullable', 'integer', 'exists:products,id'],
             'quantity' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:999'],
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'user_role_ids' => ['sometimes', 'array'],
             'user_role_ids.*' => ['integer', 'exists:user_roles,id'],
-        ], $this->flexQuantityRules());
+            'checks_per_unit' => ['sometimes', 'boolean'],
+        ], $this->extraCheckRules(), $this->flexQuantityRules());
     }
 
     /**
@@ -72,7 +77,9 @@ class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
                     }
                 }
 
-                if ($instance->assets->isEmpty()) {
+                $this->checkChecks($validator, $instance, $product);
+
+                if ($validator->errors()->isNotEmpty() || $instance->assets->isEmpty()) {
                     return;
                 }
 
@@ -89,6 +96,48 @@ class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
                 $this->checkFlexQuantities($validator, $instance, $product);
             },
         ];
+    }
+
+    /**
+     * The checks on the task hold an edit back where it would undo ticked work: the
+     * per-machine switch once anything is ticked, an aantal that drops a machine with
+     * ticks or a registered machine, and any change of machines or extras on a
+     * completed task.
+     */
+    private function checkChecks(Validator $validator, ServiceOrderTaskInstance $instance, ?Product $product): void
+    {
+        $switching = $this->has('checks_per_unit')
+            && $this->boolean('checks_per_unit') !== (bool) $instance->checks_per_unit;
+
+        if ($switching && app(TaskInstanceChecks::class)->hasTicks($instance)) {
+            $validator->errors()->add('checks_per_unit', 'Er zijn al checks afgevinkt; dit kan niet meer wijzigen.');
+        }
+
+        $unit_count = TaskCheckUnits::count(
+            $product?->id,
+            $this->has('quantity') ? $this->integer('quantity') : $instance->quantity,
+        );
+        $unit_count_changes = $unit_count !== TaskCheckUnits::count($instance->product_id, $instance->quantity);
+        $blocking = $switching ? null : app(TaskCheckUnits::class)->blocking($instance, $unit_count, (bool) $product?->bundle);
+
+        if ($instance->is_complete && $instance->checks_per_unit && $unit_count_changes) {
+            $validator->errors()->add('quantity', 'Deze taak is al voltooid; heropen hem om het aantal te wijzigen.');
+        } elseif ($blocking !== null) {
+            $validator->errors()->add('quantity', $blocking);
+        }
+
+        $extras = $this->extraChecks();
+        $extra_checks = app(TaskCheckExtras::class);
+
+        if ($extras === null) {
+            return;
+        }
+
+        if ($instance->is_complete && $extra_checks->wouldChange($instance, $extras)) {
+            $validator->errors()->add('extra_check_ids', 'Deze taak is al voltooid.');
+        } elseif ($extra_checks->dropsTicked($instance, $extras)) {
+            $validator->errors()->add('extra_check_ids', 'Een extra check die al is afgevinkt kan niet weg.');
+        }
     }
 
     private function checkQuantity(Validator $validator, ServiceOrderTaskInstance $instance, ?Product $product): void

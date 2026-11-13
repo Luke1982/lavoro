@@ -39,6 +39,7 @@ class ServiceOrderTaskInstanceAssetStoreRequest extends FormRequest
             'assets' => ['required', 'array', 'min:1'],
             'assets.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'assets.*.container_index' => ['present', 'nullable', 'integer', 'min:0'],
+            'assets.*.unit_index' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
 
         foreach ($rows as $index => $row) {

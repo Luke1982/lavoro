@@ -13,6 +13,7 @@ use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProjectApiController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\ServiceOrderEventWidgetController;
+use App\Http\Controllers\ServiceOrderTaskInstanceCheckApiController;
 use App\Http\Controllers\TicketInfoRequestController;
 use App\Http\Controllers\UnavailabilityApiController;
 use App\Http\Controllers\UserPlanGroupController;
@@ -37,6 +38,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('events/{event}/standard-emails', [EventStandardEmailController::class, 'index']);
     Route::get('events/{event}/standard-emails/{standard_email}/preview', [EventStandardEmailController::class, 'preview']);
     Route::post('events/{event}/standard-emails/send', [EventStandardEmailController::class, 'send']);
+
     Route::get('events/{event}/email-history', [EventStandardEmailController::class, 'history']);
     Route::get('events/{event}/execution', [EventExecutionController::class, 'show']);
     Route::post('events/{event}/execution/transition', [EventExecutionController::class, 'transition']);
@@ -46,6 +48,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::patch('events/{event}/users/{target_user}/execution', [EventExecutionController::class, 'updateFor']);
 
     Route::get('serviceorders/{service_order}/event-widget', [ServiceOrderEventWidgetController::class, 'show']);
+    Route::patch(
+        'serviceordertaskinstancechecks/{serviceordertaskinstancecheck}',
+        [ServiceOrderTaskInstanceCheckApiController::class, 'update']
+    )->name('serviceordertaskinstancechecks.update');
 
     Route::get('tickets/{ticket}/info-request', [TicketInfoRequestController::class, 'defaults']);
     Route::post('tickets/{ticket}/info-request', [TicketInfoRequestController::class, 'send'])

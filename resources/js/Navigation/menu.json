@@ -27,7 +27,8 @@
                     "anyPermission": ["serviceorder.read", "serviceorder.read_own"],
                     "children": [
                         { "id": "serviceorderstages", "label": "Fases", "href": "/serviceorderstages", "permission": "serviceorderstage.read" },
-                        { "id": "serviceordertasks", "label": "Taken", "href": "/serviceordertasks", "permission": "serviceordertask.read" }
+                        { "id": "serviceordertasks", "label": "Taken", "href": "/serviceordertasks", "permission": "serviceordertask.read" },
+                        { "id": "serviceordertaskchecks", "label": "Checklists", "href": "/serviceordertaskchecks", "permission": "serviceordertask.read" }
                     ]
                 },
                 {

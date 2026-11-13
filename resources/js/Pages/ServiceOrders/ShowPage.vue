@@ -145,7 +145,8 @@
                         </BoxComponent>
                         <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
                             :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
-                            :available-tasks="availableTasks" :products="products" :user-roles="userRoles"
+                            :available-tasks="availableTasks" :task-checks="taskChecks" :task-checklists="taskChecklists"
+                            :products="products" :user-roles="userRoles"
                             :is-closed="serviceOrder.is_closed" :type="serviceOrder.type"
                             :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
@@ -714,6 +715,8 @@ const props = defineProps({
     incompleteStageId: { type: [Number, null], default: null },
     customers: { type: Array, default: () => [] },
     availableTasks: { type: Array, default: () => [] },
+    taskChecks: { type: Array, default: () => [] },
+    taskChecklists: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     userRoles: { type: Array, default: () => [] },

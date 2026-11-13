@@ -8,6 +8,7 @@ use App\Services\MateriableService;
 use App\Services\TaskInstanceSerialSlotService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class ServiceOrderTaskInstance extends Model
 {
@@ -41,6 +42,7 @@ class ServiceOrderTaskInstance extends Model
         'signed_at' => 'Ondertekend op',
         'title' => 'Titel',
         'quantity' => 'Aantal',
+        'checks_per_unit' => 'Checks per machine',
         'is_complete' => 'Afgerond',
         'is_cancelled' => 'Geannuleerd',
         'completed_at' => 'Afgerond op',
@@ -57,6 +59,7 @@ class ServiceOrderTaskInstance extends Model
         'service_order_task_id',
         'product_id',
         'quantity',
+        'checks_per_unit',
         'title',
         'description',
         'is_complete',
@@ -72,6 +75,7 @@ class ServiceOrderTaskInstance extends Model
     protected $casts = [
         'is_complete' => 'boolean',
         'quantity' => 'integer',
+        'checks_per_unit' => 'boolean',
         'completed_at' => 'datetime',
         'signed_at' => 'datetime',
         'is_cancelled' => 'boolean',
@@ -107,6 +111,13 @@ class ServiceOrderTaskInstance extends Model
         return $this->hasMany(Asset::class);
     }
 
+    public function checks()
+    {
+        return $this->hasMany(ServiceOrderTaskInstanceCheck::class)
+            ->orderBy('unit_index')
+            ->orderBy('sort_order');
+    }
+
     /**
      * The aantallen filled in for the bundle parts that leave theirs open — one omvormer
      * with however many panelen this roof takes. A bundle part with a fixed aantal is
@@ -125,6 +136,15 @@ class ServiceOrderTaskInstance extends Model
     public function getEffectiveTitleAttribute(): string
     {
         return $this->title ?: ($this->serviceOrderTask?->title ?: '');
+    }
+
+    /**
+     * How the task is named on the timeline: its own title, its template's, or for a
+     * task typed by hand the start of its description.
+     */
+    public function timelineTitle(): string
+    {
+        return $this->effective_title ?: (Str::limit((string) $this->description, 60) ?: 'Taak');
     }
 
     /**

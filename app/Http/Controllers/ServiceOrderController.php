@@ -40,6 +40,8 @@ use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
+use App\Models\ServiceOrderTaskCheck;
+use App\Models\ServiceOrderTaskChecklist;
 use App\Models\Ticket;
 use App\Models\UserRole;
 use App\Services\AssetTransferService;
@@ -49,6 +51,7 @@ use App\Services\ProductableService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\ServiceOrderLocationResolver;
 use App\Services\SnelStartClient;
+use App\Services\TaskChecks\TaskCheckLabels;
 use App\Services\TaskInstanceVisibility;
 use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -217,6 +220,7 @@ class ServiceOrderController extends Controller
             'taskInstances.product.productables.childProduct.productType',
             'taskInstances.productables',
             'taskInstances.assets',
+            'taskInstances.checks.checkedBy:id,name',
             'project:id,title,location',
             'documents.category',
             'documents.user:id,name',
@@ -341,6 +345,8 @@ class ServiceOrderController extends Controller
             'closedStageId' => ServiceOrderStage::where('is_closed_state', true)->value('id'),
             'incompleteStageId' => ServiceOrderStage::where('is_incomplete_state', true)->value('id'),
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
+            'taskChecks' => ServiceOrderTaskCheck::orderBy('title')->get(['id', 'title']),
+            'taskChecklists' => ServiceOrderTaskChecklist::orderBy('title')->get(['id', 'title']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
             'snelStartEnabled' => SnelStartClient::isConfigured(),
             'products' => Product::withAttributeData()
@@ -724,6 +730,8 @@ class ServiceOrderController extends Controller
 
     private function generateServiceOrderPdf(ServiceOrder $serviceorder): DompdfPdf
     {
+        $labels = app(TaskCheckLabels::class);
+
         $serviceorder->load([
             'customer',
             'project',
@@ -740,6 +748,7 @@ class ServiceOrderController extends Controller
             'taskInstances.materials.usageUnit',
             'taskInstances.freeformMaterials',
             'taskInstances.assets',
+            'taskInstances.checks.asset',
             'images',
             'events',
             'project',
@@ -820,6 +829,8 @@ class ServiceOrderController extends Controller
             'materialsList' => $materials_list,
             'extraMaterialsList' => $extra_materials_list,
             'taskInstances' => $serviceorder->taskInstances,
+            'taskCheckLines' => $serviceorder->taskInstances
+                ->mapWithKeys(fn ($instance) => [$instance->id => $labels->done($instance)]),
             'imageGroups' => $serviceorder->images
                 ->sortBy('created_at')
                 ->map(function ($image) use ($display_timezone) {

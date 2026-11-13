@@ -22,15 +22,24 @@
         </p>
 
         <div v-if="compact" class="flex flex-col gap-2" v-auto-animate>
-            <WorkItemRow v-for="instance in internalInstances" :key="instance.id" :icon="ListChecksIcon" tone="green"
-                :title="taskInstanceTitle(instance)" :subtitle="taskInstanceDescription(instance) || productLine(instance)"
-                action-label="Afvinken" :action-icon="CheckIcon" done-label="Afgevinkt" :done="instance.is_complete"
-                :disabled="!canToggle" :muted="instance.is_cancelled" muted-label="Geannuleerd"
-                @action="toggleComplete(instance, !instance.is_complete)">
-                <SerialProgressBadge v-if="summaries[instance.id]?.expected" class="mt-1"
-                    :filled="summaries[instance.id].filled" :expected="summaries[instance.id].expected"
-                    :clickable="canToggle" @click="canToggle && openSerialDrawer(instance)" />
-            </WorkItemRow>
+            <div v-for="instance in internalInstances" :key="instance.id">
+                <WorkItemRow :icon="ListChecksIcon" tone="green" :title="taskInstanceTitle(instance)"
+                    :subtitle="taskInstanceDescription(instance) || productLine(instance)"
+                    :action-label="actionLabel(instance)" :action-icon="summaries[instance.id].hasWork ? PlayIcon : CheckIcon"
+                    done-label="Afgevinkt" :done="instance.is_complete"
+                    :disabled="!canToggle && !summaries[instance.id].hasWork" :muted="instance.is_cancelled"
+                    muted-label="Geannuleerd" @action="act(instance)">
+                    <TaskProgressBadges :summary="summaries[instance.id]" @open="toggleOpen(instance)" />
+                </WorkItemRow>
+                <div class="grid transition-[grid-template-rows] duration-200 ease-out"
+                    :class="openInstanceId === instance.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+                    <div class="overflow-hidden" :inert="openInstanceId !== instance.id">
+                        <TaskWorkPanel v-if="unfolded.has(instance.id)" :instance="instance" :can-toggle="canToggle"
+                            class="mt-2 rounded-lavoro-sm border border-gray-200 bg-gray-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40"
+                            @complete="completeInline(instance)" @reopen="toggleComplete(instance, false)" />
+                    </div>
+                </div>
+            </div>
         </div>
         <div v-else v-auto-animate>
             <div v-if="internalInstances.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-2">
@@ -61,11 +70,7 @@
                                     class="text-gray-400 dark:text-slate-500"> (geen serienr.)</span>
                             </span>
                         </p>
-                        <div v-if="summaries[instance.id]?.expected" class="mt-1">
-                            <SerialProgressBadge :filled="summaries[instance.id].filled"
-                                :expected="summaries[instance.id].expected" :clickable="canToggle"
-                                @click="canToggle && openSerialDrawer(instance)" />
-                        </div>
+                        <TaskProgressBadges :summary="summaries[instance.id]" @open="openSerialDrawer(instance)" />
                         <div v-if="instance.user_roles?.length" class="flex flex-wrap gap-1 mt-1">
                             <span v-for="role in instance.user_roles" :key="role.id"
                                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
@@ -159,6 +164,8 @@
                 <FlexPartsFieldset v-if="newFlexParts.length" :parts="newFlexParts" :quantities="newFlexQuantities"
                     :error="addForm.errors.flex_parts" :bundle-count="newQuantity"
                     @change="(id, value) => newFlexQuantities[id] = value" />
+                <TaskCheckOptions v-model:per-unit="newChecksPerUnit" v-model:extras="newExtras"
+                    :quantity="newProductId ? newQuantity : 0" :checks="taskChecks" :checklists="taskChecklists" />
                 <div v-if="userRoles.length">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
@@ -174,9 +181,7 @@
                         </button>
                     </div>
                 </div>
-                <p v-if="addForm.errors.description || addForm.errors.title" class="text-xs text-red-600">
-                    {{ addForm.errors.description || addForm.errors.title }}
-                </p>
+                <p v-for="message in formErrors(addForm)" :key="message" class="text-xs text-red-600">{{ message }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -225,6 +230,9 @@
                 <FlexPartsFieldset v-if="editFlexParts.length" :parts="editFlexParts" :quantities="editFlexQuantities"
                     :error="editForm.errors.flex_parts" :bundle-count="editQuantity"
                     @change="(id, value) => editFlexQuantities[id] = value" />
+                <TaskCheckOptions v-model:per-unit="editChecksPerUnit" v-model:extras="editExtras"
+                    :quantity="editProductId ? editQuantity : 0" :locked="editHasTicks" :checks="taskChecks"
+                    :checklists="taskChecklists" />
                 <div v-if="userRoles.length">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
@@ -240,9 +248,7 @@
                         </button>
                     </div>
                 </div>
-                <p v-if="editForm.errors.title || editForm.errors.description" class="text-xs text-red-600">
-                    {{ editForm.errors.title || editForm.errors.description }}
-                </p>
+                <p v-for="message in formErrors(editForm)" :key="message" class="text-xs text-red-600">{{ message }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -258,83 +264,17 @@
             </template>
         </DrawerComponent>
 
-        <!-- Serial number drawer -->
-        <DrawerComponent v-model="serialDrawerOpen" title="Machines registreren"
-            :subtitle="serialInstance ? `Registreer de machines voor: ${taskInstanceTitle(serialInstance)}` : ''"
-            max-width-class="max-w-lg">
-            <div class="p-4 sm:p-6 space-y-6">
-                <p class="text-xs text-gray-500 dark:text-slate-400">
-                    Elke machine wordt los opgeslagen. Je kunt tussendoor stoppen en later verder gaan.
-                </p>
-                <template v-for="bundle in serialBundles" :key="bundle.key">
-                    <div :class="bundle.label
-                        ? 'rounded-lavoro-sm border border-gray-200 dark:border-slate-700 p-3 space-y-4'
-                        : 'space-y-4'">
-                        <p v-if="bundle.label"
-                            class="text-sm font-semibold text-gray-800 dark:text-slate-200 flex items-center gap-2">
-                            <PackageIcon class="w-4 h-4 text-gray-400" />
-                            {{ bundle.label }}
-                            <span class="text-xs font-normal text-gray-400">bundelmachine, geen serienummer</span>
-                        </p>
-                        <div v-for="group in bundle.groups" :key="group.key">
-                            <p class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-                                {{ group.label }}
-                                <span class="text-xs font-normal text-gray-400 ml-1">
-                                    ({{ group.rows.filter(r => r.asset_id).length }}/{{ group.expected }})
-                                </span>
-                            </p>
-                            <div v-if="!group.requires_serial" class="flex items-center gap-2">
-                                <p class="flex-1 text-xs text-gray-500 dark:text-slate-400">
-                                    Dit onderdeel heeft geen serienummer;
-                                    {{ group.rows.filter(r => !r.asset_id).length }} van
-                                    {{ group.expected }} nog te registreren.
-                                </p>
-                                <button v-if="group.rows.some(rowIsDirty)" type="button" :disabled="serialSubmitting"
-                                    @click="saveSerials({ complete: false, rows: group.rows })"
-                                    class="flex-none px-2.5 py-1 rounded-md bg-lavoro-green text-xs font-semibold text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                                    Registreren
-                                </button>
-                                <span v-else class="flex-none p-1.5" v-tooltip="'Volledig geregistreerd'">
-                                    <CheckIcon class="w-4 h-4 text-green-500" />
-                                </span>
-                            </div>
-                            <div v-else class="space-y-2">
-                                <div v-for="(row, i) in group.rows" :key="row.asset_id ?? `new-${group.key}-${i}`">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ i + 1 }}.</span>
-                                        <input v-model="row.serial_number" type="text"
-                                            :placeholder="`Serienummer ${i + 1}`" @input="row.error = ''"
-                                            :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', row.error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
-                                        <ScanSerialButton @picked="row.serial_number = $event; row.error = ''" />
-                                        <button v-if="rowIsDirty(row)" type="button" :disabled="serialSubmitting"
-                                            @click="saveRow(row)" v-tooltip="'Serienummer opslaan'"
-                                            class="flex-none p-1.5 rounded-md bg-lavoro-green text-gray-900 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                                            <CheckIcon class="w-4 h-4" />
-                                        </button>
-                                        <span v-else-if="row.asset_id" class="flex-none p-1.5"
-                                            v-tooltip="'Opgeslagen als machine'">
-                                            <CheckIcon class="w-4 h-4 text-green-500" />
-                                        </span>
-                                        <span v-else class="flex-none w-7" />
-                                    </div>
-                                    <p v-if="row.error" class="text-xs text-red-600 mt-1 ml-7">{{ row.error }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-                <p v-if="serialError" class="text-xs text-red-600">{{ serialError }}</p>
-            </div>
+        <!-- Task work drawer -->
+        <DrawerComponent v-model="serialDrawerOpen" title="Taak uitvoeren"
+            :subtitle="serialInstance ? taskInstanceTitle(serialInstance) : ''" max-width-class="max-w-lg">
+            <TaskWorkPanel v-if="serialInstance" :key="serialInstance.id" :instance="serialInstance"
+                :can-toggle="canToggle" class="p-4 sm:p-6" @complete="completeFromPanel(serialInstance)"
+                @reopen="serialDrawerOpen = false; toggleComplete(serialInstance, false)" />
             <template #footer>
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-end">
                     <button type="button" @click="serialDrawerOpen = false"
                         class="text-sm text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
                         Sluiten
-                    </button>
-                    <button type="button" :disabled="serialSubmitting || (!serialHasDirty && !serialCanComplete)"
-                        @click="saveSerials({ complete: serialCanComplete })"
-                        class="px-4 py-1.5 rounded-lavoro-sm text-sm bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
-                        {{ serialPrimaryLabel }}
                     </button>
                 </div>
             </template>
@@ -503,9 +443,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick } from 'vue'
-import { router, useForm, usePage } from '@inertiajs/vue3'
-import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon, ListChecks as ListChecksIcon } from '@lucide/vue'
+import { ref, reactive, computed, watch } from 'vue'
+import { useForm, usePage } from '@inertiajs/vue3'
+import { Plus as PlusIcon, Trash2 as TrashIcon, EllipsisVertical as EllipsisVerticalIcon, ClipboardListIcon, PenLine as PenLineIcon, BadgeCheck as BadgeCheckIcon, AlertTriangle as AlertTriangleIcon, Ban as BanIcon, Check as CheckIcon, Package as PackageIcon, X as XIcon, EyeOff as EyeOffIcon, ListChecks as ListChecksIcon, Play as PlayIcon } from '@lucide/vue'
 import { hasPermission, hasAnyPermission, nlDate, nlTime, taskInstanceTitle, taskInstanceDescription } from '@/Utilities/Utilities'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -515,12 +455,15 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
-import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
 import FlexPartsFieldset from '@/Components/ServiceOrders/FlexPartsFieldset.vue'
 import WorkItemRow from '@/Components/ServiceOrders/WorkItemRow.vue'
-import SerialProgressBadge from '@/Components/ServiceOrders/SerialProgressBadge.vue'
+import TaskWorkPanel from '@/Components/ServiceOrders/Tasks/TaskWorkPanel.vue'
+import TaskProgressBadges from '@/Components/ServiceOrders/Tasks/TaskProgressBadges.vue'
+import TaskCheckOptions from '@/Components/ServiceOrders/Tasks/TaskCheckOptions.vue'
+import { serialCounts, bundleParts } from '@/Components/ServiceOrders/Tasks/taskSerials.js'
+import { checkCounts, extrasOf } from '@/Components/ServiceOrders/Tasks/taskChecks.js'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -536,6 +479,9 @@ const props = defineProps({
     materialUsageUnits: { type: Array, default: () => [] },
     /** Every bundle's parts, keyed by the bundle product, so a taak can fill in the vrije aantallen. */
     bundlePartsByProduct: { type: Object, default: () => ({}) },
+    /** The library of checks and checklists, for the extras picked on a task. */
+    taskChecks: { type: Array, default: () => [] },
+    taskChecklists: { type: Array, default: () => [] },
     /** Opt out where the widget is one section among others that sit flush, rather than a card of its own. */
     boxed: { type: Boolean, default: true },
     /** Tasks on this order that fall outside the reader's roles, and so never reach the list below. */
@@ -639,7 +585,15 @@ const addForm = useForm({
     is_complete: false,
     user_role_ids: [],
     flex_parts: [],
+    checks_per_unit: false,
+    extra_check_ids: [],
+    extra_checklist_ids: [],
+    extra_titles: [],
 })
+
+const emptyExtras = () => ({ check_ids: [], checklist_ids: [], titles: [] })
+const newChecksPerUnit = ref(false)
+const newExtras = ref(emptyExtras())
 
 /**
  * The parts of the chosen bundle whose aantal is not settled by the product. They are asked
@@ -694,6 +648,10 @@ function addInstance() {
     addForm.description = newDescription.value.trim() || null
     addForm.user_role_ids = newUserRoleIds.value
     addForm.flex_parts = flexPartsPayload(newFlexQuantities, newFlexParts.value)
+    addForm.checks_per_unit = !!(newProductId.value && newQuantity.value > 1 && newChecksPerUnit.value)
+    addForm.extra_check_ids = newExtras.value.check_ids
+    addForm.extra_checklist_ids = newExtras.value.checklist_ids
+    addForm.extra_titles = newExtras.value.titles
 
     addForm.post('/serviceordertaskinstances', {
         preserveScroll: true,
@@ -705,6 +663,8 @@ function addInstance() {
             newProductId.value = null
             newQuantity.value = 1
             newUserRoleIds.value = []
+            newChecksPerUnit.value = false
+            newExtras.value = emptyExtras()
             addForm.reset()
             addForm.service_order_id = props.serviceOrderId
         },
@@ -728,7 +688,15 @@ const editForm = useForm({
     quantity: 1,
     user_role_ids: [],
     flex_parts: [],
+    checks_per_unit: false,
+    extra_check_ids: [],
+    extra_checklist_ids: [],
+    extra_titles: [],
 })
+
+const editChecksPerUnit = ref(false)
+const editExtras = ref(emptyExtras())
+const editHasTicks = computed(() => (editingInstance.value?.checks ?? []).some(check => check.is_done))
 
 const editFlexParts = computed(() => flexPartsOf(editProductId.value))
 
@@ -740,6 +708,9 @@ function openEditDrawer(instance) {
     editQuantity.value = instance.quantity ?? 1
     editUserRoleIds.value = (instance.user_roles ?? []).map(r => r.id)
     seedFlexQuantities(editFlexQuantities, flexPartsOf(instance.product_id), instance)
+    editChecksPerUnit.value = !!instance.checks_per_unit
+    editExtras.value = extrasOf(instance.checks)
+    editForm.clearErrors()
     editDrawerOpen.value = true
 }
 
@@ -765,6 +736,12 @@ function saveEdit() {
     editForm.quantity = editProductId.value ? editQuantity.value : 1
     editForm.user_role_ids = editUserRoleIds.value
     editForm.flex_parts = flexPartsPayload(editFlexQuantities, editFlexParts.value)
+    editForm.checks_per_unit = editProductId.value && editQuantity.value > 1
+        ? !!editChecksPerUnit.value
+        : !!editingInstance.value.checks_per_unit && editHasTicks.value
+    editForm.extra_check_ids = editExtras.value.check_ids
+    editForm.extra_checklist_ids = editExtras.value.checklist_ids
+    editForm.extra_titles = editExtras.value.titles
 
     editForm.patch(`/serviceordertaskinstances/${editingInstance.value.id}`, {
         preserveScroll: true,
@@ -796,9 +773,9 @@ function toggleComplete(instance, new_value) {
         return
     }
 
-    const counts = serialCounts(instance)
+    const summary = summaries.value[instance.id]
 
-    if (new_value && counts.filled < counts.expected) {
+    if (new_value && (summary.filled < summary.expected || summary.checks.openRequired > 0)) {
         resetCheckbox(instance.id)
         openSerialDrawer(instance)
         return
@@ -826,265 +803,70 @@ function doToggle(instance, new_value) {
 
 // ── Serial numbers ────────────────────────────────────────────────────────────
 const serialDrawerOpen = ref(false)
-const serialInstance = ref(null)
-const serialGroups = ref([])
-const serialError = ref('')
-const serialSubmitting = ref(false)
-
-function serialCounts(instance) {
-    const slots = instance.serial_slots ?? []
-
-    return {
-        expected: slots.reduce((total, group) => total + group.expected, 0),
-        // A machine registered ahead with a placeholder serial still waits for its real one.
-        filled: slots.reduce((total, group) => {
-            const real = group.assets.filter(asset => !asset.is_placeholder).length
-
-            return total + Math.min(group.expected, real)
-        }, 0),
-    }
-}
+const serialInstanceId = ref(null)
+const serialInstance = computed(() => internalInstances.value.find(i => i.id === serialInstanceId.value) ?? null)
 
 /**
- * What a bundeltaak is made of, summed back up across the bundles it sells: the slots hold
- * the parts once per bundle machine. A taak for a plain product has no parts of its own and
- * reads as nothing here.
- */
-function bundleParts(instance) {
-    const totals = new Map()
-
-    for (const group of instance.serial_slots ?? []) {
-        if (group.container_index === null) continue
-
-        const seen = totals.get(group.product_id)
-
-        totals.set(group.product_id, {
-            key: group.product_id,
-            label: group.label,
-            requires_serial: group.requires_serial,
-            count: (seen?.count ?? 0) + group.expected,
-        })
-    }
-
-    return [...totals.values()]
-}
-
-/**
- * Everything the row says about a taak's machines, worked out once per taak instead of once
- * per mention — the row quotes the numbers several times over.
+ * Everything the row says about a taak — its machines, its checks, whether it opens up —
+ * worked out once per taak instead of once per mention.
  */
 const summaries = computed(() => Object.fromEntries(
     internalInstances.value.map(instance => [
         instance.id,
-        { ...serialCounts(instance), parts: bundleParts(instance) },
+        taskSummary(instance),
     ])
 ))
 
-/**
- * The server decides which machines a task expects; a row is only ever a saved asset
- * or an empty slot waiting for one.
- */
-function buildSerialGroups(instance) {
-    return (instance.serial_slots ?? []).map(group => {
-        const rowFor = (asset) => ({
-            asset_id: asset?.id ?? null,
-            key: group.key,
-            product_id: group.product_id,
-            container_index: group.container_index,
-            requires_serial: group.requires_serial,
-            serial_number: asset?.serial_number ?? '',
-            saved_serial: asset?.serial_number ?? '',
-            is_placeholder: asset?.is_placeholder ?? false,
-            error: '',
-        })
+function taskSummary(instance) {
+    const serials = serialCounts(instance)
+    const checks = checkCounts(instance.checks)
 
-        const saved = group.assets.map(rowFor)
-        const empty = Array.from({ length: Math.max(0, group.expected - saved.length) }, () => rowFor(null))
-
-        return {
-            key: group.key,
-            product_id: group.product_id,
-            container_index: group.container_index,
-            container_label: group.container_label,
-            requires_serial: group.requires_serial,
-            label: group.label,
-            expected: group.expected,
-            rows: [...saved, ...empty],
-        }
-    })
+    return { ...serials, parts: bundleParts(instance), checks, hasWork: checks.total > 0 || serials.expected > 0 }
 }
 
-/**
- * A bundle taak delivers the bundle itself with its parts underneath, so its slots are
- * shown per bundle machine rather than in one long list. A plain product has no bundle to
- * group under and lands in a single unnamed block.
- */
-const serialBundles = computed(() => {
-    const bundles = new Map()
+/** The form's messages, except the bundle aantallen, which their own fieldset shows. */
+const formErrors = form => [...new Set(Object.entries(form.errors)
+    .filter(([field]) => !field.startsWith('flex_parts'))
+    .map(([, message]) => message))]
 
-    serialGroups.value.forEach(group => {
-        const key = group.container_index ?? 'none'
+const openInstanceId = ref(null)
+const unfolded = reactive(new Set())
 
-        if (!bundles.has(key)) {
-            bundles.set(key, { key, label: group.container_label, groups: [] })
-        }
+function actionLabel(instance) {
+    if (!summaries.value[instance.id].hasWork) return 'Afvinken'
 
-        bundles.get(key).groups.push(group)
-    })
-
-    return [...bundles.values()]
-})
-
-function openSerialDrawer(instance) {
-    serialInstance.value = instance
-    serialGroups.value = buildSerialGroups(instance)
-    serialError.value = ''
-    serialSubmitting.value = false
-    serialDrawerOpen.value = true
+    return openInstanceId.value === instance.id ? 'Sluiten' : 'Uitvoeren'
 }
 
-watch(serialDrawerOpen, (is_open) => {
-    if (!is_open) {
-        serialInstance.value = null
-        serialGroups.value = []
-        serialError.value = ''
-        serialSubmitting.value = false
-    }
-})
-
-function serialRows() {
-    return serialGroups.value.flatMap(g => g.rows)
+/** A task with work opens up in place; anything else is ticked off with one tap. */
+function act(instance) {
+    if (summaries.value[instance.id].hasWork) toggleOpen(instance)
+    else toggleComplete(instance, !instance.is_complete)
 }
 
-/**
- * A row is pending as long as it has not become a machine yet. A part that carries no
- * serienummer has nothing to type, so it counts the moment its slot is still empty.
- */
-function rowIsDirty(row) {
-    if (!row.requires_serial) return !row.asset_id
-
-    return row.serial_number.trim() !== '' && row.serial_number.trim() !== row.saved_serial
-}
-
-const serialHasDirty = computed(() => serialRows().some(rowIsDirty))
-
-const serialCanComplete = computed(() => {
-    if (!serialInstance.value || serialInstance.value.is_complete || serialInstance.value.is_cancelled) return false
-
-    const unchangedPlaceholder = row => row.is_placeholder && row.serial_number === row.saved_serial
-
-    return serialRows().every(row => !unchangedPlaceholder(row)
-        && (row.asset_id || !row.requires_serial || row.serial_number.trim() !== ''))
-})
-
-const serialPrimaryLabel = computed(() => {
-    if (serialSubmitting.value) return 'Opslaan...'
-    if (serialCanComplete.value) return serialHasDirty.value ? 'Opslaan en voltooien' : 'Voltooien'
-
-    return 'Opslaan'
-})
-
-function inertiaVisit(method, url, data) {
-    return new Promise((resolve) => {
-        router[method](url, data, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => resolve({ ok: true }),
-            onError: (errors) => resolve({ ok: false, errors }),
-        })
-    })
-}
-
-/**
- * Rows that were just sent come back as saved assets in the refreshed props, so they are
- * dropped here — leaving them in would re-apply their serial to the next empty slot.
- * Anything still typed but unsent is carried over so a save never loses what is on screen.
- */
-async function syncSerialGroups(sent = []) {
-    await nextTick()
-
-    const fresh = props.instances.find(i => i.id === serialInstance.value?.id)
-
-    if (!fresh) {
-        serialDrawerOpen.value = false
+function toggleOpen(instance) {
+    if (openInstanceId.value === instance.id) {
+        openInstanceId.value = null
         return
     }
 
-    const leftovers = {}
-    serialGroups.value.forEach(group => {
-        leftovers[group.key] = group.rows
-            .filter(row => !row.asset_id && row.serial_number.trim() !== '' && !sent.includes(row))
-            .map(row => row.serial_number)
-    })
-
-    serialInstance.value = fresh
-    serialGroups.value = buildSerialGroups(fresh)
-    serialGroups.value.forEach(group => {
-        const queue = leftovers[group.key] ?? []
-        group.rows.filter(row => !row.asset_id).forEach((row, i) => {
-            if (queue[i] !== undefined) row.serial_number = queue[i]
-        })
-    })
+    unfolded.add(instance.id)
+    openInstanceId.value = instance.id
 }
 
-async function saveRow(row) {
-    await saveSerials({ complete: false, rows: [row] })
+function completeInline(instance) {
+    openInstanceId.value = null
+    doToggle(instance, true)
 }
 
-async function saveSerials({ complete, rows = null }) {
-    if (serialSubmitting.value) return
+function openSerialDrawer(instance) {
+    serialInstanceId.value = instance.id
+    serialDrawerOpen.value = true
+}
 
-    const dirty = (rows ?? serialRows()).filter(rowIsDirty)
-    serialError.value = ''
-    dirty.forEach(row => { row.error = '' })
-    serialSubmitting.value = true
-
-    for (const row of dirty.filter(r => r.asset_id)) {
-        const result = await inertiaVisit(
-            'patch',
-            `/serviceordertaskinstances/${serialInstance.value.id}/assets/${row.asset_id}`,
-            { serial_number: row.serial_number.trim() },
-        )
-
-        if (!result.ok) {
-            row.error = result.errors.serial_number ?? 'Opslaan is mislukt.'
-            serialSubmitting.value = false
-            return
-        }
-    }
-
-    const created = dirty.filter(r => !r.asset_id)
-
-    if (created.length) {
-        const result = await inertiaVisit(
-            'post',
-            `/serviceordertaskinstances/${serialInstance.value.id}/assets`,
-            {
-                assets: created.map(row => ({
-                    product_id: row.product_id,
-                    container_index: row.container_index,
-                    serial_number: row.requires_serial ? row.serial_number.trim() : null,
-                })),
-            },
-        )
-
-        if (!result.ok) {
-            created.forEach((row, i) => {
-                row.error = result.errors[`assets.${i}.serial_number`] ?? ''
-            })
-            serialError.value = result.errors.assets ?? ''
-            serialSubmitting.value = false
-            return
-        }
-    }
-
-    await syncSerialGroups(dirty)
-    serialSubmitting.value = false
-
-    if (complete && serialInstance.value) {
-        doToggle(serialInstance.value, true)
-        serialDrawerOpen.value = false
-    }
+function completeFromPanel(instance) {
+    serialDrawerOpen.value = false
+    doToggle(instance, true)
 }
 
 // ── Sign ──────────────────────────────────────────────────────────────────────

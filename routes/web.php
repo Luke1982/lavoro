@@ -63,6 +63,10 @@ use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ServiceOrderController;
 use App\Http\Controllers\ServiceOrderStageController;
+use App\Http\Controllers\ServiceOrderTaskCheckController;
+use App\Http\Controllers\ServiceOrderTaskCheckLinkController;
+use App\Http\Controllers\ServiceOrderTaskChecklistController;
+use App\Http\Controllers\ServiceOrderTaskChecklistLinkController;
 use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceAssetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
@@ -311,6 +315,20 @@ Route::group(
         ])->name('serviceorderstages.reorder');
         Route::resource('serviceordertasks', ServiceOrderTaskController::class)
             ->except(['show', 'edit', 'create']);
+        Route::resource('serviceordertaskchecks', ServiceOrderTaskCheckController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('serviceordertaskchecklists', ServiceOrderTaskChecklistController::class)
+            ->only(['store', 'update', 'destroy']);
+        Route::post('serviceordertaskchecklinks/reorder', [ServiceOrderTaskCheckLinkController::class, 'reorder'])
+            ->name('serviceordertaskchecklinks.reorder');
+        Route::resource('serviceordertaskchecklinks', ServiceOrderTaskCheckLinkController::class)
+            ->only(['store', 'update', 'destroy'])
+            ->parameters(['serviceordertaskchecklinks' => 'link']);
+        Route::post('serviceordertaskchecklistlinks/reorder', [ServiceOrderTaskChecklistLinkController::class, 'reorder'])
+            ->name('serviceordertaskchecklistlinks.reorder');
+        Route::resource('serviceordertaskchecklistlinks', ServiceOrderTaskChecklistLinkController::class)
+            ->only(['store', 'update', 'destroy'])
+            ->parameters(['serviceordertaskchecklistlinks' => 'link']);
         Route::resource('serviceordertaskinstances', ServiceOrderTaskInstanceController::class)
             ->only(['store', 'update', 'destroy']);
         Route::patch(

@@ -42,7 +42,7 @@ class ServiceOrderTaskInstanceAssetController extends Controller
         $asset->update(['serial_number' => $this->serial($request->validated()['serial_number'] ?? null)]);
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
-        $title = RegisterTaskAssetsAction::titleFor($serviceordertaskinstance);
+        $title = $serviceordertaskinstance->timelineTitle();
 
         Signals::dispatch(new TaskAssetSerialChanged(
             $serviceordertaskinstance->serviceOrder,

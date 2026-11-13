@@ -1,0 +1,171 @@
+<style>
+  .ne { position: relative; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; font-family: system-ui, sans-serif; color: #0f172a; }
+  .ne-dots { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 16px 16px; }
+  .ne svg { position: absolute; inset: 0; pointer-events: none; }
+  .ne-node { position: absolute; box-sizing: border-box; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; padding: 0 10px; box-shadow: 0 1px 2px rgba(15,23,42,.08); white-space: nowrap; overflow: hidden; }
+  .ne-check { background: #fff; border: 1px solid #cbd5e1; color: #334155; height: 34px; }
+  .ne-list { background: #f0fdf4; border: 1.5px solid #22c55e; color: #166534; }
+  .ne-task { background: #eff6ff; border: 1.5px solid #3b82f6; color: #1e3a8a; }
+  .ne-sel { box-shadow: 0 0 0 3px rgba(59,130,246,.35); }
+  .ne-fade { opacity: .35; }
+  .ne-sub { font-weight: 400; color: #64748b; font-size: 11px; }
+  .ne-pill { position: absolute; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: #0f172a; color: #fff; }
+  .ne-side { position: absolute; top: 0; bottom: 0; left: 0; background: #fff; border-right: 1px solid #e2e8f0; padding: 10px; box-sizing: border-box; font-size: 12px; }
+  .ne-side h5 { margin: 10px 0 6px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  .ne-chip { display: flex; align-items: center; gap: 6px; padding: 5px 8px; margin-bottom: 5px; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; color: #334155; font-weight: 600; }
+  .ne-chip.list { border-color: #86efac; background: #f0fdf4; color: #166534; }
+  .ne-chip.task { border-color: #93c5fd; background: #eff6ff; color: #1e3a8a; }
+  .ne-grip { color: #94a3b8; letter-spacing: -2px; }
+  .ne-search { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; color: #94a3b8; }
+  .ne-colhead { position: absolute; top: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  .ne-drop { position: absolute; border: 2px dashed #94a3b8; border-radius: 8px; color: #64748b; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .ne-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; border-top: 1px solid #bbf7d0; font-weight: 500; color: #14532d; font-size: 12px; }
+  .ne-req { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: #166534; color: #fff; }
+  .ne-opt { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid #86efac; color: #166534; }
+  .ne-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin: 6px 0 0; }
+  .option { align-items: flex-start; }
+  .option .content { width: 100%; }
+</style>
+
+<h2>Checks en checklists koppelen: welke vorm?</h2>
+<p class="subtitle">Grijs = check, groen = checklist, blauw = taak. Doorgetrokken draad = verplicht, gestippeld = optioneel. Klik op de draad om dat om te zetten.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Vrij canvas</h3>
+      <p>Sleep checks, checklists en taken uit de zijbalk op het canvas en trek draden tussen de bolletjes. Je zet alles neer waar je wilt. Het meest "node-editor", maar met 30 taken en 100 checks wordt het een spinnenweb dat je zelf netjes moet houden.</p>
+      <div class="ne" style="height:360px;margin-top:12px">
+        <div class="ne-side" style="width:180px">
+          <div class="ne-search">Zoeken…</div>
+          <h5>Checklists</h5>
+          <div class="ne-chip list"><span class="ne-grip">⋮⋮</span>Checklist onderhoud</div>
+          <h5>Checks</h5>
+          <div class="ne-chip"><span class="ne-grip">⋮⋮</span>Filters gereinigd</div>
+          <div class="ne-chip"><span class="ne-grip">⋮⋮</span>Lekdichtheid getest</div>
+          <h5>Taken</h5>
+          <div class="ne-chip task"><span class="ne-grip">⋮⋮</span>Storing verhelpen</div>
+        </div>
+        <div class="ne-dots" style="position:absolute;left:180px;top:0;right:0;bottom:0">
+          <svg width="100%" height="100%">
+            <g fill="none" stroke-width="2">
+              <path d="M190 47 C225 47,225 125,260 125" stroke="#22c55e"/>
+              <path d="M190 97 C225 97,225 125,260 125" stroke="#22c55e"/>
+              <path d="M190 147 C225 147,225 125,260 125" stroke="#22c55e"/>
+              <path d="M190 197 C225 197,225 125,260 125" stroke="#22c55e" stroke-dasharray="5 4"/>
+              <path d="M440 125 C460 125,460 67,480 67" stroke="#3b82f6"/>
+              <path d="M440 125 C460 125,460 177,480 177" stroke="#3b82f6"/>
+              <path d="M190 297 C335 297,335 287,480 287" stroke="#64748b"/>
+              <path d="M190 297 C335 297,335 177,480 177" stroke="#64748b" stroke-dasharray="5 4"/>
+            </g>
+            <g fill="#fff" stroke="#64748b" stroke-width="1.5">
+              <circle cx="190" cy="47" r="4"/><circle cx="190" cy="97" r="4"/><circle cx="190" cy="147" r="4"/><circle cx="190" cy="197" r="4"/><circle cx="190" cy="297" r="4"/>
+              <circle cx="260" cy="125" r="4"/><circle cx="440" cy="125" r="4"/>
+              <circle cx="480" cy="67" r="4"/><circle cx="480" cy="177" r="4"/><circle cx="480" cy="287" r="4"/>
+            </g>
+          </svg>
+          <div class="ne-node ne-check" style="left:20px;top:30px;width:170px">Buitenunit waterpas</div>
+          <div class="ne-node ne-check" style="left:20px;top:80px;width:170px">Leidingen afgeperst</div>
+          <div class="ne-node ne-check" style="left:20px;top:130px;width:170px">Systeem ontlucht</div>
+          <div class="ne-node ne-check" style="left:20px;top:180px;width:170px">Uitleg aan klant</div>
+          <div class="ne-node ne-check" style="left:20px;top:280px;width:170px">Rooster schoongemaakt</div>
+          <div class="ne-node ne-list" style="left:260px;top:98px;width:180px;height:54px;flex-direction:column;align-items:flex-start;justify-content:center;gap:0">Checklist oplevering<span class="ne-sub">4 checks · 3 verplicht</span></div>
+          <div class="ne-node ne-task" style="left:480px;top:44px;width:190px;height:46px">Warmtepomp installatie</div>
+          <div class="ne-node ne-task" style="left:480px;top:154px;width:190px;height:46px">Airco installatie</div>
+          <div class="ne-node ne-task" style="left:480px;top:264px;width:190px;height:46px">Onderhoud airco</div>
+          <span class="ne-pill" style="left:300px;top:282px">verplicht</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Drie kolommen</h3>
+      <p>Checks links, checklists in het midden, taken rechts; de draden lopen altijd van links naar rechts. Sleep een check op een checklist of taak om te koppelen. Klik je een kaartje aan, dan lichten alleen zijn draden op en vervaagt de rest. Blijft overzichtelijk bij veel taken, en je ziet in één blik waar een check overal in zit.</p>
+      <div class="ne" style="height:370px;margin-top:12px">
+        <span class="ne-colhead" style="left:20px">Checks · 7</span>
+        <span class="ne-colhead" style="left:330px">Checklists · 2</span>
+        <span class="ne-colhead" style="left:640px">Taken · 5</span>
+        <svg width="100%" height="100%">
+          <g fill="none" stroke-width="2">
+            <path d="M220 66 C275 66,275 66,330 66" stroke="#3b82f6"/>
+            <path d="M220 110 C275 110,275 66,330 66" stroke="#3b82f6"/>
+            <path d="M220 154 C275 154,275 66,330 66" stroke="#3b82f6"/>
+            <path d="M220 198 C275 198,275 66,330 66" stroke="#3b82f6" stroke-dasharray="5 4"/>
+            <path d="M530 66 C585 66,585 66,640 66" stroke="#cbd5e1"/>
+            <path d="M530 66 C585 66,585 110,640 110" stroke="#3b82f6" stroke-width="3"/>
+            <path d="M220 242 C275 242,275 154,330 154" stroke="#cbd5e1"/>
+            <path d="M220 286 C275 286,275 154,330 154" stroke="#cbd5e1"/>
+            <path d="M220 330 C275 330,275 154,330 154" stroke="#cbd5e1" stroke-dasharray="5 4"/>
+            <path d="M530 154 C585 154,585 154,640 154" stroke="#cbd5e1"/>
+            <path d="M530 154 C585 154,585 198,640 198" stroke="#cbd5e1"/>
+            <path d="M220 242 C430 242,430 242,640 242" stroke="#cbd5e1" stroke-dasharray="5 4"/>
+            <path d="M220 330 C430 330,430 110,640 110" stroke="#3b82f6" stroke-width="3"/>
+          </g>
+        </svg>
+        <div class="ne-node ne-check" style="left:20px;top:49px;width:200px">Buitenunit waterpas geplaatst</div>
+        <div class="ne-node ne-check" style="left:20px;top:93px;width:200px">Leidingen afgeperst</div>
+        <div class="ne-node ne-check" style="left:20px;top:137px;width:200px">Systeem gevuld en ontlucht</div>
+        <div class="ne-node ne-check" style="left:20px;top:181px;width:200px">Uitleg gegeven aan klant</div>
+        <div class="ne-node ne-check ne-fade" style="left:20px;top:225px;width:200px">Rooster schoongemaakt</div>
+        <div class="ne-node ne-check ne-fade" style="left:20px;top:269px;width:200px">Filters gereinigd</div>
+        <div class="ne-node ne-check" style="left:20px;top:313px;width:200px">Lekdichtheid getest</div>
+        <div class="ne-node ne-list" style="left:330px;top:49px;width:200px;height:34px">Checklist oplevering <span class="ne-sub">· 4</span></div>
+        <div class="ne-node ne-list ne-fade" style="left:330px;top:137px;width:200px;height:34px">Checklist onderhoud <span class="ne-sub">· 3</span></div>
+        <div class="ne-node ne-task ne-fade" style="left:640px;top:49px;width:200px;height:34px">Warmtepomp installatie</div>
+        <div class="ne-node ne-task ne-sel" style="left:640px;top:93px;width:200px;height:34px">Airco installatie</div>
+        <div class="ne-node ne-task ne-fade" style="left:640px;top:137px;width:200px;height:34px">Onderhoud airco</div>
+        <div class="ne-node ne-task ne-fade" style="left:640px;top:181px;width:200px;height:34px">Onderhoud warmtepomp</div>
+        <div class="ne-node ne-task ne-fade" style="left:640px;top:225px;width:200px;height:34px">Storing verhelpen</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Eén taak of checklist tegelijk</h3>
+      <p>Kies bovenin een taak (of checklist). Die staat rechts; wat erin zit hangt er met draden aan, een checklist klapt open zodat je per check verplicht/optioneel ziet en de volgorde versleept. Sleep uit de bibliotheek links op de taak of op een checklist. Het rustigst, maar je ziet het grote geheel niet; een badge zegt waar een checklist nog meer in zit.</p>
+      <div class="ne" style="height:370px;margin-top:12px">
+        <div class="ne-side" style="width:200px">
+          <div class="ne-search">Zoek check of checklist…</div>
+          <h5>Checklists</h5>
+          <div class="ne-chip list"><span class="ne-grip">⋮⋮</span>Checklist oplevering</div>
+          <div class="ne-chip list"><span class="ne-grip">⋮⋮</span>Checklist onderhoud</div>
+          <h5>Checks</h5>
+          <div class="ne-chip"><span class="ne-grip">⋮⋮</span>Rooster schoongemaakt</div>
+          <div class="ne-chip"><span class="ne-grip">⋮⋮</span>Filters gereinigd</div>
+          <div class="ne-chip"><span class="ne-grip">⋮⋮</span>Lekdichtheid getest</div>
+          <div class="ne-chip" style="color:#2563eb;border-style:dashed">+ Nieuwe check</div>
+        </div>
+        <div class="ne-dots" style="position:absolute;left:200px;top:0;right:0;bottom:0">
+          <div style="position:absolute;top:12px;left:20px;font-size:13px;font-weight:700;color:#1e3a8a">Taak: Airco installatie ▾</div>
+          <svg width="100%" height="100%">
+            <g fill="none" stroke-width="2">
+              <path d="M290 120 C380 120,380 180,460 180" stroke="#22c55e"/>
+              <path d="M290 262 C380 262,380 190,460 190" stroke="#64748b"/>
+            </g>
+            <g fill="#fff" stroke="#64748b" stroke-width="1.5">
+              <circle cx="290" cy="120" r="4"/><circle cx="290" cy="262" r="4"/><circle cx="460" cy="185" r="4"/>
+            </g>
+          </svg>
+          <div class="ne-node ne-list" style="left:20px;top:44px;width:270px;height:auto;display:block;padding:0">
+            <div style="padding:7px 8px;display:flex;justify-content:space-between">Checklist oplevering <span class="ne-sub">ook in 1 andere taak</span></div>
+            <div class="ne-row"><span>⋮⋮ Buitenunit waterpas</span><span class="ne-req">verplicht</span></div>
+            <div class="ne-row"><span>⋮⋮ Leidingen afgeperst</span><span class="ne-req">verplicht</span></div>
+            <div class="ne-row"><span>⋮⋮ Systeem ontlucht</span><span class="ne-req">verplicht</span></div>
+            <div class="ne-row"><span>⋮⋮ Uitleg aan klant</span><span class="ne-opt">optioneel</span></div>
+          </div>
+          <div class="ne-node ne-check" style="left:20px;top:245px;width:270px">Lekdichtheid getest <span class="ne-req" style="margin-left:auto;background:#334155">verplicht</span></div>
+          <div class="ne-drop" style="left:20px;top:298px;width:270px;height:46px">Sleep hier een check of checklist</div>
+          <div class="ne-node ne-task ne-sel" style="left:460px;top:160px;width:190px;height:50px;flex-direction:column;align-items:flex-start;justify-content:center;gap:0">Airco installatie<span class="ne-sub" style="color:#3b82f6">5 checks · 4 verplicht</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

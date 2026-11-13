@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Tasks\CreateTaskInstanceAction;
 use App\Domain\Signals\Signals;
 use App\Domain\Signals\Tasks\TaskCancelled;
 use App\Domain\Signals\Tasks\TaskCompletionChanged;
@@ -15,21 +16,20 @@ use App\Http\Requests\ServiceOrderTaskInstanceToggleRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUnsignRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceUpdateRequest;
 use App\Models\ServiceOrderTaskInstance;
+use App\Services\TaskChecks\TaskCompletionGuard;
+use App\Services\TaskChecks\TaskInstanceChecks;
 use App\Services\TaskInstanceBundleService;
-use App\Services\TaskInstanceSerialSlotService;
+use Illuminate\Support\Facades\DB;
 
 class ServiceOrderTaskInstanceController extends Controller
 {
-    public function store(ServiceOrderTaskInstanceStoreRequest $request)
+    public function store(ServiceOrderTaskInstanceStoreRequest $request, CreateTaskInstanceAction $create)
     {
-        $data = $request->validated();
-        $user_role_ids = $data['user_role_ids'] ?? [];
-        $flex_parts = $data['flex_parts'] ?? [];
-        unset($data['user_role_ids'], $data['flex_parts']);
-
-        $instance = ServiceOrderTaskInstance::create($data);
-        $instance->userRoles()->sync($user_role_ids);
-        $this->syncFlexQuantities($instance, $flex_parts);
+        DB::transaction(function () use ($request, $create) {
+            $instance = $create->execute($request->taskColumns(), $request->extraChecks());
+            $instance->userRoles()->sync($request->validated('user_role_ids', []));
+            $this->syncFlexQuantities($instance, $request->validated('flex_parts', []));
+        });
 
         return redirect()->back()->with('success', 'Taak is toegevoegd');
     }
@@ -38,26 +38,29 @@ class ServiceOrderTaskInstanceController extends Controller
         ServiceOrderTaskInstanceUpdateRequest $request,
         ServiceOrderTaskInstance $serviceordertaskinstance,
         TaskInstanceBundleService $bundles,
+        TaskInstanceChecks $checks,
     ) {
-        $data = $request->validated();
+        $instance = $serviceordertaskinstance;
 
-        if (array_key_exists('user_role_ids', $data)) {
-            $serviceordertaskinstance->userRoles()->sync($data['user_role_ids']);
-            unset($data['user_role_ids']);
-        }
+        DB::transaction(function () use ($request, $instance, $bundles, $checks) {
+            $was_per_unit = (bool) $instance->checks_per_unit;
 
-        $has_flex_parts = array_key_exists('flex_parts', $data);
-        $flex_parts = $data['flex_parts'] ?? [];
-        unset($data['flex_parts']);
+            if ($request->has('user_role_ids')) {
+                $instance->userRoles()->sync($request->validated('user_role_ids'));
+            }
 
-        $serviceordertaskinstance->update($data);
+            $instance->update($request->taskColumns());
+            $instance->unsetRelation('product');
 
-        if ($has_flex_parts) {
-            $this->syncFlexQuantities($serviceordertaskinstance, $flex_parts);
-        }
+            $checks->followEdit($instance, $was_per_unit, $request->extraChecks());
 
-        $serviceordertaskinstance->loadMissing(['product', 'assets']);
-        $bundles->pruneEmptyContainers($serviceordertaskinstance);
+            if ($request->has('flex_parts')) {
+                $this->syncFlexQuantities($instance, $request->validated('flex_parts', []));
+            }
+
+            $instance->load(['product', 'assets']);
+            $bundles->pruneEmptyContainers($instance);
+        });
 
         return redirect()->back()->with('success', 'Taak is bijgewerkt');
     }
@@ -90,7 +93,7 @@ class ServiceOrderTaskInstanceController extends Controller
     public function toggle(
         ServiceOrderTaskInstanceToggleRequest $request,
         ServiceOrderTaskInstance $serviceordertaskinstance,
-        TaskInstanceSerialSlotService $slots,
+        TaskCompletionGuard $guard,
     ) {
         $data = $request->validated();
 
@@ -100,18 +103,11 @@ class ServiceOrderTaskInstanceController extends Controller
             ]);
         }
 
-        if ($data['is_complete'] && $serviceordertaskinstance->product_id) {
-            $serviceordertaskinstance->loadMissing([
-                'product.brand',
-                'product.productables.childProduct.brand',
-                'productables',
-                'assets',
-            ]);
+        if ($data['is_complete']) {
+            $problem = $guard->problem($serviceordertaskinstance);
 
-            if (!$slots->allSlotsFilled($serviceordertaskinstance)) {
-                return redirect()->back()->withErrors([
-                    'task' => 'Registreer eerst alle machines voordat je deze taak voltooit.',
-                ]);
+            if ($problem !== null) {
+                return redirect()->back()->withErrors(['task' => $problem]);
             }
         }
 
@@ -138,9 +134,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
         $serviceordertaskinstance->update($update);
 
-        $title = $serviceordertaskinstance->title
-            ?? $serviceordertaskinstance->serviceOrderTask?->title
-            ?? 'Taak';
+        $title = $serviceordertaskinstance->timelineTitle();
 
         Signals::dispatch(new TaskCompletionChanged(
             $serviceordertaskinstance->serviceOrder,
@@ -177,9 +171,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
 
-        $title = $serviceordertaskinstance->title
-            ?? $serviceordertaskinstance->serviceOrderTask?->title
-            ?? 'Taak';
+        $title = $serviceordertaskinstance->timelineTitle();
 
         Signals::dispatch(new TaskSigned(
             $serviceordertaskinstance->serviceOrder,
@@ -201,9 +193,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
 
-        $title = $serviceordertaskinstance->title
-            ?? $serviceordertaskinstance->serviceOrderTask?->title
-            ?? 'Taak';
+        $title = $serviceordertaskinstance->timelineTitle();
 
         Signals::dispatch(new TaskSignatureRemoved(
             $serviceordertaskinstance->serviceOrder,
@@ -231,9 +221,7 @@ class ServiceOrderTaskInstanceController extends Controller
 
         $serviceordertaskinstance->loadMissing('serviceOrder');
 
-        $title = $serviceordertaskinstance->title
-            ?? $serviceordertaskinstance->serviceOrderTask?->title
-            ?? 'Taak';
+        $title = $serviceordertaskinstance->timelineTitle();
 
         Signals::dispatch(new TaskCancelled(
             $serviceordertaskinstance->serviceOrder,

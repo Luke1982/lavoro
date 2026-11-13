@@ -31,7 +31,7 @@ class RegisterTaskAssetsAction
     ) {}
 
     /**
-     * @param  array<int, array{product_id: int, serial_number: ?string, container_index: ?int}>  $rows
+     * @param  array<int, array{product_id: int, serial_number: ?string, container_index: ?int, unit_index?: ?int}>  $rows
      * @param  bool  $in_service  False for a machine that is sold but not yet hung: it gets its
      *                            dates when the taak is completed (PutDeliveredMachinesIntoService).
      * @return Collection<int, Asset>
@@ -78,8 +78,11 @@ class RegisterTaskAssetsAction
             Signals::dispatch(new TaskAssetsRegistered(
                 $instance->serviceOrder,
                 $instance,
-                self::titleFor($instance),
+                $instance->timelineTitle(),
                 $created->pluck('serial_number')->filter()->values()->all(),
+                $created->mapWithKeys(fn (Asset $asset, int $position) => isset($rows[$position]['unit_index'])
+                    ? [$asset->id => (int) $rows[$position]['unit_index']]
+                    : [])->all(),
             ));
 
             return $created;
@@ -136,12 +139,5 @@ class RegisterTaskAssetsAction
         }
 
         return $rows;
-    }
-
-    public static function titleFor(ServiceOrderTaskInstance $instance): string
-    {
-        return $instance->title
-            ?? $instance->serviceOrderTask?->title
-            ?? 'Taak';
     }
 }

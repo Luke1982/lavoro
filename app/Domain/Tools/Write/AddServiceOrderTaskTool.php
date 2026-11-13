@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Write;
 
+use App\Actions\Tasks\CreateTaskInstanceAction;
 use App\Actions\Tasks\RegisterTaskAssetsAction;
 use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
@@ -187,8 +188,9 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
 
         /** All of them or none: half an offerte on a werkbon reads as the whole one. */
         $instances = DB::transaction(function () use ($specs, $order, $call, &$machines, &$sets) {
+            $create = app(CreateTaskInstanceAction::class);
             $instances = array_map(
-                fn (array $spec) => ServiceOrderTaskInstance::create(['service_order_id' => $order->id] + $spec),
+                fn (array $spec) => $create->execute(['service_order_id' => $order->id] + $spec),
                 $specs,
             );
 

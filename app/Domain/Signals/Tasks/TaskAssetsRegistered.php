@@ -14,6 +14,8 @@ class TaskAssetsRegistered extends BaseSignal
         public ServiceOrderTaskInstance $task_instance,
         public string $task_title,
         public array $serial_numbers,
+        /** @var array<int, int> Machine id to the unit it was entered for, where one was named. */
+        public array $unit_indexes = [],
     ) {
         parent::__construct();
     }
