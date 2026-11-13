@@ -15,7 +15,9 @@ use App\Models\DocumentCategory;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Models\Product;
+use App\Models\Remark;
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderMacro;
 use App\Models\ServiceOrderTask;
 use App\Models\Ticket;
 use App\Models\User;
@@ -52,6 +54,7 @@ class WriteToolGateTest extends TestCase
             'service_orders' => ServiceOrder::count(),
             'tickets' => Ticket::count(),
             'tasks' => ServiceOrderTask::count(),
+            'remarks' => Remark::count(),
             'activities' => DB::table('activities')->count(),
         ];
     }
@@ -196,7 +199,7 @@ class WriteToolGateTest extends TestCase
             $this->assertStringContainsString('nog niets gewijzigd', $result->content['note'] ?? '');
         }
 
-        $this->assertSame(10, $proposed, 'a write tool was added or lost without this test noticing');
+        $this->assertSame(11, $proposed, 'a write tool was added or lost without this test noticing');
     }
 
     /**
@@ -255,6 +258,12 @@ class WriteToolGateTest extends TestCase
             'save_document' => [
                 'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
                 'category' => DocumentCategory::firstOrCreate(['name' => 'Offertes'])->name,
+            ],
+            'run_macro' => [
+                'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
+                'macro_id' => ServiceOrderMacro::create(['title' => 'Opmerking', 'definition' => ['steps' => [
+                    ['id' => 'opmerking', 'type' => 'add_remark', 'text' => 'Sleutel bij de buren', 'internal' => false],
+                ]]])->id,
             ],
             default => [],
         };

@@ -38,6 +38,7 @@ use App\Models\MaterialUsageUnit;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderMacro;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTask;
 use App\Models\ServiceOrderTaskCheck;
@@ -347,6 +348,18 @@ class ServiceOrderController extends Controller
             'availableTasks' => ServiceOrderTask::orderBy('title')->get(['id', 'title', 'description']),
             'taskChecks' => ServiceOrderTaskCheck::orderBy('title')->get(['id', 'title']),
             'taskChecklists' => ServiceOrderTaskChecklist::orderBy('title')->get(['id', 'title']),
+            'macros' => $user->can('update', $service_order)
+                ? ServiceOrderMacro::orderBy('title')->get()
+                    ->filter(fn (ServiceOrderMacro $macro) => $macro->steps()->allows($user))
+                    ->values()
+                    ->map(fn (ServiceOrderMacro $macro) => [
+                        'id' => $macro->id,
+                        'title' => $macro->title,
+                        'description' => $macro->description,
+                        'steps' => $macro->steps()->forRunning(),
+                    ])
+                : [],
+            'macroLocations' => $service_order->customer?->locations()->get(['id', 'title']) ?? [],
             'projects' => Project::orderBy('title')->get(['id', 'title']),
             'snelStartEnabled' => SnelStartClient::isConfigured(),
             'products' => Product::withAttributeData()

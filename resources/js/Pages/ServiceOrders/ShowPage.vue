@@ -12,6 +12,8 @@
                 <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
                 <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
             </div>
+            <RunMacroMenu v-if="!serviceOrder.is_closed" :service-order-id="serviceOrder.id" :macros="macros"
+                :locations="macroLocations" />
             <AssistantButton />
             <button v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                 @click="deleteServiceOrder"
@@ -671,6 +673,7 @@ import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
 import AddServiceJobsMenu from '@/Components/ServiceOrders/AddServiceJobsMenu.vue';
+import RunMacroMenu from '@/Components/Macros/RunMacroMenu.vue';
 import EventsWidget from '@/Components/ServiceOrders/EventsWidget.vue';
 import CloseServiceOrderModal from '@/Components/ServiceOrders/CloseServiceOrderModal.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
@@ -720,6 +723,9 @@ const props = defineProps({
     availableTasks: { type: Array, default: () => [] },
     taskChecks: { type: Array, default: () => [] },
     taskChecklists: { type: Array, default: () => [] },
+    /** The macros this person may run here, each with what its steps ask. */
+    macros: { type: Array, default: () => [] },
+    macroLocations: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     userRoles: { type: Array, default: () => [] },

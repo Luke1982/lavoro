@@ -10,6 +10,7 @@ use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\FindPlaceholderRecordsTool;
 use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
+use App\Domain\Tools\Read\ListMacrosTool;
 use App\Domain\Tools\Read\NoteFileTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
 use App\Domain\Tools\Read\ReadFileTool;
@@ -29,6 +30,7 @@ use App\Domain\Tools\Write\CreateMaintenanceContractTool;
 use App\Domain\Tools\Write\CreateProductTool;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
+use App\Domain\Tools\Write\RunMacroTool;
 use App\Domain\Tools\Write\SaveDocumentTool;
 
 return [
@@ -71,6 +73,8 @@ return [
         CreateProductTool::class,
         CreateAssetTool::class,
         AddServiceOrderTaskTool::class,
+        ListMacrosTool::class,
+        RunMacroTool::class,
         ReadManualTool::class,
         SaveDocumentTool::class,
         CreateCustomerTool::class,

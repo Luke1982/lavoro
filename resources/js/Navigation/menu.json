@@ -28,7 +28,8 @@
                     "children": [
                         { "id": "serviceorderstages", "label": "Fases", "href": "/serviceorderstages", "permission": "serviceorderstage.read" },
                         { "id": "serviceordertasks", "label": "Taken", "href": "/serviceordertasks", "permission": "serviceordertask.read" },
-                        { "id": "serviceordertaskchecks", "label": "Checklists", "href": "/serviceordertaskchecks", "permission": "serviceordertask.read" }
+                        { "id": "serviceordertaskchecks", "label": "Checklists", "href": "/serviceordertaskchecks", "permission": "serviceordertask.read" },
+                        { "id": "serviceordermacros", "label": "Macro's", "href": "/serviceordermacros", "permission": "serviceordermacro.manage" }
                     ]
                 },
                 {

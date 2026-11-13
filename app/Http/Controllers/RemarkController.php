@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Remarks\AddRemarkAction;
 use App\Domain\Signals\Attachments\RemarkRemoved;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\RemarkCreateRequest;
@@ -16,13 +17,12 @@ class RemarkController extends Controller
     {
         if ($request->has('remarkable_type') && $request->has('remarkable_id')) {
             $remarkable = $request->remarkable_type::find($request->remarkable_id);
-            $remark = Remark::create([
-                'content' => $request->content,
-                'user_id' => Auth::user()->id,
-            ]);
-            $remarkable->remarks()->attach($remark->id, [
-                'internal' => $request->boolean('internal', false),
-            ]);
+            $remark = app(AddRemarkAction::class)->execute(
+                $remarkable,
+                $request->content,
+                $request->boolean('internal', false),
+                Auth::id(),
+            );
 
             if ($request->wantsJson()) {
                 return response()->json($remark->load('user'), 201);

@@ -39,8 +39,11 @@ class ToolSchemaBudgetTest extends TestCase
      * 34000 for turning a signed offerte into a werkbon: creating a customer, a
      * location and a maintenance contract, filing the offerte itself, and a
      * planner that keeps to the right group and weighs experience by product.
+     *
+     * 34500 for macros: reading a company's fixed werkbon routines and running
+     * one through the same checks as the button on the werkbon.
      */
-    private const ROOM_FOR = 34000;
+    private const ROOM_FOR = 34500;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

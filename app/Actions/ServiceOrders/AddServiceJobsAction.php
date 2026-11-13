@@ -5,6 +5,7 @@ namespace App\Actions\ServiceOrders;
 use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
 use App\Domain\Signals\Signals;
 use App\Enums\ServiceJobOutcomes;
+use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
@@ -21,6 +22,29 @@ use Illuminate\Support\Facades\DB;
 class AddServiceJobsAction
 {
     public function __construct(private readonly BundleServiceJobCreator $bundles) {}
+
+    /**
+     * Keuringen for the werkbon customer's active machines, or those at one of its
+     * locations. Refused when the werkbon has no customer, or when every one of
+     * those machines already has a keuring on it.
+     *
+     * @return array{jobs: Collection<int, ServiceJob>, parts: array<int, ServiceJob>}
+     */
+    public function forCustomerMachines(ServiceOrder $order, ?int $location_id): array
+    {
+        throw_if(!$order->customer, Refusal::class, 'Deze werkbon heeft geen klant.');
+
+        $machines = $order->customer->activeAssets()
+            ->with(['product.brand', 'product.productType'])
+            ->when($location_id, fn ($query) => $query->where('location_id', $location_id))
+            ->get();
+
+        $added = $this->execute($order, $machines);
+
+        throw_if($added['jobs']->isEmpty(), Refusal::class, 'Er zijn geen machines meer zonder keuring op deze werkbon.');
+
+        return $added;
+    }
 
     /**
      * @param  iterable<Asset>  $machines

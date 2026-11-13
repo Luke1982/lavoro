@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Location;
 use App\Models\ServiceJob;
+use App\Rules\LocationOfCustomer;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
 
 /**
  * Keuringen for many machines of the werkbon's customer at once: all of them, or
@@ -21,21 +20,12 @@ class ServiceOrderServiceJobStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'location_id' => ['present', 'nullable', 'integer'],
-        ];
-    }
-
-    public function after(): array
-    {
-        return [
-            function (Validator $validator) {
-                $location_id = $this->input('location_id');
-                $customer_id = $this->route('serviceorder')->customer_id;
-
-                if ($location_id && !Location::whereKey($location_id)->where('customer_id', $customer_id)->exists()) {
-                    $validator->errors()->add('location_id', 'Deze locatie hoort niet bij de klant van deze werkbon.');
-                }
-            },
+            'location_id' => [
+                'present',
+                'nullable',
+                'integer',
+                new LocationOfCustomer($this->route('serviceorder')->customer_id),
+            ],
         ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Document;
+use App\Rules\WithinStorageQuota;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 
@@ -26,12 +27,12 @@ class DocumentStoreRequest extends FormRequest
      * csv rides alongside txt on purpose: a .csv is routinely sniffed as
      * text/plain, so the txt entry is what lets those through.
      */
-    private const ALLOWED_MIMES = 'pdf,odt,odf,ods,doc,docx,xls,xlsx,csv,ppt,pptx,txt,jpg,jpeg,png';
+    public const ALLOWED_MIMES = 'pdf,odt,odf,ods,doc,docx,xls,xlsx,csv,ppt,pptx,txt,jpg,jpeg,png';
 
     public function rules(): array
     {
         return [
-            'documents' => ['required', 'array', new \App\Rules\WithinStorageQuota()],
+            'documents' => ['required', 'array', new WithinStorageQuota],
             'documents.*' => 'required|file|mimes:' . self::ALLOWED_MIMES . '|max:102400',
             'documentable_id' => 'required|integer',
             'documentable_type' => 'required|string',

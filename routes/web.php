@@ -62,6 +62,8 @@ use App\Http\Controllers\ServiceCheckInstanceController;
 use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ServiceOrderController;
+use App\Http\Controllers\ServiceOrderMacroController;
+use App\Http\Controllers\ServiceOrderMacroRunController;
 use App\Http\Controllers\ServiceOrderServiceJobController;
 use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskCheckController;
@@ -434,6 +436,11 @@ Route::group(
         Route::resource('servicejobs', ServiceJobController::class);
         Route::post('serviceorders/{serviceorder}/servicejobs', [ServiceOrderServiceJobController::class, 'store'])
             ->name('serviceorders.servicejobs.store');
+        Route::resource('serviceordermacros', ServiceOrderMacroController::class)->except(['show']);
+        Route::post(
+            'serviceorders/{serviceorder}/macros/{serviceordermacro}/run',
+            [ServiceOrderMacroRunController::class, 'store']
+        )->name('serviceorders.macros.run');
         Route::get('servicejobs/{servicejob}/export/pdf', [ServiceJobController::class, 'exportPdf'])
             ->name('servicejobs.exportPdf');
         Route::post('servicejobs/{servicejob}/email-pdf', [ServiceJobController::class, 'emailPdf'])
