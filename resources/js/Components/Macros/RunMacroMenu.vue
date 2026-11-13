@@ -1,6 +1,6 @@
 <template>
     <DropdownMenu v-if="macros.length" placement="bottom-end" width-class="w-72" title="Macro uitvoeren"
-        button-class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-600">
+        :button-class="`${pill} text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700`">
         <template #button>
             <WorkflowIcon class="size-4" />
             <span class="hidden sm:inline">Macro</span>
@@ -72,6 +72,7 @@ import { MenuItem } from '@headlessui/vue'
 import { Workflow as WorkflowIcon } from '@lucide/vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import { usePillButton } from '@/Composables/useButtonGroup.js'
 
 /**
  * Running a macro on the werkbon: it asks its questions one at a time, only those
@@ -83,6 +84,8 @@ const props = defineProps({
     macros: { type: Array, default: () => [] },
     locations: { type: Array, default: () => [] },
 })
+
+const pill = usePillButton()
 
 const INPUT = 'w-full rounded-md border-0 px-3 py-1.5 text-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 dark:bg-slate-900 dark:text-white dark:ring-slate-600'
 

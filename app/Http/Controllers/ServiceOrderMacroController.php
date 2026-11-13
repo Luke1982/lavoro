@@ -25,7 +25,7 @@ class ServiceOrderMacroController extends Controller
                     'id' => $macro->id,
                     'title' => $macro->title,
                     'description' => $macro->description,
-                    'readable' => $macro->readable(),
+                    'readable' => $macro->steps()->readable(),
                 ]),
         ]);
     }

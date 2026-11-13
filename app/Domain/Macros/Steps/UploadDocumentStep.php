@@ -3,6 +3,7 @@
 namespace App\Domain\Macros\Steps;
 
 use App\Actions\Documents\AttachDocumentAction;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\Asked;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Macros\MacroStep;
@@ -32,7 +33,12 @@ class UploadDocumentStep implements MacroStep
 
     public function askable(): array
     {
-        return ['file' => 'file'];
+        return [];
+    }
+
+    public function asks(array $step): array
+    {
+        return ['file' => ['prompt' => $step['prompt'] ?? '', 'kind' => AnswerKind::file]];
     }
 
     public function describe(array $step): string
@@ -41,7 +47,7 @@ class UploadDocumentStep implements MacroStep
 
         return 'Document uploaden' . ($category ? ' in categorie "' . $category->name . '"' : '')
             . (!empty($step['internal']) ? ' (intern)' : '')
-            . ': ' . Asked::quoted(['ask' => $step['prompt'] ?? '']) . '.';
+            . ': ' . Asked::quoted($step['prompt'] ?? '') . '.';
     }
 
     public function allows(User $user): bool
@@ -51,7 +57,7 @@ class UploadDocumentStep implements MacroStep
 
     public function run(ServiceOrder $order, array $step, MacroRun $run): void
     {
-        $file = $run->file($step['id']);
+        $file = $run->answer($step['id'], 'file');
 
         $document = $this->attach->execute(
             $order,

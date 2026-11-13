@@ -2,9 +2,7 @@
 
 namespace App\Domain\Macros;
 
-use App\Models\Location;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -50,8 +48,10 @@ final class MacroDefinition
 
             $ids[] = $id;
 
-            foreach (Validator::make($step, $this->rulesFor($block, $step))->errors()->messages() as $field => $messages) {
-                $errors[$at . '.' . $field] = $messages[0];
+            $messages = Validator::make($step, $this->rulesFor($block, $step))->errors()->messages();
+
+            foreach ($messages as $field => $field_messages) {
+                $errors[$at . '.' . $field] = $field_messages[0];
             }
         });
 
@@ -98,7 +98,7 @@ final class MacroDefinition
         return collect($this->questions())
             ->filter(fn (array $question) => in_array($question['step_id'], $on_path, true))
             ->map(fn (array $question) => $question['question'] . ' → '
-                . self::spoken($answers[$question['step_id']][$question['field']] ?? null, $question['kind']))
+                . $question['kind']->spoken($answers[$question['step_id']][$question['field']] ?? null))
             ->values()
             ->all();
     }
@@ -127,7 +127,7 @@ final class MacroDefinition
      * Everything the macro asks, in order, in one flat list; what is asked in a
      * lane says which answer to its question leads there.
      *
-     * @return array<int, array{step_id: string, field: string, question: string, kind: string, only_if?: string}>
+     * @return array<int, array{step_id: string, field: string, question: string, kind: AnswerKind, only_if?: string}>
      */
     public function questions(): array
     {
@@ -135,36 +135,27 @@ final class MacroDefinition
     }
 
     /**
-     * What a step asks when the macro runs: field => [prompt, kind].
+     * What a step asks when the macro runs, by the field its answer is given under.
      *
-     * @return array<string, array{prompt: string, kind: string}>
+     * @return array<string, array{prompt: string, kind: AnswerKind}>
      */
     public static function asks(array $step): array
     {
-        $block = MacroSteps::find($step['type'] ?? null);
-
-        return collect($block?->askable() ?? [])
-            ->filter(fn (string $kind, string $field) => $kind === 'file' || $kind === 'yes_no' || Asked::is($step[$field] ?? null))
-            ->map(fn (string $kind, string $field) => [
-                'prompt' => match ($kind) {
-                    'file' => $step['prompt'] ?? 'Bestand',
-                    'yes_no' => $step['question'] ?? '',
-                    default => $step[$field]['ask'],
-                },
-                'kind' => $kind,
-            ])
-            ->all();
+        return MacroSteps::find($step['type'])->asks($step);
     }
 
-    /** @return array<string, array<int, mixed>> */
+    /**
+     * The block's rules, with an asked setting checked for its question instead.
+     *
+     * @return array<string, array<int, mixed>>
+     */
     private function rulesFor(MacroStep $block, array $step): array
     {
         $rules = $block->rules();
 
-        foreach ($block->askable() as $field => $kind) {
-            if (Asked::is($step[$field] ?? null)) {
-                $rules = array_diff_key($rules, [$field => true]) + [$field . '.ask' => ['required', 'string', 'max:255']];
-            }
+        foreach (array_keys(Asked::in($step, $block->askable())) as $field) {
+            unset($rules[$field]);
+            $rules[$field . '.ask'] = ['required', 'string', 'max:255'];
         }
 
         return $rules;
@@ -217,17 +208,6 @@ final class MacroDefinition
         return true;
     }
 
-    private static function spoken(mixed $answer, string $kind): string
-    {
-        return match (true) {
-            $answer instanceof UploadedFile => $answer->getClientOriginalName(),
-            $kind === 'yes_no' => filter_var($answer, FILTER_VALIDATE_BOOLEAN) ? 'ja' : 'nee',
-            $kind === 'location' && $answer === 'all' => 'alle machines',
-            $kind === 'location' => Location::find($answer)->title ?? 'locatie #' . $answer,
-            default => (string) $answer,
-        };
-    }
-
     /** @return array<int, string> */
     private function sentences(array $steps, string $number_prefix, string $indent): array
     {
@@ -237,11 +217,13 @@ final class MacroDefinition
             $number = $number_prefix . ($index + 1) . '.';
             $lines[] = $indent . $number . ' ' . MacroSteps::find($step['type'])->describe($step);
 
-            if ($step['type'] === 'question') {
-                foreach (['yes' => 'Als ja:', 'no' => 'Als nee:'] as $lane => $heading) {
-                    $lines[] = $indent . '   ' . $heading;
-                    $lines = [...$lines, ...$this->sentences($step[$lane] ?? [], $number, $indent . '   ')];
-                }
+            if ($step['type'] !== 'question') {
+                continue;
+            }
+
+            foreach (['yes' => 'Als ja:', 'no' => 'Als nee:'] as $lane => $heading) {
+                $under = $this->sentences($step[$lane] ?? [], $number, $indent . '   ');
+                $lines = [...$lines, $indent . '   ' . $heading . ($under === [] ? ' niets.' : ''), ...$under];
             }
         }
 
@@ -281,10 +263,9 @@ final class MacroDefinition
         return array_map(function (array $step) {
             $step['asks'] = self::asks($step);
 
-            foreach (['yes', 'no'] as $lane) {
-                if ($step['type'] === 'question') {
-                    $step[$lane] = $this->withAsks($step[$lane] ?? []);
-                }
+            if ($step['type'] === 'question') {
+                $step['yes'] = $this->withAsks($step['yes'] ?? []);
+                $step['no'] = $this->withAsks($step['no'] ?? []);
             }
 
             return $step;

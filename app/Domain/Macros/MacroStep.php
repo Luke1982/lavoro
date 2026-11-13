@@ -21,13 +21,21 @@ interface MacroStep
     public function rules(): array;
 
     /**
-     * The settings that may also be left to "vragen bij uitvoeren", with what kind of
-     * answer they take: number, text, location, file or yes_no.
+     * The settings that may also be left to "vragen bij uitvoeren", with the kind of
+     * answer each then takes.
      *
-     * @return array<string, string>
+     * @return array<string, AnswerKind>
      */
     public function askable(): array;
 
+    /**
+     * What this block asks when the macro runs, by the field its answer is given under.
+     *
+     * @return array<string, array{prompt: string, kind: AnswerKind}>
+     */
+    public function asks(array $step): array;
+
+    /** The block as one sentence, the way a person and the assistant read the macro. */
     public function describe(array $step): string;
 
     public function allows(User $user): bool;

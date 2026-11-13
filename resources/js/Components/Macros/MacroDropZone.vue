@@ -46,6 +46,7 @@ function over(event) {
 }
 
 function drop(event) {
+    event.preventDefault()
     active.value = false
 
     const type = event.dataTransfer.getData('macro/new')

@@ -45,10 +45,7 @@ class RunServiceOrderMacroAction
 
         throw_if($refusal !== null, Refusal::class, $refusal);
 
-        $steps = array_filter(
-            $macro->steps()->path($run->answers()),
-            fn (array $step) => $step['type'] !== 'question',
-        );
+        $steps = $macro->steps()->path($run->answers());
 
         DB::transaction(function () use ($order, $macro, $run, $steps) {
             /**

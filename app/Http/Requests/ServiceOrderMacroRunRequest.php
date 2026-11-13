@@ -16,7 +16,7 @@ class ServiceOrderMacroRunRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user() !== null && $this->answers()->allow($this->user());
+        return $this->user() !== null && $this->answers()->allows($this->user());
     }
 
     public function rules(): array

@@ -3,7 +3,6 @@
 namespace App\Domain\Macros;
 
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 
 /**
  * One run of a macro: who runs it, the answers given for it, and the files it put
@@ -25,13 +24,6 @@ final class MacroRun
     public function answer(string $step_id, string $field): mixed
     {
         return $this->answers[$step_id][$field] ?? null;
-    }
-
-    public function file(string $step_id): ?UploadedFile
-    {
-        $file = $this->answer($step_id, 'file');
-
-        return $file instanceof UploadedFile ? $file : null;
     }
 
     /** @return array<string, array<string, mixed>> */

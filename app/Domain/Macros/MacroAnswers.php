@@ -2,12 +2,9 @@
 
 namespace App\Domain\Macros;
 
-use App\Http\Requests\DocumentStoreRequest;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderMacro;
 use App\Models\User;
-use App\Rules\LocationOfCustomer;
-use App\Rules\WithinStorageQuota;
 
 /**
  * The answers for one run of a macro on one werkbon, checked the same way
@@ -27,7 +24,7 @@ final class MacroAnswers
         $this->steps = $macro->steps()->path($answers);
     }
 
-    public function allow(User $user): bool
+    public function allows(User $user): bool
     {
         return $user->can('update', $this->order)
             && collect($this->steps)->every(fn (array $step) => MacroSteps::find($step['type'])->allows($user));
@@ -40,25 +37,7 @@ final class MacroAnswers
      */
     public function rules(): array
     {
-        $rules = [];
-
-        foreach ($this->asks() as $key => $ask) {
-            $rules[$key] = match ($ask['kind']) {
-                'number' => ['required', 'integer', 'min:1', 'max:999'],
-                'text' => ['required', 'string', 'max:2000'],
-                'yes_no' => ['required', 'boolean'],
-                'file' => [
-                    'required',
-                    'file',
-                    'mimes:' . DocumentStoreRequest::ALLOWED_MIMES,
-                    'max:102400',
-                    new WithinStorageQuota,
-                ],
-                'location' => ['required', new LocationOfCustomer($this->order->customer_id, or_all: true)],
-            };
-        }
-
-        return $rules;
+        return array_map(fn (array $ask) => $ask['kind']->rules($this->order), $this->asks());
     }
 
     /**
@@ -71,8 +50,12 @@ final class MacroAnswers
         return array_map(fn (array $ask) => '"' . $ask['prompt'] . '"', $this->asks());
     }
 
-    /** @return array<string, array{prompt: string, kind: string}> */
-    private function asks(): array
+    /**
+     * What is asked on the path, keyed "answers.{step}.{field}" as the answers are checked.
+     *
+     * @return array<string, array{prompt: string, kind: AnswerKind}>
+     */
+    public function asks(): array
     {
         return collect($this->steps)
             ->flatMap(fn (array $step) => collect(MacroDefinition::asks($step))

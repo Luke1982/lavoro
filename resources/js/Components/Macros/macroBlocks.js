@@ -6,7 +6,8 @@
 
 export const isAsked = value => value !== null && typeof value === 'object' && 'ask' in value
 
-const asked = value => `gevraagd: "${value.ask}"`
+/** How an asked setting reads on a folded block, as it reads in the macro's sentences. */
+const asked = prompt => `gevraagd ("${prompt}")`
 
 const newId = () => Math.random().toString(36).slice(2, 10)
 
@@ -18,7 +19,7 @@ export const BLOCKS = {
         summary: (step, library) => [
             library.taskTitle(step.service_order_task_id) ?? 'kies een taak',
             step.product_id ? library.productName(step.product_id) : null,
-            'aantal ' + (isAsked(step.quantity) ? asked(step.quantity) : step.quantity),
+            'aantal ' + (isAsked(step.quantity) ? asked(step.quantity.ask) : step.quantity),
         ].filter(Boolean).join(' · '),
     },
     question: {
@@ -33,20 +34,20 @@ export const BLOCKS = {
         create: () => ({ prompt: 'Upload het document', document_category_id: null, internal: false }),
         summary: (step, library) => [
             library.categoryName(step.document_category_id),
-            `bestand gevraagd: "${step.prompt}"`,
+            'bestand ' + asked(step.prompt),
         ].filter(Boolean).join(' · '),
     },
     add_remark: {
         label: 'Opmerking plaatsen',
         tone: 'border-slate-400 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100',
         create: () => ({ text: '', internal: false }),
-        summary: step => (step.internal ? 'intern · ' : '') + (isAsked(step.text) ? asked(step.text) : `"${step.text || '…'}"`),
+        summary: step => (step.internal ? 'intern · ' : '') + (isAsked(step.text) ? asked(step.text.ask) : `"${step.text || '…'}"`),
     },
     add_service_jobs: {
         label: 'Keuringen toevoegen',
         tone: 'border-green-400 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950/50 dark:text-green-100',
         create: () => ({ location: 'all' }),
-        summary: step => (isAsked(step.location) ? 'locatie ' + asked(step.location) : 'alle machines van de klant'),
+        summary: step => (isAsked(step.location) ? 'locatie ' + asked(step.location.ask) : 'alle machines van de klant'),
     },
 }
 

@@ -40,7 +40,7 @@
             <div class="flex-1 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] p-6 dark:bg-[radial-gradient(#334155_1px,transparent_1px)]">
                 <div class="flex min-w-max flex-col items-center">
                     <span class="rounded-full bg-slate-900 px-5 py-1.5 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">Start</span>
-                    <MacroLane :steps="editor.root" :library="library" />
+                    <MacroLane :steps="editor.root" />
                     <span class="rounded-full bg-slate-900 px-5 py-1.5 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">Klaar</span>
                 </div>
             </div>
@@ -92,14 +92,6 @@ const props = defineProps({
 })
 
 const copy = value => JSON.parse(JSON.stringify(value))
-const editor = provideMacroEditor(copy(props.macro?.definition?.steps ?? []))
-const confirmDelete = ref(false)
-
-const form = useForm({
-    title: props.macro?.title ?? '',
-    description: props.macro?.description ?? '',
-    definition: { steps: [] },
-})
 
 const byId = list => new Map(list.map(item => [item.id, item]))
 const tasksById = computed(() => byId(props.tasks))
@@ -117,7 +109,19 @@ const library = computed(() => ({
     categoryName: id => categoriesById.value.get(id)?.name ?? null,
 }))
 
-/** The save's messages, by block: "definition.steps.2.yes.0.text" belongs to the block at that place. */
+const editor = provideMacroEditor(copy(props.macro?.definition?.steps ?? []), library)
+const confirmDelete = ref(false)
+
+const form = useForm({
+    title: props.macro?.title ?? '',
+    description: props.macro?.description ?? '',
+    definition: { steps: [] },
+})
+
+/**
+ * The save's messages, by block: "definition.steps.2.yes.0.text" belongs to the
+ * block at that place in what was sent, even if a block was moved since.
+ */
 watch(() => form.errors, errors => {
     const found = {}
 
@@ -130,7 +134,7 @@ watch(() => form.errors, errors => {
         if (step.type === 'question') ['yes', 'no'].forEach(branch => walk(step[branch], prefix + branch))
     })
 
-    walk(editor.root, 'definition.steps')
+    walk(form.definition.steps, 'definition.steps')
     editor.errors.value = found
 }, { deep: true })
 

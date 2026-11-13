@@ -2,12 +2,16 @@
 
 namespace App\Domain\Macros\Steps;
 
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Macros\MacroStep;
 use App\Models\ServiceOrder;
 use App\Models\User;
 
-/** A yes/no question asked when the macro runs; its answer chooses which lane runs. */
+/**
+ * A yes/no question asked when the macro runs. Its answer chooses which lane runs;
+ * the question itself does nothing.
+ */
 class QuestionStep implements MacroStep
 {
     public static function type(): string
@@ -26,7 +30,12 @@ class QuestionStep implements MacroStep
 
     public function askable(): array
     {
-        return ['answer' => 'yes_no'];
+        return [];
+    }
+
+    public function asks(array $step): array
+    {
+        return ['answer' => ['prompt' => $step['question'] ?? '', 'kind' => AnswerKind::yes_no]];
     }
 
     public function describe(array $step): string

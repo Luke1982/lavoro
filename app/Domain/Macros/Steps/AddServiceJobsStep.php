@@ -3,6 +3,7 @@
 namespace App\Domain\Macros\Steps;
 
 use App\Actions\ServiceOrders\AddServiceJobsAction;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\Asked;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Macros\MacroStep;
@@ -34,14 +35,20 @@ class AddServiceJobsStep implements MacroStep
 
     public function askable(): array
     {
-        return ['location' => 'location'];
+        return ['location' => AnswerKind::location];
+    }
+
+    public function asks(array $step): array
+    {
+        return Asked::in($step, $this->askable());
     }
 
     public function describe(array $step): string
     {
         $location = $step['location'] ?? 'all';
 
-        return 'Keuringen toevoegen: ' . (Asked::is($location) ? 'locatie ' . Asked::quoted($location) : 'alle machines') . '.';
+        return 'Keuringen toevoegen: '
+            . (Asked::is($location) ? 'locatie ' . Asked::quoted($location['ask']) : 'alle machines') . '.';
     }
 
     public function allows(User $user): bool

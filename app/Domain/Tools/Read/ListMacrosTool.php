@@ -81,7 +81,7 @@ class ListMacrosTool implements Tool
                     'macro_id' => $macro->id,
                     'title' => $macro->title,
                     'description' => $macro->description,
-                    'steps' => $macro->readable(),
+                    'steps' => $macro->steps()->readable(),
                     'asks' => $macro->steps()->questions(),
                 ])->all(),
                 'answers' => 'Geef run_macro per vraag op het pad een antwoord met step_id en field uit "asks". '

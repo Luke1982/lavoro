@@ -58,10 +58,10 @@ import { useMacroEditor } from '@/Composables/useMacroEditor.js'
 /** The settings of one block, edited in place on the block itself. */
 const props = defineProps({
     stepId: { type: String, required: true },
-    library: { type: Object, required: true },
 })
 
 const editor = useMacroEditor()
+const library = editor.library
 const step = computed(() => editor.find(props.stepId))
 
 const extras = computed(() => ({

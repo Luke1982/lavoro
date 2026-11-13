@@ -3,6 +3,7 @@
 namespace App\Domain\Macros\Steps;
 
 use App\Actions\Tasks\CreateTaskInstanceAction;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\Asked;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Macros\MacroStep;
@@ -40,16 +41,23 @@ class AddTaskStep implements MacroStep
 
     public function askable(): array
     {
-        return ['quantity' => 'number'];
+        return ['quantity' => AnswerKind::number];
+    }
+
+    public function asks(array $step): array
+    {
+        return Asked::in($step, $this->askable());
     }
 
     public function describe(array $step): string
     {
+        $task = ServiceOrderTask::find($step['service_order_task_id'] ?? null);
+        $product = Product::find($step['product_id'] ?? null);
         $quantity = $step['quantity'] ?? 1;
 
-        return 'Taak toevoegen: ' . (ServiceOrderTask::find($step['service_order_task_id'] ?? null)?->title ?? 'onbekend sjabloon')
-            . (($product = Product::find($step['product_id'] ?? null)) ? ', ' . $product->display_name : '')
-            . ', aantal ' . (Asked::is($quantity) ? Asked::quoted($quantity) : $quantity)
+        return 'Taak toevoegen: ' . ($task->title ?? 'onbekend sjabloon')
+            . ($product ? ', ' . $product->display_name : '')
+            . ', aantal ' . (Asked::is($quantity) ? Asked::quoted($quantity['ask']) : $quantity)
             . (!empty($step['checks_per_unit']) ? ', checks per machine' : '')
             . '.';
     }
@@ -61,14 +69,18 @@ class AddTaskStep implements MacroStep
 
     public function run(ServiceOrder $order, array $step, MacroRun $run): void
     {
-        $quantity = (int) Asked::value($step, 'quantity', $run);
+        $extras = new PickedExtras(
+            $step['extra_check_ids'] ?? [],
+            $step['extra_checklist_ids'] ?? [],
+            $step['extra_titles'] ?? [],
+        );
 
         $this->create->execute([
             'service_order_id' => $order->id,
             'service_order_task_id' => $step['service_order_task_id'],
             'product_id' => $step['product_id'] ?? null,
-            'quantity' => $quantity,
-            'checks_per_unit' => !empty($step['checks_per_unit']) && $quantity > 1 && !empty($step['product_id']),
-        ], new PickedExtras($step['extra_check_ids'] ?? [], $step['extra_checklist_ids'] ?? [], $step['extra_titles'] ?? []));
+            'quantity' => (int) Asked::value($step, 'quantity', $run),
+            'checks_per_unit' => !empty($step['checks_per_unit']),
+        ], $extras);
     }
 }

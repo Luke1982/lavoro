@@ -4,6 +4,7 @@ namespace Tests\Feature\Assistant;
 
 use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\ConversationFiles;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
@@ -119,11 +120,11 @@ class MacroToolsTest extends TestCase
 
         $this->assertFalse($result->is_error, (string) $result->summary);
         $this->assertSame($macro->id, $result->content['macros'][0]['macro_id']);
-        $this->assertSame($macro->readable(), $result->content['macros'][0]['steps']);
+        $this->assertSame($macro->steps()->readable(), $result->content['macros'][0]['steps']);
         $this->assertSame([
-            ['step_id' => 'opmerking', 'field' => 'text', 'question' => 'Wat moet de monteur weten?', 'kind' => 'text'],
-            ['step_id' => 'offerte', 'field' => 'answer', 'question' => 'Is er een offerte?', 'kind' => 'yes_no'],
-            ['step_id' => 'ja', 'field' => 'file', 'question' => 'Upload de offerte', 'kind' => 'file', 'only_if' => '"Is er een offerte?" = ja'],
+            ['step_id' => 'opmerking', 'field' => 'text', 'question' => 'Wat moet de monteur weten?', 'kind' => AnswerKind::text],
+            ['step_id' => 'offerte', 'field' => 'answer', 'question' => 'Is er een offerte?', 'kind' => AnswerKind::yes_no],
+            ['step_id' => 'ja', 'field' => 'file', 'question' => 'Upload de offerte', 'kind' => AnswerKind::file, 'only_if' => '"Is er een offerte?" = ja'],
         ], $result->content['macros'][0]['asks']);
     }
 

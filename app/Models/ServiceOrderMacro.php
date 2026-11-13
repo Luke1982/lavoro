@@ -22,14 +22,4 @@ class ServiceOrderMacro extends Model
     {
         return new MacroDefinition($this->definition['steps'] ?? []);
     }
-
-    /**
-     * The macro as numbered sentences, the way the assistant reads it.
-     *
-     * @return array<int, string>
-     */
-    public function readable(): array
-    {
-        return $this->steps()->readable();
-    }
 }

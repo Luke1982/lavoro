@@ -11,7 +11,7 @@
         </div>
         <div v-if="selected" class="space-y-3 border-t border-black/10 dark:border-white/10 bg-white/70 px-3 py-3 text-gray-900 dark:bg-slate-900/60 dark:text-slate-100"
             @click.stop>
-            <MacroBlockSettings :step-id="step.id" :library="library" />
+            <MacroBlockSettings :step-id="step.id" />
             <p v-for="message in errors" :key="message" class="text-xs text-red-600">{{ message }}</p>
             <div class="flex justify-end">
                 <button type="button" class="text-xs font-semibold text-red-600 hover:underline" @click="editor.remove(step.id)">
@@ -35,10 +35,10 @@ import { useMacroEditor } from '@/Composables/useMacroEditor.js'
  */
 const props = defineProps({
     step: { type: Object, required: true },
-    library: { type: Object, required: true },
 })
 
 const editor = useMacroEditor()
+const library = editor.library
 const block = computed(() => BLOCKS[props.step.type])
 const selected = computed(() => editor.selectedId.value === props.step.id)
 const errors = computed(() => editor.errors.value[props.step.id] ?? [])

@@ -16,14 +16,26 @@ final class Asked
     /** The setting's value: the answer when it was asked, the stored value otherwise. */
     public static function value(array $step, string $field, MacroRun $run): mixed
     {
-        $value = $step[$field] ?? null;
-
-        return self::is($value) ? $run->answer($step['id'], $field) : $value;
+        return self::is($step[$field] ?? null) ? $run->answer($step['id'], $field) : ($step[$field] ?? null);
     }
 
-    /** '"Hoeveel airco\'s?"' for an asked setting, for the sentence a step reads as. */
-    public static function quoted(array $value): string
+    /**
+     * Which of a step's askable settings it asks, each with its question.
+     *
+     * @param  array<string, AnswerKind>  $askable
+     * @return array<string, array{prompt: string, kind: AnswerKind}>
+     */
+    public static function in(array $step, array $askable): array
     {
-        return 'gevraagd ("' . $value['ask'] . '")';
+        return collect($askable)
+            ->filter(fn (AnswerKind $kind, string $field) => self::is($step[$field] ?? null))
+            ->map(fn (AnswerKind $kind, string $field) => ['prompt' => $step[$field]['ask'], 'kind' => $kind])
+            ->all();
+    }
+
+    /** How an asked setting reads in a step's sentence: `gevraagd ("Hoeveel airco's?")`. */
+    public static function quoted(string $prompt): string
+    {
+        return 'gevraagd ("' . $prompt . '")';
     }
 }

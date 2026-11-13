@@ -276,6 +276,28 @@ class RunMacroTest extends TestCase
             '   Als nee:',
             '   2.1. Opmerking plaatsen (intern): "Offerte volgt".',
             '3. Keuringen toevoegen: locatie gevraagd ("Welke locatie?").',
-        ], $macro->readable());
+        ], $macro->steps()->readable());
+    }
+
+    public function test_an_empty_lane_reads_as_nothing(): void
+    {
+        $macro = $this->macro([['id' => 'offerte', 'type' => 'question', 'question' => 'Offerte?', 'yes' => [], 'no' => [
+            ['id' => 'nee', 'type' => 'add_remark', 'text' => 'Offerte volgt', 'internal' => false],
+        ]]]);
+
+        $this->assertSame([
+            '1. Vraag: "Offerte?"',
+            '   Als ja: niets.',
+            '   Als nee:',
+            '   1.1. Opmerking plaatsen: "Offerte volgt".',
+        ], $macro->steps()->readable());
+    }
+
+    public function test_checks_per_machine_need_more_than_one_machine(): void
+    {
+        $this->runMacro($this->macro([$this->addTask(['quantity' => 1])]))->assertSessionHasNoErrors();
+
+        $this->assertFalse(ServiceOrderTaskInstance::sole()->checks_per_unit);
+        $this->assertSame(1, ServiceOrderTaskInstance::sole()->checks()->count());
     }
 }

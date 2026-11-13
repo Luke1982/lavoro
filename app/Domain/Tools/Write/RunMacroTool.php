@@ -4,6 +4,7 @@ namespace App\Domain\Tools\Write;
 
 use App\Actions\ServiceOrders\RunServiceOrderMacroAction;
 use App\Domain\Assistant\ConversationFiles;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\MacroAnswers;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Tools\ChecksBeforeConfirming;
@@ -99,7 +100,7 @@ class RunMacroTool implements ChecksBeforeConfirming, Confirmable, Tool
         $macro = ServiceOrderMacro::find($call->integerArgument('macro_id'));
         $answered = $macro ? $macro->steps()->answered($this->answersOf($call, $macro)) : [];
 
-        return 'Macro "' . ($macro->title ?? '?') . '" uitvoeren op werkbon #' . $order_id
+        return 'Macro "' . ($macro?->title ?? '?') . '" uitvoeren op werkbon #' . $order_id
             . ($order?->customer ? ' (' . $order->customer->name . ')' : '')
             . ($answered === [] ? '' : ': ' . implode('; ', $answered));
     }
@@ -169,33 +170,42 @@ class RunMacroTool implements ChecksBeforeConfirming, Confirmable, Tool
         $answers = $this->answersOf($call, $macro);
         $checks = new MacroAnswers($order, $macro, $answers);
 
-        if (!$checks->allow($call->user)) {
+        if (!$checks->allows($call->user)) {
             return ToolResult::denied();
         }
 
         $validator = Validator::make(['answers' => $answers], $checks->rules(), [], $checks->names());
 
         if ($validator->fails()) {
-            return $this->unanswered($validator->errors()->messages(), $order, $macro);
+            return $this->unanswered($validator->errors()->messages(), $checks, $order, $macro);
         }
 
         return [$order, $macro, new MacroRun($call->user, $validator->validated()['answers'] ?? [])];
     }
 
-    /** @param  array<string, array<int, string>>  $errors */
-    private function unanswered(array $errors, ServiceOrder $order, ServiceOrderMacro $macro): ToolResult
-    {
-        $keys = array_keys($errors);
+    /**
+     * Which answers are missing or wrong, with what the macro asks so the model can
+     * try again — and the customer's locations when a location was wrong.
+     *
+     * @param  array<string, array<int, string>>  $errors
+     */
+    private function unanswered(
+        array $errors,
+        MacroAnswers $checks,
+        ServiceOrder $order,
+        ServiceOrderMacro $macro,
+    ): ToolResult {
         $reason = implode(' ', array_map(fn (array $messages) => $messages[0], $errors));
+        $kinds = collect(array_intersect_key($checks->asks(), $errors))->pluck('kind');
 
-        if (collect($keys)->contains(fn (string $key) => str_ends_with($key, '.file'))) {
+        if ($kinds->contains(AnswerKind::file)) {
             $reason .= ' Een bestand moet in dit gesprek zijn meegestuurd; anders kan de gebruiker de macro '
                 . 'uitvoeren met de knop "Macro uitvoeren" op de werkbon.';
         }
 
         $content = ['error' => $reason, 'asks' => $macro->steps()->questions()];
 
-        if (collect($keys)->contains(fn (string $key) => str_ends_with($key, '.location'))) {
+        if ($kinds->contains(AnswerKind::location)) {
             $content['locations'] = Location::where('customer_id', $order->customer_id)->get(['id', 'title'])->all();
         }
 
@@ -219,7 +229,7 @@ class RunMacroTool implements ChecksBeforeConfirming, Confirmable, Tool
         }
 
         foreach ($macro->steps()->questions() as $question) {
-            if ($question['kind'] === 'file') {
+            if ($question['kind'] === AnswerKind::file) {
                 $named = $answers[$question['step_id']][$question['field']] ?? null;
                 $answers[$question['step_id']][$question['field']] = $this->chatFile($call, $named);
             }

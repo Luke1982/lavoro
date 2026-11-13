@@ -41,7 +41,11 @@ class AddServiceJobsAction
 
         $added = $this->execute($order, $machines);
 
-        throw_if($added['jobs']->isEmpty(), Refusal::class, 'Er zijn geen machines meer zonder keuring op deze werkbon.');
+        throw_if(
+            $added['jobs']->isEmpty(),
+            Refusal::class,
+            'Er zijn geen machines meer zonder keuring op deze werkbon.',
+        );
 
         return $added;
     }
@@ -66,8 +70,13 @@ class AddServiceJobsAction
 
             $parts = $this->bundles->createForAll($jobs);
 
-            $jobs->each(fn (ServiceJob $job) => Signals::dispatch(new ServiceJobAdded($order, $job->asset)));
-            collect($parts)->each(fn (ServiceJob $part) => Signals::dispatch(new ServiceJobAdded($order, $part->asset, combined: true)));
+            foreach ($jobs as $job) {
+                Signals::dispatch(new ServiceJobAdded($order, $job->asset));
+            }
+
+            foreach ($parts as $part) {
+                Signals::dispatch(new ServiceJobAdded($order, $part->asset, combined: true));
+            }
 
             return ['jobs' => $jobs, 'parts' => $parts];
         });

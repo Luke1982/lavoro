@@ -3,6 +3,7 @@
 namespace App\Domain\Macros\Steps;
 
 use App\Actions\Remarks\AddRemarkAction;
+use App\Domain\Macros\AnswerKind;
 use App\Domain\Macros\Asked;
 use App\Domain\Macros\MacroRun;
 use App\Domain\Macros\MacroStep;
@@ -29,7 +30,12 @@ class AddRemarkStep implements MacroStep
 
     public function askable(): array
     {
-        return ['text' => 'text'];
+        return ['text' => AnswerKind::text];
+    }
+
+    public function asks(array $step): array
+    {
+        return Asked::in($step, $this->askable());
     }
 
     public function describe(array $step): string
@@ -37,7 +43,7 @@ class AddRemarkStep implements MacroStep
         $text = $step['text'] ?? '';
 
         return 'Opmerking plaatsen' . (!empty($step['internal']) ? ' (intern)' : '') . ': '
-            . (Asked::is($text) ? Asked::quoted($text) : '"' . $text . '"') . '.';
+            . (Asked::is($text) ? Asked::quoted($text['ask']) : '"' . $text . '"') . '.';
     }
 
     public function allows(User $user): bool
@@ -47,6 +53,8 @@ class AddRemarkStep implements MacroStep
 
     public function run(ServiceOrder $order, array $step, MacroRun $run): void
     {
-        $this->add->execute($order, (string) Asked::value($step, 'text', $run), !empty($step['internal']), $run->user->id);
+        $text = (string) Asked::value($step, 'text', $run);
+
+        $this->add->execute($order, $text, !empty($step['internal']), $run->user->id);
     }
 }

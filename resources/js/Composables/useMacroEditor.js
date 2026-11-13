@@ -6,9 +6,10 @@ const KEY = Symbol('macroEditor')
 /**
  * The macro being built: a list of steps where a question holds a list per answer.
  * Lanes are addressed by the list they are, so a block can be put in, moved or
- * taken out anywhere in the tree from any lane.
+ * taken out anywhere in the tree from any lane. The library is what the blocks
+ * pick from and name: tasks, products, checks and document categories.
  */
-export function provideMacroEditor(steps) {
+export function provideMacroEditor(steps, library) {
     const root = reactive(steps)
     const selectedId = ref(null)
     const errors = ref({})
@@ -32,6 +33,7 @@ export function provideMacroEditor(steps) {
 
     const editor = {
         root,
+        library,
         selectedId,
         /** Messages from the last save, by block id. */
         errors,
