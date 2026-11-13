@@ -46,8 +46,8 @@ class ServiceOrderUpdateRequest extends FormRequest
     {
         $completion_rules = [
             'description' => 'nullable|string|max:1000',
-            'signed_by' => 'nullable|string|max:100',
-            'signature_base64' => 'nullable|string',
+            'signed_by' => 'sometimes|required|string|max:100',
+            'signature_base64' => 'sometimes|required|string',
             'actual_start_time' => 'nullable|date_format:H:i',
             'actual_end_time' => 'nullable|date_format:H:i|after:actual_start_time',
             'service_order_stage_id' => 'nullable|exists:service_order_stages,id',
@@ -280,7 +280,9 @@ class ServiceOrderUpdateRequest extends FormRequest
             'description.max' => 'Beschrijving mag maximaal 1000 tekens bevatten.',
             'order_date.date' => 'Datum opdracht moet een geldige datum zijn.',
             'closed_on.date' => 'Gesloten op moet een geldige datum zijn.',
+            'signed_by.required' => 'Vul de naam in van degene die tekent.',
             'signed_by.max' => 'Ondertekend door mag maximaal 100 tekens bevatten.',
+            'signature_base64.required' => 'Er is geen handtekening gezet.',
             'signature_base64.string' => 'Handtekening moet een geldige string zijn.',
             'actual_end_time.after' => 'Eindtijd moet later zijn dan de starttijd.',
         ];

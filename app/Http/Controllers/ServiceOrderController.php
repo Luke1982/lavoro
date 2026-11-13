@@ -9,6 +9,7 @@ use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
+use App\Domain\Signals\ServiceOrders\ServiceOrderSigned;
 use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Domain\Signals\Signals;
@@ -417,6 +418,7 @@ class ServiceOrderController extends Controller
 
         $previous_customer_id = $serviceorder->customer_id;
         $previous_external_invoice_no = $serviceorder->external_invoice_no;
+        $previous_signed_by = $serviceorder->signed_by;
 
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
@@ -452,6 +454,10 @@ class ServiceOrderController extends Controller
             && blank($previous_external_invoice_no)
         ) {
             Signals::dispatch(new ServiceOrderInvoiceRecorded($serviceorder, $data['external_invoice_no']));
+        }
+
+        if ($serviceorder->wasChanged(['signed_by', 'signature_base64'])) {
+            Signals::dispatch(new ServiceOrderSigned($serviceorder, $previous_signed_by, $serviceorder->signed_by));
         }
 
         if ($stage_requested) {

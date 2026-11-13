@@ -74,6 +74,7 @@ class ServiceOrder extends Model
      * them here too would log the same fact twice.
      */
     protected array $activity_ignore = [
+        'signed_by',
         'signature_base64',
         'customer_id',
         'service_order_stage_id',

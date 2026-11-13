@@ -63,6 +63,15 @@ class ServiceOrderPolicy
         return $user->hasPermission('serviceorder.mark_partially_complete') && $stage->is_incomplete_state;
     }
 
+    /**
+     * Wissen wat de klant getekend heeft is net zo zwaar als een gesloten bon weer
+     * openzetten, dus het hangt aan hetzelfde recht.
+     */
+    public function clearSignature(User $user, ServiceOrder $serviceOrder): bool
+    {
+        return $user->hasPermission('serviceorder.reopen');
+    }
+
     public function seeFinancials(User $user, ServiceOrder $serviceOrder): bool
     {
         return $user->hasPermission('serviceorder.see_financials');

@@ -377,6 +377,11 @@
                             <div v-if="isSigned" class="py-2">
                                 <img :src="serviceOrder.signature_base64" alt="Handtekening" class="max-h-24">
                             </div>
+                            <button v-if="hasSignatureToClear && !serviceOrder.is_closed && hasPermission('serviceorder.reopen')"
+                                type="button" @click="clearSignature"
+                                class="mt-2 text-sm text-red-600 dark:text-red-400 hover:underline cursor-pointer">
+                                Handtekening en naam wissen
+                            </button>
                             <button v-if="hasPermission('serviceorder.close') || serviceOrder.is_closed"
                                 @click="showCloseModal = true"
                                 class="mt-4 w-full p-3 rounded-md ring-1 ring-gray-200 dark:ring-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
@@ -989,6 +994,19 @@ function handleSignatureConfirm({ signed_by, signature_base64 }) {
     })
 }
 
+function clearSignature() {
+    if (!confirm('Weet je zeker dat je de handtekening en de naam van de ondertekenaar wilt wissen?')) {
+        return
+    }
+    router.delete(`/serviceorders/${props.serviceOrder.id}/signature`, {
+        preserveScroll: true,
+        onError: (errors) => {
+            const msg = errors.signature || Object.values(errors)[0]
+            if (msg) usePage().props.flash.error = msg
+        },
+    })
+}
+
 function reopenViaStage() {
     onStageChange(null)
 }
@@ -1283,6 +1301,11 @@ const isSigned = computed(() => {
     const sig = (props.serviceOrder.signature_base64 ?? '').toString().trim();
     return name.length > 0 && sig.length > 0;
 });
+
+const hasSignatureToClear = computed(() =>
+    !!(props.serviceOrder.signed_by ?? '').toString().trim()
+    || !!(props.serviceOrder.signature_base64 ?? '').toString().trim()
+);
 
 // Build mixed timeline: activities + linked events
 const timelineItems = computed(() => {

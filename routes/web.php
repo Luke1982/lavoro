@@ -65,6 +65,7 @@ use App\Http\Controllers\ServiceOrderController;
 use App\Http\Controllers\ServiceOrderMacroController;
 use App\Http\Controllers\ServiceOrderMacroRunController;
 use App\Http\Controllers\ServiceOrderServiceJobController;
+use App\Http\Controllers\ServiceOrderSignatureController;
 use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskCheckController;
 use App\Http\Controllers\ServiceOrderTaskCheckLinkController;
@@ -395,6 +396,8 @@ Route::group(
         Route::resource('serviceorders', ServiceOrderController::class);
         Route::get('serviceorders/{serviceorder}/export/pdf', [ServiceOrderController::class, 'exportPdf'])
             ->name('serviceorders.exportPdf');
+        Route::delete('serviceorders/{serviceorder}/signature', [ServiceOrderSignatureController::class, 'destroy'])
+            ->name('serviceorders.signature.destroy');
         Route::post('serviceorders/{serviceorder}/email-pdf', [ServiceOrderController::class, 'emailPdf'])
             ->name('serviceorders.emailPdf');
         Route::post(
