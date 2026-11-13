@@ -45,7 +45,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Camera, Check, Eye, MessageSquare } from '@lucide/vue'
+import { Camera, Check, Eye, MessageSquare, Signature } from '@lucide/vue'
 import { hasPermission } from '@/Utilities/Utilities'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
@@ -101,10 +101,14 @@ const finish = computed(() => {
 
     if (!hasPermission('serviceorder.close')) return null
 
-    if (props.isSigned && props.closedStageId !== null) {
-        return { label: 'Werkbon afsluiten', icon: Check, tone: 'green', emits: 'close-service-order' }
+    if (!props.isSigned) {
+        return { label: 'Vraag handtekening aan de klant', icon: Signature, tone: 'blue', emits: 'open-signoff' }
     }
 
-    return { label: 'Werkbon afronden', icon: Check, tone: 'green', emits: 'open-signoff' }
+    if (props.closedStageId === null) {
+        return { label: 'Bekijk overzicht', icon: Eye, tone: 'neutral', emits: 'open-signoff' }
+    }
+
+    return { label: 'Werkbon afronden', icon: Check, tone: 'green', emits: 'close-service-order' }
 })
 </script>

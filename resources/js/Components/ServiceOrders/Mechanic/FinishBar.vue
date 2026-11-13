@@ -4,9 +4,7 @@
         <div class="mx-auto max-w-3xl">
             <button type="button" :aria-hidden="typing" :tabindex="typing ? -1 : undefined"
                 class="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-lavoro-sm py-3.5 text-base font-semibold shadow-[0_8px_30px_rgba(2,6,23,0.25)] transition-colors cursor-pointer"
-                :class="tone === 'green'
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600'"
+                :class="TONES[tone] ?? TONES.neutral"
                 @click="$emit('click')">
                 <component :is="icon" class="size-5" />
                 {{ label }}
@@ -38,6 +36,13 @@ defineProps({
 })
 
 defineEmits(['click'])
+
+/** Dekkend, ook bij hover: de knop zweeft boven de inhoud van de werkbon. */
+const TONES = {
+    blue: 'bg-lavoro-blue text-white hover:brightness-110',
+    green: 'bg-lavoro-green text-gray-800 hover:brightness-95',
+    neutral: 'bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600',
+}
 
 const { tucked, clearance } = useTabBar()
 const { collapsed } = useMenu()
