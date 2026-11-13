@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
 import { useCapacitor } from './useCapacitor.js'
+import { browserStorage } from '@/Utilities/browserStorage'
 
 /**
  * Browser meldingen: toestemming vragen en het abonnement bij de server
@@ -21,36 +22,7 @@ function supports_notifications() {
         && 'PushManager' in window
 }
 
-/**
- * Safari in een privévenster laat localStorage bestaan en gooit bij het
- * schrijven. Onthouden is hier nergens noodzakelijk, dus dat mag mislukken
- * zonder dat iemand een foutmelding ziet.
- */
-const storage = {
-    get(key) {
-        try {
-            return window.localStorage?.getItem(key) ?? null
-        } catch {
-            return null
-        }
-    },
-    set(key, value) {
-        try {
-            window.localStorage?.setItem(key, value)
-        } catch {
-            // Niets aan te doen, en niets dat hierop wacht.
-        }
-    },
-    forget(key) {
-        try {
-            window.localStorage?.removeItem(key)
-        } catch {
-            // Zie set().
-        }
-    },
-}
-
-const dismissed = ref(typeof window !== 'undefined' && storage.get('push_prompt_dismissed') === '1')
+const dismissed = ref(typeof window !== 'undefined' && browserStorage.get('push_prompt_dismissed') === '1')
 
 /**
  * De VAPID-sleutel komt als base64url binnen en moet als bytes de browser in.
@@ -165,7 +137,7 @@ export function useWebPush() {
                 content_encoding: preferred_content_encoding(),
             })
 
-            storage.set('push_endpoint_synced', payload.endpoint)
+            browserStorage.set('push_endpoint_synced', payload.endpoint)
 
             return true
         } catch (error) {
@@ -190,7 +162,7 @@ export function useWebPush() {
             await axios.get('/sanctum/csrf-cookie')
             await axios.delete('/pushsubscriptions', { data: { endpoint } })
 
-            storage.forget('push_endpoint_synced')
+            browserStorage.forget('push_endpoint_synced')
         } catch (error) {
             console.error('Push unsubscribe failed:', error)
         }
@@ -216,7 +188,7 @@ export function useWebPush() {
             if (!registration) return
 
             const subscription = await registration.pushManager.getSubscription()
-            const known = storage.get('push_endpoint_synced')
+            const known = browserStorage.get('push_endpoint_synced')
 
             if (subscription && same_key(subscription, vapid_public_key.value) && subscription.endpoint === known) {
                 return
@@ -232,7 +204,7 @@ export function useWebPush() {
 
     function dismiss() {
         dismissed.value = true
-        storage.set('push_prompt_dismissed', '1')
+        browserStorage.set('push_prompt_dismissed', '1')
     }
 
     return { is_supported, can_ask, is_enabled, permission, enable, disable, sync, dismiss }

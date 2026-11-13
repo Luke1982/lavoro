@@ -22,7 +22,7 @@
                     Monteurkaart
                 </button>
                 <SelectMenuComponent v-model="selectedUserId" :options="userOptions" :icon="UsersIcon"
-                    class="flex-grow">
+                    class="flex-grow" @update:model-value="rememberUser">
                     <template #sr-label>Monteur selecteren</template>
                 </SelectMenuComponent>
                 <button v-if="selectedUserId === null"
@@ -264,6 +264,7 @@ import {
 } from '@/Composables/usePlannerGaps'
 import { blockedUsersAt, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import { usePullToFlip } from '@/Composables/usePullToFlip'
+import { browserStorage } from '@/Utilities/browserStorage'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import MobileEventCard from '@/Components/Planner/MobileEventCard.vue'
@@ -384,9 +385,31 @@ const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, dayCount)
 
 const canSeeAll = computed(() => hasPermission('event.see_all'))
 
-const selectedUserId = ref(
-    hasPermission('event.see_all') ? null : (page.props.auth.user?.id ?? null)
-)
+const authUserId = computed(() => page.props.auth.user?.id ?? null)
+
+/**
+ * Wie de hele planning ziet, krijgt op dit toestel de monteur terug die het
+ * laatst in het menu gekozen is. Alleen het menu telt: dat een sprong naar een
+ * afspraak het filter openzet, is geen keuze. Een onthouden monteur die niet
+ * meer inplanbaar is, valt terug op alle monteurs.
+ */
+const rememberedUserKey = 'lavoro_mobile_planner_user_' + authUserId.value
+
+function rememberedUserId() {
+    const userId = Number(browserStorage.get(rememberedUserKey))
+
+    return props.plannableUsers.some(u => u.id === userId) ? userId : null
+}
+
+function rememberUser(userId) {
+    if (userId === null) {
+        browserStorage.forget(rememberedUserKey)
+    } else {
+        browserStorage.set(rememberedUserKey, String(userId))
+    }
+}
+
+const selectedUserId = ref(canSeeAll.value ? rememberedUserId() : authUserId.value)
 
 const userOptions = computed(() => [
     { value: null, title: 'Alle monteurs', shortTitle: 'Allen' },
@@ -577,8 +600,6 @@ function eventDurationMinutes(ev) {
 }
 
 // ── Tap-to-edit / create ─────────────────────────────────────────────────────
-
-const authUserId = computed(() => page.props.auth.user?.id ?? null)
 
 const relevantUserId = computed(() => selectedUserId.value ?? authUserId.value)
 
