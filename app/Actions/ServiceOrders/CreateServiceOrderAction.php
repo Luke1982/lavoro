@@ -2,12 +2,9 @@
 
 namespace App\Actions\ServiceOrders;
 
-use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
 use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\Signals;
-use App\Enums\ServiceJobOutcomes;
 use App\Models\Asset;
-use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\DB;
@@ -71,19 +68,7 @@ class CreateServiceOrderAction
      */
     private function attachAssets(ServiceOrder $service_order, array $asset_ids): void
     {
-        foreach ($asset_ids as $asset_id) {
-            $job = ServiceJob::create([
-                'asset_id' => $asset_id,
-                'service_order_id' => $service_order->id,
-                'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
-            ]);
-
-            $asset = $job->asset()->with(['product.brand', 'product.productType'])->first();
-
-            if ($asset) {
-                Signals::dispatch(new ServiceJobAdded($service_order, $asset));
-            }
-        }
+        app(AddServiceJobsAction::class)->execute($service_order, Asset::findMany($asset_ids));
     }
 
     /**

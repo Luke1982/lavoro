@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Signals\ServiceOrders\ServiceJobAdded;
+use App\Actions\ServiceOrders\AddServiceJobsAction;
 use App\Domain\Signals\ServiceOrders\ServiceJobEmailed;
 use App\Domain\Signals\Signals;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
+use App\Exceptions\Refusal;
 use App\Http\Requests\ServiceJobAssetSerialUpdateRequest;
 use App\Http\Requests\ServiceJobCreateRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
 use App\Mail\ServiceJobPdfMail;
+use App\Models\Asset;
 use App\Models\Company;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
-use App\Services\BundleServiceJobCreator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,29 +49,22 @@ class ServiceJobController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ServiceJobCreateRequest $request)
+    public function store(ServiceJobCreateRequest $request, AddServiceJobsAction $add)
     {
-        $job = ServiceJob::create($request->validated());
-        $job->load(['asset.product.brand', 'asset.product.productType']);
+        $data = $request->validated();
 
-        $service_order = ServiceOrder::with('customer')->find($job->service_order_id);
-        $child_jobs = app(BundleServiceJobCreator::class)->createFor($job);
+        ['jobs' => $jobs, 'parts' => $parts] = $add->execute(
+            ServiceOrder::findOrFail($data['service_order_id']),
+            [Asset::findOrFail($data['asset_id'])],
+            Arr::except($data, ['service_order_id', 'asset_id']),
+        );
 
-        if ($service_order) {
-            if ($job->asset) {
-                Signals::dispatch(new ServiceJobAdded($service_order, $job->asset));
-            }
-
-            foreach ($child_jobs as $child_job) {
-                Signals::dispatch(new ServiceJobAdded($service_order, $child_job->asset, combined: true));
-            }
-        }
+        throw_if($jobs->isEmpty(), Refusal::class, 'Deze machine heeft al een keuring op deze werkbon.');
 
         $message = 'Keuring succesvol aangemaakt.';
 
-        if ($child_jobs !== []) {
-            $message .= ' ' . count($child_jobs)
-                . ' gecombineerde keuring(en) aangemaakt voor gerelateerde onderdelen.';
+        if ($parts !== []) {
+            $message .= ' ' . count($parts) . ' gecombineerde keuring(en) aangemaakt voor gerelateerde onderdelen.';
         }
 
         return redirect()->back()->with('success', $message);

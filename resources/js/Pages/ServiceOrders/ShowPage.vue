@@ -157,6 +157,8 @@
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
                                 <template v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
                                     #actions>
+                                    <AddServiceJobsMenu :service-order-id="serviceOrder.id" :assets="$props.customerAssets"
+                                        :present-asset-ids="serviceOrder.servicejobs.map(job => job.asset_id)" />
                                     <button @click="addServiceJobFromSelectedAsset" :disabled="!selectedAsset"
                                         :class="['px-3 sm:px-4 py-0.5 sm:py-2 rounded text-2xl sm:text-sm font-light sm:font-semibold text-white transition-opacity', selectedAsset ? 'bg-lavoro-blue hover:opacity-90 cursor-pointer' : 'bg-lavoro-blue opacity-40 cursor-not-allowed']">
                                         + <span class="hidden sm:inline">Keuring toevoegen</span>
@@ -668,6 +670,7 @@ import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import TaskInstancesWidget from '@/Components/ServiceOrders/TaskInstancesWidget.vue';
+import AddServiceJobsMenu from '@/Components/ServiceOrders/AddServiceJobsMenu.vue';
 import EventsWidget from '@/Components/ServiceOrders/EventsWidget.vue';
 import CloseServiceOrderModal from '@/Components/ServiceOrders/CloseServiceOrderModal.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';

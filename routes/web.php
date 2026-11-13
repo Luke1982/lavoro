@@ -62,6 +62,7 @@ use App\Http\Controllers\ServiceCheckInstanceController;
 use App\Http\Controllers\ServiceCheckValueController;
 use App\Http\Controllers\ServiceJobController;
 use App\Http\Controllers\ServiceOrderController;
+use App\Http\Controllers\ServiceOrderServiceJobController;
 use App\Http\Controllers\ServiceOrderStageController;
 use App\Http\Controllers\ServiceOrderTaskCheckController;
 use App\Http\Controllers\ServiceOrderTaskCheckLinkController;
@@ -431,6 +432,8 @@ Route::group(
             [FreeformMaterialController::class, 'destroy']
         )->name('serviceorders.freeformMaterials.destroy');
         Route::resource('servicejobs', ServiceJobController::class);
+        Route::post('serviceorders/{serviceorder}/servicejobs', [ServiceOrderServiceJobController::class, 'store'])
+            ->name('serviceorders.servicejobs.store');
         Route::get('servicejobs/{servicejob}/export/pdf', [ServiceJobController::class, 'exportPdf'])
             ->name('servicejobs.exportPdf');
         Route::post('servicejobs/{servicejob}/email-pdf', [ServiceJobController::class, 'emailPdf'])
