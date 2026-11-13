@@ -7,7 +7,7 @@
     <div class="flex flex-col sm:flex-row mt-6 mb-4">
         <BoxComponent class="w-full h-auto sm:w-70 sm:min-h-70 mr-8 flex items-center justify-around"
             v-if="product.main_image?.[0]">
-            <img :src="`/files/images/${product.main_image[0].id}`" alt="Productafbeelding"
+            <img :src="imageFileUrl(product.main_image[0])" alt="Productafbeelding"
                 class="object-cover rounded w-full">
         </BoxComponent>
         <div class="flex flex-col justify-around flex-grow items-start pt-2 sm:py-10 gap-3">
@@ -613,6 +613,7 @@ import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon } from '@lucide/vue';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const props = defineProps({
     product: {

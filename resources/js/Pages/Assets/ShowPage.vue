@@ -374,7 +374,7 @@
                     <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">product</Link>
                 </SectionHeader>
                 <div class="grid grid-cols-2 gap-6 items-center mt-4">
-                    <img v-for="image in asset.product.images" :key="image.id" :src="`/files/images/${image.id}`"
+                    <img v-for="image in asset.product.images" :key="image.id" :src="imageFileUrl(image)"
                         alt="{{ image.name }}" class="w-full h-auto rounded-lg mb-4" />
                 </div>
             </BoxComponent>
@@ -491,6 +491,7 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
 import { hasPermission, nlDate, initials, assetSerialLabel, ticketStatusDotClasses, ticketPriorityColor, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities';
 import { useComboSearch } from '@/Composables/useComboSearch';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const showTicketDrawer = ref(false);
 
@@ -578,9 +579,9 @@ const statusBadgeColor = computed(() => (props.asset.status === 'Actief' ? 'gree
 
 const headerImage = computed(() => {
     const assetMain = props.asset.images?.find(image => image.pivot?.main) ?? props.asset.images?.[0]
-    if (assetMain) return `/files/images/${assetMain.id}`
+    if (assetMain) return imageFileUrl(assetMain)
     const productImage = props.asset.product?.images?.find(image => image.pivot?.main) ?? props.asset.product?.images?.[0]
-    if (productImage) return `/files/images/${productImage.id}`
+    if (productImage) return imageFileUrl(productImage)
     return null
 })
 

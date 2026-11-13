@@ -6,14 +6,18 @@ use App\Models\Company;
 use App\Models\Image;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
 {
     public function image(Image $image)
     {
-        abort_unless(Storage::disk('public')->exists($image->path), 404);
+        return $this->servePublicFile($image->path);
+    }
 
-        return Storage::disk('public')->response($image->path);
+    public function imageOriginal(Image $image)
+    {
+        return $this->servePublicFile($image->unannotatedPath());
     }
 
     public function avatar(User $user)
@@ -27,7 +31,11 @@ class FileController extends Controller
 
     public function companyLogo(Company $company, string $variant = 'main')
     {
-        $path = $variant === 'negative' ? $company->logo_negative_path : $company->logo_path;
+        return $this->servePublicFile($variant === 'negative' ? $company->logo_negative_path : $company->logo_path);
+    }
+
+    private function servePublicFile(?string $path): StreamedResponse
+    {
         abort_unless($path && Storage::disk('public')->exists($path), 404);
 
         return Storage::disk('public')->response($path);

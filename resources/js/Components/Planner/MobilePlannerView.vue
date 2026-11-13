@@ -227,7 +227,8 @@
                 <ImageUploadComponent :existing="feedback.images.value" :imageable-type="'App\\Models\\Event'"
                     :imageable-id="feedback.activeEvent.value.id" :api-mode="true"
                     :can-manage="hasPermission('event.provide_feedback')"
-                    @images-uploaded="feedback.onImagesUploaded" @image-deleted="feedback.onImageDeleted" />
+                    @images-uploaded="feedback.onImagesUploaded" @image-updated="feedback.onImageUpdated"
+                    @image-deleted="feedback.onImageDeleted" />
             </div>
         </ModalDialog>
     </div>

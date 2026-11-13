@@ -49,7 +49,6 @@ vi.mock('@/Utilities/Utilities.js', () => ({
     subjectSubtitle: () => '',
 }))
 vi.mock('glightbox', () => ({ default: () => ({ reload: vi.fn(), on: vi.fn() }) }))
-vi.mock('tui-image-editor', () => ({ default: class {} }))
 
 import axios from 'axios'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'

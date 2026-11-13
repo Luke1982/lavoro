@@ -83,6 +83,7 @@ Route::group(
     function () {
 
         Route::get('files/images/{image}', [FileController::class, 'image'])->name('files.image');
+        Route::get('files/images/{image}/original', [FileController::class, 'imageOriginal'])->name('files.imageOriginal');
         Route::get('files/avatars/{user}', [FileController::class, 'avatar'])->name('files.avatar');
         Route::get('files/companies/{company}/logo/{variant?}', [FileController::class, 'companyLogo'])->name('files.companyLogo');
 
@@ -430,6 +431,7 @@ Route::group(
         )->name('servicejobs.bulkComplete');
         Route::resource('images', ImageController::class)->except(['update']);
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
+        Route::get('images/{image}/annotations', [ImageController::class, 'annotations'])->name('images.annotations');
         Route::post('images/{image}/set-main', [ImageController::class, 'setMain'])->name('images.setMain');
         Route::post('images/import-from-url', [ImageController::class, 'importFromUrl'])->name('images.importFromUrl');
         Route::resource('remarks', RemarkController::class)

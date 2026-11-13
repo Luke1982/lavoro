@@ -62,9 +62,9 @@
                         'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2',
                         image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
                     ]">
-                        <a :href="`/files/images/${image.id}`" data-type="image" class="glightbox block size-full"
+                        <a :href="imageFileUrl(image)" data-type="image" class="glightbox block size-full"
                             @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="mayUpdate() && changeTitle(image.name, image.id)">
-                            <img :src="`/files/images/${image.id}`" :alt="image.name" class="size-full object-cover">
+                            <img :src="imageFileUrl(image)" :alt="image.name" class="size-full object-cover">
                         </a>
                         <div v-if="image.pivot?.main"
                             class="pointer-events-none absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-yellow-400 p-1 shadow-md">
@@ -133,19 +133,8 @@
             :class="[uploading ? 'bg-slate-500' : 'bg-lavoro-blue', 'w-full text-white rounded-md p-3 mt-3 font-bold']"
             @click="uploadPhotos">Verzenden</button>
 
-        <div v-if="isEditorOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="relative bg-white rounded-lg overflow-hidden w-full h-full">
-                <div ref="editorContainer" class="w-full h-full"></div>
-                <button class="absolute bottom-4 right-4 bg-blue-500 text-white p-2 rounded"
-                    @click="saveEditedImage">Save</button>
-                <div class="flex absolute right-2 top-2 h-10 bg-white rounded-full border-gray-600 border-2"
-                    id="image-editor-save-cancel-buttons">
-                    <button class="top-2 right-16 text-green-500 font-bold px-6 border-r border-gray-300"
-                        @click="saveEditedImage">Bewaar</button>
-                    <button class="top-2 right-2 text-red-500 font-bold px-6" @click="closeEditor">X</button>
-                </div>
-            </div>
-        </div>
+        <ImageAnnotator v-if="imageToEdit" :image="imageToEdit" :imageable-type="imageableType"
+            :imageable-id="imageableId" :persist="saveAnnotatedImage" @close="imageToEdit = null" />
 
         <ModalDialog :open="deleteConfirmOpen" @update:open="deleteConfirmOpen = $event" max-width-class="sm:max-w-sm">
             <div class="sm:flex sm:items-start gap-4">
@@ -177,14 +166,12 @@
 
 <script setup>
 import {
-    ref, computed, watch, onUnmounted, onMounted, nextTick
+    ref, computed, watch, onUnmounted, onMounted, nextTick, defineAsyncComponent
 
 } from 'vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import ImageEditor from 'tui-image-editor';
-import 'tui-image-editor/dist/tui-image-editor.min.css';
 import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
@@ -197,6 +184,9 @@ import { hasPermission, subjectSubtitle } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
+
+const ImageAnnotator = defineAsyncComponent(() => import('@/Components/Images/ImageAnnotator.vue'));
 
 let lightbox = null;
 const { captureScroll: captureScrollBeforeOpen, lock: lockBodyScroll, unlock: unlockBodyScroll } = useScrollLock();
@@ -312,12 +302,9 @@ function openLightboxFor(image) {
     }
 }
 
-const currentImage = ref({ id: null, path: null });
-
 const uploadImagesForm = useForm({
     imageable_id: props.imageableId,
     imageable_type: props.imageableType,
-    imageToUpdate: null,
     newTitle: '',
     internal: props.internal,
 });
@@ -325,6 +312,8 @@ const uploadImagesForm = useForm({
 const fileInput = ref(null);
 const cameraInput = ref(null);
 const isDragging = ref(false);
+
+const imagesEndpoint = computed(() => (props.apiMode ? '/api/images' : '/images'));
 
 let csrf_request = null;
 
@@ -350,7 +339,7 @@ const uploadChunk = async (batch, onProgress, signal) => {
     data.append('imageable_type', props.imageableType);
     data.append('internal', props.internal ? '1' : '0');
 
-    const response = await axios.post(props.apiMode ? '/api/images' : '/images', data, {
+    const response = await axios.post(imagesEndpoint.value, data, {
         headers: { Accept: 'application/json' },
         onUploadProgress: (event) => event.total && onProgress(event.loaded / event.total),
         signal,
@@ -359,7 +348,8 @@ const uploadChunk = async (batch, onProgress, signal) => {
     emit('imagesUploaded', response.data);
 };
 
-const onQueueDrained = () => {
+/** Outside api mode the page's own props hold the photos, so it is asked for them again. */
+const reloadPage = () => {
     if (!props.apiMode) {
         router.reload({ preserveScroll: true, preserveState: true });
     }
@@ -383,7 +373,7 @@ const {
     dispose: disposeQueue,
 } = useUploadQueue({
     uploadChunk,
-    onDrained: onQueueDrained,
+    onDrained: reloadPage,
     prepare: compressImage,
     prepareFailureMessage: 'Comprimeren is mislukt',
 });
@@ -532,130 +522,33 @@ defineExpose({ deleteImage, uploadPhotos, setMain })
 // Stop the queue and release object URLs on component unmount
 onUnmounted(() => {
     disposeQueue();
-    if (editorInstance.value) editorInstance.value.destroy(); // TUI Image Editor
 });
 
-// Image Editor
-const isEditorOpen = ref(false);
-const editorInstance = ref(null);
-const editorContainer = ref(null);
 const imageToEdit = ref(null);
 
 const openEditor = (image) => {
-    currentImage.value = { id: image.id, path: image.path };
     imageToEdit.value = image;
-    isEditorOpen.value = true;
-
-    setTimeout(() => {
-        initEditor();
-    }, 10);
 };
 
-const initEditor = () => {
-    if (editorContainer.value === null) {
-        initEditor();
-    }
-    if (editorContainer.value && !editorInstance.value) {
-        editorInstance.value = new ImageEditor(editorContainer.value, {
-            includeUI: {
-                loadImage: { path: `/files/images/${imageToEdit.value.id}`, name: imageToEdit.value.path },
-                menu: ['crop', 'flip', 'rotate', 'draw', 'text', 'shape', 'icon'],
-                initMenu: 'draw',
-                uiSize: { width: '100%', height: '100%' }
-            },
-            cssMaxWidth: window.innerWidth,
-            cssMaxHeight: window.innerHeight
-        });
-    }
-}
+/**
+ * The annotator waits for this before it closes, so a failed save leaves the drawing
+ * on screen with the reason. The server keeps the untouched photo next to this one.
+ */
+const saveAnnotatedImage = async ({ file, annotations }) => {
+    await ensureCsrfCookie();
 
-const closeEditor = () => {
-    isEditorOpen.value = false;
-    editorInstance.value = null
-};
+    const data = new FormData();
+    data.append('imageToUpdate', file);
+    data.append('annotations', JSON.stringify(annotations));
+    data.append('imageable_id', props.imageableId);
+    data.append('imageable_type', props.imageableType);
 
-const saveEditedImage = () => {
-    const dataURL = editorInstance.value.toDataURL({ mimeType: 'image/jpeg', quality: 1 });
-
-    const blob = dataUrlToBlob(dataURL);
-    const filename = currentImage.value.path.split('/').pop();  // Extract the filename from the path
-    const file = new File([blob], filename, { type: "image/jpeg" });
-
-    uploadImagesForm.imageToUpdate = file;  // Overwrite the existing image with the annotated image
-
-    if (props.apiMode) {
-        axios.get('/sanctum/csrf-cookie').then(() => {
-            const data = new FormData();
-            data.append('imageToUpdate', file);
-            data.append('imageable_id', props.imageableId);
-            data.append('imageable_type', props.imageableType);
-            axios.post(`/api/images/update/${currentImage.value.id}`, data).then((response) => {
-                emit('imageUpdated', response.data);
-                currentImage.value = { id: null, path: null };
-            });
-        });
-        closeEditor();
-        return;
-    }
-
-    uploadImagesForm.post(`/images/update/${currentImage.value.id}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            uploadImagesForm.imageToUpdate = null;
-            emit('imageUpdated', JSON.parse(page.props.flash.extra));
-            currentImage.value = { id: null, path: null };
-        }
+    const response = await axios.post(`${imagesEndpoint.value}/update/${imageToEdit.value.id}`, data, {
+        headers: { Accept: 'application/json' },
     });
 
-    closeEditor();
+    emit('imageUpdated', response.data);
+    reloadPage();
 };
 
-function dataUrlToBlob(dataUrl) {
-    const [header, base64String] = dataUrl.split(',');
-    const mimeType = header.match(/:(.*?);/)[1]; // Extract the mime type
-
-    const binaryString = atob(base64String);
-
-    const length = binaryString.length;
-    const bytes = new Uint8Array(length);
-    for (let i = 0; i < length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    return new Blob([bytes], { type: mimeType });
-}
-
 </script>
-
-<style>
-.tui-image-editor-header-buttons {
-    display: none !important;
-}
-
-.tui-colorpicker-clearfix {
-    display: flex !important;
-    flex-wrap: wrap !important;
-}
-
-.tui-colorpicker-clearfix li {
-    margin-right: 5px !important;
-    margin-bottom: 5px !important;
-}
-
-.tui-colorpicker-clearfix li,
-.tui-colorpicker-clearfix li .tui-colorpicker-palette-button {
-    width: 1.5rem !important;
-    height: 1.5rem !important;
-}
-
-.tui-image-editor-header-logo {
-    display: none !important;
-}
-
-@media (max-width: 900px) {
-    #image-editor-save-cancel-buttons {
-        top: auto !important;
-        bottom: 230px !important;
-    }
-}
-</style>

@@ -100,7 +100,7 @@
                         <div class="col-span-10 sm:col-span-4 flex items-start sm:items-center gap-4">
                             <Link :href="`/products/${product.id}`"
                                 class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center flex-none">
-                                <img :src="product.main_image?.[0] ? `/files/images/${product.main_image[0].id}` : '/img/placeholder.png'"
+                                <img :src="product.main_image?.[0] ? imageFileUrl(product.main_image[0]) : '/img/placeholder.png'"
                                     alt="">
                             </Link>
                             <div class="flex flex-col">
@@ -335,6 +335,7 @@ import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.v
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import ProductFormFields from '@/Components/Products/ProductFormFields.vue'
 import { useProductForm } from '@/Composables/useProductForm'
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const { products, brands, productTypes, productAttributes, perPage } = defineProps({
     products: { type: Object, required: true },

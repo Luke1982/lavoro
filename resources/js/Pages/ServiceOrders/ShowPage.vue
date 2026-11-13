@@ -686,6 +686,7 @@ import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
 import MechanicView from '@/Components/ServiceOrders/Mechanic/MechanicView.vue';
 import { useServiceOrderView } from '@/Composables/useServiceOrderView.js';
 import { useMaterialPermissions } from '@/Composables/useMaterialLines.js';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const props = defineProps({
     customerAssets: { type: Array, default: () => [] },
@@ -763,7 +764,7 @@ const internalAssets = props.customerAssets.slice().sort((a, b) =>
     return {
         id: asset.id,
         name: `${asset.product.product_type.name}: ${asset.product.brand.name} ${asset.product.model} (${asset.serial_number}), ${asset.status}. Verloopt op ${nlDate(asset.next_service_date)}`,
-        image_url: asset.product.images.length > 0 ? `/files/images/${asset.product.images[0]?.id}` : null,
+        image_url: asset.product.images.length > 0 ? imageFileUrl(asset.product.images[0]) : null,
     };
 });
 const internalTickets = ref([]);

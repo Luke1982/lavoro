@@ -10,9 +10,9 @@
             <div>
                 <h3 class="text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">Foto's</h3>
                 <div v-if="serviceOrder.images.length > 0" class="grid grid-cols-4 gap-2">
-                    <a v-for="image in serviceOrder.images" :key="image.id" :href="`/files/images/${image.id}`" data-type="image"
+                    <a v-for="image in serviceOrder.images" :key="image.id" :href="imageFileUrl(image)" data-type="image"
                         class="close-modal-lightbox block aspect-square overflow-hidden rounded-md ring-1 ring-gray-200 dark:ring-slate-700">
-                        <img :src="`/files/images/${image.id}`" :alt="image.name" class="w-full h-full object-cover" />
+                        <img :src="imageFileUrl(image)" :alt="image.name" class="w-full h-full object-cover" />
                     </a>
                 </div>
                 <p v-else class="text-sm text-gray-400 dark:text-slate-500">Geen foto's</p>
@@ -93,6 +93,7 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const props = defineProps({
     open: { type: Boolean, required: true },

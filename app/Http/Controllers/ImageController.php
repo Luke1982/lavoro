@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Attachments\ImageAnnotated;
 use App\Domain\Signals\Attachments\ImageAttached;
 use App\Domain\Signals\Attachments\ImageRemoved;
 use App\Domain\Signals\Signals;
+use App\Http\Requests\ImageAnnotationsReadRequest;
 use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageImportFromUrlRequest;
 use App\Http\Requests\ImageSetMainRequest;
 use App\Http\Requests\ImageStoreRequest;
 use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -108,10 +111,7 @@ class ImageController extends Controller
     public function update(ImageUpdateRequest $request, Image $image)
     {
         if ($request->hasFile('imageToUpdate')) {
-            $stored_path = $request->file('imageToUpdate')->storePublicly(dirname($image->path), 'public');
-            abort_if($stored_path === false, 500, 'De afbeelding kon niet worden opgeslagen.');
-
-            $image->update(['path' => $stored_path]);
+            $this->replaceFile($image, $request->file('imageToUpdate'), $request->validated('annotations'));
         }
 
         if ($request->filled('newTitle')) {
@@ -128,6 +128,39 @@ class ImageController extends Controller
                 'extra' => json_encode($image, true),
             ]
         );
+    }
+
+    /**
+     * A file that comes with a drawing is that drawing burned into the photo, so the
+     * photo as it was taken stays behind for the next edit. One without is a new photo.
+     */
+    private function replaceFile(Image $image, UploadedFile $file, ?array $annotations): void
+    {
+        $stored_path = $file->storePublicly(dirname($image->path), 'public');
+        abort_if($stored_path === false, 500, 'De afbeelding kon niet worden opgeslagen.');
+
+        if ($annotations === null) {
+            $image->update(['path' => $stored_path, 'original_path' => null, 'annotations' => null]);
+
+            return;
+        }
+
+        $image->update([
+            'original_path' => $image->unannotatedPath(),
+            'path' => $stored_path,
+            'annotations' => $annotations,
+        ]);
+
+        $record = $image->attachedRecord();
+
+        if ($record !== null) {
+            Signals::dispatch(new ImageAnnotated($record, $image));
+        }
+    }
+
+    public function annotations(ImageAnnotationsReadRequest $request, Image $image)
+    {
+        return response()->json(['annotations' => $image->annotations]);
     }
 
     /**

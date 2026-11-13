@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue';
+import { requestFailureMessage, withReason } from '@/Utilities/requestFailure.js';
 
 const MEGABYTE = 1024 * 1024;
 
@@ -73,32 +74,6 @@ export function useUploadQueue({
         }
     }
 
-    function withReason(heading, reason) {
-        return reason ? heading + ': ' + reason : heading;
-    }
-
-    function failureMessage(error) {
-        const data = error?.response?.data;
-        const first_field = data?.errors ? Object.values(data.errors)[0] : null;
-
-        if (Array.isArray(first_field) && first_field.length > 0) {
-            return first_field[0];
-        }
-
-        if (data?.message) {
-            return data.message;
-        }
-
-        if (error?.response) {
-            return 'Uploaden is mislukt (HTTP ' + error.response.status + ')';
-        }
-
-        return withReason(
-            'Uploaden is mislukt',
-            error?.code === 'ERR_NETWORK' ? 'geen verbinding met de server' : error?.message
-        );
-    }
-
     function add(files, { staged = false } = {}) {
         // A finished run stays on screen at full so the user gets a completed
         // state to read; the next selection is what clears it.
@@ -153,7 +128,7 @@ export function useUploadQueue({
                 releasePreview(item);
             });
         } catch (error) {
-            const message = failureMessage(error);
+            const message = requestFailureMessage(error, 'Uploaden is mislukt');
 
             batch.forEach((item) => {
                 item.status = 'failed';

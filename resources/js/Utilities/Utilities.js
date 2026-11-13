@@ -1,4 +1,5 @@
 import dayjs from '@/Utilities/dayjs';
+import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 export const nlDate = (date) => dayjs(date).format("DD-MM-YYYY");
 
@@ -531,7 +532,7 @@ export function mapAssetForSelect(asset) {
         location: asset.linked_location
             ? { id: asset.linked_location.id, title: asset.linked_location.title, city: asset.linked_location.city }
             : null,
-        thumbnail_url: asset.product?.images?.length > 0 ? `/files/images/${asset.product.images[0]?.id}` : null,
+        thumbnail_url: asset.product?.images?.length > 0 ? imageFileUrl(asset.product.images[0]) : null,
     };
 }
 

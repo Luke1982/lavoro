@@ -34,6 +34,11 @@ export function useEventFeedback() {
         changed.value++
     }
 
+    const onImageUpdated = (updated) => {
+        images.value = images.value.map((image) => (image.id === updated.id ? { ...image, ...updated } : image))
+        changed.value++
+    }
+
     const onImageDeleted = (id) => {
         images.value = images.value.filter((image) => image.id !== id)
         changed.value++
@@ -49,6 +54,7 @@ export function useEventFeedback() {
         onRemarkCreated,
         onRemarkDeleted,
         onImagesUploaded,
+        onImageUpdated,
         onImageDeleted,
     }
 }
