@@ -573,6 +573,10 @@
         transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+[data-tray-label-at='inside']::after {
+    top: 0.5rem;
+}
+
 [data-tray-drop='accepting']::after,
 [data-tray-drop='over']::after {
     opacity: 1;

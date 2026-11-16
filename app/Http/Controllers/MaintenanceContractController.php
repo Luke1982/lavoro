@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Contracts\AttachContractAssetAction;
 use App\Actions\Contracts\CreateMaintenanceContractAction;
+use App\Actions\Contracts\DetachContractAssetAction;
 use App\Domain\Contracts\ContractLabels;
-use App\Domain\Signals\Contracts\ContractAssetDetached;
 use App\Domain\Signals\Contracts\ContractAssetFrequencyChanged;
 use App\Domain\Signals\Contracts\ContractAutoGenerationDisabled;
 use App\Domain\Signals\Contracts\ContractAutoGenerationEnabled;
@@ -365,16 +365,7 @@ class MaintenanceContractController extends Controller
         MaintenanceContract $maintenancecontract,
         string $assetable_id
     ) {
-        $pivot_query = $maintenancecontract->assets()->newPivotQuery()->where('assetables.id', $assetable_id);
-        $record = $pivot_query->first();
-        $asset = $record ? Asset::find($record->asset_id) : null;
-
-        $pivot_query->delete();
-
-        Signals::dispatch(new ContractAssetDetached(
-            $maintenancecontract,
-            $asset ? ContractLabels::asset($asset) : null,
-        ));
+        app(DetachContractAssetAction::class)->execute($maintenancecontract, (int) $assetable_id);
 
         return redirect()->back()->with('success', 'Machine losgekoppeld van het contract.');
     }

@@ -1,5 +1,5 @@
 <template>
-    <div class="relative overflow-x-hidden">
+    <div class="relative overflow-x-clip [overflow-clip-margin:1rem]">
         <Transition :name="slideDirection">
             <div :key="activeChapter">
                 <slot :name="`chapter-${activeChapter}`" />

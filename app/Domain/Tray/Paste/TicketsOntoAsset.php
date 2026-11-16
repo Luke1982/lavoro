@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tray\Paste;
 
+use App\Domain\Tray\AssetFacts;
 use App\Domain\Tray\TicketFacts;
 use App\Domain\Tray\TrayKinds;
 use App\Exceptions\Refusal;
@@ -22,7 +23,7 @@ class TicketsOntoAsset implements PasteHandler
     {
         $asset = $this->asset($paste);
         $tickets = $this->toMove($paste, $asset);
-        $machine = TicketFacts::assetName($asset);
+        $machine = AssetFacts::title($asset);
         $one = $tickets->count() === 1;
 
         return new Question(
@@ -52,7 +53,7 @@ class TicketsOntoAsset implements PasteHandler
         });
 
         return new PasteResult(($tickets->count() === 1 ? 'De storing hangt' : 'De storingen hangen')
-            . ' nu aan ' . TicketFacts::assetName($asset) . '.');
+            . ' nu aan ' . AssetFacts::title($asset) . '.');
     }
 
     private function asset(Paste $paste): Asset

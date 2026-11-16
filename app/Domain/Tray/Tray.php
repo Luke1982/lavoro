@@ -2,6 +2,13 @@
 
 namespace App\Domain\Tray;
 
+use App\Domain\Tray\Paste\AssetsOntoAsset;
+use App\Domain\Tray\Paste\AssetsOntoContract;
+use App\Domain\Tray\Paste\AssetsOntoCustomer;
+use App\Domain\Tray\Paste\AssetsOntoLocation;
+use App\Domain\Tray\Paste\AssetsOntoPlanner;
+use App\Domain\Tray\Paste\AssetsOntoProject;
+use App\Domain\Tray\Paste\AssetsOntoServiceOrder;
 use App\Domain\Tray\Paste\Paste;
 use App\Domain\Tray\Paste\PasteHandler;
 use App\Domain\Tray\Paste\TicketsOntoAsset;
@@ -10,6 +17,7 @@ use App\Domain\Tray\Paste\TicketsOntoProject;
 use App\Domain\Tray\Paste\TicketsOntoServiceOrder;
 use App\Domain\Tray\Paste\UndoablePasteHandler;
 use App\Exceptions\Refusal;
+use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Ticket;
 use App\Models\TrayItem;
@@ -33,6 +41,13 @@ class Tray
         'ticket:serviceorder' => TicketsOntoServiceOrder::class,
         'ticket:asset' => TicketsOntoAsset::class,
         'ticket:project' => TicketsOntoProject::class,
+        'asset:planner' => AssetsOntoPlanner::class,
+        'asset:serviceorder' => AssetsOntoServiceOrder::class,
+        'asset:asset' => AssetsOntoAsset::class,
+        'asset:customer' => AssetsOntoCustomer::class,
+        'asset:location' => AssetsOntoLocation::class,
+        'asset:project' => AssetsOntoProject::class,
+        'asset:maintenancecontract' => AssetsOntoContract::class,
     ];
 
     /** @var array<int, ?string> */
@@ -229,6 +244,7 @@ class Tray
             'pinned' => $item->pinned,
             ...match ($kind) {
                 'ticket' => $this->describeTicket($record),
+                'asset' => $this->describeAsset($record),
             },
         ];
     }
@@ -248,6 +264,24 @@ class Tray
             'service_order_id' => $ticket->service_order_id,
             'service_order_number' => $ticket->serviceOrder?->number,
             'url' => '/tickets/' . $ticket->id,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function describeAsset(Asset $asset): array
+    {
+        $customer_id = AssetFacts::customerId($asset);
+
+        return [
+            'title' => AssetFacts::title($asset),
+            'subtitle' => $asset->parentAsset
+                ? 'in ' . AssetFacts::title($asset->parentAsset)
+                : AssetFacts::locationName($asset),
+            'customer_id' => $customer_id,
+            'customer_name' => $customer_id === null ? null : $this->customerName($customer_id),
+            'url' => '/assets/' . $asset->id,
         ];
     }
 

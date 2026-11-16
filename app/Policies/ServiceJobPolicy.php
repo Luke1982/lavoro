@@ -10,4 +10,9 @@ class ServiceJobPolicy
     {
         return $user->hasPermission('servicejob.create');
     }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('servicejob.delete');
+    }
 }

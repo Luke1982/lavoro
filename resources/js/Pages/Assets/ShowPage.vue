@@ -3,6 +3,11 @@
         <BreadcrumbComponent :items="breadcrumbItems" />
         <div class="flex items-center gap-4">
             <AssistantButton />
+            <button type="button" @click="placeOnTray('asset', [asset.id], $event.currentTarget)"
+                class="group hidden lg:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-sidebar-bg hover:opacity-90 active:scale-95 rounded-md transition cursor-pointer">
+                <Inbox class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
+                Op het bakje
+            </button>
             <button v-if="canDelete" type="button" @click="deleteAsset" v-tooltip="'Verwijder machine'"
                 class="flex-none flex items-center justify-center size-10 aspect-square bg-white text-red-600 ring-1 ring-gray-200 rounded-full cursor-pointer hover:bg-gray-50 dark:bg-slate-800 dark:text-red-400 dark:ring-slate-600 dark:hover:bg-slate-700">
                 <TrashIcon class="size-5" />
@@ -188,7 +193,8 @@
             </BoxComponent>
             <BoxComponent
                 v-if="asset.child_assets?.length || asset.parent_asset || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
-                class="mt-5">
+                class="mt-5"
+                v-tray-drop="{ accepts: ['asset'], target: { type: 'asset', id: asset.id }, label: 'Loslaten om als onderdeel in deze machine te zetten' }">
                 <SectionHeader :icon="LinkIcon" title="Gerelateerde machines"
                     subtitle="Onderdelen en toebehoren die bij deze machine horen." chapter="assets" />
 
@@ -469,6 +475,8 @@
 
 <script setup>
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
+import { placeOnTray } from '@/Composables/useTray.js'
+import { Inbox } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';

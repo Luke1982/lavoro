@@ -160,7 +160,8 @@
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
                             :bundle-parts-by-product="bundlePartsByProduct" :hidden-count="hiddenTaskCount"
                             class="my-4" />
-                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4">
+                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4"
+                            v-tray-drop="{ accepts: ['asset'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'Loslaten om een keuring op deze werkbon te zetten' }">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
                                 <template v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"

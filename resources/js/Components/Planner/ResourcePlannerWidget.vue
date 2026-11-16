@@ -2070,14 +2070,16 @@ function dropStartMinutes(info, durationMin) {
     return Math.max(0, Math.min(maxStart, snapped))
 }
 
+/** What off the bakje can be planned: storingen and machines, which can both become a werkbon. */
+const TRAY_PLANNABLE = ['ticket', 'asset']
+
 /**
- * Werkbonnen from the list beside the planner, and storingen off the bakje. A
- * bakje drag only counts when it carries storingen: those can become a werkbon,
- * nothing else on the bakje has a place on the planner yet.
+ * Werkbonnen from the list beside the planner, and storingen or machines off the
+ * bakje. Nothing else on the bakje has a place on the planner yet.
  */
 function acceptsDrag(e) {
     if (e.dataTransfer?.types?.includes('application/x-planner-payload')) return true
-    return isTrayDrag(e) && trayState.dragging?.kind === 'ticket'
+    return isTrayDrag(e) && TRAY_PLANNABLE.includes(trayState.dragging?.kind)
 }
 
 function onDragOver(e) {
@@ -2245,13 +2247,14 @@ function onExternalDrop(e, user, day) {
 }
 
 /**
- * Storingen off the bakje on a technician's day. Which werkbon they go on is the
- * bakje's question to ask; the planner only says who, when and for how long.
+ * Storingen or machines off the bakje on a technician's day. Which werkbon they
+ * go on is the bakje's question to ask; the planner only says who, when and for
+ * how long.
  */
 function dropFromTray(e, user, day) {
     const payload = readTrayDrag(e)
     endTrayDrag()
-    if (payload?.kind !== 'ticket') return
+    if (!TRAY_PLANNABLE.includes(payload?.kind)) return
 
     dropAt(e, user, day, plannerMinutes.value, (start, end) => pasteFromTray(payload.item_ids, {
         type: 'planner',

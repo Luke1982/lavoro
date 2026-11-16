@@ -4,7 +4,8 @@
         <AssistantButton />
     </div>
 
-    <div class="flex flex-col sm:flex-row items-start my-4 gap-4">
+    <div class="flex flex-col sm:flex-row items-start my-4 gap-4 rounded-lavoro-sm"
+        v-tray-drop="moveMachinesHere">
         <BuildingOffice2Icon
             class="size-12 flex-none rounded-lg bg-white dark:bg-slate-800 ring-1 ring-gray-900/10 dark:ring-slate-600 p-2 text-gray-700 dark:text-slate-200" />
         <div class="flex flex-col justify-around flex-grow items-start gap-3">
@@ -398,7 +399,7 @@
 
             <!-- Chapter 1: Machines -->
             <template #chapter-1>
-                <BoxComponent>
+                <BoxComponent v-tray-drop="moveMachinesHere">
                     <div class="flex items-center pb-3 border-b border-gray-200 dark:border-slate-700/60 mb-4">
                         <PuzzlePieceIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
                         <h3 class="text-sm font-medium dark:text-slate-200">Machines</h3>
@@ -626,6 +627,7 @@
 </template>
 
 <script setup>
+import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import {
@@ -781,6 +783,13 @@ const newContactForm = useForm({
     mobile: '',
     customer_id: props.customer.id,
 })
+
+/** Machines off the bakje move to this customer: on its machines, and on its name wherever the page is. */
+const moveMachinesHere = {
+    accepts: ['asset'],
+    target: { type: 'customer', id: props.customer.id },
+    label: 'Loslaten om naar deze klant te verhuizen',
+}
 
 function submitNewContact() {
     newContactForm.post('/contacts', {

@@ -93,7 +93,8 @@
                 </p>
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4"
+                v-tray-drop="{ accepts: ['asset'], target: { type: 'maintenancecontract', id: maintenanceContract.id }, label: 'Loslaten om onder dit contract te brengen' }">
                 <MaintenanceContractAssetsWidget :maintenance-contract-id="maintenanceContract.id"
                     :assets="maintenanceContract.assets" :customer-assets="customerAssets"
                     :manage-per-asset="maintenanceContract.manage_frequency_per_asset"
@@ -212,6 +213,7 @@
 </template>
 
 <script setup>
+import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import { computed, ref } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
 import { ChevronRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, ClockIcon } from '@heroicons/vue/24/outline'

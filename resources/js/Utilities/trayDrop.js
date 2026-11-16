@@ -2,6 +2,27 @@ import { watchEffect } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { useTray, isTrayDrag, readTrayDrag, pasteFromTray, endTrayDrag } from '@/Composables/useTray.js'
 
+/** Room the label needs above a place to hang over its top edge. */
+const LABEL_ROOM = 16
+
+/** The nearest element around this one that scrolls or crops what sticks out of it. */
+function clippingAncestor(el) {
+    for (let parent = el.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+        if (getComputedStyle(parent).overflowY !== 'visible') return parent
+    }
+    return null
+}
+
+/**
+ * The label hangs over the top edge of the place, unless whatever scrolls or
+ * crops around it would cut it off there: then it sits just inside the edge.
+ */
+function placeLabel(el) {
+    const ceiling = clippingAncestor(el)?.getBoundingClientRect().top ?? 0
+    const room = el.getBoundingClientRect().top - ceiling
+    el.setAttribute('data-tray-label-at', room < LABEL_ROOM ? 'inside' : 'above')
+}
+
 /**
  * Makes an element a place to drop things off the bakje.
  *
@@ -36,6 +57,7 @@ export const vTrayDrop = {
                 el.setAttribute('data-tray-drop', 'idle')
                 return
             }
+            if (!tray.over) placeLabel(el)
             el.setAttribute('data-tray-drop', tray.over ? 'over' : 'accepting')
             el.setAttribute('data-tray-label', tray.binding.value?.label ?? 'Hier loslaten')
         }

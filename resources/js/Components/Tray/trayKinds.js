@@ -1,4 +1,4 @@
-import { AlertCircleIcon } from '@lucide/vue'
+import { AlertCircleIcon, PuzzleIcon } from '@lucide/vue'
 
 /** How each kind of bakje item looks: one and many, its icon and its tile colours. */
 const TRAY_KINDS = {
@@ -7,6 +7,12 @@ const TRAY_KINDS = {
         many: 'storingen',
         icon: AlertCircleIcon,
         tile: 'bg-orange-500/15 text-orange-300',
+    },
+    asset: {
+        one: 'Machine',
+        many: 'machines',
+        icon: PuzzleIcon,
+        tile: 'bg-teal-500/15 text-teal-300',
     },
 }
 

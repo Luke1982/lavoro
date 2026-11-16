@@ -34,13 +34,13 @@ Een paar vaste gewoontes in de hele applicatie:
 
 ## Het bakje
 
-Het bakje is een plek om iets even neer te leggen en het op een andere pagina weer op te pakken, zoals een klembord. Je legt bijvoorbeeld drie storingen op het bakje vanuit de storingenlijst, gaat naar de planner en sleept ze op de dag van een monteur. Het bakje werkt op een computerscherm; op een telefoon is het nog niet te zien. Voorlopig kunnen er alleen storingen op.
+Het bakje is een plek om iets even neer te leggen en het op een andere pagina weer op te pakken, zoals een klembord. Je legt bijvoorbeeld drie storingen op het bakje vanuit de storingenlijst, gaat naar de planner en sleept ze op de dag van een monteur. Het bakje werkt op een computerscherm; op een telefoon is het nog niet te zien. Voorlopig kunnen er storingen en machines op.
 
-**Erop leggen.** Vink in de storingenlijst storingen aan en klik in de balk onderin op **Op het bakje**. Op de pagina van een storing staat bovenaan de knop **Op het bakje**. Het bakje hoort bij jou, niet bij je computer: wat erop ligt zie je op elk scherm waarop je inlogt, en niemand anders ziet het. Je kunt er alleen op leggen wat je mag inzien; wat verwijderd wordt of wat je niet meer mag inzien, valt er vanzelf af.
+**Erop leggen.** Vink in de storingenlijst storingen aan en klik in de balk onderin op **Op het bakje**. Op de pagina van een storing staat bovenaan de knop **Op het bakje**, en op de pagina van een machine ook. Het bakje hoort bij jou, niet bij je computer: wat erop ligt zie je op elk scherm waarop je inlogt, en niemand anders ziet het. Je kunt er alleen op leggen wat je mag inzien; wat verwijderd wordt of wat je niet meer mag inzien, valt er vanzelf af.
 
 **Het bakje zelf.** Rechtsonder staat de knop **Bakje** met het aantal; klik erop om het te openen. Elk item heeft een menu met **Openen**, **Laten liggen na plakken** en **Uit het bakje halen**. Onderaan staat **Bakje leegmaken**.
 
-**Stapels.** Liggen er meerdere storingen op het bakje, dan liggen ze op één stapel. Sleep je de stapel, dan gaan ze allemaal tegelijk mee. Wil je er maar één, klik dan op het pijltje van de stapel: hij gaat open en elke storing is los te slepen. Wat je sleept is precies wat er geplakt wordt.
+**Stapels.** Liggen er meerdere storingen op het bakje, dan liggen ze op één stapel; machines vormen hun eigen stapel. Sleep je de stapel, dan gaan ze allemaal tegelijk mee. Wil je er maar één, klik dan op het pijltje van de stapel: hij gaat open en elke storing is los te slepen. Wat je sleept is precies wat er geplakt wordt.
 
 **Plakken.** Sleep een item of de stapel naar een plek die het aanneemt. Tijdens het slepen krijgen die plekken een blauwe stippellijn met een label, en het bakje gaat even uit beeld. Waar je een storing kwijt kunt:
 
@@ -49,9 +49,18 @@ Het bakje is een plek om iets even neer te leggen en het op een andere pagina we
 - **Op het blok Storingen van een machine.** Na een vraag komt de storing bij die machine te staan, voor als hij bij de verkeerde machine gemeld is. Staat de storing op een werkbon van een andere klant, dan wordt dat geweigerd.
 - **Op het blok Werkbonnen van een project.** Na een vraag komt er een nieuwe werkbon onder het project met de storing(en) erop. Hoort het project bij een andere klant, of staat de storing al op een werkbon, dan wordt dat geweigerd.
 
+Waar je een machine kwijt kunt:
+
+- **Op de dag van een monteur in de planner.** Net als bij een storing: eerst de vraag of het een **nieuwe werkbon** wordt of een **open werkbon** van de klant (de vijf nieuwste). De machine krijgt een keuring op die werkbon, en de werkbon wordt ingepland waar je loslaat. Machines van verschillende klanten worden geweigerd.
+- **Op het blok Keuringen van een werkbon.** De machine krijgt meteen een keuring op die werkbon, de onderdelen erin een gecombineerde keuring, net als met **Keuring toevoegen**. **Ongedaan maken** in de melding haalt die keuringen weer weg, zolang er nog geen uitkomst op staat. Een machine van een andere klant, een machine die er al op staat of een afgesloten werkbon wordt geweigerd.
+- **Op het blok Gerelateerde machines van een machine.** De machine gaat er meteen onder hangen als onderdeel, met dezelfde controles als **Machine koppelen** (zelfde klant, passend producttype). **Ongedaan maken** maakt hem weer los en zet hem terug op zijn oude locatie.
+- **Bovenaan de pagina van een klant (naam en gegevens), op het blok Machines van een klant, of op Machines op deze locatie.** Bovenaan de klantpagina kun je loslaten op welk tabblad je ook staat. Na een vraag verhuist de machine. Op een klant kies je in de vraag naar welke locatie (of zonder locatie); op een locatie is die al gekozen. Hoort de machine bij een andere klant, dan wordt hij overgedragen, net als wanneer je de klant op de machine wijzigt: in de vraag staat welke onderdelen meegaan en van welke contracten hij afgaat. Een onderdeel verhuist alleen mee met de machine waar het in zit.
+- **Op het blok Machines van een onderhoudscontract.** De machine valt meteen onder het contract, met de frequentie van het contract. **Ongedaan maken** haalt hem er weer af. Een machine van een andere klant, of een onderdeel, wordt geweigerd.
+- **Op het blok Werkbonnen van een project.** Na een vraag komt er een nieuwe werkbon onder het project met een keuring voor de machine(s). Hoort het project bij een andere klant, dan wordt dat geweigerd.
+
 In een vraag staat **Daarna uit het bakje halen**, standaard aangevinkt. Zonder vraag gaat wat je plakte vanzelf van het bakje af. Een item dat op **Laten liggen na plakken** staat blijft altijd liggen, bijvoorbeeld om het op meerdere plekken te plakken.
 
-**Rechten.** Het bakje is een snellere weg naar dezelfde handelingen, geen extra deur: plakken lukt alleen als je het ook met de hand mag (een storing aan een werkbon koppelen, een werkbon of afspraak maken, een storing bijwerken).
+**Rechten.** Het bakje is een snellere weg naar dezelfde handelingen, geen extra deur: plakken lukt alleen als je het ook met de hand mag (een storing aan een werkbon koppelen, een werkbon, keuring of afspraak maken, een storing of machine bijwerken, machines koppelen, een machine aan een contract koppelen).
 
 **Tijdlijn.** Alles wat een plakactie verandert staat op de tijdlijn, net als met de hand gedaan, met **via het bakje** achter je naam. Ook de assistent ziet bij elke wijziging of die via het bakje ging.
 

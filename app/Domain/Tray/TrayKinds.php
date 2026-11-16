@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tray;
 
+use App\Models\Asset;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -18,6 +19,7 @@ final class TrayKinds
     /** @var array<string, array{class: class-string, one: string, many: string}> */
     private const KINDS = [
         'ticket' => ['class' => Ticket::class, 'one' => 'storing', 'many' => 'storingen'],
+        'asset' => ['class' => Asset::class, 'one' => 'machine', 'many' => 'machines'],
     ];
 
     /** @return array<int, string> */
@@ -58,6 +60,10 @@ final class TrayKinds
             'ticket' => Ticket::visibleTo($user)
                 ->whereIn('id', $ids)
                 ->with(['asset.product.brand', 'serviceOrder'])
+                ->get(),
+            'asset' => Asset::visibleTo($user)
+                ->whereIn('id', $ids)
+                ->with(['product.brand', 'product.productType', 'linkedLocation', 'parentAsset.product.brand'])
                 ->get(),
         };
     }

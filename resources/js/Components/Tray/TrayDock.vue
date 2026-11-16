@@ -1,7 +1,7 @@
 <template>
     <Transition v-bind="RISE">
         <div v-if="state.items.length || state.toast" data-tray-dock
-            class="fixed right-6 bottom-24 z-40 hidden w-[22rem] flex-col items-end gap-3 lg:flex">
+            class="fixed right-6 bottom-6 z-40 hidden w-[22rem] flex-col items-end gap-3 lg:flex">
             <Transition mode="out-in" v-bind="SLIDE_IN">
                 <div v-if="state.toast" :key="state.toast.id" role="status"
                     :class="[state.toast.error ? 'bg-red-700' : 'bg-sidebar-bg', 'relative flex w-full items-center gap-3 overflow-hidden rounded-2xl py-2 pr-2 pl-4 text-sm text-sidebar-text shadow-xl']">
@@ -32,7 +32,7 @@
                             </button>
                         </div>
                         <p class="text-xs leading-relaxed text-slate-400">
-                            Sleep iets naar de planner, een werkbon, een machine of een project.
+                            Sleep iets naar de planner, een werkbon, een machine, een klant, een locatie, een contract of een project.
                         </p>
 
                         <div v-auto-animate class="-mx-1 flex flex-col gap-2 overflow-y-auto p-1">

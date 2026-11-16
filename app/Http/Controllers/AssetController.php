@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Assets\AttachChildAssetAction;
 use App\Http\Requests\AssetAttachChildRequest;
 use App\Http\Requests\AssetChildStoreRequest;
 use App\Http\Requests\AssetDestroyRequest;
@@ -283,14 +284,11 @@ class AssetController extends Controller
      */
     public function attachChild(AssetAttachChildRequest $request, Asset $asset)
     {
-        $child = Asset::findOrFail($request->validated('child_asset_id'));
-
-        $child->update([
-            'parent_asset_id' => $asset->id,
-            'product_relation_id' => $request->validated('product_relation_id'),
-            'customer_id' => null,
-            'location_id' => null,
-        ]);
+        app(AttachChildAssetAction::class)->execute(
+            $asset,
+            Asset::findOrFail($request->validated('child_asset_id')),
+            $request->validated('product_relation_id'),
+        );
 
         return redirect()->back()->with('success', 'Machine gekoppeld.');
     }

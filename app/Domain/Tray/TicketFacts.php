@@ -3,7 +3,6 @@
 namespace App\Domain\Tray;
 
 use App\Exceptions\Refusal;
-use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Ticket;
 use Illuminate\Support\Collection;
@@ -24,15 +23,7 @@ final class TicketFacts
 
     public static function machine(Ticket $ticket): ?string
     {
-        return $ticket->asset ? self::assetName($ticket->asset) : null;
-    }
-
-    /** "Daikin RXM25R (J3309414)": brand and model, with the serial number to tell twins apart. */
-    public static function assetName(Asset $asset): string
-    {
-        $name = $asset->product?->display_name ?? 'Machine #' . $asset->id;
-
-        return $asset->serial_number ? $name . ' (' . $asset->serial_number . ')' : $name;
+        return $ticket->asset ? AssetFacts::title($ticket->asset) : null;
     }
 
     public static function customerId(Ticket $ticket): ?int
