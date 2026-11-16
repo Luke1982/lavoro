@@ -1,6 +1,6 @@
 <template>
     <IndexHeaderComponent :title="macro ? 'Macro bewerken' : 'Nieuwe macro'"
-        subtitle="Sleep blokken op de plussen; een vraag splitst in een ja- en een nee-baan." :show-search="false" />
+        subtitle="Zet blokken op de plussen; een vraag splitst in een ja- en een nee-baan." :show-search="false" />
 
     <BoxComponent class="mb-4">
         <div class="grid gap-4 md:grid-cols-[1fr_2fr_auto] md:items-end">
@@ -25,20 +25,28 @@
     </BoxComponent>
 
     <BoxComponent padding="p-0" extra-classes="overflow-hidden">
-        <div class="flex min-h-[32rem]">
-            <aside class="w-52 flex-none space-y-2 border-r border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-col md:min-h-[32rem] md:flex-row">
+            <aside class="flex-none border-b border-gray-200 bg-white p-3 md:w-52 md:border-b-0 md:border-r dark:border-slate-700 dark:bg-slate-900">
                 <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">Blokken</p>
-                <div v-for="(block, type) in BLOCKS" :key="type" draggable="true"
-                    :class="['cursor-grab rounded-lavoro-sm border-2 px-3 py-2 text-sm font-semibold active:cursor-grabbing', block.tone]"
-                    @dragstart="event => event.dataTransfer.setData('macro/new', type)">
-                    {{ block.label }}
+                <div class="mt-2 flex flex-wrap gap-2 md:flex-col">
+                    <div v-for="(block, type) in BLOCKS" :key="type" draggable="true"
+                        :class="['cursor-grab rounded-lavoro-sm border-2 px-3 py-2 text-sm font-semibold active:cursor-grabbing', block.tone]"
+                        @dragstart="event => event.dataTransfer.setData('macro/new', type)"
+                        @click="editor.insert(editor.root, editor.root.length, type)">
+                        {{ block.label }}
+                    </div>
                 </div>
                 <p class="pt-2 text-xs text-gray-500 dark:text-slate-400">
-                    Sleep een blok op een plus, of klik op een plus om er een te kiezen.
+                    <span class="md:hidden">
+                        Tik op een blok om het onderaan toe te voegen, of op een plus om daar een blok te kiezen.
+                    </span>
+                    <span class="hidden md:inline">
+                        Sleep een blok op een plus, of klik erop om het onderaan toe te voegen.
+                    </span>
                 </p>
             </aside>
-            <div class="flex-1 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] p-6 dark:bg-[radial-gradient(#334155_1px,transparent_1px)]">
-                <div class="flex min-w-max flex-col items-center">
+            <div class="flex-1 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] p-3 md:p-6 dark:bg-[radial-gradient(#334155_1px,transparent_1px)]">
+                <div class="flex flex-col items-center md:min-w-max">
                     <span class="rounded-full bg-slate-900 px-5 py-1.5 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">Start</span>
                     <MacroLane :steps="editor.root" />
                     <span class="rounded-full bg-slate-900 px-5 py-1.5 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">Klaar</span>
@@ -78,9 +86,9 @@ import { BLOCKS } from '@/Components/Macros/macroBlocks.js'
 import { provideMacroEditor } from '@/Composables/useMacroEditor.js'
 
 /**
- * Building a macro: blocks dragged into a flow that runs top to bottom, where a
- * yes/no question splits it in two lanes. Saved under a name, it can be run on
- * any werkbon — and the assistant reads and runs the same steps.
+ * Building a macro: blocks dragged or tapped into a flow that runs top to bottom,
+ * where a yes/no question splits it in two lanes. Saved under a name, it can be
+ * run on any werkbon — and the assistant reads and runs the same steps.
  */
 const props = defineProps({
     macro: { type: Object, default: null },

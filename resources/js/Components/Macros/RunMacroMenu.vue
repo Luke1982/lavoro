@@ -13,7 +13,7 @@
         </MenuItem>
     </DropdownMenu>
 
-    <ModalDialog :open="!!running" :title="running ? running.title : ''" max-width-class="sm:max-w-lg"
+    <ModalDialog :open="!!running" :title="running ? running.title : ''" max-width-class="w-full sm:max-w-lg"
         @update:open="value => { if (!value) running = null }">
         <div v-if="running" class="space-y-4">
             <p class="text-xs text-gray-500 dark:text-slate-400">

@@ -1,6 +1,10 @@
 <template>
     <BoxComponent padding="p-4 sm:p-5">
-        <SectionHeader :icon="ClipboardList" title="Wat moet er gebeuren?" chapter="serviceorders" />
+        <SectionHeader :icon="ClipboardList" title="Wat moet er gebeuren?" chapter="serviceorders">
+            <template #actions>
+                <slot name="actions" />
+            </template>
+        </SectionHeader>
 
         <div class="flex flex-col gap-2">
             <WorkItemRow v-for="job in jobs" :key="'job-' + job.id" :icon="ClipboardCheck" tone="blue"
@@ -34,7 +38,8 @@ import { hasPermission } from '@/Utilities/Utilities'
 /**
  * Alles wat er op deze werkbon gedaan moet worden, in één lijst: de keuringen,
  * de storingen en de taken. Een keuring en een storing hebben hun eigen pagina
- * waar het werk gebeurt; een taak vink je hier af.
+ * waar het werk gebeurt; een taak vink je hier af. Knoppen die werk toevoegen,
+ * zoals een macro, zet de pagina rechts in de kop.
  */
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },

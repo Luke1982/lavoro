@@ -6,7 +6,11 @@
 
         <WorkToDo :service-order-id="serviceOrder.id" :servicejobs="serviceOrder.servicejobs"
             :tickets="serviceOrder.tickets" :task-instances="serviceOrder.task_instances"
-            :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed" :type="serviceOrder.type" />
+            :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed" :type="serviceOrder.type">
+            <template #actions>
+                <slot name="work-actions" />
+            </template>
+        </WorkToDo>
 
         <MaterialsCompact :service-order-id="serviceOrder.id" :materials="materials"
             :freeform-materials="freeformMaterials" :all-materials="allMaterials"
@@ -62,7 +66,8 @@ import FinishBar from '@/Components/ServiceOrders/Mechanic/FinishBar.vue'
  * om af te ronden. Wat met beheer te maken heeft blijft in de standaardweergave.
  *
  * Afronden zelf gebeurt op de pagina eromheen, die het venster met het overzicht
- * en de handtekening ook voor de standaardweergave beheert.
+ * en de handtekening ook voor de standaardweergave beheert. Die pagina zet ook de
+ * knoppen die werk toevoegen, zoals een macro, in de kop van "Wat moet er gebeuren?".
  */
 const props = defineProps({
     serviceOrder: { type: Object, required: true },

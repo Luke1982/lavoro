@@ -53,6 +53,16 @@ export function provideMacroEditor(steps, library) {
             from.lane.splice(from.index, 1)
             lane.splice(sameLaneLater ? index - 1 : index, 0, from.step)
         },
+        /** One place up (-1) or down (1) in its own lane: moving without dragging, as on a phone. */
+        shift(id, by) {
+            const { lane, index, step } = locate(id)
+            const to = index + by
+
+            if (to < 0 || to >= lane.length) return
+
+            lane.splice(index, 1)
+            lane.splice(to, 0, step)
+        },
         remove(id) {
             const found = locate(id)
 

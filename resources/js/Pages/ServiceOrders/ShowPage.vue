@@ -7,14 +7,13 @@
                     v-if="serviceOrder.order_date"> van {{ nlDate(serviceOrder.order_date) }}</template>
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
-        <div class="flex gap-4">
+        <div class="flex items-end gap-4 sm:items-stretch">
             <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
                 <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
                 <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
             </div>
             <ButtonGroup>
-                <RunMacroMenu v-if="!serviceOrder.is_closed" :service-order-id="serviceOrder.id" :macros="macros"
-                    :locations="macroLocations" />
+                <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
                 <AssistantButton />
                 <PillButton v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                     title="Werkbon verwijderen" class="text-red-600 hover:bg-red-50 dark:hover:bg-slate-700"
@@ -50,7 +49,11 @@
         :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
         :material-usage-units="materialUsageUnits" :hidden-task-count="hiddenTaskCount" :is-signed="isSigned"
         :closed-stage-id="closedStageId" @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
-        @close-service-order="closeViaStage" />
+        @close-service-order="closeViaStage">
+        <template #work-actions>
+            <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
+        </template>
+    </MechanicView>
     <ChaptersComponent v-else>
         <template v-if="chapterHeaders.length > 1">
             <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
@@ -750,6 +753,7 @@ const props = defineProps({
 
 const { view } = useServiceOrderView(() => props.viewerExecutes);
 const isMonteurView = computed(() => view.value === 'monteur');
+const runnableMacros = computed(() => (props.serviceOrder.is_closed ? [] : props.macros));
 const { canSee: canSeeMaterials } = useMaterialPermissions();
 
 const viewOptions = [
