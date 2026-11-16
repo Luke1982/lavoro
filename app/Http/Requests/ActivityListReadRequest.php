@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MaintenanceContract;
 use App\Services\UpcomingAssetTable;
+use App\Support\UpcomingContractAssets;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +46,27 @@ class ActivityListReadRequest extends FormRequest
             'planning' => ['sometimes', 'nullable', Rule::in(UpcomingAssetTable::PLANNING)],
             'tickets' => ['sometimes', 'nullable', Rule::in(UpcomingAssetTable::TICKETS)],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'contracts' => ['sometimes', 'nullable', Rule::in(['hide'])],
+        ];
+    }
+
+    /**
+     * Whether machines under a running maintenance contract are left out. The settings can
+     * hide them for everyone; otherwise whoever may see contracts asks for it with
+     * `contracts=hide`. Hiding them for someone who may not see contracts would tell them
+     * which machines are on one.
+     *
+     * @return array{hidden: bool, forced: bool, choosable: bool}
+     */
+    public function contractAssets(): array
+    {
+        $forced = UpcomingContractAssets::hiddenForEveryone();
+        $choosable = !$forced && $this->user()->can('viewAny', MaintenanceContract::class);
+
+        return [
+            'hidden' => $forced || ($choosable && $this->input('contracts') === 'hide'),
+            'forced' => $forced,
+            'choosable' => $choosable,
         ];
     }
 

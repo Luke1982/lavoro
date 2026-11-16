@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UpdateAllowOverrideUnavailabilityRequest;
 use App\Http\Requests\Admin\UpdateAppointmentReminderRequest;
+use App\Http\Requests\Admin\UpdateBooleanSettingRequest;
 use App\Http\Requests\Admin\UpdateLocationTrackingSettingsRequest;
 use App\Http\Requests\Admin\UpdateMapDueColorsRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
-use App\Http\Requests\Admin\UpdateSnelStartNightlyCustomersRequest;
 use App\Models\GeneralSetting;
 use App\Services\AppointmentReminders;
 use App\Services\SnelStartClient;
 use App\Services\SnelStartImport;
 use App\Support\MapDueColors;
+use App\Support\UpcomingContractAssets;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,6 +42,7 @@ class GeneralSettingsController extends Controller
             ) === '1',
             'mapDueColors' => MapDueColors::get(),
             'mapDueColorsDefaults' => MapDueColors::defaults(),
+            'upcomingHideContractAssets' => UpcomingContractAssets::hiddenForEveryone(),
             'appointmentReminderMinutes' => AppointmentReminders::leadMinutes(),
         ]);
     }
@@ -71,15 +72,14 @@ class GeneralSettingsController extends Controller
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }
 
-    public function updateAllowOverrideUnavailability(
-        UpdateAllowOverrideUnavailabilityRequest $request
-    ): RedirectResponse {
+    public function updateAllowOverrideUnavailability(UpdateBooleanSettingRequest $request): RedirectResponse
+    {
         GeneralSetting::set('allow_override_unavailability', $request->validated()['value'] ? '1' : '0');
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }
 
-    public function updateSnelStartNightlyCustomers(UpdateSnelStartNightlyCustomersRequest $request): RedirectResponse
+    public function updateSnelStartNightlyCustomers(UpdateBooleanSettingRequest $request): RedirectResponse
     {
         GeneralSetting::set(SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS, $request->validated()['value'] ? '1' : '0');
 
@@ -89,6 +89,13 @@ class GeneralSettingsController extends Controller
     public function updateServiceOrderMinImages(UpdateServiceOrderMinImagesRequest $request): RedirectResponse
     {
         GeneralSetting::set('serviceorder_min_images', $request->validated()['min_images']);
+
+        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
+    }
+
+    public function updateUpcomingContractAssets(UpdateBooleanSettingRequest $request): RedirectResponse
+    {
+        UpcomingContractAssets::hideForEveryone($request->validated('value'));
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }

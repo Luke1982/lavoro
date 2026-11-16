@@ -16,7 +16,15 @@
     </IndexHeaderComponent>
     <div class="mb-4 flex flex-wrap items-start gap-2">
         <UpcomingAssetsFilters v-if="view === 'table'" :options="table.filters" :query="table.query" />
-        <SegmentedToggle v-model="chosenView" :options="viewOptions" class="ml-auto" />
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            <div v-if="contractAssets.choosable || contractAssets.forced"
+                class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                <span>Contractmachines</span>
+                <SwitchComponent v-model="showContractAssets" :disabled="contractAssets.forced"
+                    :title="contractSwitchTitle" />
+            </div>
+            <SegmentedToggle v-model="chosenView" :options="viewOptions" />
+        </div>
     </div>
     <UpcomingAssetsTable v-if="view === 'table'" :table="table" v-model:selected-assets="form.selectedAssets"
         v-model:selected-tickets="form.selectedTickets" />
@@ -152,12 +160,14 @@
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
 import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon, LayoutListIcon, TableIcon } from '@lucide/vue';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
 import { useQueryParams } from '@/Composables/useQueryParams';
+import { useUpcomingContractAssets } from '@/Composables/useUpcomingContractAssets';
 import TextInput from '@/Components/UI/TextInput.vue';
 import axios from 'axios';
 import CustomerUpcomingActivity from '@/Components/CustomerUpcomingActivity.vue';
@@ -165,7 +175,7 @@ import UpcomingAssetsFilters from '@/Components/ActivityList/UpcomingAssetsFilte
 import UpcomingAssetsTable from '@/Components/ActivityList/UpcomingAssetsTable.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
 
-const { view, table, upcomingAssets, expiredAssets, eventTypes, allUsers } = defineProps({
+const { view, table, upcomingAssets, expiredAssets, eventTypes, allUsers, contractAssets } = defineProps({
     /** 'list': a card per customer, 'table': a row per machine. */
     view: {
         type: String,
@@ -192,6 +202,11 @@ const { view, table, upcomingAssets, expiredAssets, eventTypes, allUsers } = def
     allUsers: {
         type: Array,
         default: () => []
+    },
+    /** { hidden, forced, choosable }: machines under a running maintenance contract. */
+    contractAssets: {
+        type: Object,
+        required: true
     }
 });
 
@@ -250,6 +265,17 @@ watch(chosenView, (value) => {
     if (value !== view) {
         visit({ view: value });
     }
+});
+
+const { shown: showContractAssets } = useUpcomingContractAssets(() => contractAssets);
+
+const contractSwitchTitle = computed(() => {
+    if (contractAssets.forced) {
+        return 'Machines onder een onderhoudscontract zijn voor iedereen verborgen (Instellingen)';
+    }
+    return showContractAssets.value
+        ? 'Machines onder een onderhoudscontract verbergen'
+        : 'Machines onder een onderhoudscontract tonen';
 });
 
 /** A werkbon is for one customer, so a selection spanning two cannot become one. */
@@ -507,8 +533,13 @@ onBeforeUnmount(() => {
     window.removeEventListener('message', onMapMessage);
 });
 
+/** The map shows what the page shows: the same window, and the contract machines left out or not. */
 const openMap = () => {
-    window.open(`/upcomingactivities/map?days=${form.days}`, 'customerMap', 'width=1200,height=800');
+    const query = new URLSearchParams({ days: form.days });
+    if (params.value.contracts) {
+        query.set('contracts', params.value.contracts);
+    }
+    window.open(`/upcomingactivities/map?${query}`, 'customerMap', 'width=1200,height=800');
 };
 
 </script>

@@ -148,6 +148,22 @@
         </section>
 
         <section class="mt-10">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Aankomende keuringen</h2>
+
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Machines onder een onderhoudscontract verbergen</p>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        Voor iedereen, in de lijst en op de kaart; een lopend contract maakt zijn werkbonnen zelf aan.
+                        Staat dit uit, dan kiest ieder die onderhoudscontracten mag inzien het zelf, met de schakelaar
+                        Contractmachines boven de lijst.
+                    </p>
+                </div>
+                <SwitchComponent v-model="contractAssetsForm.value" @update="submitContractAssets" />
+            </div>
+        </section>
+
+        <section class="mt-10">
             <h2 class="text-base font-semibold text-gray-900 mb-1">Kaart aankomende keuringen</h2>
             <p class="text-xs text-gray-500 mb-4">
                 De kleuren van de spelden en de legenda. Een adres krijgt de kleur van de eerste groep waarbinnen
@@ -239,6 +255,7 @@ const props = defineProps({
     mapDueColors: { type: Object, required: true },
     mapDueColorsDefaults: { type: Object, required: true },
     appointmentReminderMinutes: { type: Number, required: true },
+    upcomingHideContractAssets: { type: Boolean, default: false },
 })
 
 const COLOR_INPUT = 'h-8 w-8 shrink-0 cursor-pointer rounded border border-gray-300 bg-white p-0.5'
@@ -302,6 +319,14 @@ const closingTextForm = useForm({
 const overrideForm = useForm({
     value: props.allowOverrideUnavailability,
 })
+
+const contractAssetsForm = useForm({
+    value: props.upcomingHideContractAssets,
+})
+
+function submitContractAssets() {
+    contractAssetsForm.put('/admin/settings/upcoming-contract-assets', { preserveScroll: true })
+}
 
 const snelStartForm = useForm({
     value: props.snelStartNightlyUpdatesCustomers,

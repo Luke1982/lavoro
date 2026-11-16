@@ -53,10 +53,16 @@ class UpcomingAssetTable
      *     customer: ?int, type: ?int, due: ?string, tickets: ?string,
      * }  $query
      */
-    public function build(int $days, ?string $search, array $query, int $per_page): array
-    {
+    public function build(
+        int $days,
+        ?string $search,
+        array $query,
+        int $per_page,
+        bool $hide_contract_assets
+    ): array {
         $due_groups = $this->dueGroups();
-        $rows = $this->search($this->candidates($days, $query['planning'], $due_groups), $search);
+        $candidates = $this->candidates($days, $query['planning'], $due_groups, $hide_contract_assets);
+        $rows = $this->search($candidates, $search);
         $listed = $this->sort($this->filter($rows, $query), $query);
         $page = $this->paginate($listed, $per_page);
 
@@ -68,7 +74,7 @@ class UpcomingAssetTable
         ];
     }
 
-    private function candidates(int $days, string $planning, array $due_groups): Collection
+    private function candidates(int $days, string $planning, array $due_groups, bool $hide_contract_assets): Collection
     {
         $assets = Asset::query()
             ->select([
@@ -91,6 +97,7 @@ class UpcomingAssetTable
             ->where('assets.next_service_date', '<=', now()->addDays($days))
             ->when($planning === 'planned', fn (Builder $q) => $q->planned())
             ->when($planning === 'unplanned', fn (Builder $q) => $q->unplanned())
+            ->when($hide_contract_assets, fn (Builder $q) => $q->notUnderActiveContract())
             ->toBase()
             ->get();
 

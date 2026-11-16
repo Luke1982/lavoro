@@ -625,6 +625,10 @@ Route::group(
                 'admin/settings/map-due-colors',
                 [GeneralSettingsController::class, 'updateMapDueColors'],
             )->name('admin.settings.map-due-colors');
+            Route::put(
+                'admin/settings/upcoming-contract-assets',
+                [GeneralSettingsController::class, 'updateUpcomingContractAssets'],
+            )->name('admin.settings.upcoming-contract-assets');
         });
     }
 );

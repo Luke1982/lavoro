@@ -296,9 +296,26 @@ class Asset extends Model
             return [];
         }
 
-        $roots = self::whereHas('maintenanceContracts', fn ($contracts) => $contracts->active())->select('assets.id');
+        return self::treeIds(self::contractRoots(), array_values(array_unique($asset_ids)));
+    }
 
-        return self::treeIds($roots, array_values(array_unique($asset_ids)));
+    /**
+     * Leaves out the assets idsUnderActiveContract() would name, inside the query
+     * itself, so a list of any length can drop them before a row is fetched.
+     */
+    public function scopeNotUnderActiveContract(Builder $query): Builder
+    {
+        $roots = self::contractRoots();
+
+        return $query->whereRaw(
+            $query->qualifyColumn('id') . ' NOT IN (' . self::treeSql($roots) . ')',
+            $roots->getBindings()
+        );
+    }
+
+    private static function contractRoots(): Builder
+    {
+        return self::whereHas('maintenanceContracts', fn ($contracts) => $contracts->active())->select('assets.id');
     }
 
     /**
@@ -314,14 +331,19 @@ class Asset extends Model
         $filter = $only === null ? '' : ' WHERE id IN (' . implode(',', array_fill(0, count($only), '?')) . ')';
 
         return collect(DB::select(
-            'WITH RECURSIVE asset_tree (id) AS ('
+            self::treeSql($roots) . $filter,
+            [...$roots->getBindings(), ...($only ?? [])]
+        ))->map(fn ($row) => (int) $row->id)->all();
+    }
+
+    private static function treeSql(Builder $roots): string
+    {
+        return 'WITH RECURSIVE asset_tree (id) AS ('
             . $roots->toSql()
             . ' UNION ALL'
             . ' SELECT assets.id FROM assets'
             . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
-            . ') SELECT id FROM asset_tree' . $filter,
-            [...$roots->getBindings(), ...($only ?? [])]
-        ))->map(fn ($row) => (int) $row->id)->all();
+            . ') SELECT id FROM asset_tree';
     }
 
     public function maintenanceContracts()

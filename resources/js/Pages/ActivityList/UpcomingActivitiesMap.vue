@@ -20,14 +20,20 @@ import RoutePlannerPanel from '@/Components/Map/RoutePlannerPanel.vue';
 import MapPopup from '@/Components/MapPopup.vue';
 import GeocodingStatusOverlay from '@/Components/GeocodingStatusOverlay.vue';
 import { useCustomerMapMarkers } from '@/Composables/useCustomerMapMarkers';
+import { useUpcomingContractAssets } from '@/Composables/useUpcomingContractAssets';
 
 defineOptions({ layout: EmptyLayout });
 
-const { items, routePlanner, dueColors } = defineProps({
+const { items, routePlanner, dueColors, contractAssets } = defineProps({
     items: { type: Array, required: true },
     routePlanner: { type: Object, default: null },
     dueColors: { type: Object, required: true },
+    /** { hidden, forced, choosable }: machines under a running maintenance contract. */
+    contractAssets: { type: Object, required: true },
 });
+
+/** The pins are drawn once, so a map that loads with or without contract machines starts over. */
+useUpcomingContractAssets(() => contractAssets, { preserveState: false });
 
 const planner = ref(null);
 
