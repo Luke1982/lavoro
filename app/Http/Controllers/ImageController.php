@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Shares\ShareRecordAction;
 use App\Domain\Signals\Attachments\ImageAnnotated;
 use App\Domain\Signals\Attachments\ImageAttached;
 use App\Domain\Signals\Attachments\ImageRemoved;
@@ -10,6 +11,7 @@ use App\Http\Requests\ImageAnnotationsReadRequest;
 use App\Http\Requests\ImageDestroyRequest;
 use App\Http\Requests\ImageImportFromUrlRequest;
 use App\Http\Requests\ImageSetMainRequest;
+use App\Http\Requests\ImageShareRequest;
 use App\Http\Requests\ImageStoreRequest;
 use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
@@ -210,6 +212,26 @@ class ImageController extends Controller
         }
 
         return redirect()->back()->with('success', 'Hoofdafbeelding bijgewerkt.');
+    }
+
+    /**
+     * Shares the photo from the record it hangs on, read from the photo's own link
+     * rather than from whatever record the screen says it is showing.
+     */
+    public function share(ImageShareRequest $request, Image $image, ShareRecordAction $share_record)
+    {
+        $shared = $request->boolean('shared');
+
+        $share_record->execute($image, $image->attachedRecord(), $shared);
+
+        if ($request->wantsJson()) {
+            return response()->json(['shared' => $shared]);
+        }
+
+        return redirect()->back()->with(
+            'success',
+            $shared ? 'Afbeelding gedeeld met de werkbonnen.' : 'Afbeelding niet meer gedeeld met de werkbonnen.',
+        );
     }
 
     public function importFromUrl(ImageImportFromUrlRequest $request)

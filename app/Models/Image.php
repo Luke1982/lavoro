@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\Shareable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class Image extends Model
 {
-    use HasFactory;
+    use HasFactory, Shareable;
 
     protected $fillable = ['name', 'path', 'original_path', 'annotations', 'created_at', 'updated_at'];
 

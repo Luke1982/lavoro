@@ -336,6 +336,7 @@
                         </BoxComponent>
                         <BoxComponent class="mt-6">
                             <ImageUploadComponent :existing="serviceOrder.internal_images"
+                                :shared="serviceOrder.shared_images"
                                 :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder"
                                 title="Foto's van het werk" :internal="true" />
                         </BoxComponent>

@@ -30,9 +30,10 @@
         </AudienceBox>
 
         <AudienceBox title="Foto's" :icon="Camera" chapter="photos" initial="external"
-            :internal-count="serviceOrder.internal_images.length" :external-count="serviceOrder.images.length">
+            :internal-count="serviceOrder.internal_images.length + serviceOrder.shared_images.length" :external-count="serviceOrder.images.length">
             <template #default="{ internal }">
                 <ImageUploadComponent :key="side(internal)" bare :existing="images(internal)"
+                    :shared="internal ? serviceOrder.shared_images : []"
                     :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder" :internal="internal" />
             </template>
         </AudienceBox>

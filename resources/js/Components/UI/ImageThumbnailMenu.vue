@@ -20,6 +20,12 @@
                                 {{ image.pivot?.main ? 'Niet meer favoriet' : 'Favoriet maken' }}
                             </button>
                         </MenuItem>
+                        <MenuItem v-if="canShare" v-slot="{ active }">
+                            <button @click="$emit('share')" :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 cursor-pointer']">
+                                <ShareIcon class="size-4 flex-shrink-0" :class="image.is_shared ? 'text-lavoro-blue' : ''" />
+                                {{ image.is_shared ? 'Niet meer delen' : 'Delen met werkbonnen' }}
+                            </button>
+                        </MenuItem>
                         <MenuItem v-if="canEdit" v-slot="{ active }">
                             <button @click="$emit('annotate')" :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 cursor-pointer']">
                                 <PencilSquareIcon class="size-4 flex-shrink-0" />
@@ -42,17 +48,18 @@
 <script setup>
 import { ref, watch, onBeforeUnmount } from 'vue';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
-import { EyeIcon, StarIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { EyeIcon, StarIcon, PencilSquareIcon, TrashIcon, ShareIcon } from '@heroicons/vue/24/outline';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
 
 defineProps({
     image: { type: Object, required: true },
     canSetMain: { type: Boolean, default: false },
+    canShare: { type: Boolean, default: false },
     canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
 });
 
-defineEmits(['view', 'favorite', 'annotate', 'delete']);
+defineEmits(['view', 'favorite', 'share', 'annotate', 'delete']);
 
 const triggerRef = ref(null);
 const panelRef = ref(null);

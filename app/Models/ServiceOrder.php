@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use Database\Factories\ServiceOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -401,6 +402,23 @@ class ServiceOrder extends Model
             ->withPivot(['main', 'internal'])
             ->wherePivot('internal', true)
             ->withTimestamps();
+    }
+
+    /**
+     * Photos shared from the project this work order falls under, in the order they
+     * were shared. They are found through the project, not linked to the work
+     * order, so a work order made after the share sees them too. The share row
+     * comes along as `share`, with what this side may do with the photo.
+     */
+    public function sharedImages(): BelongsToMany
+    {
+        return $this->belongsToMany(Image::class, 'shares', 'source_id', 'shareable_id', 'project_id')
+            ->wherePivot('source_type', Project::class)
+            ->wherePivot('shareable_type', Image::class)
+            ->using(Share::class)
+            ->as('share')
+            ->withPivot('access')
+            ->orderBy('shares.id');
     }
 
     public function taskInstances()

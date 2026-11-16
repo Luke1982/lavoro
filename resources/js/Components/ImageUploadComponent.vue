@@ -50,31 +50,42 @@
                 </ul>
             </div>
         </div>
-        <div v-else-if="maySee() && existing.length === 0"
+        <div v-else-if="maySee() && thumbnails.length === 0"
             class="text-center text-sm text-gray-400 dark:text-slate-500 py-5 rounded-lavoro-sm border border-dashed border-gray-200 dark:border-slate-700">
             Er zijn nog geen afbeeldingen.
         </div>
 
-        <div v-if="props.existing.length > 0" class="relative mt-4">
+        <div v-if="thumbnails.length > 0" class="relative mt-4">
             <div ref="emblaRef" class="overflow-hidden">
                 <div class="flex gap-2">
-                    <div v-for="image in props.existing" :key="image.id" :title="image.name" :class="[
+                    <div v-for="{ image, received } in thumbnails" :key="image.id" :title="image.name" :class="[
                         'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2',
                         image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
                     ]">
                         <a :href="imageFileUrl(image)" data-type="image" class="glightbox block size-full"
-                            @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="mayUpdate() && changeTitle(image.name, image.id)">
+                            @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="!received && mayUpdate() && changeTitle(image.name, image.id)">
                             <img :src="imageFileUrl(image)" :alt="image.name" class="size-full object-cover">
+                            <span v-if="received || image.is_shared" :title="received ? 'Gedeeld vanuit het project' : 'Gedeeld met de werkbonnen'"
+                                class="absolute bottom-1 right-1 flex items-center justify-center rounded-full bg-lavoro-blue p-1 shadow-md">
+                                <ShareIconSolid class="size-3 text-white" />
+                            </span>
                         </a>
                         <div v-if="image.pivot?.main"
                             class="pointer-events-none absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-yellow-400 p-1 shadow-md">
                             <StarIconSolid class="size-3 text-white" />
                         </div>
-                        <div v-if="mayEdit() || mayUpdate() || mayDelete()"
+                        <div v-if="!received && (mayEdit() || mayUpdate() || mayDelete())"
                             class="pointer-events-none absolute inset-x-1 top-1 hidden items-center justify-end gap-1 opacity-0 transition-opacity sm:flex group-hover:opacity-100 group-hover:pointer-events-auto">
                             <button v-if="mayEdit()" @click.stop="openEditor(image)" title="Bewerken"
                                 class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 text-gray-700 cursor-pointer hover:bg-gray-100">
                                 <PencilSquareIcon class="size-4" />
+                            </button>
+                            <button v-if="mayShare()" @click.stop="toggleShared(image)"
+                                class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 cursor-pointer hover:bg-gray-100"
+                                :class="image.is_shared ? 'text-lavoro-blue' : 'text-gray-700'"
+                                :title="image.is_shared ? 'Niet meer delen met de werkbonnen' : 'Delen met de werkbonnen van dit project'">
+                                <ShareIconSolid v-if="image.is_shared" class="size-4" />
+                                <ShareIcon v-else class="size-4" />
                             </button>
                             <button v-if="mayUpdate()" @click.stop="setMain(image.id, image.pivot?.main)"
                                 class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 cursor-pointer hover:bg-gray-100"
@@ -88,9 +99,9 @@
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
-                        <ImageThumbnailMenu v-if="mayEdit() || mayUpdate() || mayDelete()" :image="image"
-                            :can-set-main="mayUpdate()" :can-edit="mayEdit()" :can-delete="mayDelete()"
-                            @view="openLightboxFor(image)" @favorite="setMain(image.id, image.pivot?.main)"
+                        <ImageThumbnailMenu v-if="!received && (mayEdit() || mayUpdate() || mayDelete())" :image="image"
+                            :can-set-main="mayUpdate()" :can-share="mayShare()" :can-edit="mayEdit()" :can-delete="mayDelete()"
+                            @view="openLightboxFor(image)" @favorite="setMain(image.id, image.pivot?.main)" @share="toggleShared(image)"
                             @annotate="openEditor(image)" @delete="confirmDeleteImage(image)" />
                     </div>
                 </div>
@@ -172,15 +183,15 @@ import {
 import { useForm, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/vue/24/solid';
+import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon, ShareIcon } from '@heroicons/vue/24/outline';
+import { StarIcon as StarIconSolid, ShareIcon as ShareIconSolid } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import 'glightbox/dist/css/glightbox.min.css';
 import emblaCarouselVue from 'embla-carousel-vue';
 import ImageThumbnailMenu from '@/Components/UI/ImageThumbnailMenu.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import { hasPermission, subjectSubtitle } from '@/Utilities/Utilities.js';
+import { hasPermission, morphBasename, subjectSubtitle } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
@@ -235,6 +246,11 @@ const props = defineProps({
     imageableId: Number,
     imageableType: String,
     existing: Array,
+    /** Photos shared here from elsewhere: shown after the own ones, to look at only. */
+    shared: {
+        type: Array,
+        default: () => []
+    },
     internal: {
         type: Boolean,
         default: false
@@ -279,9 +295,14 @@ const resolvedSubtitle = computed(() => props.subtitle || (props.internal
         'Beeldmateriaal, direct vanaf de camera of uit de galerij.',
     )));
 
-const existingSignature = computed(() => props.existing.map((image) => `${image.id}:${image.path}`).join(','));
+const thumbnails = computed(() => [
+    ...props.existing.map((image) => ({ image, received: false })),
+    ...props.shared.map((image) => ({ image, received: true })),
+]);
 
-watch(existingSignature, () => {
+const thumbnailSignature = computed(() => thumbnails.value.map(({ image }) => `${image.id}:${image.path}`).join(','));
+
+watch(thumbnailSignature, () => {
     nextTick(() => {
         lightbox && lightbox.reload();
         emblaApi.value?.reInit();
@@ -293,6 +314,9 @@ const maySee = () => props.canManage !== null ? props.canManage : hasPermission(
 const mayEdit = () => props.canManage !== null ? props.canManage : hasPermission('image.edit');
 const mayUpdate = () => props.canManage !== null ? props.canManage : hasPermission('image.update');
 const mayDelete = () => props.canManage !== null ? props.canManage : hasPermission('image.delete');
+
+/** Only a project's photos have somewhere to be shared to: the work orders under it. */
+const mayShare = () => !props.apiMode && morphBasename(props.imageableType) === 'Project' && mayUpdate();
 
 function openLightboxFor(image) {
     const index = props.existing.findIndex(existingImage => existingImage.id === image.id);
@@ -515,6 +539,10 @@ const setMain = async (id, isCurrentlyMain) => {
         imageable_type: props.imageableType,
         currently_main: isCurrentlyMain,
     }, { preserveScroll: true });
+}
+
+const toggleShared = (image) => {
+    router.post(`/images/${image.id}/share`, { shared: !image.is_shared }, { preserveScroll: true });
 }
 
 defineExpose({ deleteImage, uploadPhotos, setMain })

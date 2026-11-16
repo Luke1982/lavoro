@@ -464,6 +464,7 @@ Route::group(
         Route::post('images/update/{image}', [ImageController::class, 'update'])->name('images.update');
         Route::get('images/{image}/annotations', [ImageController::class, 'annotations'])->name('images.annotations');
         Route::post('images/{image}/set-main', [ImageController::class, 'setMain'])->name('images.setMain');
+        Route::post('images/{image}/share', [ImageController::class, 'share'])->name('images.share');
         Route::post('images/import-from-url', [ImageController::class, 'importFromUrl'])->name('images.importFromUrl');
         Route::resource('remarks', RemarkController::class)
             ->only(['store', 'destroy']);

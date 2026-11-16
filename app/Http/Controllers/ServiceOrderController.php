@@ -226,6 +226,7 @@ class ServiceOrderController extends Controller
             'internalDocuments.user:id,name',
             'images',
             'internalImages',
+            'sharedImages',
         ])->findOrFail($id);
 
         $user = Auth::user();

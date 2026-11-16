@@ -56,7 +56,7 @@ class ProjectController extends Controller
             'serviceOrders.events.executingUsers:id,name',
             'documents.category',
             'documents.user:id,name',
-            'images',
+            'images' => fn ($query) => $query->withExists('shares as is_shared'),
         ]);
 
         if ($request->user()->can('manageFinancials', $project)) {

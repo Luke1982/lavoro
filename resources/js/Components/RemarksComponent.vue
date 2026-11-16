@@ -84,7 +84,7 @@
 import { computed } from 'vue';
 import { usePage, useForm } from '@inertiajs/vue3';
 import { ChatBubbleLeftRightIcon, PaperAirplaneIcon } from '@heroicons/vue/24/outline';
-import { nlDate, nlTime, initials, subjectSubtitle } from '@/Utilities/Utilities';
+import { nlDate, nlTime, initials, morphBasename, subjectSubtitle } from '@/Utilities/Utilities';
 import { Trash2Icon } from '@lucide/vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
@@ -141,7 +141,7 @@ const SPLIT_INTERNAL_EXTERNAL = ['ServiceOrder']
 const submitLabel = computed(() => {
     if (internal) return 'Interne opmerking plaatsen'
 
-    return SPLIT_INTERNAL_EXTERNAL.includes(remarkableType?.split('\\').pop())
+    return SPLIT_INTERNAL_EXTERNAL.includes(morphBasename(remarkableType))
         ? 'Externe opmerking plaatsen'
         : 'Opmerking plaatsen'
 })

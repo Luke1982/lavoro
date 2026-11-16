@@ -555,8 +555,14 @@ const SUBJECT_PHRASES = {
     User: 'deze gebruiker',
 };
 
+/**
+ * The model a morph type names, without its namespace: 'Project' for both
+ * 'App\\Models\\Project' and '\\App\\Models\\Project'.
+ */
+export const morphBasename = (morph_type) => (morph_type ?? '').split('\\').pop();
+
 export function subjectPhrase(morph_type) {
-    const key = (morph_type ?? '').split('\\').pop().toLowerCase();
+    const key = morphBasename(morph_type).toLowerCase();
 
     return Object.entries(SUBJECT_PHRASES)
         .find(([model]) => model.toLowerCase() === key)?.[1] ?? null;

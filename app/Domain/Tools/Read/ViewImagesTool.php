@@ -165,7 +165,9 @@ class ViewImagesTool implements Tool
                     : null,
                 'name' => $image->name,
                 /** Internal ones are the monteur's own working photos — usually the plates. */
-                'internal' => (bool) ($image->pivot->internal ?? false),
+                'internal' => isset($image->share) || (bool) ($image->pivot->internal ?? false),
+                /** Hangs on the project and is shown here among the internal photos, to look at only. */
+                'shared_from_project' => isset($image->share),
             ];
         }
 
@@ -196,7 +198,8 @@ class ViewImagesTool implements Tool
     }
 
     /**
-     * Every photo on the record, the customer-facing ones and the internal ones.
+     * Every photo on the record, the customer-facing ones and the internal ones,
+     * plus those shared to it from its project, which it shows among the internal ones.
      *
      * images() hides anything marked internal, because that relation exists to
      * decide what a customer may see on a PDF. The monteur's own photos live on
@@ -211,6 +214,10 @@ class ViewImagesTool implements Tool
 
         if (method_exists($record, 'internalImages')) {
             $images = $images->concat($record->internalImages()->get());
+        }
+
+        if (method_exists($record, 'sharedImages')) {
+            $images = $images->concat($record->sharedImages()->get());
         }
 
         return $images->sortBy('id')->values();

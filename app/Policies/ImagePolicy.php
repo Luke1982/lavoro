@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Image;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class ImagePolicy
 {
@@ -24,6 +23,14 @@ class ImagePolicy
     }
 
     public function update(User $user, Image $image): bool
+    {
+        return $user->hasPermission('image.update');
+    }
+
+    /**
+     * Sharing changes where a photo shows, like choosing the main photo does.
+     */
+    public function share(User $user, Image $image): bool
     {
         return $user->hasPermission('image.update');
     }
