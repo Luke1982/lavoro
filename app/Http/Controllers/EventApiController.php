@@ -9,6 +9,7 @@ use App\Actions\Appointments\NewAppointment;
 use App\Actions\Appointments\UpdateAppointmentAction;
 use App\Domain\Planning\Clock;
 use App\Domain\Signals\ServiceOrders\AppointmentConfirmationEmailed;
+use App\Domain\Signals\ServiceOrders\ServiceOrderScheduled;
 use App\Domain\Signals\Signals;
 use App\Enums\EventTrigger;
 use App\Enums\StandardEmailTriggerType;
@@ -296,6 +297,8 @@ class EventApiController extends Controller
 
             foreach ($service_orders as $order) {
                 $order->events()->attach($new_event->id);
+
+                Signals::dispatch(new ServiceOrderScheduled($order, $new_event));
             }
 
             if (count($executing_user_ids) > 0) {

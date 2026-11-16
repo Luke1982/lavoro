@@ -254,10 +254,8 @@ class ServiceOrder extends Model
     public function scopeNeedsClosing($query)
     {
         return $query
-            ->whereHas('events', fn ($q) => $q->where('status', '!=', EventStatusses::cancelled->value))
-            ->whereDoesntHave('events', fn ($q) => $q
-                ->where('status', '!=', EventStatusses::cancelled->value)
-                ->where('end', '>=', now()))
+            ->whereHas('events', fn ($q) => $q->notCancelled())
+            ->whereDoesntHave('events', fn ($q) => $q->notCancelled()->where('end', '>=', now()))
             ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder());
     }
 
@@ -441,6 +439,12 @@ class ServiceOrder extends Model
         Signals::dispatch(new ServiceOrderStageChanged($this, $previous_stage, $stage, $reason));
 
         return true;
+    }
+
+    /** Whether a visit is planned on this werkbon: an appointment that goes ahead. */
+    public function hasAppointment(): bool
+    {
+        return $this->events()->notCancelled()->exists();
     }
 
     public function advanceToPlannedStage(): void

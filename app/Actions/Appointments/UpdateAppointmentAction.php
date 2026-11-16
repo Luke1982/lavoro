@@ -4,12 +4,15 @@ namespace App\Actions\Appointments;
 
 use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
+use App\Domain\Signals\ServiceOrders\ServiceOrderScheduled;
+use App\Domain\Signals\ServiceOrders\ServiceOrderUnscheduled;
 use App\Domain\Signals\Signals;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
 use App\Models\Event;
 use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +82,8 @@ class UpdateAppointmentAction
                 $model->moveToCustomer($changes->customer_id);
             }
 
+            $linked_before = $event->serviceOrders()->get();
+
             DB::table('eventables')
                 ->where('event_id', $event->id)
                 ->where('eventable_type', substr($eventable_type, 1))
@@ -88,6 +93,7 @@ class UpdateAppointmentAction
 
             if ($model instanceof ServiceOrder) {
                 $model->advanceToPlannedStage();
+                $this->announceMove($event, $linked_before, $model);
             }
 
             if ($event->no_service_order) {
@@ -102,14 +108,38 @@ class UpdateAppointmentAction
     private function unlink(Event $event, AppointmentChanges $changes): void
     {
         DB::transaction(function () use ($event, $changes) {
-            foreach ($event->serviceOrders as $service_order) {
+            $linked_before = $event->serviceOrders;
+
+            foreach ($linked_before as $service_order) {
                 $service_order->revertToPlanningCancelledStage();
             }
 
             $event->serviceOrders()->detach();
             $event->update(['no_service_order' => true]);
             $event->customers()->sync($changes->customer_id ? [$changes->customer_id] : []);
+
+            $this->announceMove($event, $linked_before, null);
         });
+    }
+
+    /**
+     * Only what changed: every werkbon the appointment left, and the one it came
+     * onto when it was not on it already. Announced once the links are written,
+     * so a listener asking a werkbon for its appointments gets today's answer.
+     *
+     * @param  Collection<int, ServiceOrder>  $linked_before
+     */
+    private function announceMove(Event $event, Collection $linked_before, ?ServiceOrder $linked_now): void
+    {
+        $linked_before
+            ->reject(fn (ServiceOrder $service_order) => $service_order->is($linked_now))
+            ->each(fn (ServiceOrder $service_order) => Signals::dispatch(
+                new ServiceOrderUnscheduled($service_order, $event)
+            ));
+
+        if ($linked_now && !$linked_before->contains($linked_now)) {
+            Signals::dispatch(new ServiceOrderScheduled($linked_now, $event));
+        }
     }
 
     private function assign(

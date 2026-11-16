@@ -5,6 +5,7 @@ namespace App\Actions\Appointments;
 use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
+use App\Domain\Signals\ServiceOrders\ServiceOrderScheduled;
 use App\Domain\Signals\Signals;
 use App\Models\Event;
 use App\Models\ServiceOrder;
@@ -64,6 +65,8 @@ class CreateAppointmentAction
 
                 if ($model instanceof ServiceOrder) {
                     $model->advanceToPlannedStage();
+
+                    Signals::dispatch(new ServiceOrderScheduled($model, $event));
                 }
             } elseif ($appointment->customer_id) {
                 $event->customers()->attach($appointment->customer_id);

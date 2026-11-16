@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Carries the statuses themselves rather than a finished sentence, so the change
  * lands as queryable rows and the wording stays this class's business.
+ *
+ * The reason is set when the app moved the status by itself, so the trail says
+ * why a storing changed while nobody touched it.
  */
 class TicketStatusChanged extends BaseSignal
 {
@@ -16,6 +19,7 @@ class TicketStatusChanged extends BaseSignal
         public Ticket $ticket,
         public ?string $previous_status,
         public ?string $new_status,
+        public ?string $reason = null,
     ) {
         parent::__construct();
     }
@@ -47,7 +51,14 @@ class TicketStatusChanged extends BaseSignal
 
     public function activityDescription(): ?string
     {
-        return "Status gewijzigd van '" . $this->previous_status . "' naar '" . $this->new_status . "'";
+        $sentence = "Status gewijzigd van '" . $this->previous_status . "' naar '" . $this->new_status . "'";
+
+        return $this->reason === null ? $sentence : $sentence . ', ' . $this->reason;
+    }
+
+    public function activityMetadata(): ?array
+    {
+        return $this->reason === null ? null : ['reason' => $this->reason];
     }
 
     public function changes(): array

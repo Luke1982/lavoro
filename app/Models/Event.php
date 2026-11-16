@@ -76,6 +76,17 @@ class Event extends Model
         return EventStatusses::comboBoxArray();
     }
 
+    /** A cancelled appointment did not happen and will not: it plans nothing. */
+    public function scopeNotCancelled(Builder $query): Builder
+    {
+        return $query->where('status', '!=', EventStatusses::cancelled->value);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === EventStatusses::cancelled->value;
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (!$user || $user->hasPermission('event.see_all')) {

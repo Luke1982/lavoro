@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TicketStatusses;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RecordsHistory;
@@ -48,6 +49,12 @@ class Ticket extends Model
         'asset_id' => ['asset', 'serial_number'],
     ];
 
+    /**
+     * Why the status is about to change when the app moves it by itself. Not a
+     * column: the observer reads it once, as the change is announced.
+     */
+    public ?string $status_reason = null;
+
     protected $fillable = [
         'asset_id',
         'subject',
@@ -88,6 +95,21 @@ class Ticket extends Model
         return $query->where(fn ($q) => $q
             ->whereIn('service_order_id', ServiceOrder::visibleTo($user)->select('service_orders.id'))
             ->orWhereIn('asset_id', Asset::visibleTo($user)->select('assets.id')));
+    }
+
+    /**
+     * Moves the status on the app's own initiative, saying why on the timeline,
+     * since nobody's hand is there to explain it.
+     */
+    public function moveToStatus(TicketStatusses $status, string $reason): void
+    {
+        $this->status_reason = $reason;
+
+        try {
+            $this->update(['status' => $status->value]);
+        } finally {
+            $this->status_reason = null;
+        }
     }
 
     public function asset(): BelongsTo

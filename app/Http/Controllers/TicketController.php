@@ -14,11 +14,16 @@ use App\Http\Requests\TicketUpdateRequest;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
+use App\Models\GeneralSetting;
 use App\Models\MaintenanceContract;
 use App\Models\NotificationSubscription;
+use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\UserRole;
 use App\Services\RoutePlanner;
+use App\Services\ServiceOrderEventWidget;
+use Illuminate\Support\Collection;
 use Inertia\Response;
 
 class TicketController extends Controller
@@ -372,7 +377,7 @@ class TicketController extends Controller
      *
      * @return Response
      */
-    public function show(TicketReadRequest $request, Ticket $ticket)
+    public function show(TicketReadRequest $request, Ticket $ticket, ServiceOrderEventWidget $event_widget)
     {
         $ticket->load([
             'asset.customer',
@@ -401,12 +406,32 @@ class TicketController extends Controller
             'statusses' => TicketStatusses::comboBoxArray(),
             'priorities' => TicketPriorities::comboBoxArray(),
             'customFields' => $ticket->allCustomFieldsWithValues(),
+            'eventWidgetEvents' => $this->eventWidgetEvents($ticket, $event_widget, $request->user()),
+            'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
+            'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
 
             /** Null als deze storing niet gevolgd wordt; anders het abonnement om weer uit te zetten. */
             'subscriptionId' => NotificationSubscription::where('user_id', $request->user()->id)
                 ->forRecord($ticket)
                 ->value('id'),
         ]);
+    }
+
+    /**
+     * The appointments of the werkbon this storing is on, as the werkbon screen
+     * shows them to this user. Loaded apart from the storing so the storing's own
+     * data does not carry every appointment's werkbon and customer along.
+     */
+    private function eventWidgetEvents(Ticket $ticket, ServiceOrderEventWidget $event_widget, User $user): Collection
+    {
+        if (!$ticket->service_order_id) {
+            return collect();
+        }
+
+        return $event_widget->events(
+            ServiceOrder::with(ServiceOrderEventWidget::relations())->findOrFail($ticket->service_order_id),
+            $user,
+        );
     }
 
     /**

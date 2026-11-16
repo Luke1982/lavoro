@@ -18,7 +18,7 @@ class TicketObserver
             $old_status = $ticket->getOriginal('status');
             $new_status = $changes['status'];
 
-            Signals::dispatch(new TicketStatusChanged($ticket, $old_status, $new_status));
+            Signals::dispatch(new TicketStatusChanged($ticket, $old_status, $new_status, $ticket->status_reason));
 
             if ($new_status === 'Gesloten') {
                 $ticket->closed_by_id = Auth::id();

@@ -13,6 +13,21 @@ class ServiceOrderEventWidget
 {
     public function __construct(private EventLocationResolver $locations) {}
 
+    /**
+     * What a werkbon needs loaded before events() can show its appointments.
+     *
+     * @return array<int, string>
+     */
+    public static function relations(): array
+    {
+        return [
+            'events.eventType',
+            'events.executingUsers:id,name',
+            'events.executions',
+            ...EventLocationResolver::relations('events.'),
+        ];
+    }
+
     public function events(ServiceOrder $service_order, User $user): Collection
     {
         $can_see_all = $user->isAdmin() || $user->hasPermission('serviceorder.see_events_widget');

@@ -312,12 +312,20 @@
                         <span class="text-slate-400 text-xs">Monteur</span>
                         <span class="text-xs font-medium">{{ serviceOrderMonteur.name }}</span>
                     </div>
-                    <div v-if="serviceOrderPlanning" class="flex items-center gap-2 text-gray-600 dark:text-slate-300">
+                    <div v-if="serviceOrderPlanning && !eventWidgetEvents.length"
+                        class="flex items-center gap-2 text-gray-600 dark:text-slate-300">
                         <CalendarIcon class="size-4 text-slate-400 flex-none" />
                         <span class="text-slate-400 text-xs">Gepland op</span>
                         <span class="text-xs font-medium">{{ serviceOrderPlanning }}</span>
                     </div>
                 </div>
+            </BoxComponent>
+
+            <BoxComponent v-if="eventWidgetEvents.length" class="mt-4">
+                <SectionHeader :icon="CalendarDaysIcon" title="Afspraken"
+                    subtitle="Wanneer we voor deze storing bij de klant zijn." chapter="events" />
+                <EventsWidget :service-order-id="ticket.service_order_id" :events="eventWidgetEvents"
+                    :user-roles="userRoles" :leading-color="defaultLeadingColor" />
             </BoxComponent>
 
             <BoxComponent class="mt-4">
@@ -357,9 +365,11 @@ import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
+import EventsWidget from '@/Components/ServiceOrders/EventsWidget.vue';
 import {
     ArrowPathIcon,
     ArrowTopRightOnSquareIcon,
+    CalendarDaysIcon,
     CalendarIcon,
     ChatBubbleBottomCenterTextIcon,
     ChevronDownIcon,
@@ -396,6 +406,9 @@ const props = defineProps({
     customFields: { type: Array, default: () => [] },
     documents: { type: Array, default: () => [] },
     subscriptionId: { type: Number, default: null },
+    eventWidgetEvents: { type: Array, default: () => [] },
+    userRoles: { type: Array, default: () => [] },
+    defaultLeadingColor: { type: String, default: 'event' },
 });
 
 const infoRequestOpen = ref(false);

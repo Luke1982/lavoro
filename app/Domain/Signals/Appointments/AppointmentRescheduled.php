@@ -3,6 +3,7 @@
 namespace App\Domain\Signals\Appointments;
 
 use App\Domain\Signals\BaseSignal;
+use App\Enums\EventStatusses;
 use App\Enums\EventTrigger;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,12 @@ class AppointmentRescheduled extends BaseSignal implements AppointmentSignal
 
     public ?Carbon $previous_end = null;
 
+    /**
+     * Whether this change cancelled the appointment or took a cancel back; the
+     * appointment's status says which.
+     */
+    public bool $cancellation_changed = false;
+
     public function __construct(public Event $event)
     {
         parent::__construct();
@@ -30,6 +37,8 @@ class AppointmentRescheduled extends BaseSignal implements AppointmentSignal
         $this->moved_in_time = $event->wasChanged(['start', 'end']);
         $this->previous_start = $this->momentBefore($event, 'start');
         $this->previous_end = $this->momentBefore($event, 'end');
+        $this->cancellation_changed = $event->wasChanged('status')
+            && in_array(EventStatusses::cancelled->value, [$event->getRawOriginal('status'), $event->status], true);
     }
 
     public static function key(): string

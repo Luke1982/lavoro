@@ -47,7 +47,6 @@ use App\Models\ServiceOrderTaskChecklist;
 use App\Models\Ticket;
 use App\Models\UserRole;
 use App\Services\AssetTransferService;
-use App\Services\EventLocationResolver;
 use App\Services\MateriableService;
 use App\Services\ProductableService;
 use App\Services\ServiceOrderEventWidget;
@@ -206,10 +205,7 @@ class ServiceOrderController extends Controller
             },
             'remarks.user',
             'internalRemarks.user',
-            'events.eventType',
-            'events.executingUsers:id,name',
-            'events.executions',
-            ...EventLocationResolver::relations('events.'),
+            ...ServiceOrderEventWidget::relations(),
             'customFields',
             'taskInstances.serviceOrderTask',
             'taskInstances.userRoles',
