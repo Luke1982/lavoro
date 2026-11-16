@@ -84,6 +84,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch 
 import axios from 'axios';
 import Konva from 'konva';
 import { ArrowUpRightIcon, CropIcon, HighlighterIcon, RotateCcwIcon, Trash2Icon, TypeIcon, Undo2Icon } from '@lucide/vue';
+import { useImageCompression } from '@/Composables/useImageCompression.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
 import { requestFailureMessage } from '@/Utilities/requestFailure.js';
@@ -178,6 +179,7 @@ let disposed = false;
 let lastId = 0;
 
 const { lock, unlock } = useScrollLock();
+const { decodeImage } = useImageCompression();
 
 function newId() {
     lastId += 1;
@@ -730,7 +732,7 @@ function buildStage() {
     });
     buildCropControls();
 
-    content.add(new Konva.Image({ image: photo, width: natural.width, height: natural.height }));
+    content.add(new Konva.Image({ image: photo.source, width: natural.width, height: natural.height }));
     content.add(drawing, cropShade, cropFrame, selectionBox);
     layer.add(content, cropHandles);
 
@@ -738,13 +740,22 @@ function buildStage() {
     stage.on('pointerclick', onStageClick);
 }
 
-function loadPhoto() {
-    return new Promise((resolve, reject) => {
-        const element = new window.Image();
-        element.onload = () => resolve(element);
-        element.onerror = () => reject(new Error('het bestand is niet te lezen'));
-        element.src = imageFileUrl(props.image, { original: true });
-    });
+/**
+ * Read the way an upload is read rather than through an <img>: a customer's HEIC
+ * photo that the server could not convert opens too, and drawing on it leaves a
+ * JPEG every browser shows.
+ */
+async function loadPhoto() {
+    const { data } = await axios.get(imageFileUrl(props.image, { original: true }), { responseType: 'blob' });
+    const decoded = await decodeImage(data);
+
+    if (disposed) {
+        decoded.release();
+
+        return;
+    }
+
+    photo = decoded;
 }
 
 async function loadAnnotations() {
@@ -773,7 +784,7 @@ async function exportFile() {
     const scene = new Konva.Group({ x: -region.x, y: -region.y });
 
     scene.add(new Konva.Rect({ width: natural.width, height: natural.height, fill: '#FFFFFF' }));
-    scene.add(new Konva.Image({ image: photo, width: natural.width, height: natural.height }));
+    scene.add(new Konva.Image({ image: photo.source, width: natural.width, height: natural.height }));
     shapes.forEach((shape) => scene.add(buildShapeNode(shape, fontFamily)));
 
     const canvas = scene.toCanvas({ x: 0, y: 0, width: region.width, height: region.height, pixelRatio: pixel_ratio });
@@ -876,7 +887,7 @@ onMounted(async () => {
     let annotations = null;
 
     try {
-        [photo, annotations] = await Promise.all([loadPhoto(), loadAnnotations()]);
+        [annotations] = await Promise.all([loadAnnotations(), loadPhoto()]);
     } catch (error) {
         loadError.value = requestFailureMessage(error, 'De foto kon niet worden geladen');
 
@@ -885,7 +896,7 @@ onMounted(async () => {
 
     if (disposed) return;
 
-    natural = { width: photo.naturalWidth, height: photo.naturalHeight };
+    natural = { width: photo.width, height: photo.height };
     fontFamily = getComputedStyle(dialog.value).fontFamily;
     restore(annotations);
     tool.value = shapes.length === 0 && crop === null ? 'draw' : null;
@@ -908,5 +919,6 @@ onBeforeUnmount(() => {
     window.removeEventListener('pointercancel', onPointerCancel);
     resizeObserver?.disconnect();
     stage?.destroy();
+    photo?.release();
 });
 </script>

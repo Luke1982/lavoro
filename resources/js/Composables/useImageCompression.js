@@ -161,6 +161,10 @@ export function useImageCompression() {
         };
     }
 
+    /**
+     * Reads any photo a phone produces, HEIC included, into something a canvas can
+     * draw: { source, width, height, release }. Call release() once it is drawn.
+     */
     async function decode(file) {
         try {
             return await decodeNatively(file);
@@ -205,5 +209,5 @@ export function useImageCompression() {
         }
     }
 
-    return { compressImage };
+    return { compressImage, decodeImage: decode };
 }
