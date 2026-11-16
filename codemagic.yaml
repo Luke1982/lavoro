@@ -1,0 +1,35 @@
+workflows:
+  ios-simulator:
+    name: iOS simulator build (no signing)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      node: 22.12.0
+      xcode: latest
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: Sync iOS
+        script: npx cap sync ios
+      - name: Build for the simulator
+        script: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-sim \
+            CODE_SIGNING_ALLOWED=NO build | tee build/xcodebuild.log
+      - name: Every delegate method matches what WebKit calls
+        script: |
+          if grep -n "nearly matches" build/xcodebuild.log | grep "ios/App/App/"; then
+            echo "The method above does not match WebKit's signature, so WebKit would never call it."
+            exit 1
+          fi
+      - name: Package the simulator app
+        script: |
+          cd build/ios-sim/Build/Products/Debug-iphonesimulator
+          zip -qr "$CM_BUILD_DIR/build/App-simulator.zip" App.app
+    artifacts:
+      - build/App-simulator.zip
+      - build/xcodebuild.log
