@@ -48,7 +48,8 @@
         :map-location="mapLocation" :materials="combinedMaterials" :freeform-materials="combinedFreeformMaterials"
         :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
         :material-usage-units="materialUsageUnits" :hidden-task-count="hiddenTaskCount" :is-signed="isSigned"
-        :closed-stage-id="closedStageId" @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
+        :closed-stage-id="closedStageId" :planned-after-today="plannedAfterToday"
+        @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
         @close-service-order="closeViaStage">
         <template #work-actions>
             <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
@@ -609,8 +610,8 @@
 
     <CloseServiceOrderModal v-model:open="showCloseModal" :service-order="serviceOrder"
         :all-task-instances="allTaskInstances" :materials="combinedMaterials"
-        :freeform-materials="combinedFreeformMaterials" @confirm="handleSignatureConfirm"
-        @update-work-completed="updateWorkCompleted" />
+        :freeform-materials="combinedFreeformMaterials" :planned-after-today="plannedAfterToday"
+        @confirm="handleSignatureConfirm" @update-work-completed="updateWorkCompleted" />
 
     <ModalDialog :open="showOpenTasksAlert" @update:open="showOpenTasksAlert = $event"
         title="Er staan nog taken open" max-width-class="sm:max-w-lg">
@@ -746,6 +747,8 @@ const props = defineProps({
     usersMissingTimes: { type: Array, default: () => [] },
     defaultLeadingColor: { type: String, default: 'event' },
     eventWidgetEvents: { type: Array, default: () => [] },
+    /** Whether an appointment of this werkbon falls on a later day, whoever executes it. */
+    plannedAfterToday: { type: Boolean, default: false },
     mapLocation: { type: Object, default: () => ({ address: null, source: null }) },
     /** Whether the reader executes this werkbon, on it or on one of its appointments. */
     viewerExecutes: { type: Boolean, default: false },

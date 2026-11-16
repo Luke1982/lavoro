@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Domain\Planning\Clock;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use App\Models\User;
@@ -65,6 +66,18 @@ class ServiceOrderEventWidget
             ->pluck('name')
             ->unique()
             ->values();
+    }
+
+    /**
+     * Whether the order still has an appointment on a later local day, so whoever
+     * asks the customer to sign is told the work is not done yet. Reads every
+     * appointment, not only the ones the viewer may see in the widget.
+     */
+    public function plannedAfterToday(ServiceOrder $service_order): bool
+    {
+        return $service_order->events->contains(fn (Event $event) => !$event->isCancelled()
+            && $event->start
+            && Clock::toLocal($event->start)->toDateString() > Clock::today());
     }
 
     private function rolesByUserable(Collection $events): Collection

@@ -62,6 +62,15 @@
             </div>
         </div>
 
+        <div v-if="plannedAfterToday && !serviceOrder.is_closed"
+            class="mt-4 flex items-start gap-3 rounded-md bg-orange-50 p-3 ring-1 ring-orange-300 dark:bg-orange-950/40 dark:ring-orange-800">
+            <TriangleAlert class="size-5 shrink-0 text-orange-500" aria-hidden="true" />
+            <p class="text-sm text-gray-800 dark:text-orange-100">
+                <span class="font-semibold">Let op, deze bon is in de toekomst nog ingepland.</span>
+                Er staat nog een afspraak op een latere dag, dus het werk is mogelijk nog niet klaar.
+            </p>
+        </div>
+
         <template #footer>
             <div v-if="!serviceOrder.is_closed && isEditing" class="flex justify-end">
                 <button type="button" :disabled="!canConfirm" @click="triggerConfirm" :class="[
@@ -85,6 +94,7 @@
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue';
 import GLightbox from 'glightbox';
 import 'glightbox/dist/css/glightbox.min.css';
+import { TriangleAlert } from '@lucide/vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
@@ -101,6 +111,8 @@ const props = defineProps({
     allTaskInstances: { type: Array, default: () => [] },
     materials: { type: Array, default: () => [] },
     freeformMaterials: { type: Array, default: () => [] },
+    /** Whether an appointment of this werkbon falls on a later day: the work may not be done yet. */
+    plannedAfterToday: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:open', 'confirm', 'update-work-completed']);

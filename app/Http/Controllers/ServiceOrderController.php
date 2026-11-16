@@ -334,6 +334,7 @@ class ServiceOrderController extends Controller
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
             'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
             'eventWidgetEvents' => $event_widget->events($service_order, $user),
+            'plannedAfterToday' => $event_widget->plannedAfterToday($service_order),
             'allMaterials' => $material_options,
             'materialsUseAjax' => $material_count > 50,
             'materialCategories' => MaterialCategory::orderBy('name')->get(['id', 'name']),

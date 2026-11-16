@@ -3,11 +3,10 @@
         :class="collapsed ? 'lg:left-[4.5rem]' : 'lg:left-72'" :style="placement">
         <div class="mx-auto max-w-3xl">
             <button type="button" :aria-hidden="typing" :tabindex="typing ? -1 : undefined"
-                class="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-lavoro-sm py-3.5 text-base font-semibold shadow-[0_8px_30px_rgba(2,6,23,0.25)] transition-colors cursor-pointer"
+                class="pointer-events-auto w-full rounded-lavoro-sm px-5 py-3.5 text-center text-base font-semibold text-balance shadow-[0_8px_30px_rgba(2,6,23,0.25)] transition-colors cursor-pointer"
                 :class="TONES[tone] ?? TONES.neutral"
                 @click="$emit('click')">
-                <component :is="icon" class="size-5" />
-                {{ label }}
+                <component :is="icon" class="mr-2 inline size-5 align-[-0.2em]" />{{ label }}
             </button>
         </div>
     </div>
@@ -28,6 +27,9 @@ import { useMenu } from '@/Composables/useMenu.js'
  *
  * Zolang er getypt wordt verdwijnt hij: met het toetsenbord open zou hij precies
  * over het veld komen te liggen waar je in schrijft.
+ *
+ * Het icoon staat in de tekst, zodat een label dat over twee regels loopt met
+ * icoon en al gecentreerd blijft.
  */
 defineProps({
     label: { type: String, required: true },
@@ -41,6 +43,7 @@ defineEmits(['click'])
 const TONES = {
     blue: 'bg-lavoro-blue text-white hover:brightness-110',
     green: 'bg-lavoro-green text-gray-800 hover:brightness-95',
+    orange: 'bg-orange-500 text-gray-800 hover:brightness-95',
     neutral: 'bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600',
 }
 

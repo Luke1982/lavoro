@@ -49,7 +49,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Camera, Check, Eye, MessageSquare, Signature } from '@lucide/vue'
+import { Camera, Check, Eye, MessageSquare, Signature, TriangleAlert } from '@lucide/vue'
 import { hasPermission } from '@/Utilities/Utilities'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
@@ -82,6 +82,7 @@ const props = defineProps({
     hiddenTaskCount: { type: Number, default: 0 },
     isSigned: { type: Boolean, default: false },
     closedStageId: { type: [Number, null], default: null },
+    plannedAfterToday: { type: Boolean, default: false },
 })
 
 defineEmits(['times-updated', 'open-signoff', 'close-service-order'])
@@ -97,7 +98,9 @@ const images = (internal) => (internal ? props.serviceOrder.internal_images : pr
 
 /**
  * Wat de knop onderin doet hangt af van hoe ver de werkbon is: eerst laten
- * tekenen, dan sluiten, en daarna alleen nog het overzicht bekijken.
+ * tekenen, dan sluiten, en daarna alleen nog het overzicht bekijken. Staat de
+ * werkbon op een latere dag nog ingepland, dan waarschuwt de knop om te laten
+ * tekenen daar eerst voor; hij opent hetzelfde overzicht.
  */
 const finish = computed(() => {
     if (props.serviceOrder.is_closed) {
@@ -107,7 +110,9 @@ const finish = computed(() => {
     if (!hasPermission('serviceorder.close')) return null
 
     if (!props.isSigned) {
-        return { label: 'Vraag handtekening aan de klant', icon: Signature, tone: 'blue', emits: 'open-signoff' }
+        return props.plannedAfterToday
+            ? { label: 'Let op, deze bon is in de toekomst nog ingepland', icon: TriangleAlert, tone: 'orange', emits: 'open-signoff' }
+            : { label: 'Vraag handtekening aan de klant', icon: Signature, tone: 'blue', emits: 'open-signoff' }
     }
 
     if (props.closedStageId === null) {
