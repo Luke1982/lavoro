@@ -525,3 +525,119 @@
     opacity: 0;
     transform: translateX(32px);
 }
+
+/*
+ * A place that takes what is being dragged off the bakje. The tray-drop
+ * directive moves it between idle, accepting, over and landed; every state
+ * eases into the next, so the outline and the label fade in and out rather than
+ * blink. Unlayered, so it wins from the box's own background.
+ */
+[data-tray-drop] {
+    outline: 2px dashed transparent;
+    outline-offset: 12px;
+    transition:
+        outline-color 200ms ease,
+        outline-offset 300ms cubic-bezier(0.22, 1, 0.36, 1),
+        background-color 200ms ease;
+}
+
+[data-tray-drop='accepting'],
+[data-tray-drop='over'] {
+    outline-color: var(--color-lavoro-blue);
+    outline-offset: 4px;
+}
+
+[data-tray-drop='over'] {
+    outline-style: solid;
+    outline-offset: 1px;
+    background-color: color-mix(in srgb, var(--color-lavoro-blue) 10%, transparent);
+}
+
+[data-tray-drop]::after {
+    content: attr(data-tray-label);
+    position: absolute;
+    top: -0.8rem;
+    right: 1rem;
+    z-index: 10;
+    border-radius: 9999px;
+    background-color: var(--color-lavoro-blue);
+    color: #fff;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+    transition:
+        opacity 200ms ease,
+        transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-tray-drop='accepting']::after,
+[data-tray-drop='over']::after {
+    opacity: 1;
+    transform: none;
+}
+
+[data-tray-drop='over']::after {
+    transform: translateY(-2px) scale(1.06);
+}
+
+[data-tray-drop='landed'] {
+    animation: trayLanded 700ms ease-out;
+}
+
+@keyframes trayLanded {
+    0% {
+        outline: 2px solid var(--color-lavoro-blue);
+        outline-offset: 1px;
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-lavoro-blue) 45%, transparent);
+    }
+
+    100% {
+        outline: 2px solid transparent;
+        outline-offset: 12px;
+        box-shadow: 0 0 0 18px transparent;
+    }
+}
+
+/* The count on the bakje: a short pop whenever it changes. */
+@keyframes trayBump {
+    0% {
+        transform: scale(1);
+    }
+
+    35% {
+        transform: scale(1.35);
+    }
+
+    65% {
+        transform: scale(0.92);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* How long "Ongedaan maken" stays: a bar that runs out under the message. */
+@keyframes trayCountdown {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-tray-drop],
+    [data-tray-drop]::after {
+        transition: none;
+    }
+
+    [data-tray-drop='landed'] {
+        animation: none;
+    }
+}

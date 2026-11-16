@@ -32,6 +32,29 @@ Een paar vaste gewoontes in de hele applicatie:
 - **Fases als stappenbalk.** Op een werkbon staat de fase als een rij genummerde rondjes; klikken op een stap verzet de werkbon naar die fase.
 - **Als opslaan niet lukt.** Lukt bewaren niet, dan verschijnt rechtsboven een rode melding met de reden en blijft staan wat je hebt ingevuld. Namen en codes die maar één keer mogen voorkomen (een merk, een categorie, een serienummer bij een product) leveren "is al in gebruik" op bij het veld zelf. Iets verwijderen dat nog ergens aan hangt, wordt geweigerd met de melding dat het nog in gebruik is: maak eerst die koppeling los.
 
+## Het bakje
+
+Het bakje is een plek om iets even neer te leggen en het op een andere pagina weer op te pakken, zoals een klembord. Je legt bijvoorbeeld drie storingen op het bakje vanuit de storingenlijst, gaat naar de planner en sleept ze op de dag van een monteur. Het bakje werkt op een computerscherm; op een telefoon is het nog niet te zien. Voorlopig kunnen er alleen storingen op.
+
+**Erop leggen.** Vink in de storingenlijst storingen aan en klik in de balk onderin op **Op het bakje**. Op de pagina van een storing staat bovenaan de knop **Op het bakje**. Het bakje hoort bij jou, niet bij je computer: wat erop ligt zie je op elk scherm waarop je inlogt, en niemand anders ziet het. Je kunt er alleen op leggen wat je mag inzien; wat verwijderd wordt of wat je niet meer mag inzien, valt er vanzelf af.
+
+**Het bakje zelf.** Rechtsonder staat de knop **Bakje** met het aantal; klik erop om het te openen. Elk item heeft een menu met **Openen**, **Laten liggen na plakken** en **Uit het bakje halen**. Onderaan staat **Bakje leegmaken**.
+
+**Stapels.** Liggen er meerdere storingen op het bakje, dan liggen ze op één stapel. Sleep je de stapel, dan gaan ze allemaal tegelijk mee. Wil je er maar één, klik dan op het pijltje van de stapel: hij gaat open en elke storing is los te slepen. Wat je sleept is precies wat er geplakt wordt.
+
+**Plakken.** Sleep een item of de stapel naar een plek die het aanneemt. Tijdens het slepen krijgen die plekken een blauwe stippellijn met een label, en het bakje gaat even uit beeld. Waar je een storing kwijt kunt:
+
+- **Op de dag van een monteur in de planner.** De storing wordt ingepland op het punt waar je loslaat, met de standaardduur van de planner. Eerst komt de vraag op welke werkbon: een **nieuwe werkbon** voor de klant van de storing, of een **open werkbon** van die klant (de vijf nieuwste, met erbij of hij al eerder ingepland is). Staat de storing al op een werkbon, dan wordt die werkbon ingepland. Storingen van verschillende klanten, of een stapel waarvan een deel al op een werkbon staat, worden geweigerd met de reden erbij; pak ze dan los uit de stapel.
+- **Op het blok Storingen van een werkbon.** De storing komt meteen op die werkbon, zonder vraag. In de melding staat **Ongedaan maken**: dat haalt hem er weer af, net als losmaken op de werkbon zelf, en legt hem terug op het bakje. Staat de storing al op een andere werkbon, dan wordt eerst gevraagd of je hem wilt verplaatsen; dat is daarna niet met één klik ongedaan te maken. Een storing van een andere klant, of een afgesloten werkbon, wordt geweigerd.
+- **Op het blok Storingen van een machine.** Na een vraag komt de storing bij die machine te staan, voor als hij bij de verkeerde machine gemeld is. Staat de storing op een werkbon van een andere klant, dan wordt dat geweigerd.
+- **Op het blok Werkbonnen van een project.** Na een vraag komt er een nieuwe werkbon onder het project met de storing(en) erop. Hoort het project bij een andere klant, of staat de storing al op een werkbon, dan wordt dat geweigerd.
+
+In een vraag staat **Daarna uit het bakje halen**, standaard aangevinkt. Zonder vraag gaat wat je plakte vanzelf van het bakje af. Een item dat op **Laten liggen na plakken** staat blijft altijd liggen, bijvoorbeeld om het op meerdere plekken te plakken.
+
+**Rechten.** Het bakje is een snellere weg naar dezelfde handelingen, geen extra deur: plakken lukt alleen als je het ook met de hand mag (een storing aan een werkbon koppelen, een werkbon of afspraak maken, een storing bijwerken).
+
+**Tijdlijn.** Alles wat een plakactie verandert staat op de tijdlijn, net als met de hand gedaan, met **via het bakje** achter je naam. Ook de assistent ziet bij elke wijziging of die via het bakje ging.
+
 ## Dashboard
 
 De startpagina vat samen wat er in een gekozen periode gebeurt. Rechtsboven staat de **periodekiezer** (deze week, vorige week, deze maand, laatste 30 dagen); de knop toont het bereik waar je naar kijkt. Standaard staat hij op de laatste 30 dagen. Daarnaast staat de blauwe knop **Nieuw**: die opent dezelfde vier soorten records als de plusknop op de telefoon (werkbon, storing, afspraak, klant), in dezelfde la. Je ziet alleen de soorten die je mag aanmaken; mag je er geen enkele, dan staat de knop er niet. De teltegels en de kaart volgen die keuze; de ring met openstaande werkbonnen en de blokken onderin doen dat bewust niet.
@@ -424,7 +447,7 @@ De beheerder kan eigen velden definiëren op klanten, machines, producten, werkb
 
 ## Tijdlijn en meldingen
 
-**Tijdlijn.** Vrijwel alles wat er in de applicatie gebeurt wordt vastgelegd: wie welk veld wanneer veranderde, met de waarde ervoor en erna, en ook samengestelde gebeurtenissen ("afspraak ingepland", "materiaal geboekt", "contract geannuleerd"). Op detailpagina's staat die geschiedenis als tijdlijn. Eén handeling die meerdere records raakt verschijnt op al die tijdlijnen. Gevoelige velden (prijzen, IBAN) zijn in de tijdlijn alleen zichtbaar voor wie het bijbehorende recht heeft. Handelingen die de AI-assistent namens iemand deed staan gewoon op naam van die gebruiker, maar zijn herkenbaar als door de assistent uitgevoerd.
+**Tijdlijn.** Vrijwel alles wat er in de applicatie gebeurt wordt vastgelegd: wie welk veld wanneer veranderde, met de waarde ervoor en erna, en ook samengestelde gebeurtenissen ("afspraak ingepland", "materiaal geboekt", "contract geannuleerd"). Op detailpagina's staat die geschiedenis als tijdlijn. Eén handeling die meerdere records raakt verschijnt op al die tijdlijnen. Gevoelige velden (prijzen, IBAN) zijn in de tijdlijn alleen zichtbaar voor wie het bijbehorende recht heeft. Handelingen die de AI-assistent namens iemand deed staan gewoon op naam van die gebruiker, maar zijn herkenbaar als door de assistent uitgevoerd. Wat iemand deed door iets van het bakje te plakken staat er met *via het bakje* achter de naam (zie *Het bakje*).
 
 **Meldingen.** Het belletje toont meldingen in de applicatie; wie dat toestaat krijgt ze ook als pushbericht op telefoon of computer. Twee soorten:
 

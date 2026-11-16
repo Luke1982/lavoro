@@ -33,9 +33,8 @@
                                         </dd>
                                     </div>
                                 </dl>
-                                <div v-if="event.actorName || event.actorType !== 'user'"
-                                    class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
-                                    {{ NAMED_ACTORS.includes(event.actorType) ? event.actorName : 'Systeem' }}
+                                <div v-if="event.byline" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
+                                    {{ event.byline }}
                                 </div>
                                 <div v-if="event.serviceOrderId" class="mt-0.5 text-[11px]">
                                     <a :href="`/serviceorders/${event.serviceOrderId}`"
@@ -112,6 +111,20 @@ const props = defineProps({
  */
 const NAMED_ACTORS = ['user', 'customer'];
 
+/**
+ * Who did it and, when it came off the bakje, how: "Sanne de Vries · via het
+ * bakje". An ordinary entry by a person shows no line when their name is gone.
+ */
+const byline = (a) => {
+    const actorType = a.actor_type ?? 'user';
+    const actorName = a.actor_name ?? a.user?.name ?? null;
+    const actor = actorName || actorType !== 'user'
+        ? (NAMED_ACTORS.includes(actorType) ? actorName : 'Systeem')
+        : null;
+
+    return [actor, a.via === 'tray' ? 'via het bakje' : null].filter(Boolean).join(' · ');
+};
+
 const CATEGORY_MAP = {
     created: { icon: PlusIcon, bg: 'bg-blue-500' },
     updated: { icon: PencilSquareIcon, bg: 'bg-amber-500' },
@@ -164,8 +177,7 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         rendered: a.rendered ?? summarise(a),
         fieldChanges: a.field_changes ?? [],
         user: a.user ?? null,
-        actorName: a.actor_name ?? a.user?.name ?? null,
-        actorType: a.actor_type ?? 'user',
+        byline: byline(a),
         executing_users: a.executing_users || [],
         thumbnailPath: a.metadata?.thumbnail_path ?? null,
         is_event: a.category === 'event',

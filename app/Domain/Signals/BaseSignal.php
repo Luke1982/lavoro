@@ -3,6 +3,7 @@
 namespace App\Domain\Signals;
 
 use App\Domain\Assistant\AssistantContext;
+use App\Domain\Tray\TrayContext;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
 
@@ -46,6 +47,9 @@ abstract class BaseSignal implements Signal
 
     public ?string $correlation_id = null;
 
+    /** How the person did it, when that is worth recording: 'tray' for a paste off the bakje. */
+    public ?string $via = null;
+
     public function __construct()
     {
         $assistant = app(AssistantContext::class);
@@ -60,6 +64,7 @@ abstract class BaseSignal implements Signal
             default => 'system',
         };
         $this->occurred_at = new \DateTimeImmutable;
+        $this->via = app(TrayContext::class)->isActive() ? TrayContext::VIA : null;
     }
 
     public static function label(): string
@@ -131,6 +136,11 @@ abstract class BaseSignal implements Signal
     public function actorName(): ?string
     {
         return $this->actor_name;
+    }
+
+    public function via(): ?string
+    {
+        return $this->via;
     }
 
     public function occurredAt(): \DateTimeImmutable

@@ -562,6 +562,7 @@ import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
+import { useTray, isTrayDrag, readTrayDrag, endTrayDrag, pasteFromTray } from '@/Composables/useTray.js'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
@@ -631,6 +632,7 @@ const props = defineProps({
 const emit = defineEmits(['service-order-planned', 'service-order-unplanned'])
 
 const page = usePage()
+const { state: trayState } = useTray()
 
 const authUserId = computed(() => page.props.auth?.user?.id ?? null)
 
@@ -2068,8 +2070,18 @@ function dropStartMinutes(info, durationMin) {
     return Math.max(0, Math.min(maxStart, snapped))
 }
 
+/**
+ * Werkbonnen from the list beside the planner, and storingen off the bakje. A
+ * bakje drag only counts when it carries storingen: those can become a werkbon,
+ * nothing else on the bakje has a place on the planner yet.
+ */
+function acceptsDrag(e) {
+    if (e.dataTransfer?.types?.includes('application/x-planner-payload')) return true
+    return isTrayDrag(e) && trayState.dragging?.kind === 'ticket'
+}
+
 function onDragOver(e) {
-    if (!(e.dataTransfer && e.dataTransfer.types?.includes('application/x-planner-payload'))) return
+    if (!acceptsDrag(e)) return
     dragPointerY = e.clientY
     startDragAutoScroll()
     const info = cellInfoFromPoint(e.clientX, e.clientY)
@@ -2197,28 +2209,60 @@ function onProjectServiceOrderDragEnd(e) {
     e.currentTarget.classList.remove('opacity-40')
 }
 
+/**
+ * Where a drop lands on a technician's day, for how long, and what to do there:
+ * at once when that time is free, or after a planner who may plan over someone's
+ * absence has said so.
+ */
+function dropAt(e, user, day, duration, place) {
+    const info = cellInfoFromPoint(e.clientX, e.clientY)
+    if (!info) return
+    const startMin = dropStartMinutes(info, duration)
+    const start = dateFromDayIsoAndMinutes(day.iso, startMin)
+    const end = new Date(start.getTime() + duration * 60000)
+    const go = () => place(start, end)
+    if (!isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) {
+        go()
+    } else if (props.allowOverrideUnavailability) {
+        requestOverride(getBlockedUsers(user.id, day.iso, startMin, startMin + duration), go)
+    }
+}
+
 function onExternalDrop(e, user, day) {
     dragGhost.value = null
     stopDragAutoScroll()
+    if (isTrayDrag(e)) {
+        dropFromTray(e, user, day)
+        return
+    }
     const raw = e.dataTransfer?.getData('application/x-planner-payload')
     if (!raw) return
     let payload
     try { payload = JSON.parse(raw) } catch { return }
 
-    const info = cellInfoFromPoint(e.clientX, e.clientY)
-    if (!info) return
-    const duration = payload.duration_minutes || plannerMinutes.value
-    const startMin = dropStartMinutes(info, duration)
-    const start = dateFromDayIsoAndMinutes(day.iso, startMin)
-    const end = new Date(start.getTime() + duration * 60000)
-    if (isBlockedAtTime(user.id, day.iso, startMin, startMin + duration)) {
-        if (props.allowOverrideUnavailability) {
-            const blockedUsers = getBlockedUsers(user.id, day.iso, startMin, startMin + duration)
-            requestOverride(blockedUsers, () => createEventFromDrop({ start, end, userId: user.id, payload }))
-        }
-        return
-    }
-    createEventFromDrop({ start, end, userId: user.id, payload })
+    dropAt(e, user, day, payload.duration_minutes || plannerMinutes.value,
+        (start, end) => createEventFromDrop({ start, end, userId: user.id, payload }))
+}
+
+/**
+ * Storingen off the bakje on a technician's day. Which werkbon they go on is the
+ * bakje's question to ask; the planner only says who, when and for how long.
+ */
+function dropFromTray(e, user, day) {
+    const payload = readTrayDrag(e)
+    endTrayDrag()
+    if (payload?.kind !== 'ticket') return
+
+    dropAt(e, user, day, plannerMinutes.value, (start, end) => pasteFromTray(payload.item_ids, {
+        type: 'planner',
+        user_id: user.id,
+        start: formatUtcDatetime(start).slice(0, 16),
+        end: formatUtcDatetime(end).slice(0, 16),
+        event_type_id: props.eventTypes[0]?.id,
+    }, (data) => {
+        fetchEvents()
+        if (data.created?.service_order_id) emit('service-order-planned', data.created.service_order_id)
+    }))
 }
 
 async function createEventFromDrop({ start, end, userId, payload }) {

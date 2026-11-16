@@ -79,5 +79,8 @@ interface Signal
 
     public function actorName(): ?string;
 
+    /** How the person did it, when that is worth recording: 'tray' for a paste off the bakje. */
+    public function via(): ?string;
+
     public function occurredAt(): \DateTimeImmutable;
 }

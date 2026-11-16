@@ -46,6 +46,12 @@
                             <ArrowTopRightOnSquareIcon class="size-4" />
                         </Link>
 
+                        <button type="button" @click="placeOnTray('ticket', [ticket.id], $event.currentTarget)"
+                            class="group hidden lg:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-sidebar-bg hover:opacity-90 active:scale-95 rounded-md transition cursor-pointer">
+                            <Inbox class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
+                            Op het bakje
+                        </button>
+
                         <!-- Het pictogram zegt wat de klik doet: een belletje erbij als je nog
                              niet volgt, een doorgestreept belletje om te stoppen. -->
                         <button type="button" @click="toggleFollow" :disabled="followBusy"
@@ -390,7 +396,8 @@ import {
 import { MenuItem } from '@headlessui/vue';
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
-import { BellOff, BellPlus, Siren, TimelineIcon } from '@lucide/vue';
+import { BellOff, BellPlus, Inbox, Siren, TimelineIcon } from '@lucide/vue';
+import { placeOnTray } from '@/Composables/useTray.js';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';

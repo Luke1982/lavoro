@@ -343,6 +343,11 @@ class User extends Authenticatable
         return $this->hasMany(DeviceToken::class);
     }
 
+    public function trayItems(): HasMany
+    {
+        return $this->hasMany(TrayItem::class);
+    }
+
     /**
      * Not notifications(): that name belongs to the Notifiable trait, which reads
      * Laravel's own database channel and knows nothing about these.

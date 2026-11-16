@@ -99,6 +99,8 @@
 
         <!-- Ungated on purpose: it finds nothing you could not already reach. -->
         <NavigatorSpotlight />
+
+        <TrayDock v-if="page.props.auth?.user" />
 </template>
 
 <script setup>
@@ -118,6 +120,7 @@ import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
 import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
+import TrayDock from '@/Components/Tray/TrayDock.vue'
 import { openNavigator } from '@/Composables/useNavigator.js'
 import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'

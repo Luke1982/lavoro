@@ -15,6 +15,7 @@ use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\ServiceOrderEventWidgetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceCheckApiController;
 use App\Http\Controllers\TicketInfoRequestController;
+use App\Http\Controllers\TrayController;
 use App\Http\Controllers\UnavailabilityApiController;
 use App\Http\Controllers\UserPlanGroupController;
 use App\Http\Controllers\UserPlannableController;
@@ -29,6 +30,14 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('dayroutes', [DayRouteController::class, 'index']);
     Route::post('dayroutes', [DayRouteController::class, 'store']);
     Route::delete('dayroutes/{day_route}', [DayRouteController::class, 'destroy']);
+
+    Route::get('tray', [TrayController::class, 'index']);
+    Route::post('tray', [TrayController::class, 'store']);
+    Route::delete('tray', [TrayController::class, 'clear']);
+    Route::post('tray/paste', [TrayController::class, 'paste']);
+    Route::post('tray/undo', [TrayController::class, 'undo']);
+    Route::patch('tray/{tray_item}', [TrayController::class, 'update']);
+    Route::delete('tray/{tray_item}', [TrayController::class, 'destroy']);
 
     Route::resource('events', EventApiController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('events/search', [EventApiController::class, 'search']);

@@ -61,4 +61,18 @@ class TicketPolicy
     {
         return $user->hasPermission('ticket.add_to_serviceorder');
     }
+
+    public function detachFromServiceOrder(User $user, Ticket $ticket): bool
+    {
+        return $user->hasPermission('ticket.detach_from_serviceorder');
+    }
+
+    /**
+     * Hanging a storing off another machine: the one it was reported on was the
+     * wrong one. An ordinary edit of the storing, so the ordinary right.
+     */
+    public function moveToAsset(User $user, Ticket $ticket): bool
+    {
+        return $user->hasPermission('ticket.update');
+    }
 }

@@ -244,10 +244,17 @@
                         Deselecteer alles
                     </button>
                 </div>
-                <button type="button" @click="openBulkEditDrawer"
-                    class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
-                    Bewerken
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="putSelectionOnTray($event)"
+                        class="group hidden lg:inline-flex items-center gap-2 bg-sidebar-bg text-white font-bold text-sm px-4 py-2 rounded-md hover:opacity-90 active:scale-95 transition">
+                        <InboxIcon class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
+                        Op het bakje
+                    </button>
+                    <button type="button" @click="openBulkEditDrawer"
+                        class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
+                        Bewerken
+                    </button>
+                </div>
             </div>
         </Transition>
     </Teleport>
@@ -267,7 +274,8 @@ import StatCard from '@/Components/UI/StatCard.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
-import { EyeIcon, AlertCircleIcon, MapIcon } from '@lucide/vue'
+import { EyeIcon, AlertCircleIcon, MapIcon, InboxIcon } from '@lucide/vue'
+import { placeOnTray } from '@/Composables/useTray.js'
 import { formatAddress, hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -353,6 +361,11 @@ function toggleSelectAll() {
         const existing = new Set(selectedIds.value)
         props.tickets.data.forEach(t => { if (!existing.has(t.id)) selectedIds.value.push(t.id) })
     }
+}
+
+async function putSelectionOnTray(event) {
+    await placeOnTray('ticket', selectedIds.value, event.currentTarget)
+    selectedIds.value = []
 }
 
 const bulkEditOpen = ref(false)

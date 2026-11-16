@@ -73,6 +73,7 @@ class RecordActivity
             'user_id' => $signal->actorId(),
             'actor_type' => $signal->actorType(),
             'actor_name' => $signal->actorName(),
+            'via' => $signal->via(),
             'metadata' => $signal->activityMetadata(),
             'occurred_at' => $signal->occurredAt(),
             'correlation_id' => $signal->correlationId(),

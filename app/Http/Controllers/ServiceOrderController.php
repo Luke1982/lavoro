@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
+use App\Actions\Tickets\AttachTicketToServiceOrderAction;
+use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
 use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
 use App\Domain\Signals\ServiceOrders\ServiceOrderSigned;
-use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
-use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
 use App\Http\Requests\ServiceOrderBulkUpdateRequest;
@@ -882,11 +882,7 @@ class ServiceOrderController extends Controller
     public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
     {
         Gate::authorize('attach-to-service-order', $ticket);
-        $ticket->update(['service_order_id' => $serviceorder->id]);
-        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
-        if ($asset) {
-            Signals::dispatch(new TicketAttachedToOrder($serviceorder, $ticket, $asset));
-        }
+        app(AttachTicketToServiceOrderAction::class)->execute($serviceorder, $ticket);
 
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');
     }
@@ -899,11 +895,7 @@ class ServiceOrderController extends Controller
         ServiceOrder $serviceorder,
         Ticket $ticket
     ) {
-        $ticket->update(['service_order_id' => null]);
-        $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
-        if ($asset) {
-            Signals::dispatch(new TicketDetachedFromOrder($serviceorder, $ticket, $asset));
-        }
+        app(DetachTicketFromServiceOrderAction::class)->execute($serviceorder, $ticket);
 
         return redirect()->back()->with('success', 'Ticket succesvol losgekoppeld van de werkbon.');
     }

@@ -75,7 +75,8 @@ class SearchActivityTool implements Tool
         return 'Doorzoekt de geschiedenis van wijzigingen: wie heeft wat wanneer veranderd, '
             . 'met de waarde ervoor en erna. Gebruik dit voor elke vraag over het verleden — '
             . '"wie heeft dit gewijzigd", "wanneer is dit afgesloten", "wat is er vorige week gebeurd" — '
-            . 'in plaats van de huidige stand te raden.';
+            . 'in plaats van de huidige stand te raden. Staat bij een wijziging via = tray, dan deed '
+            . 'de persoon het door iets uit het bakje te plakken.';
     }
 
     public function inputSchema(): array
@@ -221,6 +222,7 @@ class SearchActivityTool implements Tool
              */
             'actor' => $activity->actor_name ?? $activity->user?->name,
             'actor_type' => $activity->actor_type,
+            'via' => $activity->via,
             'changes' => $activity->fieldChanges->map(fn (ActivityChange $change) => [
                 'field' => $change->field,
                 'label' => $change->label,

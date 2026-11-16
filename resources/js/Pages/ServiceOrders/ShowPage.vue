@@ -190,7 +190,8 @@
                             <ServiceJobsTable :servicejobs="serviceOrder.servicejobs" class="mt-4" />
                         </BoxComponent>
                         <BoxComponent class="my-4"
-                            v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')">
+                            v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
+                            v-tray-drop="{ accepts: ['ticket'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'Loslaten om op deze werkbon te zetten' }">
                             <SectionHeader :icon="ExclamationTriangleIcon" title="Storingen"
                                 subtitle="Koppel een bestaande storing aan dit werk of voeg een nieuwe toe."
                                 chapter="tickets">
@@ -657,6 +658,7 @@
 </template>
 
 <script setup>
+import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ButtonGroup from '@/Components/UI/ButtonGroup.vue'
@@ -1322,6 +1324,7 @@ const timelineItems = computed(() => {
         description: a.description,
         created_at: a.created_at,
         executing_users: a.user ? [a.user] : [],
+        via: a.via ?? null,
     }));
     const evts = (props.serviceOrder.events || []).map(e => ({
         id: `evt-${e.id}`,

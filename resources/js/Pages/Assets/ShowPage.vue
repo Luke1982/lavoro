@@ -137,7 +137,8 @@
                 <CustomFieldsComponent v-if="customFields.length" model-type="asset" :model-id="asset.id"
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
-            <BoxComponent class="mt-5" v-auto-animate>
+            <BoxComponent class="mt-5" v-auto-animate
+                v-tray-drop="{ accepts: ['ticket'], target: { type: 'asset', id: asset.id }, label: 'Loslaten om aan deze machine te hangen' }">
                 <SectionHeader :icon="ExclamationCircleIcon" title="Storingen"
                     subtitle="Openstaande en afgehandelde storingen aan deze machine." chapter="tickets">
                     <template #actions>
@@ -467,6 +468,7 @@
 </template>
 
 <script setup>
+import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import BoxComponent from '@/Components/BoxComponent.vue';
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';

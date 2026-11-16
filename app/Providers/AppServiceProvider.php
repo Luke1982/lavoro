@@ -13,6 +13,7 @@ use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
 use App\Domain\Tools\ToolRegistry;
+use App\Domain\Tray\TrayContext;
 use App\Exceptions\GraphNotConfigured;
 use App\Jobs\Google\DeleteEventFromGoogleJob;
 use App\Jobs\Google\PushEventJob;
@@ -84,6 +85,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(JobProcessing::class, fn () => app(Signals::class)->startFresh());
 
         $this->app->singleton(AssistantContext::class);
+        $this->app->singleton(TrayContext::class);
 
         /**
          * Shared for the length of one request, so the tool and the crew planner
@@ -104,6 +106,7 @@ class AppServiceProvider extends ServiceProvider
             ActivityBuffer::class,
             Signals::class,
             AssistantContext::class,
+            TrayContext::class,
             TechnicianAvailability::class,
             MailerState::class,
             CacheRateLimiter::class,

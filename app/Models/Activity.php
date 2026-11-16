@@ -23,6 +23,7 @@ class Activity extends Model
         'user_id',
         'actor_type',
         'actor_name',
+        'via',
         'metadata',
         'occurred_at',
         'correlation_id',

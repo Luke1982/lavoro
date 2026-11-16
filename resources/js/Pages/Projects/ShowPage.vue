@@ -288,7 +288,8 @@
                                 imageable-type="\App\Models\Project" />
                         </BoxComponent>
 
-                        <BoxComponent class="mt-4 grow">
+                        <BoxComponent class="mt-4 grow"
+                            v-tray-drop="{ accepts: ['ticket'], target: { type: 'project', id: project.id }, label: 'Loslaten voor een werkbon onder dit project' }">
                             <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
                                 subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
                                 <template v-if="canCreateServiceOrder" #actions>
@@ -409,6 +410,7 @@
 </template>
 
 <script setup>
+import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import { ref, reactive, watch, computed } from 'vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { useForm, Link } from '@inertiajs/vue3'
