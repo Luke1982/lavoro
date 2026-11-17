@@ -199,6 +199,7 @@ class ProductController extends Controller
 
         return inertia('Products/ShowPage', [
             'product' => $product,
+            'machineOption' => $product->toMachineOption(),
             'documentCategories' => DocumentCategory::forPicker(),
             'productTypes' => ProductType::flatListWithPath(),
             'allCustomers' => $customer_count <= 50

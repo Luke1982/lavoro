@@ -10,11 +10,10 @@ use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Models\Customer;
-use App\Models\Product;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use App\Services\ProductableService;
 use App\Services\SnelStartClient;
+use App\Support\NewMachineForm;
 use App\Traits\OffersContractTemplates;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +135,6 @@ class CustomerController extends Controller
         }
 
         $customer_count = Customer::count();
-        $product_count = Product::count();
         $billing_customer = $customer->billing_customer_id
             ? Customer::find($customer->billing_customer_id, ['id', 'name'])
             : null;
@@ -145,21 +143,16 @@ class CustomerController extends Controller
                 ->orderBy('name')
                 ->get()
             : collect($billing_customer ? [['id' => $billing_customer->id, 'name' => $billing_customer->name]] : []);
-        $allProducts = $product_count <= 50
-            ? Product::with(['brand', 'productType'])->orderBy('model')->get()
-            : collect();
 
         return inertia('Customers/ShowPage', [
             'customer' => $customer,
             'assets' => $customer->activeAssets,
             'allCustomers' => $allCustomers,
             'customersUseAjax' => $customer_count > Customer::COMBO_AJAX_THRESHOLD,
-            'allProducts' => $allProducts,
-            'productsUseAjax' => $product_count > 50,
+            ...NewMachineForm::propsFor($request->user()),
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),
             'customFields' => $customer->allCustomFieldsWithValues(),
-            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
             'contractTemplates' => $this->templatesFor($request),
             'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),

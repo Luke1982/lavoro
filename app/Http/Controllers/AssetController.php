@@ -15,15 +15,13 @@ use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
-use App\Models\Product;
 use App\Models\Productable;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Services\AssetTransferService;
-use App\Services\ProductableService;
+use App\Support\NewMachineForm;
 use App\Traits\ReadsPerPage;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
@@ -83,21 +81,16 @@ class AssetController extends Controller
 
         $this->attachOwningCustomers($assets->getCollection());
 
-        $all_products = $this->productOptions();
-
         $customer_count = Customer::count();
-        $product_count = Product::count();
 
         return inertia('Assets/IndexPage', [
             'assets' => $assets,
             'initialSearch' => $search,
-            'allProducts' => $product_count <= 50 ? $all_products : collect(),
-            'productsUseAjax' => $product_count > 50,
             'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
             'customersUseAjax' => $customer_count > 50,
-            'bundlePartsByProduct' => ProductableService::bundlePartsMap(),
+            ...NewMachineForm::propsFor($request->user()),
             'perPage' => $this->perPage($request),
         ]);
     }
@@ -169,7 +162,6 @@ class AssetController extends Controller
      */
     public function show(AssetReadRequest $request, Asset $asset)
     {
-        $all_products = $this->productOptions();
         $relations = [
             'images',
             'tickets.asset.product.brand',
@@ -228,7 +220,6 @@ class AssetController extends Controller
         }
 
         $customer_count = Customer::count();
-        $product_count = Product::count();
 
         /**
          * A child machine has no customer of its own — it is owned through the machine it
@@ -244,8 +235,7 @@ class AssetController extends Controller
 
         return inertia('Assets/ShowPage', [
             'asset' => $asset,
-            'allProducts' => $product_count <= 50 ? $all_products : collect(),
-            'productsUseAjax' => $product_count > 50,
+            ...NewMachineForm::productPickerProps(),
             'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect($preselected_customer),
@@ -412,22 +402,6 @@ class AssetController extends Controller
         return redirect()
             ->route('assets.index')
             ->with('success', 'Machine verwijderd.');
-    }
-
-    /**
-     * Every product as the machine forms offer it, ordered by type. Bundle and registable
-     * ride along because they decide whether the form asks for a serienummer at all.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function productOptions(): Collection
-    {
-        return Product::with(['brand', 'productType'])
-            ->join('product_types', 'products.product_type_id', '=', 'product_types.id')
-            ->orderBy('product_types.name', 'ASC')
-            ->select('products.*')
-            ->get()
-            ->map->toMachineOption();
     }
 
     /**

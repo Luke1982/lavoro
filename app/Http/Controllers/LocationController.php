@@ -10,6 +10,7 @@ use App\Http\Requests\LocationStoreRequest;
 use App\Http\Requests\LocationUpdateCoordsRequest;
 use App\Http\Requests\LocationUpdateRequest;
 use App\Models\Location;
+use App\Support\NewMachineForm;
 
 class LocationController extends Controller
 {
@@ -45,6 +46,7 @@ class LocationController extends Controller
 
         return inertia('Locations/ShowPage', [
             'location' => $location,
+            ...NewMachineForm::propsFor($request->user()),
         ]);
     }
 

@@ -619,11 +619,8 @@
     <MaintenanceContractCreateDrawer v-model="showMaintenanceContractDrawer" :customer="customer"
         :templates="contractTemplates" :contract-interval-options="contractIntervalOptions" />
 
-    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Nieuwe machine voor ${form.name}`">
-        <AddAssetForm :customerId="customer.id" :allProducts="allProducts" :products-use-ajax="productsUseAjax"
-            :bare="true" :bundle-parts-by-product="bundlePartsByProduct"
-            @created="addAssetDrawerOpen = false" />
-    </DrawerComponent>
+    <AssetCreateDrawer v-model="addAssetDrawerOpen" :customer="customer" :all-products="allProducts"
+        :products-use-ajax="productsUseAjax" :bundle-parts-by-product="bundlePartsByProduct" />
 </template>
 
 <script setup>
@@ -654,7 +651,7 @@ import { ref, computed, watch } from 'vue';
 import { canCreateMaintenanceContract, hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
 import ServiceOrderList from '@/Components/ServiceOrderList.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
-import AddAssetForm from '@/Components/AddAssetForm.vue';
+import AssetCreateDrawer from '@/Components/Assets/AssetCreateDrawer.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { useComboSearch } from '@/Composables/useComboSearch';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';

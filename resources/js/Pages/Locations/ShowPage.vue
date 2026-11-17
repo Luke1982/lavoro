@@ -28,6 +28,10 @@
 
     <LocationDeleteModal v-model:open="deleteModalOpen" :location="location" :other-locations="otherLocations" />
 
+    <AssetCreateDrawer v-model="addAssetDrawerOpen" :customer="location.customer" :location="location"
+        :all-products="allProducts" :products-use-ajax="productsUseAjax"
+        :bundle-parts-by-product="bundlePartsByProduct" />
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
             <BoxComponent>
@@ -60,6 +64,11 @@
                 <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                     <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
                     <span class="text-sm font-medium">Machines op deze locatie</span>
+                    <button v-if="canCreateAsset" type="button" @click="addAssetDrawerOpen = true"
+                        class="text-blue-600 hover:text-blue-800 ml-1 p-1 cursor-pointer"
+                        v-tooltip="'Nieuwe machine op deze locatie'">
+                        <PlusIcon class="size-4" />
+                    </button>
                 </div>
                 <p v-if="!location.assets?.length" class="text-sm text-gray-400 italic">Geen machines op deze locatie.</p>
                 <ul v-else class="divide-y divide-gray-100 dark:divide-slate-800">
@@ -88,7 +97,7 @@
 
 <script setup>
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
-import { ChevronRightIcon, MapPinIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
+import { ChevronRightIcon, MapPinIcon, PlusIcon, PuzzlePieceIcon } from '@heroicons/vue/24/outline';
 import { TrashIcon } from '@lucide/vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref, watch, computed, onMounted } from 'vue';
@@ -97,14 +106,22 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import LocationDeleteModal from '@/Components/Locations/LocationDeleteModal.vue';
+import AssetCreateDrawer from '@/Components/Assets/AssetCreateDrawer.vue';
 import { hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     location: { type: Object, required: true },
+    allProducts: { type: Array, default: () => [] },
+    productsUseAjax: { type: Boolean, default: false },
+    bundlePartsByProduct: { type: Object, default: () => ({}) },
 });
 
 const canDelete = hasPermission('location.delete');
 const deleteModalOpen = ref(false);
+
+/** A machine always belongs to a customer, so a location without one has nowhere to put it. */
+const canCreateAsset = hasPermission('asset.create') && Boolean(props.location.customer);
+const addAssetDrawerOpen = ref(false);
 
 const { locations: customerLocations, load: loadCustomerLocations } = useCustomerLocations();
 const otherLocations = computed(() =>

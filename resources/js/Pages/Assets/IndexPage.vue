@@ -43,90 +43,9 @@
             </div>
         </template>
     </IndexHeaderComponent>
-    <DrawerComponent v-if="canCreate" v-model="addAssetDrawerOpen" title="Nieuwe machine toevoegen"
-        subtitle="Vul onderstaande velden in om een nieuwe machine toe te voegen.">
-        <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Product</label>
-                <div class="sm:col-span-2">
-                    <ProductPicker :options="productOptions" v-model="newAssetForm.product_id"
-                        :has-external-searching="productsUseAjax" :searching="productSearching"
-                        @change="searchProducts" @created="option => productOptions.unshift(option)"
-                        :has-error="Boolean(newAssetForm.errors.product_id)"
-                        :error-message="newAssetForm.errors.product_id" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
-                <div class="sm:col-span-2">
-                    <CustomerPicker :options="customerOptions" v-model="newAssetForm.customer_id"
-                        :has-external-searching="customersUseAjax" :searching="customerSearching"
-                        @change="searchCustomers" @created="option => customerOptions.unshift(option)"
-                        :has-error="Boolean(newAssetForm.errors.customer_id)"
-                        :error-message="newAssetForm.errors.customer_id" />
-                </div>
-            </div>
-            <Transition v-bind="fadeUp">
-                <div v-if="newAssetLocationOptions.length"
-                    class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                    <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Locatie</label>
-                    <div class="sm:col-span-2">
-                        <ComboBox :options="newAssetLocationOptions" v-model="newAssetForm.location_id"
-                            :empty-message="newAssetLocationMessage" placeholder="Geen locatie" />
-                    </div>
-                </div>
-            </Transition>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Serienummer</label>
-                <div class="sm:col-span-2 flex items-start gap-2">
-                    <TextInput v-model="newAssetForm.serial_number" class="flex-1"
-                        :placeholder="newSerialPlaceholder" :disabled="!newNeedsSerial"
-                        :hasError="Boolean(newAssetForm.errors.serial_number)"
-                        :errorMessage="newAssetForm.errors.serial_number" />
-                    <ScanSerialButton :disabled="!newNeedsSerial" class="mt-0.5"
-                        @picked="newAssetForm.serial_number = $event" />
-                </div>
-            </div>
-            <Transition v-bind="fadeUp">
-                <BundlePartsFields v-model="newAssetForm.child_assets" :product-id="newAssetForm.product_id"
-                    :bundle-parts="bundlePartsByProduct" :errors="newAssetForm.errors" class="px-4 sm:px-6 py-4" />
-            </Transition>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">In gebruikname</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newAssetForm.date_in_service" type="date"
-                        :hasError="Boolean(newAssetForm.errors.date_in_service)"
-                        :errorMessage="newAssetForm.errors.date_in_service" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Volgende keuring</label>
-                <div class="sm:col-span-2">
-                    <TextInput v-model="newAssetForm.next_service_date" type="date"
-                        :hasError="Boolean(newAssetForm.errors.next_service_date)"
-                        :errorMessage="newAssetForm.errors.next_service_date" />
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
-                <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Actief</label>
-                <div class="sm:col-span-2">
-                    <SwitchComponent v-model="newAssetForm.is_active" />
-                </div>
-            </div>
-        </div>
-        <template #footer>
-            <div class="flex justify-end gap-2">
-                <button type="button" @click="closeAssetDrawer"
-                    class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
-                    Annuleren
-                </button>
-                <button type="button" @click="submitAsset" :disabled="newAssetForm.processing"
-                    class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
-                    Toevoegen
-                </button>
-            </div>
-        </template>
-    </DrawerComponent>
+    <AssetCreateDrawer v-model="addAssetDrawerOpen" :all-products="allProducts" :products-use-ajax="productsUseAjax"
+        :all-customers="allCustomers" :customers-use-ajax="customersUseAjax"
+        :bundle-parts-by-product="bundlePartsByProduct" />
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div
@@ -227,25 +146,16 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { RotateCcwIcon } from '@lucide/vue';
-import { Link, useForm } from '@inertiajs/vue3';
-import { useCustomerLocations } from '@/Composables/useCustomerLocations';
+import { Link } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
-import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue';
-import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
-import TextInput from '@/Components/UI/TextInput.vue';
-import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
-import BundlePartsFields from '@/Components/BundlePartsFields.vue';
-import ProductPicker from '@/Components/Products/ProductPicker.vue';
-import CustomerPicker from '@/Components/Customers/CustomerPicker.vue';
-import { hasPermission, todayIso, nextServiceIso, nlDate } from '@/Utilities/Utilities';
-import { fadeUp } from '@/Utilities/transitions';
-import { useComboSearch } from '@/Composables/useComboSearch';
+import AssetCreateDrawer from '@/Components/Assets/AssetCreateDrawer.vue';
+import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
@@ -264,11 +174,6 @@ const props = defineProps({
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     perPage: { type: Number, default: 20 },
 });
-
-const { options: productOptions, searching: productSearching, search: searchProducts } =
-    useComboSearch('products', props.allProducts, props.productsUseAjax)
-
-// no per-page search state needed; SearchComponent handles it
 
 const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
 const selectedTicketFilter = ref(Number(localStorage.getItem('selectedAssetTicketFilter')) || 1);
@@ -334,62 +239,5 @@ function clearAllFilters() {
     localStorage.setItem('selectedAssetTicketFilter', 1);
 }
 
-const { options: customerOptions, searching: customerSearching, search: searchCustomers } =
-    useComboSearch('customers', props.allCustomers, props.customersUseAjax)
-
-const newAssetForm = useForm({
-    product_id: null,
-    customer_id: null,
-    location_id: null,
-    serial_number: '',
-    date_in_service: todayIso(),
-    next_service_date: '',
-    is_active: true,
-    child_assets: [],
-})
-
-const { locations: newAssetLocationOptions, load: loadNewAssetLocations, message: newAssetLocationMessage } = useCustomerLocations()
-
-watch(() => newAssetForm.customer_id, (customerId) => {
-    newAssetForm.location_id = null
-    loadNewAssetLocations(customerId)
-})
-
-const newProduct = computed(() =>
-    productOptions.value.find(p => p.id === newAssetForm.product_id) ?? null
-)
-
-/**
- * A bundel is a container and a product that is not registreerbaar is counted rather than
- * written down, so neither offers a serienummer field.
- */
-const newNeedsSerial = computed(() =>
-    newProduct.value !== null && !newProduct.value.bundle && newProduct.value.registable !== false
-)
-
-const newSerialPlaceholder = computed(() => {
-    if (newProduct.value?.bundle) return 'Bundel — geen serienummer'
-    if (newProduct.value && !newNeedsSerial.value) return 'Dit product wordt niet op serienummer geregistreerd'
-    return 'Serienummer'
-})
-
-watch(() => newAssetForm.product_id, (productId) => {
-    const product = productOptions.value.find(p => p.id === productId)
-    newAssetForm.next_service_date = nextServiceIso(product) ?? ''
-})
-
-function closeAssetDrawer() {
-    addAssetDrawerOpen.value = false
-    newAssetForm.reset()
-    newAssetForm.clearErrors()
-}
-
 const canCreate = computed(() => hasPermission('asset.create'))
-
-function submitAsset() {
-    newAssetForm.post('/assets', {
-        preserveScroll: true,
-        onSuccess: () => closeAssetDrawer(),
-    })
-}
 </script>

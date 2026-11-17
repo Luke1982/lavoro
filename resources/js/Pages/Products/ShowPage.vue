@@ -574,15 +574,8 @@
         </div>
     </div>
 
-    <!-- Add asset drawer -->
-    <DrawerComponent v-model="addAssetDrawerOpen" :title="`Voeg een ${product.brand.name} ${product.model} toe`">
-        <AddAssetForm :allCustomers="allCustomers" :customersUseAjax="customersUseAjax" :productId="product.id"
-            :isBundle="product.bundle" :isRegistable="product.registable"
-            :productTypicalDays="product.typical_certificate_days"
-            :productTypeTypicalDays="product.product_type?.typical_certificate_days"
-            :bundle-parts-by-product="bundlePartsByProduct" :bare="true"
-            @created="addAssetDrawerOpen = false" />
-    </DrawerComponent>
+    <AssetCreateDrawer v-model="addAssetDrawerOpen" :product="machineOption" :all-customers="allCustomers"
+        :customers-use-ajax="customersUseAjax" :bundle-parts-by-product="bundlePartsByProduct" />
 </template>
 
 <script setup>
@@ -590,7 +583,6 @@ import BoxComponent from '@/Components/BoxComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
-import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
@@ -605,7 +597,7 @@ import axios from 'axios';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import AssetListComponent from '@/Components/AssetListComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import AddAssetForm from '@/Components/AddAssetForm.vue';
+import AssetCreateDrawer from '@/Components/Assets/AssetCreateDrawer.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
@@ -640,6 +632,7 @@ const props = defineProps({
     productSuppliers: { type: Array, default: () => [] },
     allSuppliers: { type: Array, default: () => [] },
     suppliersUseAjax: { type: Boolean, default: false },
+    machineOption: { type: Object, required: true },
 });
 
 const { options: supplierOptions, searching: supplierSearching, search: searchSuppliers } =
