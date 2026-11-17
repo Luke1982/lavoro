@@ -78,6 +78,7 @@
                     -->
                     <component v-else :is="tab.href ? Link : 'button'" :href="tab.href"
                         :type="tab.href ? null : 'button'" :aria-expanded="tab.href ? null : tab.active"
+                        :data-tray-dock="tab.action === 'tray' ? '' : null"
                         :class="[TAB_CLASS, tab.active ? 'text-lavoro-blue' : 'text-sidebar-muted']"
                         @click="tab.action && act(tab.action)">
                         <span class="relative flex">

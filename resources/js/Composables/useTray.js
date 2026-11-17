@@ -1,4 +1,4 @@
-import { reactive } from 'vue'
+import { computed, onBeforeUnmount, reactive, toRaw, watchEffect } from 'vue'
 import axios from 'axios'
 
 /**
@@ -18,6 +18,7 @@ const DND_MIME = 'application/x-lavoro-tray'
 const state = reactive({
     items: [],
     kinds: {},
+    current: null,
     open: false,
     carrying: null,
     question: null,
@@ -54,15 +55,19 @@ async function send(method, url, data = undefined) {
 }
 
 /**
- * A small chip that flies from the button that was clicked to the bakje in the
- * corner, so a person sees where their storingen went. When the bakje was empty
- * it is not on the screen yet; the chip then lands where it is about to appear.
+ * A small chip that flies from the button that was clicked to the bakje, so a
+ * person sees where it went: the corner on a computer, the button in the bar on
+ * a phone. Whichever of them is on the screen is the one with a size. When the
+ * bakje was empty it is not on the screen yet; the chip then lands where it is
+ * about to appear.
  */
 function flyToTray(source, count) {
     if (!source || reducedMotion()) return
 
     const from = source.getBoundingClientRect()
-    const dock = document.querySelector('[data-tray-dock]')?.getBoundingClientRect()
+    const dock = [...document.querySelectorAll('[data-tray-dock]')]
+        .map(el => el.getBoundingClientRect())
+        .find(rect => rect.width > 0)
     const right = dock ? dock.right : window.innerWidth - 24
     const bottom = dock ? dock.bottom : window.innerHeight - 96
     const originX = from.left + from.width / 2
@@ -101,12 +106,14 @@ export function loadTray() {
     return loading
 }
 
+/** Puts records on the bakje. Says whether that worked; when it did not, the bakje has said why. */
 export async function placeOnTray(kind, ids, source = null) {
     flyToTray(source, ids.length)
     const data = await send('post', '/api/tray', { kind, ids })
-    if (!data) return
+    if (!data) return false
     state.items = data.items
     showToast({ message: ids.length === 1 ? 'Op het bakje gelegd.' : `${ids.length} op het bakje gelegd.` })
+    return true
 }
 
 export async function removeFromTray(item) {
@@ -247,6 +254,52 @@ export function readTrayDrag(event) {
     }
 }
 
+/**
+ * Tells the bakje which record this page is about, so the bakje can offer to put
+ * it on itself: on a phone there is no room for a button of its own on every
+ * page, and the bakje is where a person goes to use it anyway.
+ *
+ *     useTrayRecord('ticket', () => props.ticket.id)
+ *
+ * The id is read as a getter because Inertia keeps the page component when it
+ * moves from one storing to the next. Leaving, a page only clears its own record:
+ * the next page may have set its own already.
+ */
+export function useTrayRecord(kind, id) {
+    let mine = null
+
+    watchEffect(() => {
+        mine = { kind, id: id() }
+        state.current = mine
+    })
+
+    onBeforeUnmount(() => {
+        if (toRaw(state.current) === mine) state.current = null
+    })
+}
+
+/**
+ * The record this page is about, when it is a kind the bakje takes: what it is
+ * called, and whether it already lies on the bakje.
+ */
+const currentRecord = computed(() => {
+    const words = state.kinds[state.current?.kind]
+    if (!words) return null
+    const { kind, id } = state.current
+    return {
+        kind,
+        id,
+        one: words.one,
+        onTray: state.items.some(item => item.kind === kind && item.record_id === id),
+    }
+})
+
+/** Puts the record this page is about on the bakje. */
+export function placeCurrentOnTray(source) {
+    const record = currentRecord.value
+    if (record) placeOnTray(record.kind, [record.id], source)
+}
+
 export function useTray() {
-    return { state }
+    return { state, currentRecord }
 }

@@ -15,6 +15,13 @@
             en tik daarna op die plek.
         </p>
 
+        <button v-if="current && !current.onTray" type="button" @click="placeCurrentOnTray($event.currentTarget)"
+            class="group flex min-h-11 items-center gap-2.5 rounded-2xl border border-dashed border-sidebar-border px-3 py-2 text-left text-sm font-semibold text-white transition hover:border-sidebar-indicator hover:bg-sidebar-hover active:scale-[0.98]">
+            <PlusIcon class="size-5 flex-none text-sidebar-indicator transition-transform duration-300 group-hover:rotate-90" aria-hidden="true" />
+            Deze {{ current.one }} op het bakje leggen
+        </button>
+        <p v-else-if="current" class="px-1 text-xs text-slate-400">Deze {{ current.one }} ligt al op je bakje.</p>
+
         <p v-if="!state.items.length" class="py-4 text-center text-sm text-slate-400">Er ligt niets op je bakje.</p>
 
         <div v-auto-animate class="-mx-1 flex min-h-0 flex-col gap-2 overflow-y-auto p-1">
@@ -33,18 +40,18 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ChevronDownIcon, InboxIcon } from '@lucide/vue'
-import { useTray, clearTray } from '@/Composables/useTray.js'
+import { ChevronDownIcon, InboxIcon, PlusIcon } from '@lucide/vue'
+import { useTray, clearTray, placeCurrentOnTray } from '@/Composables/useTray.js'
 import { TRAY_COUNT } from '@/Components/Tray/trayLooks.js'
 import TrayItemCard from '@/Components/Tray/TrayItemCard.vue'
 import TrayStack from '@/Components/Tray/TrayStack.vue'
 
 /**
  * What lies on the bakje, kind by kind: one item on its own, several of a kind
- * on a stack. The same panel in the corner of a computer screen and in the sheet
- * on a phone.
+ * on a stack, and the record the page is about to put on it. The same panel in
+ * the corner of a computer screen and in the sheet on a phone.
  */
-const { state } = useTray()
+const { state, currentRecord: current } = useTray()
 
 const groups = computed(() => {
     const byKind = new Map()

@@ -214,29 +214,16 @@
         </template>
     </DrawerComponent>
 
-    <Teleport to="body">
-        <Transition enter-active-class="transition ease-out duration-200" enter-from-class="translate-y-full opacity-0"
-            enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-150"
-            leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-full opacity-0">
-            <div v-if="selectedIds.length"
-                class="fixed bottom-0 left-0 right-0 lg:left-72 z-40 bg-gray-100 text-gray-800 border-t border-gray-200 px-6 py-4 flex items-center justify-between shadow-lg">
-                <div class="flex items-center gap-4 text-sm">
-                    <span class="font-bold text-base">{{ selectedIds.length }} werkbonnen geselecteerd</span>
-                    <button type="button" @click="selectedIds = []"
-                        class="text-xs text-gray-500 underline hover:text-gray-700">
-                        Deselecteer alles
-                    </button>
-                </div>
-                <button type="button" @click="openBulkEditDrawer"
-                    class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
-                    Bewerken
-                </button>
-            </div>
-        </Transition>
-    </Teleport>
+    <SelectionBar :count="selectedIds.length" noun="werkbonnen" @clear="selectedIds = []">
+        <button type="button" @click="openBulkEditDrawer"
+            class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
+            Bewerken
+        </button>
+    </SelectionBar>
 </template>
 
 <script setup>
+import SelectionBar from '@/Components/UI/SelectionBar.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
