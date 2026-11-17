@@ -1,13 +1,13 @@
 <template>
-    <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto">
+    <BoxComponent extra-classes="flex flex-col h-full" padding="flex-1 min-h-0 overflow-y-auto" data-tour="planner.unplanned">
         <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2 px-3 pt-2">
                 <div class="text-xs text-lavoro-dark dark:text-slate-200 truncate">Niet ingeplande werkbonnen</div>
-                <SwitchComponent v-model="showContractOrders" :title="contractSwitchTitle" />
+                <SwitchComponent v-model="showContractOrders" :title="contractSwitchTitle" data-tour="planner.unplanned.contract" />
             </div>
 
             <div v-if="listedServiceOrders.length" class="px-3">
-                <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
+                <label data-tour="planner.unplanned.search" class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                     <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
                     <input v-model="searchQuery" type="text" placeholder="Zoeken op nummer, klant, plaats of omschrijving..."
                         class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
@@ -16,7 +16,7 @@
 
             <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
                 <div v-for="so in visibleServiceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
-                    @dragend="onDragEnd" @contextmenu="onContextMenu($event, so)" :data-so-id="so.id"
+                    @dragend="onDragEnd" @contextmenu="onContextMenu($event, so)" :data-so-id="so.id" data-tour="planner.unplanned.card"
                     class="group cursor-grab active:cursor-grabbing select-none p-3 transition"
                     :class="so.id === highlightId ? 'rounded-md ring-2 ring-inset ring-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/15' : ''"
                     :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
@@ -106,7 +106,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
-import ContextMenu from '@imengyu/vue3-context-menu'
+import { showContextMenu } from '@/Utilities/contextMenu'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import {
     ArrowsRightLeftIcon, CheckCircleIcon, DocumentCheckIcon, ExclamationTriangleIcon,
@@ -207,7 +207,7 @@ function onContextMenu(e, so) {
     if (!items.length) return
 
     e.preventDefault()
-    ContextMenu.showContextMenu({
+    showContextMenu({
         x: e.clientX,
         y: e.clientY,
         items: [{ label: `Werkbon #${so.id}`, disabled: true }, ...items],

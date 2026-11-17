@@ -15,6 +15,7 @@ use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\ServiceOrderEventWidgetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceCheckApiController;
 use App\Http\Controllers\TicketInfoRequestController;
+use App\Http\Controllers\TourProgressController;
 use App\Http\Controllers\TrayController;
 use App\Http\Controllers\UnavailabilityApiController;
 use App\Http\Controllers\UserPlanGroupController;
@@ -99,4 +100,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('users/{user}/plan-groups', [UserPlanGroupController::class, 'syncUserGroups']);
 
     Route::patch('users/{user}/plannable', UserPlannableController::class);
+
+    Route::get('tours/{tour}', [TourProgressController::class, 'show']);
+    Route::post('tours/{tour}', [TourProgressController::class, 'update']);
 });

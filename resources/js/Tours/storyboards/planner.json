@@ -1,0 +1,1203 @@
+{
+    "id": "planner",
+    "title": "Rondleiding door de planner",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en je kunt er altijd eentje overslaan.",
+    "page": "/planner",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "event.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "weg-vinden",
+            "version": 1,
+            "title": "Je weg vinden",
+            "summary": "Rijen en tijd, week en dag, springen naar een datum, zoeken en de instellingen.",
+            "requires": {
+                "device": "desktop"
+            },
+            "steps": [
+                {
+                    "spot": "planner.grid",
+                    "title": "Monteurs als rijen",
+                    "text": "Elke monteur heeft een eigen rij. De tijd loopt van links naar rechts, dag na dag.",
+                    "say": "Dit is de planner. Elke monteur heeft een eigen rij, en de tijd loopt van links naar rechts.",
+                    "aid": {
+                        "type": "sweep",
+                        "to": "planner.grid"
+                    }
+                },
+                {
+                    "spot": "planner.technicians",
+                    "placement": "right",
+                    "title": "Uren per monteur",
+                    "text": "Links staan de monteurs met de uren die er al gepland staan. Met het pijltje klap je een rij in, of alle rijen tegelijk.",
+                    "say": "Links zie je per monteur hoeveel uur er al gepland staat. Met het pijltje klap je een rij in, of alle rijen tegelijk.",
+                    "marks": [
+                        {
+                            "spot": "planner.row-toggle",
+                            "when": "pijltje"
+                        },
+                        {
+                            "spot": "planner.collapse-all",
+                            "when": "alle rijen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.views",
+                    "action": "showDayView",
+                    "title": "Week of dag",
+                    "text": "Wissel tussen de **week** en de **dag**. In de dagweergave krijgt elk uur meer ruimte.",
+                    "say": "Hier wissel je tussen week en dag. Kijk: in de dagweergave krijgt elk uur meer ruimte.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.views",
+                        "gesture": "click"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.views.week",
+                            "when": "week"
+                        },
+                        {
+                            "spot": "planner.views.day",
+                            "when": "dag"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.navigation",
+                    "title": "Vandaag, vorige en volgende",
+                    "text": "**Vandaag** brengt je terug naar nu. De pijltjes gaan een week terug of vooruit, of een dag in de dagweergave.",
+                    "say": "Met Vandaag ben je meteen terug bij nu. De pijltjes gaan een week terug of vooruit, of een dag als je de dag bekijkt.",
+                    "marks": [
+                        {
+                            "spot": "planner.today",
+                            "when": "Vandaag"
+                        },
+                        {
+                            "spot": "planner.prev-next",
+                            "when": "pijltjes"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.calendar.panel",
+                    "action": "openCalendar",
+                    "title": "Springen naar een datum",
+                    "text": "Het kalendertje toont een maand. Klik een dag en de planner springt erheen, in de weekweergave naar de week van die dag.",
+                    "say": "Met het kalendertje spring je naar elke datum. Klik een dag, en de planner gaat naar de week van die dag.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.calendar.panel",
+                        "gesture": "click"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.calendar",
+                            "when": "kalendertje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.search",
+                    "title": "Een afspraak zoeken",
+                    "text": "Zoek op klant, plaats of omschrijving. Kies een resultaat en de planner springt naar die afspraak en laat hem oplichten.",
+                    "say": "Zoek je een afspraak? Typ een klant, een plaats of een omschrijving, en kies hem uit de lijst. De planner springt erheen en laat hem even oplichten.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "planner.search",
+                        "text": "Bakker"
+                    }
+                },
+                {
+                    "spot": "planner.settings.panel",
+                    "action": "openSettings",
+                    "placement": "left",
+                    "title": "Instellingen",
+                    "text": "Onder de drie puntjes: **Exporteren** naar Excel, de **standaardduur** van een nieuwe afspraak en de **leidende kleur**: krijgt een afspraak de kleur van zijn afspraaktype, of die van de planrol van de monteur? Die laatste twee gelden voor iedereen; wat je niet mag wijzigen, staat er niet.",
+                    "say": "Onder de drie puntjes staan de instellingen. Exporteren, de standaardduur van een nieuwe afspraak, en welke kleur leidend is: die van de soort afspraak, of die van de rol van de monteur. Die gelden voor iedereen.",
+                    "marks": [
+                        {
+                            "spot": "planner.settings",
+                            "when": "drie puntjes"
+                        },
+                        {
+                            "spot": "planner.settings.export",
+                            "when": "Exporteren"
+                        },
+                        {
+                            "spot": "planner.settings.duration",
+                            "when": "standaardduur"
+                        },
+                        {
+                            "spot": "planner.settings.color",
+                            "when": "kleur"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.settings.panel",
+                    "action": "openSettings",
+                    "placement": "left",
+                    "title": "Alleen voor jou",
+                    "text": "De **slotgrootte** (hoe fijn het raster is) en het **begin en eind van de dag** onthoudt de planner in deze browser, voor jou alleen.",
+                    "say": "Hoe fijn het raster is, en hoe laat je dag begint en eindigt, onthoudt de planner alleen voor jou, in deze browser.",
+                    "marks": [
+                        {
+                            "spot": "planner.settings.slot",
+                            "when": "raster"
+                        },
+                        {
+                            "spot": "planner.settings.day",
+                            "when": "dag begint"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.tour",
+                    "title": "Altijd terug te vinden",
+                    "text": "Met deze knop open je de rondleiding opnieuw. Je kunt de assistent ook om uitleg vragen; die kan een hoofdstuk voor je starten.",
+                    "say": "Met deze knop start je de rondleiding opnieuw, wanneer je maar wilt. Je kunt het de assistent ook gewoon vragen.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.tour",
+                        "gesture": "click"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.assistant",
+                            "when": "assistent"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "slepen",
+            "version": 1,
+            "title": "Slepen om te plannen",
+            "summary": "De lijst met ongeplande werkbonnen, zoeken, slepen naar een monteur, contract- en projectwerkbonnen.",
+            "requires": {
+                "device": "desktop",
+                "permissions": [
+                    "serviceorder.plan"
+                ]
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.unplanned",
+                    "placement": "left",
+                    "title": "Wat nog ingepland moet worden",
+                    "text": "Rechts staan de werkbonnen in een inplanbare fase die nog geen afspraak hebben, de nieuwste bovenaan.",
+                    "say": "Rechts staan de werkbonnen die nog op een plek in de planning wachten.",
+                    "marks": [
+                        {
+                            "spot": "planner.unplanned.card",
+                            "when": "werkbonnen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.unplanned.search",
+                    "placement": "left",
+                    "title": "Zoeken in de lijst",
+                    "text": "Zoek op werkbonnummer (10, #10 of WB-0010), klant, plaats of omschrijving.",
+                    "say": "Bovenaan de lijst zoek je op nummer, klant, plaats of omschrijving.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "planner.unplanned.search",
+                        "text": "Utrecht"
+                    }
+                },
+                {
+                    "spot": "planner.cell",
+                    "title": "Slepen naar een monteur",
+                    "text": "Sleep een werkbon naar de rij van een monteur en laat los op het tijdstip waarop het werk begint. De afspraak krijgt de standaardduur.",
+                    "say": "Pak een werkbon op en laat hem los in de rij van een monteur, op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
+                    "aid": {
+                        "type": "ghost",
+                        "from": "planner.unplanned.card",
+                        "to": "planner.cell",
+                        "land": "event",
+                        "label": "Nieuwe afspraak"
+                    }
+                },
+                {
+                    "spot": "planner.unplanned.card",
+                    "placement": "left",
+                    "title": "Rechtermuisknop",
+                    "text": "Klik met de rechtermuisknop op een werkbon om hem te **openen** of te **verwijderen**. Verwijderen vraagt eerst om een bevestiging, en wat je niet mag staat er niet in.",
+                    "say": "Met de rechtermuisknop open je een werkbon, of verwijder je hem. Verwijderen vraagt altijd eerst of je het zeker weet.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "order-menu",
+                        "near": "planner.unplanned.card"
+                    }
+                },
+                {
+                    "spot": "planner.unplanned.contract",
+                    "placement": "left",
+                    "title": "Contractwerkbonnen",
+                    "text": "Werkbonnen uit een onderhoudscontract staan standaard verborgen. Deze schakelaar zet ze erbij, met een paars label **Contract**. De stand wordt onthouden.",
+                    "say": "Werkbonnen uit een onderhoudscontract zie je standaard niet, anders overstemmen ze de rest. Met deze schakelaar zet je ze erbij.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.unplanned.contract",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.project",
+                    "action": "expandProjects",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "project.read"
+                        ]
+                    },
+                    "title": "Werkbonnen van een project",
+                    "text": "Werkbonnen van een lopend project hangen onder hun projectbalk, zolang het project loopt of nog moet beginnen. Je sleept ze op dezelfde manier naar een monteur.",
+                    "say": "Hoort een werkbon bij een lopend project, dan hangt hij onder de balk van dat project. Ook die sleep je zo naar een monteur.",
+                    "aid": {
+                        "type": "ghost",
+                        "from": "planner.project.order",
+                        "to": "planner.project.cell",
+                        "land": "event",
+                        "label": "Nieuwe afspraak"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.project.order",
+                            "when": "hangt hij onder"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "bakje",
+            "version": 1,
+            "title": "Van het bakje naar de planner",
+            "summary": "Storingen en machines op het bakje leggen en ze op de dag van een monteur inplannen.",
+            "requires": {
+                "device": "desktop",
+                "permissions": [
+                    "event.create"
+                ]
+            },
+            "steps": [
+                {
+                    "title": "Het bakje",
+                    "text": "Op de lijst met storingen, en bij een machine, staat de knop **Op het bakje**. Wat je erop legt, staat rechtsonder klaar, op elke pagina.",
+                    "say": "Het bakje is een plek om iets even neer te leggen. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "tray-place"
+                    }
+                },
+                {
+                    "spot": "planner.cell",
+                    "title": "Naar de dag van een monteur",
+                    "text": "Sleep een storing of machine van het bakje naar de rij van een monteur en laat los op het tijdstip waarop het werk begint. De afspraak krijgt de standaardduur.",
+                    "say": "Sleep hem van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt een afspraak, met de standaardduur.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "tray-drop",
+                        "near": "planner.cell"
+                    }
+                },
+                {
+                    "title": "Op welke werkbon?",
+                    "text": "Dan kies je: een **nieuwe werkbon** voor de klant, of een **open werkbon** van die klant. Staat een storing al op een werkbon, dan wordt die werkbon ingepland. Een machine krijgt een keuring op de werkbon.",
+                    "say": "Dan kies je op welke werkbon het komt. Een nieuwe werkbon voor de klant, of een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "tray-choice"
+                    }
+                },
+                {
+                    "title": "Vergist?",
+                    "text": "Met **Ongedaan maken** in de balk die even verschijnt draai je het terug. Wat je niet inplant, blijft op het bakje liggen.",
+                    "say": "Vergist? Klik dan op ongedaan maken, in de balk die even verschijnt. En wat je niet inplant, blijft gewoon op het bakje liggen.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "tray-choice",
+                        "variant": "undo"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "open-plekken",
+            "version": 1,
+            "title": "Open plekken",
+            "summary": "Vrije ruimte groen laten oplichten, de minimale grootte, en Inplannen vanaf een werkbon.",
+            "requires": {
+                "device": "desktop"
+            },
+            "actions": [
+                "goToToday",
+                "showGaps"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.gaps",
+                    "title": "Laat zien waar nog ruimte is",
+                    "text": "Deze schakelaar laat alle vrije ruimte in de planning groen oplichten.",
+                    "say": "Zoek je ruimte voor een klus? Zet deze schakelaar aan, en alle vrije tijd in de planning licht groen op.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.gaps",
+                        "gesture": "click"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.gaps.switch",
+                            "when": "schakelaar"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.gap",
+                    "title": "Groen is vrij",
+                    "text": "Elk groen vak is een open plek, met de lengte erbij. Afspraken en onbeschikbaarheid tellen niet als vrij.",
+                    "say": "Elk groen vak is een gat waar nog werk in past. De lengte staat er meteen bij."
+                },
+                {
+                    "spot": "planner.gaps.minutes",
+                    "title": "Hoe groot moet een plek zijn",
+                    "text": "Vul in hoeveel minuten een open plek minstens moet zijn. Leeg gelaten geldt de standaardduur voor nieuwe afspraken.",
+                    "say": "Hier geef je aan hoe groot een open plek minstens moet zijn. Laat je het leeg, dan geldt de standaardduur van een afspraak.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "planner.gaps.minutes",
+                        "text": "60"
+                    }
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.plan"
+                        ]
+                    },
+                    "title": "Inplannen vanaf een werkbon",
+                    "text": "Werkbonnen in een inplanbare fase hebben een knop **Inplannen**, op de werkbonlijsten en de werkbonpagina. Die brengt je hierheen: de werkbon licht op, en de open plekken waar hij past ook.",
+                    "say": "Op een werkbon die ingepland kan worden staat de knop Inplannen. Die brengt je hierheen. De werkbon licht op, en de open plekken waar hij in past ook.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "plan-button"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "afspraak",
+            "version": 1,
+            "title": "De afspraak",
+            "summary": "Soort, tijden, klant, werkbon, locatie, monteurs, voorlopig, slepen en de bevestiging.",
+            "requires": {
+                "device": "desktop",
+                "permissions": [
+                    "event.create"
+                ]
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.cell",
+                    "title": "Een nieuwe afspraak",
+                    "text": "Klik op een lege plek, of trek een vak over de tijd die je wilt. Het afspraakscherm gaat open.",
+                    "say": "Een afspraak maken is klikken op een lege plek, of een vak trekken over de tijd die je wilt.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.cell",
+                        "gesture": "drag"
+                    }
+                },
+                {
+                    "spot": "planner.appointment.times",
+                    "action": "openNewAppointment",
+                    "title": "Begin en eind",
+                    "text": "Bovenaan staan de datum en de tijden.",
+                    "say": "Dan opent dit scherm. Bovenaan de dag en de tijden.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment",
+                            "when": "dit scherm"
+                        },
+                        {
+                            "spot": "planner.appointment.date",
+                            "when": "dag"
+                        },
+                        {
+                            "spot": "planner.appointment.time",
+                            "when": "tijden"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.type",
+                    "action": "openNewAppointment",
+                    "title": "Soort afspraak",
+                    "text": "De soort geeft de afspraak zijn kleur. Staat de leidende kleur in de instellingen op **monteurrol**, dan telt de kleur van de planrol van de monteur, en de soort alleen als hij geen planrol heeft. Daarnaast staat de status.",
+                    "say": "Kies de soort afspraak. Die geeft de afspraak zijn kleur, tenzij de planner op de kleur van de monteurrol staat.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment.type.field",
+                            "when": "soort afspraak"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.customer",
+                    "action": "openNewAppointment",
+                    "title": "Klant",
+                    "text": "Kies de klant. Pas daarna kun je een werkbon van die klant koppelen.",
+                    "say": "Kies daarna de klant."
+                },
+                {
+                    "spot": "planner.appointment.serviceorder",
+                    "action": "openNewAppointment",
+                    "title": "Werkbon",
+                    "text": "Koppel een werkbon van de klant die nog geen afspraak heeft, laat er een **nieuwe werkbon** bij maken, of vink **Geen werkbon nodig** aan. Koppelen zet de werkbon op ingepland.",
+                    "say": "Koppel een werkbon van die klant, laat er meteen een nieuwe werkbon bij maken, of geef aan dat er geen werkbon nodig is.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment.serviceorder.pick",
+                            "when": "Koppel een werkbon"
+                        },
+                        {
+                            "spot": "planner.appointment.serviceorder.create",
+                            "when": "nieuwe werkbon"
+                        },
+                        {
+                            "spot": "planner.appointment.serviceorder.none",
+                            "when": "geen werkbon"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.location",
+                    "action": "openNewAppointment",
+                    "title": "Locatie",
+                    "text": "De locatie volgt de werkbon of de klant. Kies een andere locatie van de klant, of typ zelf een adres.",
+                    "say": "De locatie volgt vanzelf de werkbon of de klant. Je kiest ook een andere locatie, of typt zelf een adres.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment.location",
+                            "when": "De locatie"
+                        },
+                        {
+                            "spot": "planner.appointment.serviceorder",
+                            "when": "werkbon"
+                        },
+                        {
+                            "spot": "planner.appointment.customer",
+                            "when": "klant"
+                        },
+                        {
+                            "spot": "planner.appointment.location.pick",
+                            "when": "andere locatie"
+                        },
+                        {
+                            "spot": "planner.appointment.location.address",
+                            "when": "adres"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.technicians",
+                    "action": "openNewAppointment",
+                    "title": "Monteurs",
+                    "text": "Eén of meer monteurs, elk met een eigen pauze, eventueel **afwijkende tijden** en een planrol.",
+                    "say": "Hier staan de monteurs. Ieder krijgt een eigen pauze, en als het nodig is eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan kleurt die planrol de afspraak.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment.technician",
+                            "when": "monteurs"
+                        },
+                        {
+                            "spot": "planner.appointment.break",
+                            "when": "pauze"
+                        },
+                        {
+                            "spot": "planner.appointment.diverging",
+                            "when": "eigen tijden"
+                        },
+                        {
+                            "spot": "planner.appointment.roles",
+                            "when": "planrol"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.preliminary",
+                    "action": "openNewAppointment",
+                    "title": "Voorlopig",
+                    "text": "Nog niet zeker? Vink **Voorlopig** aan. In de planner krijgt de afspraak een waarschuwingsdriehoekje.",
+                    "say": "Weet je het nog niet zeker, vink dan voorlopig aan. In de planner staat er dan een waarschuwing bij."
+                },
+                {
+                    "spot": "planner.event",
+                    "title": "Verslepen en oprekken",
+                    "text": "Sleep een afspraak naar een ander tijdstip of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
+                    "say": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.event",
+                        "gesture": "drag"
+                    }
+                },
+                {
+                    "spot": "planner.event",
+                    "title": "Bevestiging naar de klant",
+                    "text": "Met de rechtermuisknop stuur je een **afspraakbevestiging** naar de klant, zodra er een werkbon aan hangt. In hetzelfde menu wijzig je de soort, de monteurs of voorlopig.",
+                    "say": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "event-menu",
+                        "variant": "confirmation",
+                        "near": "planner.event"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "samen-en-overlap",
+            "version": 1,
+            "title": "Samen en dubbel",
+            "summary": "Een afspraak met meer monteurs, en afspraken die over elkaar heen lopen.",
+            "requires": {
+                "device": "desktop"
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.shared",
+                    "skipIfMissing": true,
+                    "title": "Samen op één afspraak",
+                    "text": "Een afspraak kan op meer monteurs staan. Hij staat dan in de rij van elk van hen, met een **stippellijn** eromheen en een **slotje**. Schuif je hem naar een andere tijd, dan gaat hij voor iedereen mee; naar een andere monteur slepen kan dan niet. Monteurs zet je erbij of haal je eraf met de rechtermuisknop, onder **Monteurs**, of in het afspraakscherm. Heeft iemand afwijkende tijden, dan staat zijn deel op die tijden en krijgt de titel bij de anderen een blauw ⇄-icoontje.",
+                    "say": "Een afspraak kan op meer monteurs tegelijk staan. Je ziet hem dan in elke rij, met een stippellijn eromheen en een slotje. Schuif je hem naar een andere tijd, dan gaat hij voor iedereen mee. Monteurs erbij zetten of eraf halen doe je met de rechtermuisknop.",
+                    "marks": [
+                        {
+                            "spot": "planner.shared.parts",
+                            "when": "elke rij"
+                        },
+                        {
+                            "spot": "planner.shared",
+                            "when": "stippellijn"
+                        },
+                        {
+                            "spot": "planner.shared.lock",
+                            "when": "slotje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.overlap",
+                    "skipIfMissing": true,
+                    "title": "Dubbel geboekt",
+                    "text": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is **rood gestreept**, met erop hoe lang de overlap duurt. De afspraken wijken waar het kan terug naar hun eigen stuk. Afspraken met precies dezelfde tijden komen onder elkaar in de rij; is de rij daar te laag voor, dan staat er een **rood driehoekje**: er liggen afspraken onder elkaar.",
+                    "say": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is rood gestreept. Erop staat hoe lang de overlap duurt.",
+                    "marks": [
+                        {
+                            "spot": "planner.overlap.label",
+                            "when": "hoe lang"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.overlap.pick",
+                    "action": "openOverlapPick",
+                    "skipIfMissing": true,
+                    "title": "Welke bedoel je?",
+                    "text": "Klik je op het gestreepte stuk, dan vraagt de planner welke van de afspraken je wilt openen, met per afspraak de tijd, de locatie en de werkbon.",
+                    "say": "Klik je op het gestreepte stuk, dan vraagt de planner welke van de afspraken je wilt openen."
+                }
+            ]
+        },
+        {
+            "id": "kopieren",
+            "version": 1,
+            "title": "Kopiëren",
+            "summary": "Een afspraak kopiëren naar morgen, de rest van de week, volgende week of een gekozen datum.",
+            "requires": {
+                "device": "desktop",
+                "permissions": [
+                    "event.create"
+                ]
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.event",
+                    "title": "Kopiëren",
+                    "text": "Klik met de rechtermuisknop op een afspraak en kies **Kopiëren**. De kopie krijgt dezelfde tijd, monteurs en werkbon.",
+                    "say": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies kopiëren.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "event-menu",
+                        "variant": "copy",
+                        "near": "planner.event"
+                    }
+                },
+                {
+                    "spot": "planner.event",
+                    "title": "Naar morgen",
+                    "text": "**Naar morgen** zet een kopie op de volgende dag, op dezelfde tijd.",
+                    "say": "Naar morgen zet hem een dag later neer, op dezelfde tijd.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "copy-week",
+                        "variant": "tomorrow",
+                        "near": "planner.event"
+                    }
+                },
+                {
+                    "spot": "planner.event",
+                    "title": "Rest van de week",
+                    "text": "**Rest van de week** zet een kopie op elke werkdag die er die week nog komt.",
+                    "say": "Rest van de week vult elke werkdag die er nog komt.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "copy-week",
+                        "variant": "rest",
+                        "near": "planner.event"
+                    }
+                },
+                {
+                    "spot": "planner.event",
+                    "title": "Naar volgende week",
+                    "text": "**Naar volgende week** zet hem precies een week later, op dezelfde dag en tijd.",
+                    "say": "Naar volgende week zet hem precies een week later.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "copy-week",
+                        "variant": "next-week",
+                        "near": "planner.event"
+                    }
+                },
+                {
+                    "title": "Naar een gekozen datum",
+                    "text": "Met **Naar datum…** kies je zelf een dag, tot een jaar voor of na de afspraak. De tijd blijft gelijk, ook over de zomer- of wintertijd heen.",
+                    "say": "Of kies zelf een datum, tot een jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "copy-date"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "uitvoering",
+            "version": 1,
+            "title": "Uitvoering",
+            "summary": "Uren en handtekening in je eigen rij, je eigen deel annuleren, tijden invullen namens een ander en tijden vrijgeven.",
+            "requires": {
+                "device": "desktop",
+                "anyPermissions": [
+                    "event.execute",
+                    "event.execute_others",
+                    "event.release_times"
+                ]
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.execution",
+                    "requires": {
+                        "permissions": [
+                            "event.execute"
+                        ]
+                    },
+                    "title": "Je eigen rij",
+                    "text": "Op een afspraak in je eigen rij staan twee knopjes: de **klok** voor tijden en handtekening, het **kruisje** om je eigen deel te annuleren. In de rij van een collega staan ze nooit.",
+                    "say": "Op een afspraak in je eigen rij staan twee knopjes. De klok voor je tijden en de handtekening, en het kruisje om je eigen deel te annuleren.",
+                    "fallback": {
+                        "type": "picture",
+                        "scene": "execution-buttons"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.execution.times",
+                            "when": "klok"
+                        },
+                        {
+                            "spot": "planner.execution.cancel",
+                            "when": "kruisje"
+                        }
+                    ]
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "event.execute"
+                        ]
+                    },
+                    "title": "Tijden en handtekening",
+                    "text": "Begin, eind en pauze staan al op wat er voor jou gepland was. Pas aan wat anders ging, vul de reistijd in en laat tekenen.",
+                    "say": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging, vul je reistijd in, en laat de klant tekenen.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "execution"
+                    }
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "event.execute"
+                        ]
+                    },
+                    "title": "Annuleren geldt alleen voor jou",
+                    "text": "De afspraak en je collega's erop blijven staan. Jouw deel krijgt een doorgestreepte titel en een verbodsteken dat iedereen ziet.",
+                    "say": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "execution-buttons",
+                        "variant": "cancelled"
+                    }
+                },
+                {
+                    "spot": "planner.execution.others",
+                    "requires": {
+                        "permissions": [
+                            "event.execute_others"
+                        ]
+                    },
+                    "title": "Namens een ander",
+                    "text": "Mag je tijden voor anderen invullen, dan staat er in de rij van een collega op de afspraak een knopje met een **pennetje**. Het opent hetzelfde scherm als je eigen klok, met bovenin **Namens** en de naam, en met de tijden die voor die collega gepland waren. Is zijn deel al afgerond, dan staat het knopje er niet meer.",
+                    "say": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als je eigen.",
+                    "fallback": {
+                        "type": "picture",
+                        "scene": "execution-buttons",
+                        "variant": "others"
+                    }
+                },
+                {
+                    "spot": "planner.execution.release",
+                    "requires": {
+                        "permissions": [
+                            "event.release_times"
+                        ]
+                    },
+                    "title": "Vrijgeven",
+                    "text": "Het ronde pijltje op een afgerond of geannuleerd deel wist de tijden of trekt de annulering in, alleen voor de monteur in die rij. Wat de anderen registreerden blijft staan.",
+                    "say": "Met het ronde pijltje geef je afgeronde tijden weer vrij, of trek je een annulering in. Dat geldt alleen voor de monteur in die rij.",
+                    "fallback": {
+                        "type": "picture",
+                        "scene": "execution-buttons",
+                        "variant": "release"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "plangroepen",
+            "version": 1,
+            "title": "Plangroepen",
+            "summary": "Groepen maken, hernoemen en sorteren, monteurs indelen, inplanbaar of niet, en filteren.",
+            "requires": {
+                "device": "desktop",
+                "anyPermissions": [
+                    "event.see_all",
+                    "event.create_others"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "planner.groups",
+                    "placement": "left",
+                    "title": "Plangroepen",
+                    "text": "Met plangroepen orden je de rijen in de planner, bijvoorbeeld per vakgebied of per regio.",
+                    "say": "Met plangroepen orden je de monteurs. Per vakgebied bijvoorbeeld, of per regio.",
+                    "marks": [
+                        {
+                            "spot": "planner.groups.list",
+                            "when": "plangroepen"
+                        },
+                        {
+                            "spot": "planner.groups.technicians",
+                            "when": "monteurs"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.groups.form",
+                    "action": "openNewGroupForm",
+                    "placement": "left",
+                    "title": "Een groep maken",
+                    "text": "Klik op **Toevoegen**, geef de groep een naam en een kleur en druk op Enter.",
+                    "say": "Klik op toevoegen, geef de groep een naam en een kleur, en druk op enter.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "planner.groups.name",
+                        "text": "Koeltechniek"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.groups.add",
+                            "when": "toevoegen"
+                        },
+                        {
+                            "spot": "planner.groups.name",
+                            "when": "naam"
+                        },
+                        {
+                            "spot": "planner.groups.color",
+                            "when": "kleur"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.groups.list",
+                    "placement": "left",
+                    "skipIfMissing": true,
+                    "title": "Hernoemen en sorteren",
+                    "text": "Klik op een naam om hem te wijzigen, op het blokje om de kleur te kiezen. Sleep een groep om de volgorde te veranderen; de planner volgt die volgorde.",
+                    "say": "Klik op een naam om hem te wijzigen. Sleep een groep omhoog of omlaag om de volgorde te veranderen.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.groups.list",
+                        "gesture": "drag"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.groups.group-name",
+                            "when": "naam"
+                        },
+                        {
+                            "spot": "planner.groups.handle",
+                            "when": "Sleep"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.groups.technicians",
+                    "placement": "left",
+                    "title": "Monteurs indelen",
+                    "text": "Bij elke inplanbare monteur staat een vakje per groep. Klik het aan of uit; iemand kan in meerdere groepen zitten.",
+                    "say": "Bij elke monteur staat een gekleurd vakje per groep. Klik het aan, of weer uit. Iemand kan in meer groepen zitten.",
+                    "marks": [
+                        {
+                            "spot": "planner.groups.technician",
+                            "when": "monteur"
+                        },
+                        {
+                            "spot": "planner.groups.toggle",
+                            "when": "gekleurd vakje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.groups.plannable",
+                    "placement": "left",
+                    "title": "Inplanbaar",
+                    "text": "Het vinkje bepaalt of iemand een rij in de planner krijgt.",
+                    "say": "Met het vinkje helemaal rechts bepaal je of iemand een rij in de planner krijgt.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.groups.plannable",
+                        "gesture": "click"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.groups.plannable",
+                            "when": "vinkje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.groups.filter",
+                    "skipIfMissing": true,
+                    "title": "Filteren op groep",
+                    "text": "Boven de monteurs klik je een groep aan om alleen die rijen te zien. Nog eens klikken zet hem weer uit.",
+                    "say": "In de planner zelf klik je een groep aan om alleen die monteurs te zien. Nog een keer klikken, en iedereen staat er weer.",
+                    "marks": [
+                        {
+                            "spot": "planner.groups.filter.group",
+                            "when": "een groep"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "vrije-dagen",
+            "version": 1,
+            "title": "Vrije dagen",
+            "summary": "Onbeschikbaarheid in de planner, het rooster erachter en plannen over een blok heen.",
+            "requires": {
+                "device": "desktop"
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.unavailable",
+                    "title": "Niet beschikbaar",
+                    "text": "Een gestreept blok betekent dat een monteur er niet is: een vrije dag of een vast vrij moment uit het rooster, met het label erin.",
+                    "say": "Een gestreept blok in de planning betekent dat een monteur er niet is. Een vrije dag, of een vast vrij moment uit zijn rooster."
+                },
+                {
+                    "title": "Vaste vrije momenten",
+                    "text": "De blokken komen uit het **rooster** op de pagina van de gebruiker: een weekdag, wekelijks of om de week, de hele dag of een dagdeel, met een label.",
+                    "say": "Die blokken komen uit het rooster van de gebruiker. Een vast vrij moment is een weekdag, elke week of om de week, de hele dag of een deel ervan.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "roster",
+                        "variant": "recurring"
+                    }
+                },
+                {
+                    "title": "Losse vrije dagen",
+                    "text": "Daaronder staan losse vrije dagen: één datum, of een periode zoals een vakantie.",
+                    "say": "Daaronder komen de losse vrije dagen. Eén datum, of een hele periode, zoals een vakantie.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "roster",
+                        "variant": "holiday"
+                    }
+                },
+                {
+                    "title": "Toch plannen?",
+                    "text": "Over een blok heen plannen kan alleen als de beheerder dat onder Instellingen toestaat. Dan vraagt de planner eerst om een bevestiging.",
+                    "say": "Plannen over een blok heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "override"
+                    }
+                },
+                {
+                    "requires": {
+                        "anyPermissions": [
+                            "roster.manage_all",
+                            "roster.manage_own"
+                        ]
+                    },
+                    "title": "Je eigen rooster",
+                    "text": "Je rooster staat op je profielpagina. Met **Naar mijn rooster** ga je erheen, en daar laat de rondleiding zien hoe je het invult.",
+                    "say": "Wil je je eigen rooster invullen? Klik dan op naar mijn rooster. Daar gaat de rondleiding verder.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "roster",
+                        "variant": "recurring"
+                    },
+                    "cta": {
+                        "label": "Naar mijn rooster",
+                        "href": "/me/edit",
+                        "tour": "rooster",
+                        "chapter": "rooster"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "kaart-en-route",
+            "version": 1,
+            "title": "Monteurkaart en route van de dag",
+            "summary": "Waar je monteurs zijn, de kaart per monteur en de route van een dag.",
+            "requires": {
+                "device": "desktop"
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.map",
+                    "title": "De monteurkaart",
+                    "text": "Delen monteurs hun locatie, dan staat bovenin **Monteurkaart**: waar iedereen de afgelopen acht uur was.",
+                    "say": "Delen je monteurs hun locatie, dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
+                    "fallback": {
+                        "type": "picture",
+                        "scene": "route",
+                        "variant": "pings"
+                    }
+                },
+                {
+                    "spot": "planner.map.panel",
+                    "action": "openMap",
+                    "skipIfMissing": true,
+                    "title": "Iedereen op de kaart",
+                    "text": "Elke monteur staat op zijn laatste plek.",
+                    "say": "Zo staan ze allemaal op de kaart."
+                },
+                {
+                    "spot": "planner.minimap",
+                    "skipIfMissing": true,
+                    "placement": "right",
+                    "title": "Per monteur",
+                    "text": "In de rij van een monteur staat zijn laatste locatie. Met het pijltje maak je de kaart groter.",
+                    "say": "In de rij van een monteur staat zijn laatste locatie op een kleine kaart. Met het pijltje maak je hem groter.",
+                    "marks": [
+                        {
+                            "spot": "planner.minimap.expand",
+                            "when": "pijltje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.route",
+                    "title": "Route van de dag",
+                    "text": "Is er voor een monteur een route gezet, dan staat bovenaan die dag in zijn rij een knop **Route** die Google Maps opent.",
+                    "say": "Staat er voor een dag een route klaar, dan zie je bovenin die dag een knop Route. Die opent de route in Google Maps.",
+                    "fallback": {
+                        "type": "picture",
+                        "scene": "route"
+                    }
+                },
+                {
+                    "requires": {
+                        "anyPermissions": [
+                            "activitylist.read",
+                            "ticket.see_all"
+                        ]
+                    },
+                    "title": "Een route plannen",
+                    "text": "Een route plan je op de kaart van de aankomende keuringen of van de openstaande storingen, met **Route plannen**. Zet je hem in de planning, dan verschijnt hij hier.",
+                    "say": "Een route maak je op de kaart van de keuringen of van de storingen. Zet je hem in de planning, dan verschijnt hij hier bij de monteur.",
+                    "aid": {
+                        "type": "picture",
+                        "scene": "route",
+                        "variant": "plan"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "telefoon",
+            "version": 1,
+            "title": "De planner op je telefoon",
+            "summary": "Je week als lijst, van week wisselen, een monteur kiezen, banen en een afspraak openen.",
+            "requires": {
+                "device": "phone"
+            },
+            "steps": [
+                {
+                    "spot": "planner.phone.timeline",
+                    "title": "Je week op een rij",
+                    "text": "Op een telefoon zie je de planning per week, dag voor dag onder elkaar, met de vrije ruimte ertussen.",
+                    "say": "Op je telefoon zie je de week als een lijst, dag voor dag.",
+                    "marks": [
+                        {
+                            "spot": "planner.phone.day",
+                            "when": "dag voor dag"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.phone.week",
+                    "title": "Van week wisselen",
+                    "text": "Tik op de pijltjes, of veeg de lijst opzij.",
+                    "say": "Naar een andere week? Tik op de pijltjes, of veeg de lijst opzij.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.phone.timeline",
+                        "gesture": "swipe"
+                    },
+                    "marks": [
+                        {
+                            "spot": "planner.phone.prev-next",
+                            "when": "pijltjes"
+                        },
+                        {
+                            "spot": "planner.phone.timeline",
+                            "when": "veeg de lijst"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.phone.technician",
+                    "requires": {
+                        "permissions": [
+                            "event.see_all"
+                        ]
+                    },
+                    "title": "Een monteur kiezen",
+                    "text": "Kies een monteur of **Alle monteurs**. Je telefoon onthoudt de keuze.",
+                    "say": "Mag je de hele planning zien, dan kies je hier een monteur, of alle monteurs. Je telefoon onthoudt wat je koos."
+                },
+                {
+                    "spot": "planner.phone.lanes",
+                    "action": "showLaneView",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "event.see_all"
+                        ]
+                    },
+                    "title": "Banen naast elkaar",
+                    "text": "Bij **Alle monteurs** wissel je naar banen naast elkaar.",
+                    "say": "Bij alle monteurs wissel je met deze knop naar banen naast elkaar.",
+                    "marks": [
+                        {
+                            "spot": "planner.phone.technician",
+                            "when": "alle monteurs"
+                        },
+                        {
+                            "spot": "planner.phone.lane",
+                            "when": "banen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.phone.add",
+                    "requires": {
+                        "permissions": [
+                            "event.create"
+                        ]
+                    },
+                    "title": "Nieuwe afspraak",
+                    "text": "Met de groene plusknop maak je een afspraak.",
+                    "say": "Met de groene plusknop maak je een nieuwe afspraak.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.phone.add",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.phone.event",
+                    "title": "Een afspraak openen",
+                    "text": "Tik op een afspraak om hem te openen en te wijzigen.",
+                    "say": "Tik op een afspraak om hem te openen.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.phone.event",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.appointment.delete",
+                    "action": "openFirstPhoneEvent",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "anyPermissions": [
+                            "event.delete",
+                            "event.delete_others"
+                        ]
+                    },
+                    "title": "Verwijderen",
+                    "text": "Onderaan het afspraakscherm staat **Afspraak verwijderen**. Het vraagt eerst om een bevestiging, en staat er alleen als je de afspraak mag verwijderen.",
+                    "say": "Onderaan dat scherm staat de knop om de afspraak te verwijderen. Die vraagt altijd eerst of je het zeker weet."
+                }
+            ]
+        }
+    ]
+}

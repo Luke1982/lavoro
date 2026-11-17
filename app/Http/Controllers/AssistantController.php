@@ -78,6 +78,7 @@ class AssistantController extends Controller
         $findings = [];
         $unreadable = [];
         $photos = [];
+        $tours = [];
 
         $conversation = (string) $request->validated('conversation');
         $question = (string) $request->validated('question');
@@ -180,6 +181,7 @@ class AssistantController extends Controller
                     $findings,
                     $unreadable,
                     $photos,
+                    $tours,
                 ),
                 difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
                 attachments: $attachments,
@@ -215,6 +217,7 @@ class AssistantController extends Controller
             'findings' => $findings,
             'unreadable' => array_values(array_unique($unreadable)),
             'photos' => $photos,
+            'tours' => $tours,
             /**
              * Records the answer named that no tool returned. A prompt forbids
              * inventing them and a prompt is not a guarantee, so this is checked
@@ -270,6 +273,10 @@ class AssistantController extends Controller
         $pending = [];
         $choices = [];
         $ignored = [];
+        $findings = [];
+        $unreadable = [];
+        $photos = [];
+        $tours = [];
         $conversation = (string) $request->validated('conversation');
         $files = app(ConversationFiles::class);
 
@@ -297,6 +304,10 @@ class AssistantController extends Controller
                     $choices,
                     $ignored,
                     fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
+                    $findings,
+                    $unreadable,
+                    $photos,
+                    $tours,
                 ),
                 history: $request->validated('history'),
                 /**
@@ -338,6 +349,7 @@ class AssistantController extends Controller
             'tools' => $tools,
             'pending' => $pending,
             'choices' => $choices,
+            'tours' => $tours,
         ]);
     }
 
@@ -349,6 +361,7 @@ class AssistantController extends Controller
      * @param  array<int, array<string, mixed>>  $tools
      * @param  array<int, array<string, mixed>>  $pending
      * @param  array<int, array<string, mixed>>  $choices
+     * @param  array<int, array<string, mixed>>  $tours
      */
     private function toolWatcher(
         array &$tools,
@@ -359,6 +372,7 @@ class AssistantController extends Controller
         array &$findings = [],
         array &$unreadable = [],
         array &$photos = [],
+        array &$tours = [],
     ): Closure {
         return function (
             string $name,
@@ -374,6 +388,7 @@ class AssistantController extends Controller
             &$findings,
             &$unreadable,
             &$photos,
+            &$tours,
         ) {
             $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
 
@@ -418,6 +433,14 @@ class AssistantController extends Controller
             if (is_array($result?->content) && isset($result->content['findings'])) {
                 $findings = array_merge($findings, $result->content['findings']);
                 $unreadable = array_merge($unreadable, $result->content['unreadable'] ?? []);
+            }
+
+            /**
+             * A rondleiding to start, as a button under the answer. Taken from the
+             * result, so the button starts exactly what the tool checked.
+             */
+            if (is_array($result?->content) && isset($result->content['tour_offer']) && !$failed) {
+                $tours[] = $result->content['tour_offer'];
             }
 
             if ($status === 'keuze_nodig') {

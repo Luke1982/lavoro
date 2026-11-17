@@ -101,6 +101,12 @@
         <NavigatorSpotlight />
 
         <TrayDock v-if="page.props.auth?.user" />
+
+        <!--
+            De rondleidingen: één laag voor de hele applicatie. Een pagina die er
+            een aanbiedt zet alleen een knop neer; deze laag doet de rest.
+        -->
+        <TourLayer v-if="page.props.auth?.user" />
 </template>
 
 <script setup>
@@ -121,6 +127,7 @@ import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
 import TrayDock from '@/Components/Tray/TrayDock.vue'
+import TourLayer from '@/Components/Tour/TourLayer.vue'
 import { openNavigator } from '@/Composables/useNavigator.js'
 import { useCapacitor } from '@/Composables/useCapacitor.js'
 import { useNetworkStatus } from '@/Composables/useNetworkStatus.js'

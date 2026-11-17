@@ -42,8 +42,11 @@ class ToolSchemaBudgetTest extends TestCase
      *
      * 34500 for macros: reading a company's fixed werkbon routines and running
      * one through the same checks as the button on the werkbon.
+     *
+     * 35300 for the rondleidingen: one tool that puts a button under the answer
+     * to show somebody how the planner works instead of telling them.
      */
-    private const ROOM_FOR = 34500;
+    private const ROOM_FOR = 35300;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

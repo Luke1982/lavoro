@@ -2,14 +2,14 @@
     <div ref="rootEl" class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
         <!-- Sticky header: week navigation + user switcher -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
-            <div class="flex items-center justify-between px-4 py-3">
-                <button class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week"
+            <div class="flex items-center justify-between px-4 py-3" data-tour="planner.phone.week">
+                <button class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week" data-tour="planner.phone.prev-next"
                     @click="shiftWeek(-1)">
                     <ChevronLeftIcon class="size-5" />
                 </button>
                 <span class="font-semibold text-sm">{{ weekTitle }}</span>
                 <button v-if="canShiftForward" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
-                    aria-label="Volgende week" @click="shiftWeek(1)">
+                    aria-label="Volgende week" data-tour="planner.phone.prev-next" @click="shiftWeek(1)">
                     <ChevronRightIcon class="size-5" />
                 </button>
                 <span v-else class="w-10 shrink-0" />
@@ -22,10 +22,10 @@
                     Monteurkaart
                 </button>
                 <SelectMenuComponent v-model="selectedUserId" :options="userOptions" :icon="UsersIcon"
-                    class="flex-grow" @update:model-value="rememberUser">
+                    class="flex-grow" data-tour="planner.phone.technician" @update:model-value="rememberUser">
                     <template #sr-label>Monteur selecteren</template>
                 </SelectMenuComponent>
-                <button v-if="selectedUserId === null"
+                <button v-if="selectedUserId === null" data-tour="planner.phone.lanes"
                     class="flex items-center rounded-md border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                     :class="laneView ? 'bg-gray-100 dark:bg-slate-800' : ''"
                     :aria-pressed="laneView" :aria-label="laneView ? 'Lijstweergave' : 'Baanweergave'"
@@ -82,10 +82,11 @@
                     <div class="text-xs text-gray-500 dark:text-slate-400">Niet afgerond</div>
                 </div>
             </div>
+            <TourButton tour="planner" :label="null" class="ml-auto" data-tour="planner.phone.tour" />
         </div>
 
         <!-- Timeline -->
-        <PlannerLoadingOverlay :loading="eventsLoading">
+        <PlannerLoadingOverlay :loading="eventsLoading" data-tour="planner.phone.timeline">
             <MobileLaneView v-if="showLaneView" :plannable-users="plannableUsers" :week-days="weekDays"
                 :events="events" :day-start-hour="WORKDAY_START_HOUR" :day-end-hour="WORKDAY_END_HOUR"
                 :allow-override-unavailability="allowOverrideUnavailability" :can-create="canCreate"
@@ -104,7 +105,7 @@
                     <div v-else class="pb-24">
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
-                        <div
+                        <div data-tour="planner.phone.day"
                             class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
                             <span>
                                 {{ dayLabel(group.dayIso) }}
@@ -178,7 +179,7 @@
 
                                 <!-- Right: event card -->
                                 <div v-else class="flex-1 pl-3 pr-4 pb-5">
-                                    <MobileEventCard :event="item.event" :selected-user-id="selectedUserId"
+                                    <MobileEventCard :event="item.event" :selected-user-id="selectedUserId" data-tour="planner.phone.event"
                                         :is-highlighted="highlightedEventId === item.event.id"
                                         :relevant-user-id="relevantUserId" :can-see-all="canSeeAll"
                                         :can-edit="canEdit(item.event)" :plannable-users="plannableUsers"
@@ -195,7 +196,7 @@
         </PlannerLoadingOverlay>
 
         <!-- FAB: create new event -->
-        <button v-if="canCreate"
+        <button v-if="canCreate" data-tour="planner.phone.add" data-planner-fab
             class="fixed bottom-24 right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition lg:bottom-6"
             aria-label="Nieuwe afspraak aanmaken" @click="openCreate">
             <PlusIcon class="size-7 text-gray-900" />
@@ -279,6 +280,8 @@ import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vu
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
 import { MapIcon, TriangleAlert, Columns3, List } from '@lucide/vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour } from '@/Composables/useTour'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -714,4 +717,33 @@ function closeAndRefresh() {
     closeModal()
     fetchEvents()
 }
+
+/** Wat de rondleiding op de telefoon laat zien; alles gaat terug zoals het stond. */
+useTour('planner', {
+    showLaneView: () => {
+        if (!canSeeAll.value || showLaneView.value) return null
+        const previous = { user: selectedUserId.value, lanes: laneView.value }
+        selectedUserId.value = null
+        laneView.value = true
+
+        return () => {
+            laneView.value = previous.lanes
+            selectedUserId.value = previous.user
+        }
+    },
+    openFirstPhoneEvent: () => {
+        const event = timelineEvents.value.find(canEdit)
+        if (modalOpen.value || !event) return null
+        handleEventTap(event)
+
+        return () => closeModal()
+    },
+})
 </script>
+
+<style>
+/* A bar along the bottom (the question about notifications, an announcement) sits where the plus button is; lift the button over it. */
+body:has([data-bottom-bar]) [data-planner-fab] {
+    bottom: 11.5rem;
+}
+</style>

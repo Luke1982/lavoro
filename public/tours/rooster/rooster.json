@@ -1,0 +1,39 @@
+{
+    "tour": "rooster",
+    "chapter": "rooster",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "rooster.mp3",
+    "steps": [
+        {
+            "text": "Dit is het rooster. Alles wat je hier invult, ligt als blok over de planner.",
+            "hash": "a2f533accd32d0873b2ccc9440808d3ef84cc9e2",
+            "start": 0,
+            "end": 5.016
+        },
+        {
+            "text": "Een vast vrij moment kies je per weekdag. Elke week, of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
+            "hash": "d42ded65db650cf008943c629559b73f3857752a",
+            "start": 5.316,
+            "end": 13.675
+        },
+        {
+            "text": "Kies je om de week, geef dan ook de eerste keer op. Vanaf die dag telt de planner zelf door.",
+            "hash": "f37e662f102aff3461926a9014eab73d72bda56d",
+            "start": 13.975,
+            "end": 19.64
+        },
+        {
+            "text": "Losse vrije dagen zet je hieronder. Eén datum, of een periode van tot, met een label zoals vakantie.",
+            "hash": "65f5d1f6a53b53ee38d2de5e4b6bd1e447e443eb",
+            "start": 19.94,
+            "end": 27.324
+        },
+        {
+            "text": "Sla op, en het blok staat meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
+            "hash": "2cfa0eb76ec123f98e012777b3ef67c1e31bfef0",
+            "start": 27.624,
+            "end": 33.708
+        }
+    ]
+}

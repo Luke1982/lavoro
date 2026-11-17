@@ -1,5 +1,5 @@
 <template>
-    <div data-planner-event :data-event-id="event.id"
+    <div data-planner-event :data-event-id="event.id" :data-tour="isLocked ? 'planner.event.shared' : 'planner.event'"
         class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900"
         :class="[
             isBeingDragged ? 'opacity-30' : '',
@@ -10,7 +10,7 @@
         <VDropdown :triggers="popoverTriggers" :disabled="!isShort || isBeingDragged" :delay="{ show: 200, hide: 80 }"
             placement="top">
             <!-- Content sticks to the left visible grid edge (past the frozen sidebar) so it stays readable while scrolling horizontally. -->
-            <div class="px-3 py-2 flex flex-col h-full justify-between overflow-hidden sticky left-64"
+            <div class="px-3 py-2 flex flex-col h-full w-fit max-w-full justify-between overflow-hidden sticky left-64"
                 :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1"
                     :class="isCancelled ? 'line-through text-gray-500' : ''">
@@ -29,7 +29,7 @@
                         <ClockFading class="size-3 shrink-0 ml-0.5 text-gray-400" />
                         <span class="text-gray-400">{{ userBreaktime }}m</span>
                     </template>
-                    <span v-if="isLocked" class="ml-1" v-tooltip="'Vergrendeld – meerdere monteurs delen dit'">🔒</span>
+                    <span v-if="isLocked" data-tour="planner.event.lock" class="ml-1" v-tooltip="'Vergrendeld – meerdere monteurs delen dit'">🔒</span>
                 </div>
                 <div v-if="!isCompact && event.location" class="text-[11px] text-gray-500 flex items-center gap-1">
                     <MapPinIcon class="size-3 shrink-0" />

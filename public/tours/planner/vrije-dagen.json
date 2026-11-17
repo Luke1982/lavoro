@@ -1,0 +1,39 @@
+{
+    "tour": "planner",
+    "chapter": "vrije-dagen",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "vrije-dagen.mp3",
+    "steps": [
+        {
+            "text": "Een gestreept blok in de planning betekent dat een monteur er niet is. Een vrije dag, of een vast vrij moment uit zijn rooster.",
+            "hash": "a4715fa19f48ce6f89e3b2e5d9fb99b0f581a6d9",
+            "start": 0,
+            "end": 8.127
+        },
+        {
+            "text": "Die blokken komen uit het rooster van de gebruiker. Een vast vrij moment is een weekdag, elke week of om de week, de hele dag of een deel ervan.",
+            "hash": "3155d8e67c3f2f0813cce99da28a78352f674367",
+            "start": 8.427,
+            "end": 18.086
+        },
+        {
+            "text": "Daaronder komen de losse vrije dagen. Eén datum, of een hele periode, zoals een vakantie.",
+            "hash": "48144559a1dd9699b2b36ce4432af350e3fc2466",
+            "start": 18.386,
+            "end": 24.145
+        },
+        {
+            "text": "Plannen over een blok heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
+            "hash": "4edd116aa3597a8870c875fb371c41b4bc4d76b3",
+            "start": 24.445,
+            "end": 32.061
+        },
+        {
+            "text": "Wil je je eigen rooster invullen? Klik dan op naar mijn rooster. Daar gaat de rondleiding verder.",
+            "hash": "f895770152b1ac1e5d6da844c32fe84ca998b1ba",
+            "start": 32.361,
+            "end": 38.073
+        }
+    ]
+}

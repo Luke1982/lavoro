@@ -1,0 +1,27 @@
+{
+    "tour": "planner",
+    "chapter": "samen-en-overlap",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "samen-en-overlap.mp3",
+    "steps": [
+        {
+            "text": "Een afspraak kan op meer monteurs tegelijk staan. Je ziet hem dan in elke rij, met een stippellijn eromheen en een slotje. Schuif je hem naar een andere tijd, dan gaat hij voor iedereen mee. Monteurs erbij zetten of eraf halen doe je met de rechtermuisknop.",
+            "hash": "52aa7f9a06003c1ae7f88cd83a5973b9ee682c78",
+            "start": 0,
+            "end": 14.814
+        },
+        {
+            "text": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is rood gestreept. Erop staat hoe lang de overlap duurt.",
+            "hash": "65e0986be070b6294e415ab6441cc3deb1fdaac5",
+            "start": 15.114,
+            "end": 24.449
+        },
+        {
+            "text": "Klik je op het gestreepte stuk, dan vraagt de planner welke van de afspraken je wilt openen.",
+            "hash": "4be59191a685e7c0f50ca935ada8d9f91dc1395a",
+            "start": 24.749,
+            "end": 30.136
+        }
+    ]
+}

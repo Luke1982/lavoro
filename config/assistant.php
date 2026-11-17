@@ -12,6 +12,7 @@ use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\ListMacrosTool;
 use App\Domain\Tools\Read\NoteFileTool;
+use App\Domain\Tools\Read\OfferTourTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
 use App\Domain\Tools\Read\ReadFileTool;
 use App\Domain\Tools\Read\ReadManualTool;
@@ -82,6 +83,7 @@ return [
         CreateMaintenanceContractTool::class,
         NoteFileTool::class,
         ReadFileTool::class,
+        OfferTourTool::class,
     ],
 
     /*

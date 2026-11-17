@@ -3,7 +3,7 @@
         <div class="fixed inset-0 z-50 flex items-start lg:items-center justify-center px-4 py-4 lg:px-0 lg:py-6 transition-all duration-200"
             :class="visible ? 'bg-black/30 backdrop-blur-sm' : 'bg-transparent'">
             <div class="w-full max-w-2xl max-h-full flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200"
-                :class="visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'">
+                data-tour="planner.appointment" :class="visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'">
 
                 <!-- Header -->
                 <div class="flex items-start flex-shrink-0 p-6 pb-5">
@@ -28,7 +28,7 @@
                 <div class="px-6 pb-2 flex-1 min-h-0 overflow-y-auto space-y-5">
 
                     <!-- Start / Einde -->
-                    <div
+                    <div data-tour="planner.appointment.times"
                         class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-100 dark:border-gray-700">
                         <div>
                             <div class="flex items-center gap-2 mb-2">
@@ -39,12 +39,12 @@
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Start</span>
                             </div>
                             <div class="flex gap-2">
-                                <TextInput v-model="form.start_date" label="" type="date" class="flex-1"
+                                <TextInput v-model="form.start_date" label="" type="date" class="flex-1" data-tour="planner.appointment.date"
                                     :has-error="Boolean(form.errors.start)" />
-                                <select v-model="startHour" :class="timeSelectClass(Boolean(form.errors.start))">
+                                <select v-model="startHour" :class="timeSelectClass(Boolean(form.errors.start))" data-tour="planner.appointment.time">
                                     <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
                                 </select>
-                                <select v-model="startMinute" :class="timeSelectClass(Boolean(form.errors.start))">
+                                <select v-model="startMinute" :class="timeSelectClass(Boolean(form.errors.start))" data-tour="planner.appointment.time">
                                     <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
                                 </select>
                             </div>
@@ -59,12 +59,12 @@
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Einde</span>
                             </div>
                             <div class="flex gap-2">
-                                <TextInput v-model="form.end_date" label="" type="date" class="flex-1"
+                                <TextInput v-model="form.end_date" label="" type="date" class="flex-1" data-tour="planner.appointment.date"
                                     :has-error="Boolean(form.errors.end)" />
-                                <select v-model="endHour" :class="timeSelectClass(Boolean(form.errors.end))">
+                                <select v-model="endHour" :class="timeSelectClass(Boolean(form.errors.end))" data-tour="planner.appointment.time">
                                     <option v-for="h in hours" :key="h" :value="h">{{ h }}</option>
                                 </select>
-                                <select v-model="endMinute" :class="timeSelectClass(Boolean(form.errors.end))">
+                                <select v-model="endMinute" :class="timeSelectClass(Boolean(form.errors.end))" data-tour="planner.appointment.time">
                                     <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
                                 </select>
                             </div>
@@ -73,8 +73,8 @@
                     </div>
 
                     <!-- Type / Status -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-tour="planner.appointment.type">
+                        <div data-tour="planner.appointment.type.field">
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
@@ -114,7 +114,7 @@
                             <TextInput v-model="form.name" label="" type="text" class="w-full"
                                 placeholder="Bijv. Onderhoud airco unit" />
                         </div>
-                        <div>
+                        <div data-tour="planner.appointment.customer">
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
@@ -131,7 +131,7 @@
 
                     <!-- Werkbon / Locatie -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                        <div data-tour="planner.appointment.serviceorder">
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
@@ -154,6 +154,7 @@
                             </template>
                             <template v-else>
                                 <ComboBox v-if="!form.create_service_order && !form.no_service_order" v-model="form.eventable_id"
+                                    data-tour="planner.appointment.serviceorder.pick"
                                     :options="internalServiceOrders" class="w-full" :initial-id="form.eventable_id"
                                     :disabled="!selectedCustomer" has-external-searching disable-internal-filter
                                     :searching="serviceOrderSearching" placeholder="Zoek werkbon..."
@@ -167,21 +168,22 @@
                                     Deze afspraak heeft geen werkbon nodig.
                                 </p>
                                 <label v-if="canCreateServiceOrder && (!editingExisting || linkingServiceOrder)"
-                                    class="flex items-center gap-2 mt-2 select-none"
+                                    data-tour="planner.appointment.serviceorder.create" class="flex items-center gap-2 mt-2 select-none"
                                     :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
                                     <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
                                         class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
                                     <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
                                         aan</span>
                                 </label>
-                                <label v-if="!editingExisting || linkingServiceOrder" class="flex items-center gap-2 mt-2 select-none cursor-pointer">
+                                <label v-if="!editingExisting || linkingServiceOrder" data-tour="planner.appointment.serviceorder.none"
+                                    class="flex items-center gap-2 mt-2 select-none cursor-pointer">
                                     <input type="checkbox" v-model="form.no_service_order"
                                         class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
                                     <span class="text-sm text-gray-600 dark:text-gray-400">Geen werkbon nodig</span>
                                 </label>
                             </template>
                         </div>
-                        <div>
+                        <div data-tour="planner.appointment.location">
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
@@ -191,8 +193,10 @@
                             </div>
                             <div class="flex items-center gap-2" v-auto-animate>
                                 <TextInput v-if="locationMode === 'freeform'" v-model="form.location" label=""
-                                    type="text" class="flex-1 min-w-0" :placeholder="locationPlaceholder" />
+                                    type="text" class="flex-1 min-w-0" :placeholder="locationPlaceholder"
+                                    data-tour="planner.appointment.location.address" />
                                 <ComboBox v-else v-model="selectedLocationId" :options="locationOptions"
+                                    data-tour="planner.appointment.location.pick"
                                     :initial-id="selectedLocationId" class="flex-1 min-w-0"
                                     :empty-message="locationMessage" placeholder="Kies een locatie"
                                     @update:model-value="onLocationPicked" />
@@ -202,13 +206,13 @@
                                     v-tooltip="'Deze afspraak heeft een eigen adres, niet het adres van de werkbon of de klant'" />
 
                                 <button v-if="locationMode === 'freeform' && hasLocations" type="button"
-                                    @click="switchToPickerLocation"
+                                    data-tour="planner.appointment.location.pick" @click="switchToPickerLocation"
                                     class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
                                     v-tooltip="'Kies een locatie van deze klant'">
                                     <LocateFixed class="size-5" />
                                 </button>
                                 <button v-if="locationMode === 'picker'" type="button"
-                                    @click="switchToFreeformLocation"
+                                    data-tour="planner.appointment.location.address" @click="switchToFreeformLocation"
                                     class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
                                     v-tooltip="'Vrije invoer'">
                                     <PencilSquareIcon class="size-5" />
@@ -245,7 +249,7 @@
                     </div>
 
                     <!-- Uitvoerende gebruikers -->
-                    <div class="pb-2">
+                    <div class="pb-2" data-tour="planner.appointment.technicians">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
                                 <div
@@ -264,7 +268,7 @@
 
                         <!-- Selected user rows -->
                         <div v-if="selectedUsers.length" class="flex flex-col gap-2 mb-3">
-                            <div v-for="user in selectedUsers" :key="user.id"
+                            <div v-for="user in selectedUsers" :key="user.id" data-tour="planner.appointment.technician"
                                 class="flex flex-col gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2">
                                 <div class="flex items-center gap-3">
                                     <img v-if="user.avatar" :src="user.avatar"
@@ -275,7 +279,7 @@
                                     </div>
                                     <span class="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1 truncate">{{
                                         user.name }}</span>
-                                    <div class="flex items-center gap-1.5 shrink-0">
+                                    <div class="flex items-center gap-1.5 shrink-0" data-tour="planner.appointment.break">
                                         <ClockFadingIcon class="h-3.5 w-3.5 text-gray-400" />
                                         <TextInput v-model="userBreaktimes[String(user.id)]" label="" type="number"
                                             class="w-20" :step="10" :min="0" placeholder="0" />
@@ -287,10 +291,11 @@
                                     </button>
                                 </div>
                                 <ComboBox v-if="userRoles.length" multiple v-model="userRoleSelections[String(user.id)]"
+                                    data-tour="planner.appointment.roles"
                                     :options="userRoles" :initial-ids="userRoleSelections[String(user.id)]"
                                     class="w-full" placeholder="Rollen..." />
                                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                                    <label :for="`diverging-${user.id}`"
+                                    <label :for="`diverging-${user.id}`" data-tour="planner.appointment.diverging"
                                         class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 select-none cursor-pointer">
                                         <input :id="`diverging-${user.id}`" type="checkbox"
                                             v-model="userDivergingTimes[String(user.id)].has_diverging_times"
@@ -371,7 +376,8 @@
                     </div>
 
                     <!-- Verwijderen -->
-                    <div v-if="canDelete" class="pt-4 pb-2 border-t border-gray-100 dark:border-gray-700" v-auto-animate>
+                    <div v-if="canDelete" class="pt-4 pb-2 border-t border-gray-100 dark:border-gray-700" v-auto-animate
+                        data-tour="planner.appointment.delete">
                         <button v-if="!deleteArmed" type="button" @click="deleteArmed = true"
                             class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                             <TrashIcon class="h-4 w-4" />
@@ -408,7 +414,7 @@
 
                     <div class="flex flex-col sm:flex-row gap-4">
                         <!-- Voorlopig -->
-                        <div class="flex items-center gap-3 py-1">
+                        <div class="flex items-center gap-3 py-1" data-tour="planner.appointment.preliminary">
                             <input id="is_preliminary" type="checkbox" v-model="form.is_preliminary"
                                 class="h-4 w-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
                             <label for="is_preliminary"

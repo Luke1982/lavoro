@@ -1,5 +1,5 @@
 <template>
-    <button ref="buttonRef" type="button" class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
+    <button ref="buttonRef" type="button" data-tour="planner.calendar" class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
         :class="{ 'bg-gray-100 dark:bg-slate-800': open }" aria-label="Kies een datum" title="Kies een datum"
         aria-haspopup="dialog" :aria-expanded="open" @click="open = !open">
         <CalendarDaysIcon class="size-4" />
@@ -10,7 +10,7 @@
             enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
             leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
             leave-to-class="transform opacity-0 scale-95">
-            <div v-if="open" ref="panelRef" :style="style" role="dialog" aria-label="Kies een datum" tabindex="-1"
+            <div v-if="open" ref="panelRef" data-tour="planner.calendar.panel" :style="style" role="dialog" aria-label="Kies een datum" tabindex="-1"
                 class="rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 text-gray-900 dark:text-slate-100 focus:outline-none">
                 <MiniCalendar v-bind="$props" @select="pick" />
             </div>
@@ -23,6 +23,7 @@ import { ref } from 'vue'
 import { CalendarDaysIcon } from '@heroicons/vue/24/outline'
 import MiniCalendar from '@/Components/UI/MiniCalendar.vue'
 import { usePopover } from '@/Composables/usePopover'
+import { useTour } from '@/Composables/useTour'
 
 defineProps({
     selectedStart: { type: Date, required: true },
@@ -40,4 +41,13 @@ function pick(date) {
     close()
     emit('select', date)
 }
+
+useTour('planner', {
+    openCalendar: () => {
+        if (open.value) return null
+        open.value = true
+
+        return () => { open.value = false }
+    },
+})
 </script>

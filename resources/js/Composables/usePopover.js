@@ -1,6 +1,7 @@
 import { ref, watch } from 'vue'
 import { computePosition, autoUpdate, flip, offset, shift } from '@floating-ui/dom'
 import { onClickOutside, onKeyStroke } from '@vueuse/core'
+import { TOUR_LAYER_SELECTOR } from '@/Tours/layer'
 
 const FLOATING = { position: 'fixed', zIndex: 9999 }
 
@@ -10,7 +11,8 @@ const FLOATING = { position: 'fixed', zIndex: 9999 }
  * the focus when it opens, or the keyboard could never reach it at the end of
  * the document. Escape closes it through `close()`, which hands the focus back
  * to the button; a click elsewhere only closes it, because that click already
- * put the focus where the person wanted it.
+ * put the focus where the person wanted it. A click on the rondleiding is not
+ * "elsewhere": it is somebody pressing "Volgende" on the panel being shown.
  */
 export function usePopover(button, panel, placement = 'bottom-start') {
     const open = ref(false)
@@ -34,7 +36,7 @@ export function usePopover(button, panel, placement = 'bottom-start') {
         button.value?.focus()
     }
 
-    onClickOutside(panel, () => { open.value = false }, { ignore: [button] })
+    onClickOutside(panel, () => { open.value = false }, { ignore: [button, TOUR_LAYER_SELECTOR] })
     onKeyStroke('Escape', () => { if (open.value) close() })
 
     return { open, style, close }

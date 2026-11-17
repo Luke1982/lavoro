@@ -1,0 +1,45 @@
+{
+    "tour": "planner",
+    "chapter": "slepen",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "slepen.mp3",
+    "steps": [
+        {
+            "text": "Rechts staan de werkbonnen die nog op een plek in de planning wachten.",
+            "hash": "958b70ec4d0669a773bd3ee5bbf571759abbc85f",
+            "start": 0,
+            "end": 3.901
+        },
+        {
+            "text": "Bovenaan de lijst zoek je op nummer, klant, plaats of omschrijving.",
+            "hash": "fdf6c8ea2fd7b90c414fd47485641493e5270661",
+            "start": 4.201,
+            "end": 8.473
+        },
+        {
+            "text": "Pak een werkbon op en laat hem los in de rij van een monteur, op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
+            "hash": "c5d28c0bbc237c12576abaf4c9b1ec513d459432",
+            "start": 8.773,
+            "end": 17.829
+        },
+        {
+            "text": "Met de rechtermuisknop open je een werkbon, of verwijder je hem. Verwijderen vraagt altijd eerst of je het zeker weet.",
+            "hash": "5c3daae582d218ed3e362f45e8d48c91712c0ca5",
+            "start": 18.129,
+            "end": 25.327
+        },
+        {
+            "text": "Werkbonnen uit een onderhoudscontract zie je standaard niet, anders overstemmen ze de rest. Met deze schakelaar zet je ze erbij.",
+            "hash": "6f8727f4b5dff42110fb530de78ae5afcef4de5a",
+            "start": 25.627,
+            "end": 33.661
+        },
+        {
+            "text": "Hoort een werkbon bij een lopend project, dan hangt hij onder de balk van dat project. Ook die sleep je zo naar een monteur.",
+            "hash": "d42a2cc6be9356454421b50b5a59b8e0ae862474",
+            "start": 33.961,
+            "end": 41.578
+        }
+    ]
+}

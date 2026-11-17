@@ -1,5 +1,5 @@
 <template>
-    <div data-overlap-band class="absolute rounded-sm" :class="blocksCards ? 'pointer-events-none' : ''"
+    <div data-overlap-band data-tour="planner.overlap" :data-tour-events="band.eventIds.join(',')" class="absolute rounded-sm" :class="blocksCards ? 'pointer-events-none' : ''"
         :style="hatchStyle" v-tooltip="blocksCards ? null : tooltip"></div>
     <div class="@container absolute pointer-events-none" :style="badgeStyle">
         <!-- A band too narrow for the text keeps only the hatch, unless cards are

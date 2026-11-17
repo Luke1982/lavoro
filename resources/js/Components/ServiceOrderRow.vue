@@ -114,7 +114,7 @@ export const serviceOrderGridColumns =
 <script setup>
 import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
-import ContextMenu from '@imengyu/vue3-context-menu';
+import { showContextMenu } from '@/Utilities/contextMenu';
 import { nlDate, nlTime, initials, hasPermission } from '@/Utilities/Utilities';
 import {
     canDeleteServiceOrder,
@@ -235,7 +235,7 @@ function onContextMenu(event) {
     const current_stage_id = props.serviceorder.service_order_stage_id;
     if (!stageMenuStages.value.some(target_stage => target_stage.id !== current_stage_id)) return;
     event.preventDefault();
-    ContextMenu.showContextMenu({
+    showContextMenu({
         x: event.clientX,
         y: event.clientY,
         items: [

@@ -7,7 +7,7 @@
             <div
                 class="sticky top-0 z-30 flex bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
                 <div class="sticky left-0 z-10 w-10 shrink-0 bg-white dark:bg-slate-900" />
-                <div v-for="user in plannableUsers" :key="'head-' + user.id"
+                <div v-for="user in plannableUsers" :key="'head-' + user.id" data-tour="planner.phone.lane"
                     class="shrink-0 flex items-center gap-1 px-1.5 py-2 border-l border-gray-100 dark:border-slate-800"
                     :style="{ width: LANE_WIDTH + 'px' }">
                     <div

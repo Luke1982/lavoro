@@ -1,12 +1,12 @@
 <template>
-    <BoxComponent extra-classes="flex flex-col" padding="flex-1 min-h-0 overflow-y-auto">
+    <BoxComponent extra-classes="flex flex-col" padding="flex-1 min-h-0 overflow-y-auto" data-tour="planner.groups">
         <div class="flex flex-col divide-y divide-lavoro-gray-150">
 
             <!-- ── GROEPEN ─────────────────────────────────── -->
             <div class="flex flex-col">
                 <div class="flex items-center justify-between px-3 pt-2 pb-2">
                     <span class="text-xs font-medium text-lavoro-dark">Groepen</span>
-                    <button class="flex items-center gap-1 text-xs text-lavoro-blue hover:underline"
+                    <button class="flex items-center gap-1 text-xs text-lavoro-blue hover:underline" data-tour="planner.groups.add"
                         @click="startNewGroup">
                         <PlusIcon class="size-3" />
                         Toevoegen
@@ -14,19 +14,19 @@
                 </div>
 
                 <!-- New group form -->
-                <div v-if="newGroup !== null"
+                <div v-if="newGroup !== null" data-tour="planner.groups.form"
                     class="flex items-center gap-2 px-3 pb-2">
-                    <input ref="newNameInput" v-model="newGroup.name" type="text" placeholder="Groepsnaam"
-                        class="flex-1 text-xs border border-gray-300 dark:border-slate-700 rounded px-2 py-1 dark:bg-slate-800 focus:outline-none focus:border-lavoro-blue"
+                    <input ref="newNameInput" v-model="newGroup.name" type="text" placeholder="Groepsnaam" data-tour="planner.groups.name"
+                        class="flex-1 min-w-0 text-xs border border-gray-300 dark:border-slate-700 rounded px-2 py-1 dark:bg-slate-800 focus:outline-none focus:border-lavoro-blue"
                         @keydown.enter="confirmNewGroup" @keydown.escape="newGroup = null" />
-                    <input type="color" v-model="newGroup.color"
+                    <input type="color" v-model="newGroup.color" data-tour="planner.groups.color"
                         class="h-6 w-6 cursor-pointer rounded border-0 p-0 bg-transparent" />
                     <button class="text-xs font-semibold text-lavoro-blue" @click="confirmNewGroup">OK</button>
                     <button class="text-xs text-gray-400 hover:text-gray-600" @click="newGroup = null">✕</button>
                 </div>
 
                 <!-- Group rows (drag to reorder) -->
-                <div v-if="planGroups.length" class="pb-1">
+                <div v-if="planGroups.length" class="pb-1" data-tour="planner.groups.list">
                     <div
                         v-for="group in planGroups"
                         :key="group.id"
@@ -39,7 +39,9 @@
                         @dragleave.self="dropTargetGroupId = undefined"
                         @drop.prevent="onGroupDrop($event, group.id)">
 
-                        <Bars3Icon class="size-3.5 text-gray-400 cursor-grab shrink-0" />
+                        <span class="flex shrink-0" data-tour="planner.groups.handle">
+                            <Bars3Icon class="size-3.5 text-gray-400 cursor-grab" />
+                        </span>
 
                         <!-- Color swatch / picker -->
                         <label class="cursor-pointer shrink-0 relative">
@@ -58,7 +60,7 @@
                             @blur="confirmEditName(group)"
                             @keydown.enter="confirmEditName(group)"
                             @keydown.escape="editingGroupId = null" />
-                        <span v-else
+                        <span v-else data-tour="planner.groups.group-name"
                             class="flex-1 text-xs font-medium text-lavoro-dark truncate cursor-pointer hover:text-lavoro-blue"
                             @click="startEditName(group)">{{ group.name }}</span>
 
@@ -76,7 +78,7 @@
             </div>
 
             <!-- ── MONTEURS ────────────────────────────────── -->
-            <div class="flex flex-col">
+            <div class="flex flex-col" data-tour="planner.groups.technicians">
                 <div class="px-3 pt-2 pb-1">
                     <span class="text-xs font-medium text-lavoro-dark">Monteurs</span>
                 </div>
@@ -90,7 +92,7 @@
                 </div>
 
                 <div class="flex flex-col" v-auto-animate>
-                    <div v-for="user in visibleUsers" :key="user.id"
+                    <div v-for="user in visibleUsers" :key="user.id" data-tour="planner.groups.technician"
                         class="flex items-center gap-2 px-3 py-1.5 border-t border-t-lavoro-gray-150">
 
                         <!-- Avatar -->
@@ -106,7 +108,7 @@
                         <div v-if="user.plannable && planGroups.length" class="flex items-center gap-0.5 shrink-0">
                             <button
                                 v-for="group in planGroups"
-                                :key="group.id"
+                                :key="group.id" data-tour="planner.groups.toggle"
                                 class="h-4 w-4 rounded-sm border transition-all"
                                 :class="user.plan_group_ids.includes(group.id)
                                     ? 'border-transparent'
@@ -117,7 +119,7 @@
                         </div>
 
                         <!-- Plannable checkbox -->
-                        <input type="checkbox" :checked="user.plannable"
+                        <input type="checkbox" :checked="user.plannable" data-tour="planner.groups.plannable"
                             class="h-3.5 w-3.5 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer shrink-0"
                             :title="user.plannable ? 'Inplanbaar — klik om uit te zetten' : 'Niet inplanbaar — klik om aan te zetten'"
                             @change="$emit('plannable-toggled', user.id, $event.target.checked)" />
@@ -156,6 +158,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { initials } from '@/Utilities/Utilities'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     planGroups: { type: Array, default: () => [] },
@@ -210,6 +213,16 @@ function confirmNewGroup() {
     emit('group-created', { name: newGroup.value.name.trim(), color: newGroup.value.color })
     newGroup.value = null
 }
+
+/** De rondleiding laat het formulier zien zonder de focus te pakken; terug is het weer dicht. */
+useTour('planner', {
+    openNewGroupForm: () => {
+        if (newGroup.value !== null) return null
+        newGroup.value = { name: '', color: '#2563ff' }
+
+        return () => { newGroup.value = null }
+    },
+})
 
 // ── Edit group name ────────────────────────────────────────────
 function startEditName(group) {

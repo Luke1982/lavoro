@@ -1,0 +1,69 @@
+{
+    "tour": "planner",
+    "chapter": "afspraak",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "afspraak.mp3",
+    "steps": [
+        {
+            "text": "Een afspraak maken is klikken op een lege plek, of een vak trekken over de tijd die je wilt.",
+            "hash": "6549445b609f658337b6cf2566991627e590f1ec",
+            "start": 0,
+            "end": 5.48
+        },
+        {
+            "text": "Dan opent dit scherm. Bovenaan de dag en de tijden.",
+            "hash": "e98a6cd98f2d53edf103d6193ec405e958d62ed8",
+            "start": 5.78,
+            "end": 9.263
+        },
+        {
+            "text": "Kies de soort afspraak. Die geeft de afspraak zijn kleur, tenzij de planner op de kleur van de monteurrol staat.",
+            "hash": "96ae225ff384890f968193efddbba044e1f6596e",
+            "start": 9.563,
+            "end": 16.25
+        },
+        {
+            "text": "Kies daarna de klant.",
+            "hash": "bfefe04aa978fbf4d19075ecb4acb090adc8cafe",
+            "start": 16.55,
+            "end": 18.129
+        },
+        {
+            "text": "Koppel een werkbon van die klant, laat er meteen een nieuwe werkbon bij maken, of geef aan dat er geen werkbon nodig is.",
+            "hash": "96363e35341fe69ef5438df2aa104ab13826d1ba",
+            "start": 18.429,
+            "end": 26.138
+        },
+        {
+            "text": "De locatie volgt vanzelf de werkbon of de klant. Je kiest ook een andere locatie, of typt zelf een adres.",
+            "hash": "7650ae80bfb09eeaaeaff5333ddbe086fe2d9328",
+            "start": 26.438,
+            "end": 33.683
+        },
+        {
+            "text": "Hier staan de monteurs. Ieder krijgt een eigen pauze, en als het nodig is eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan kleurt die planrol de afspraak.",
+            "hash": "bd1a564822dd153079eecb03a2c12bbb1931cffd",
+            "start": 33.983,
+            "end": 45.268
+        },
+        {
+            "text": "Weet je het nog niet zeker, vink dan voorlopig aan. In de planner staat er dan een waarschuwing bij.",
+            "hash": "1b3a4bfa9821aefe611377dc595fc157c5fddf30",
+            "start": 45.568,
+            "end": 51.559
+        },
+        {
+            "text": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
+            "hash": "7de1fc8860b11f1017c0af761e0c0005565bc7b3",
+            "start": 51.859,
+            "end": 60.078
+        },
+        {
+            "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
+            "hash": "21cc0147aeeaefbbba2a9a7d985fe74e6f79b2c5",
+            "start": 60.378,
+            "end": 68.366
+        }
+    ]
+}

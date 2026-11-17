@@ -5,16 +5,16 @@
         <div
             class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap  dark:bg-slate-900">
             <h1 class="text-xl font-bold pr-4">Planning</h1>
-            <div
+            <div data-tour="planner.navigation"
                 class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm divide-x divide-gray-300 dark:divide-slate-700">
-                <button class="px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800" @click="goToDate(new Date())">
+                <button data-tour="planner.today" class="px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800" @click="goToDate(new Date())">
                     Vandaag
                 </button>
-                <button class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
+                <button data-tour="planner.prev-next" class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
                     :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'" @click="shiftPeriod(-1)">
                     <ChevronLeftIcon class="size-4" />
                 </button>
-                <button :disabled="!canGoForward"
+                <button :disabled="!canGoForward" data-tour="planner.prev-next"
                     class="flex items-center px-2 enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'" @click="shiftPeriod(1)">
                     <ChevronRightIcon class="size-4" />
@@ -25,20 +25,20 @@
             <div class="font-semibold text-sm">{{ periodTitle }}</div>
 
             <!-- View mode toggle -->
-            <div class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm">
-                <button class="px-3 py-1.5 transition-colors"
+            <div data-tour="planner.views" class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm">
+                <button data-tour="planner.views.week" class="px-3 py-1.5 transition-colors"
                     :class="plannerView === 'week' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
                     @click="setPlannerView('week')">Week</button>
-                <button class="px-3 py-1.5 border-l border-gray-300 dark:border-slate-700 transition-colors"
+                <button data-tour="planner.views.day" class="px-3 py-1.5 border-l border-gray-300 dark:border-slate-700 transition-colors"
                     :class="plannerView === 'day' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
                     @click="setPlannerView('day')">Dag</button>
             </div>
 
             <!-- Open-spot highlighting -->
-            <div class="flex items-center gap-2 text-sm">
+            <div data-tour="planner.gaps" class="flex items-center gap-2 text-sm">
                 <span :class="highlightGaps ? 'font-medium' : 'text-gray-500 dark:text-slate-400'">Open plekken</span>
-                <SwitchComponent v-model="highlightGaps" />
-                <label v-if="highlightGaps"
+                <SwitchComponent v-model="highlightGaps" data-tour="planner.gaps.switch" />
+                <label v-if="highlightGaps" data-tour="planner.gaps.minutes"
                     class="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400"
                     v-tooltip="'Minimale grootte van een open plek; leeg = standaard planminuten'">
                     <input type="number" v-model.number="gapMinutesInput" :placeholder="plannerMinutes" min="15"
@@ -48,7 +48,7 @@
                 </label>
             </div>
 
-            <div class="flex-1 min-w-64">
+            <div data-tour="planner.search" class="flex-1 min-w-64">
                 <ComboBox v-model="eventSearchSelection" :options="eventSearchOptions" :searching="eventSearching"
                     has-external-searching disable-internal-filter placeholder="Zoek een afspraak..."
                     @change="searchEvents">
@@ -86,16 +86,18 @@
             </div>
 
             <div class="ml-auto flex items-center gap-2">
-                <button v-if="allPingsArray.length > 0"
+                <button v-if="allPingsArray.length > 0" data-tour="planner.map"
                     class="flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
                     @click="mapModalOpen = true">
                     <MapIcon class="size-4 shrink-0" />
                     Monteurkaart
                 </button>
 
-                <AssistantButton />
+                <AssistantButton data-tour="planner.assistant" />
 
-                <button ref="settingsButtonRef" @click="settingsOpen = !settingsOpen"
+                <TourButton tour="planner" data-tour="planner.tour" />
+
+                <button ref="settingsButtonRef" data-tour="planner.settings" @click="settingsOpen = !settingsOpen"
                     class="flex items-center rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
                     :class="settingsOpen ? 'bg-gray-100 dark:bg-slate-800' : ''" aria-label="Planner-instellingen"
                     title="Instellingen">
@@ -108,23 +110,23 @@
                     enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
                     leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
                     leave-to-class="transform opacity-0 scale-95">
-                    <div v-if="settingsOpen" ref="settingsPanelRef" :style="settingsPanelStyle" tabindex="-1"
+                    <div v-if="settingsOpen" ref="settingsPanelRef" data-tour="planner.settings.panel" :style="settingsPanelStyle" tabindex="-1"
                         class="w-80 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100 focus:outline-none">
-                        <button v-if="hasPermission('event.export')"
+                        <button v-if="hasPermission('event.export')" data-tour="planner.settings.export"
                             class="flex items-center justify-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800"
                             @click="settingsOpen = false; exportDrawerOpen = true">
                             <ArrowDownTrayIcon class="size-4 shrink-0" />
                             Exporteren
                         </button>
 
-                        <div v-if="hasPermission('planner.manage_settings')" class="flex flex-col gap-1">
+                        <div v-if="hasPermission('planner.manage_settings')" data-tour="planner.settings.duration" class="flex flex-col gap-1">
                             <label class="text-xs text-gray-500 dark:text-slate-400">Standaard minuten</label>
                             <input type="number" v-model.number="plannerMinutes" min="15" max="1200" step="15"
                                 class="w-full rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5 text-center"
                                 @blur="savePlannerMinutes" />
                         </div>
 
-                        <div class="flex flex-col gap-1">
+                        <div data-tour="planner.settings.slot" class="flex flex-col gap-1">
                             <label class="text-xs text-gray-500 dark:text-slate-400">Slotgrootte</label>
                             <select v-model.number="slotMinutes"
                                 class="w-full rounded-md border border-gray-300 dark:border-slate-700 dark:bg-slate-800 px-2 py-1.5">
@@ -133,7 +135,7 @@
                             </select>
                         </div>
 
-                        <div v-if="hasPermission('planner.manage_settings')"
+                        <div v-if="hasPermission('planner.manage_settings')" data-tour="planner.settings.color"
                             class="flex flex-col gap-1.5">
                             <label class="text-xs text-gray-500 dark:text-slate-400">Leidende kleur afspraak</label>
                             <div class="flex items-center justify-between gap-2">
@@ -145,7 +147,7 @@
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-1">
+                        <div data-tour="planner.settings.day" class="flex flex-col gap-1">
                             <label class="text-xs text-gray-500 dark:text-slate-400">Dagweergave</label>
                             <div class="flex items-center gap-2">
                                 <select v-model.number="dayStartHour"
@@ -178,16 +180,16 @@
             old "scroll buffer" feel) and lets native drag-to-edge auto-scroll do its job.
         -->
         <PlannerLoadingOverlay :loading="eventsLoading">
-            <div class="h-full overflow-auto [overscroll-behavior:contain]" ref="gridScrollRef"
+            <div class="h-full overflow-auto [overscroll-behavior:contain]" ref="gridScrollRef" data-tour="planner.grid"
                 @dragleave="onGridDragLeave">
                 <!-- Sticky header row: sidebar label + day/time bars -->
                 <div class="sticky top-0 z-30 flex w-max min-w-full">
                     <div class="sticky left-0 z-10 w-64 shrink-0 bg-white dark:bg-slate-900 border-r border-b border-gray-200 dark:border-slate-800 px-3 flex flex-col justify-between gap-1 pb-2 pt-2 text-xs text-gray-500 dark:text-slate-400"
                         :style="{ height: headerHeight + 'px' }">
                         <!-- Group filter -->
-                        <div v-if="groups.length" class="flex items-center gap-1 flex-wrap min-h-0">
+                        <div v-if="groups.length" data-tour="planner.groups.filter" class="flex items-center gap-1 flex-wrap min-h-0">
                             <span class="text-[10px] text-gray-400 shrink-0">Groepen:</span>
-                            <button v-for="group in groups" :key="group.id"
+                            <button v-for="group in groups" :key="group.id" data-tour="planner.groups.filter.group"
                                 class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
                                 :class="selectedGroupIds.includes(group.id)
                                     ? 'text-white border-transparent'
@@ -203,7 +205,7 @@
                         <!-- Monteurs count + collapse -->
                         <div class="flex items-center justify-between">
                             <span>Monteurs ({{ visibleUsers.length }})</span>
-                            <button v-if="visibleUsers.length" @click="toggleAllRows"
+                            <button v-if="visibleUsers.length" data-tour="planner.collapse-all" @click="toggleAllRows"
                                 class="flex items-center gap-0.5 rounded px-1.5 py-1 hover:bg-gray-100 dark:hover:bg-slate-800 font-medium">
                                 <ChevronDownIcon v-if="allRowsCollapsed" class="size-3.5" />
                                 <ChevronRightIcon v-else class="size-3.5" />
@@ -245,7 +247,7 @@
                 <!-- Body row: frozen resource sidebar + scrolling time grid -->
                 <div class="flex w-max min-w-full">
                     <!-- Resource sidebar (frozen left via sticky) -->
-                    <div class="sticky left-0 z-20 w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div data-tour="planner.technicians" class="sticky left-0 z-20 w-64 shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                         <!-- Group bar overlay: one thin bar per user per group, stacked left to right -->
                         <div class="absolute top-0 left-0 pointer-events-none"
                             style="width: 0; overflow: visible; z-index: 1;">
@@ -254,7 +256,7 @@
                         </div>
                         <div v-if="showProjects && allDayLaneHeight" :style="{ height: allDayLaneHeight + 'px' }"
                             class="relative border-b border-gray-200 dark:border-slate-800 text-xs font-medium text-gray-500 dark:text-slate-400 bg-gray-50/40 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out">
-                            <button
+                            <button data-tour="planner.row-toggle"
                                 class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700"
                                 @click="toggleAllDay"
                                 :aria-label="allDayState === 'closed' ? 'Projecten uitklappen' : allDayState === 'partial' ? 'Alle projecten tonen' : 'Projecten inklappen'">
@@ -271,7 +273,7 @@
                                 idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
                                 latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
                             ]">
-                            <button
+                            <button data-tour="planner.row-toggle"
                                 class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
                                 @click="toggleUserRow(user.id)"
                                 :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
@@ -292,11 +294,11 @@
                                         {{ userHoursLabel(user.id) }}</div>
                                 </div>
                             </div>
-                            <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]"
+                            <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]" data-tour="planner.minimap"
                                 class="flex flex-col flex-1 min-h-0">
                                 <div class="flex items-center justify-between mb-0.5 shrink-0">
                                     <span class="text-[10px] text-gray-400 dark:text-slate-500 font-medium">Locatie</span>
-                                    <button @click.stop="toggleMapExpand(user.id)"
+                                    <button @click.stop="toggleMapExpand(user.id)" data-tour="planner.minimap.expand"
                                         class="rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
                                         :title="mapExpandedUsers.has(user.id) ? 'Kaart verkleinen' : 'Kaart vergroten'">
                                         <ArrowsPointingInIcon v-if="mapExpandedUsers.has(user.id)" class="size-3" />
@@ -333,7 +335,7 @@
 
                                     <template v-for="track in visibleTracks" :key="'track-' + track.id">
                                         <!-- Project bar (background spans full range; label sticks to the viewport) -->
-                                        <div class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
+                                        <div data-tour="planner.project" :data-tour-track="track.id" class="absolute rounded-md border bg-indigo-50 dark:bg-indigo-950/50 border-indigo-300 dark:border-indigo-800"
                                             :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.top + 'px', height: PROJECT_BAR_H + 'px' }"
                                             :title="`${track.title}${track.customerName ? ' — ' + track.customerName : ''}`">
                                             <!-- Label sticks to the left visible grid edge (just past the frozen sidebar) while scrolling horizontally. -->
@@ -352,7 +354,7 @@
                                         </div>
 
                                         <!-- Unplanned service orders hanging below the project (side by side, wrapping) -->
-                                        <div v-if="track.serviceOrders.length" class="absolute"
+                                        <div v-if="track.serviceOrders.length" :data-tour-track="track.id" class="absolute"
                                             :style="{ left: track.leftPct + '%', width: track.widthPct + '%', top: track.hangingTop + 'px' }">
                                             <!-- The whole group sticks under its project's visible portion while scrolling horizontally. -->
                                             <div class="sticky left-64 inline-flex flex-wrap content-start gap-1"
@@ -360,6 +362,7 @@
                                                 <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
                                                     draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
                                                     @dragend="onProjectServiceOrderDragEnd" :data-so-card-id="so.id"
+                                                    data-tour="planner.project.order"
                                                     :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
                                                     class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border dark:bg-slate-800 px-2 shadow-sm transition"
                                                     :class="highlightedSoCardId === so.id
@@ -380,6 +383,7 @@
 
                             <!-- Locked-event group overlays -->
                             <div v-for="ov in lockedGroupOverlays" :key="'lock-ov-' + ov.id"
+                                data-tour="planner.shared" :data-tour-event="ov.id"
                                 class="absolute pointer-events-none z-[6] rounded-xl border-2 border-dashed" :style="{
                                     top: (ov.top - 5 - ov.nestingLevel * 5) + 'px',
                                     height: (ov.height + 10 + ov.nestingLevel * 10) + 'px',
@@ -410,7 +414,7 @@
                                     <!-- Unavailability overlays -->
                                     <template v-for="(overlay, oi) in getBlockOverlays(user.id, day.iso)"
                                         :key="'block-' + user.id + '-' + day.iso + '-' + oi">
-                                        <div class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
+                                        <div data-tour="planner.unavailable" class="absolute top-0 bottom-0 pointer-events-none z-[5] flex items-center overflow-hidden"
                                             :style="{
                                                 left: overlay.left + '%',
                                                 width: overlay.width + '%',
@@ -426,7 +430,7 @@
                                     <!-- Open-spot highlights -->
                                     <template v-if="highlightGaps">
                                         <div v-for="(gap, gi) in gapSegmentsFor(user.id, day.iso)"
-                                            :key="'gap-' + user.id + '-' + day.iso + '-' + gi"
+                                            :key="'gap-' + user.id + '-' + day.iso + '-' + gi" data-tour="planner.gap"
                                             class="absolute top-1 bottom-1 pointer-events-none rounded-md border-2 border-dashed border-emerald-500/70 bg-emerald-400/15 overflow-hidden"
                                             :style="{ left: gap.left + '%', width: gap.width + '%' }">
                                             <span
@@ -470,7 +474,7 @@
                                         :day-end-hour="dayEndHour" :event-padding-y="paddingYFor(user.id)" />
 
                                     <DayRouteLinks v-if="routeFor(user.id, day.iso)" :route="routeFor(user.id, day.iso)"
-                                        class="absolute top-0.5 right-0.5 z-[15]" @remove="removeRoute" />
+                                        data-tour="planner.route" class="absolute top-0.5 right-0.5 z-[15]" @remove="removeRoute" />
 
                                     <!-- Live selection rectangle (click-drag-create) -->
                                     <div v-if="selectRect && selectRect.userId === user.id && selectRect.dayIso === day.iso"
@@ -510,7 +514,7 @@
         <!-- All-technicians map modal -->
         <ModalDialog :open="mapModalOpen" @update:open="mapModalOpen = $event" title="Monteurlocaties (laatste 8u)"
             max-width-class="sm:max-w-[90vw]">
-            <div style="height: 80vh; width: 90vw;" class="relative">
+            <div style="height: 80vh; width: 90vw;" class="relative" data-tour="planner.map.panel">
                 <TechnicianMapCanvas v-if="mapModalOpen" :pings="allPingsArray" :init-delay="350" />
             </div>
         </ModalDialog>
@@ -558,6 +562,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour, findSpot } from '@/Composables/useTour'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
@@ -590,7 +596,7 @@ import OverlapPickDialog from '@/Components/Planner/OverlapPickDialog.vue'
 import CopyEventToDateDialog from '@/Components/Planner/CopyEventToDateDialog.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
-import ContextMenu from '@imengyu/vue3-context-menu'
+import { showContextMenu } from '@/Utilities/contextMenu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
@@ -1752,7 +1758,7 @@ function onEventContextMenu(e, ev) {
     if (canDeleteEvent(ev)) {
         items.push({ label: 'Verwijderen', divided: items.length > 0, onClick: () => deleteEvent(ev) })
     }
-    ContextMenu.showContextMenu({
+    showContextMenu({
         x: e.clientX,
         y: e.clientY,
         items,
@@ -2395,4 +2401,154 @@ function onSaved(payload) {
         processNextPendingStandardEmail()
     }
 }
+
+/**
+ * Wat de rondleiding hier mag laten zien. Elke actie verandert alleen wat er op
+ * het scherm staat en geeft terug hoe dat weer terug moet; plannen, kopiëren of
+ * verslepen doet de rondleiding nooit echt.
+ */
+/** Negen uur vandaag in de rij van de eerste monteur: een uur breed, dus een plek waar je iets neerlegt. */
+function todayCell() {
+    const firstUser = visibleUsers.value[0]
+    if (!firstUser || !gridScrollRef.value) return null
+    const todayIso = formatLocalDateAsISO(new Date())
+    const cell = gridScrollRef.value.querySelector(`[data-user-id="${firstUser.id}"][data-day-iso="${todayIso}"]`)
+        ?? gridScrollRef.value.querySelector(`[data-user-id="${firstUser.id}"][data-day-iso]`)
+
+    return nineOClock(cell)
+}
+
+function nineOClock(cell) {
+    const hours = cell?.querySelector(':scope > .pointer-events-none')?.children
+
+    return hours?.[Math.min(hours.length - 1, Math.max(0, 9 - dayStartHour.value))] ?? cell
+}
+
+/** Het uur in de rij van de eerste monteur recht onder een element: daar landt een werkbon die van een projectbalk wordt gesleept. */
+function cellBelow(element) {
+    const firstUser = visibleUsers.value[0]
+    if (!element || !firstUser || !gridScrollRef.value) return null
+    const x = element.getBoundingClientRect().left + 24
+    const contains = (candidate) => {
+        const box = candidate.getBoundingClientRect()
+
+        return box.left <= x && x < box.right
+    }
+    const cell = [...gridScrollRef.value.querySelectorAll(`[data-user-id="${firstUser.id}"][data-day-iso]`)].find(contains)
+    const hours = [...(cell?.querySelector(':scope > .pointer-events-none')?.children ?? [])]
+
+    return hours.find(contains) ?? cell ?? null
+}
+
+/** De eerste projectbalk met werkbonnen eronder, samen met die werkbonnen: zo wijst de rondleiding nooit een werkbon van een ander project aan. */
+function projectWithOrders() {
+    const track = visibleTracks.value.find((candidate) => candidate.serviceOrders.length)
+    if (!track || !gridScrollRef.value) return null
+    const bar = gridScrollRef.value.querySelector(`[data-tour="planner.project"][data-tour-track="${track.id}"]`)
+    const hanging = gridScrollRef.value.querySelector(`div[data-tour-track="${track.id}"]:not([data-tour])`)
+
+    return bar ? { bar, orders: [...(hanging?.querySelectorAll('[data-tour="planner.project.order"]') ?? [])] } : null
+}
+
+function sharedAppointment() {
+    if (!gridScrollRef.value) return null
+    const frames = [...gridScrollRef.value.querySelectorAll('[data-tour="planner.shared"]')]
+    if (!frames.length) return null
+    const today = formatLocalDateAsISO(new Date())
+    const todays = new Set(events.value.filter((ev) => formatLocalDateAsISO(ev.start) === today).map((ev) => String(ev.id)))
+    const frame = frames.find((candidate) => todays.has(candidate.dataset.tourEvent)) ?? frames[0]
+    const parts = [...gridScrollRef.value.querySelectorAll(`[data-planner-event][data-event-id="${frame.dataset.tourEvent}"]`)]
+
+    return { frame, parts, locks: parts.flatMap((part) => [...part.querySelectorAll('[data-tour="planner.event.lock"]')]) }
+}
+
+function overlapLabel() {
+    return findSpot('planner.overlap')?.nextElementSibling?.querySelector('span') ?? null
+}
+
+function overlapLaneOf(band) {
+    const ids = band?.dataset.tourEvents
+    if (!ids) return null
+    for (const [key, lane] of laneOverlaps.value) {
+        const found = lane.bands.find((candidate) => candidate.eventIds.join(',') === ids)
+        if (found) return { userId: Number(key.slice(0, key.indexOf('-'))), eventIds: found.eventIds }
+    }
+
+    return null
+}
+
+useTour('planner', {
+    goToToday: () => {
+        const previous = weekStart.value
+        const target = periodStartFor(new Date())
+        if (dayjs(previous).isSame(target, 'day')) return null
+        weekStart.value = target
+
+        return () => { weekStart.value = previous }
+    },
+    showDayView: () => {
+        if (plannerView.value === 'day') return null
+        const previousWeek = weekStart.value
+        const today = dayjs().startOf('day')
+        const inView = !today.isBefore(dayjs(previousWeek)) && today.isBefore(dayjs(previousWeek).add(7, 'day'))
+        setPlannerView('day')
+        weekStart.value = inView ? today.toDate() : previousWeek
+
+        return () => {
+            setPlannerView('week')
+            weekStart.value = previousWeek
+        }
+    },
+    openSettings: () => {
+        if (settingsOpen.value) return null
+        settingsOpen.value = true
+
+        return () => { settingsOpen.value = false }
+    },
+    showGaps: () => {
+        if (highlightGaps.value) return null
+        highlightGaps.value = true
+
+        return () => { highlightGaps.value = false }
+    },
+    expandProjects: () => {
+        const previous = allDayState.value
+        if (!showProjects.value || previous === 'full') return null
+        allDayState.value = 'full'
+
+        return () => { allDayState.value = previous }
+    },
+    openNewAppointment: () => {
+        const user = visibleUsers.value[0]
+        if (modalOpen.value || !user || !hasPermission('event.create')) return null
+        const start = dayjs().startOf('day').hour(Math.max(dayStartHour.value, 9)).toDate()
+        openCreate({ start, end: dayjs(start).add(plannerMinutes.value, 'minute').toDate(), userId: user.id })
+
+        return () => closeModal()
+    },
+    openOverlapPick: () => {
+        const lane = overlapLaneOf(findSpot('planner.overlap'))
+        if (!lane || overlapPick.value.open) return null
+        overlapPick.value = { open: true, userId: lane.userId, eventIds: lane.eventIds }
+
+        return () => closeOverlapPick()
+    },
+    openMap: () => {
+        if (!allPingsArray.value.length || mapModalOpen.value) return null
+        mapModalOpen.value = true
+
+        return () => { mapModalOpen.value = false }
+    },
+}, {
+    spots: {
+        'planner.cell': todayCell,
+        'planner.project': () => projectWithOrders()?.bar ?? null,
+        'planner.project.order': () => projectWithOrders()?.orders ?? [],
+        'planner.project.cell': () => cellBelow(projectWithOrders()?.orders[0]),
+        'planner.shared': () => sharedAppointment()?.frame ?? null,
+        'planner.shared.parts': () => sharedAppointment()?.parts ?? [],
+        'planner.shared.lock': () => sharedAppointment()?.locks ?? [],
+        'planner.overlap.label': overlapLabel,
+    },
+})
 </script>

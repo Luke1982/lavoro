@@ -194,6 +194,23 @@
                                     </ul>
                                 </div>
 
+                                <div v-for="(offer, offerIndex) in exchange.tours ?? []" :key="'t' + offerIndex"
+                                    class="flex items-center justify-between gap-3 rounded-lg bg-gradient-to-r from-lavoro-blue/10 to-lavoro-green/20 px-3 py-2.5 ring-1 ring-lavoro-blue/30">
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        <AcademicCapIcon class="size-5 shrink-0 text-lavoro-blue" />
+                                        <div class="min-w-0">
+                                            <p class="truncate text-xs font-semibold text-slate-800">{{ offer.label }}</p>
+                                            <p class="text-[11px] text-slate-500">{{ tourOfferNote(offer) }}</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" :disabled="!tourOfferFits(offer)"
+                                        class="inline-flex shrink-0 items-center gap-1 rounded-md bg-lavoro-blue px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                                        @click="startTourOffer(offer)">
+                                        <PlayIcon class="size-3.5" />
+                                        Start
+                                    </button>
+                                </div>
+
                                 <div v-for="(action, actionIndex) in exchange.pendingActions" :key="'p' + actionIndex"
                                     class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 ring-1" :class="[
                                         action.done && !action.failed ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : '',
@@ -421,6 +438,7 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import {
+    AcademicCapIcon,
     ArrowPathIcon,
     CalendarDaysIcon,
     ChatBubbleLeftRightIcon,
@@ -435,7 +453,7 @@ import {
     SparklesIcon,
     XMarkIcon,
 } from '@heroicons/vue/24/outline'
-import { PaperAirplaneIcon } from '@heroicons/vue/24/solid'
+import { PaperAirplaneIcon, PlayIcon } from '@heroicons/vue/24/solid'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AssistantPromptForm from '@/Components/Assistant/AssistantPromptForm.vue'
@@ -446,6 +464,7 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import MarkdownText from '@/Components/UI/MarkdownText.vue'
 import { CHAT, HISTORY, PROMPTS, startOver, useAssistantThread } from '@/Composables/useAssistantThread.js'
 import { openImageLightbox } from '@/Utilities/lightbox.js'
+import { requestTour, isDesktop } from '@/Tours/engine'
 
 /**
  * The assistant itself, with no opinion about the frame around it.
@@ -768,6 +787,7 @@ const TOOL_LABELS = {
     note_file: 'Bestand samenvatten',
     read_file: 'Bestand opnieuw lezen',
     ask_which_one: 'Keuze voorleggen',
+    offer_tour: 'Rondleiding klaarzetten',
 }
 
 const toolLabel = (name) => TOOL_LABELS[name] || name
@@ -1092,7 +1112,7 @@ async function ask() {
      * and stopped the moment the conversation moved into a slot of its own,
      * which left an answer sitting in memory under "aan het opzoeken".
      */
-    const exchange = reactive({ question: asked, images, files: files.map((file) => file.name), answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], photos: {}, unverified: [] })
+    const exchange = reactive({ question: asked, images, files: files.map((file) => file.name), answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], tours: [], findings: [], unreadable: [], photos: {}, unverified: [] })
     exchanges.value.push(exchange)
     asked_before.value.unshift(asked)
     recalled.value = -1
@@ -1135,6 +1155,7 @@ async function ask() {
         notePhotoTools(data.tools)
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
+        exchange.tours = data.tours || []
         exchange.findings = data.findings || []
         exchange.unreadable = data.unreadable || []
         exchange.photos = data.photos || {}
@@ -1196,6 +1217,28 @@ function choose(choice, option) {
 function openRecord(path) {
     close()
     router.visit(path)
+}
+
+/**
+ * A rondleiding the assistant put under its answer. A chapter made for the other
+ * kind of screen is shown but cannot be started here, with the reason why.
+ */
+function tourOfferFits(offer) {
+    if (offer.device === 'phone') return !isDesktop()
+    if (offer.device === 'desktop') return isDesktop()
+
+    return true
+}
+
+function tourOfferNote(offer) {
+    if (!tourOfferFits(offer)) return offer.device === 'phone' ? 'Werkt alleen op een telefoon' : 'Werkt alleen op een groot scherm'
+
+    return offer.chapter ? 'Op je scherm uitgelegd, met gesproken tekst' : 'Kies zelf welke hoofdstukken je wilt zien'
+}
+
+function startTourOffer(offer) {
+    close()
+    requestTour(offer.tour, offer.chapter)
 }
 
 /**
@@ -1261,7 +1304,7 @@ async function proceed() {
 
     if (!history.length) return
 
-    const exchange = reactive({ question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], findings: [], unreadable: [], unverified: [] })
+    const exchange = reactive({ question: '', answer: '', tools: [], error: '', pending: true, pendingActions: [], choices: [], tours: [], findings: [], unreadable: [], unverified: [] })
     exchanges.value.push(exchange)
     asking.value = true
     scrollToLatest()
@@ -1277,6 +1320,7 @@ async function proceed() {
         notePhotoTools(data.tools)
         exchange.pendingActions = asActions(data.pending)
         exchange.choices = asChoices(data.choices)
+        exchange.tours = data.tours || []
         exchange.unverified = data.unverified || []
     } catch (e) {
         // Nothing was lost if this fails: the action itself already happened, and

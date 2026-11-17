@@ -1,0 +1,39 @@
+{
+    "tour": "planner",
+    "chapter": "kopieren",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "kopieren.mp3",
+    "steps": [
+        {
+            "text": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies kopiëren.",
+            "hash": "6f921616ece191a77df48a1a97304da5d99c9104",
+            "start": 0,
+            "end": 5.712
+        },
+        {
+            "text": "Naar morgen zet hem een dag later neer, op dezelfde tijd.",
+            "hash": "a3249ac485a8f8a970a1e905977b084e36001d25",
+            "start": 6.012,
+            "end": 9.449
+        },
+        {
+            "text": "Rest van de week vult elke werkdag die er nog komt.",
+            "hash": "f9ead18fcc052b1932c8ef75fa640c0ae1a0cf52",
+            "start": 9.749,
+            "end": 13.046
+        },
+        {
+            "text": "Naar volgende week zet hem precies een week later.",
+            "hash": "75ac6b755c8bd6aee9bbf4d740097b30fcb0329b",
+            "start": 13.346,
+            "end": 16.643
+        },
+        {
+            "text": "Of kies zelf een datum, tot een jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
+            "hash": "8c6893d0a25ee0e382261be3d09ce3fd9389c0ad",
+            "start": 16.943,
+            "end": 24.699
+        }
+    ]
+}

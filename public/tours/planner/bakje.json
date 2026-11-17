@@ -1,0 +1,33 @@
+{
+    "tour": "planner",
+    "chapter": "bakje",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "bakje.mp3",
+    "steps": [
+        {
+            "text": "Het bakje is een plek om iets even neer te leggen. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
+            "hash": "9add5cb1c0f61eff437f8aca69a79c63b6990b56",
+            "start": 0,
+            "end": 10.913
+        },
+        {
+            "text": "Sleep hem van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt een afspraak, met de standaardduur.",
+            "hash": "bf0d86bbf14254a9e40ddbf6c3026ac7657afd7c",
+            "start": 11.213,
+            "end": 20.13
+        },
+        {
+            "text": "Dan kies je op welke werkbon het komt. Een nieuwe werkbon voor de klant, of een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
+            "hash": "bbe6e4f69b20fe324affbdf697fa8cb7cb86d517",
+            "start": 20.43,
+            "end": 31.018
+        },
+        {
+            "text": "Vergist? Klik dan op ongedaan maken, in de balk die even verschijnt. En wat je niet inplant, blijft gewoon op het bakje liggen.",
+            "hash": "8801dc591144317a4e5f47ff55c0cccadf5b452e",
+            "start": 31.318,
+            "end": 39.213
+        }
+    ]
+}

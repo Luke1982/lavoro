@@ -1,8 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities.js'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -33,6 +35,8 @@ const REPEAT_OPTIONS = [
 
 const showRecurringForm = ref(false)
 const showHolidayForm   = ref(false)
+const recurringFormRef  = ref(null)
+const holidayFormRef    = ref(null)
 
 const recurringForm = useForm({
     type:           'recurring',
@@ -86,10 +90,47 @@ function destroy(id) {
         { preserveScroll: true, only: ['unavailabilities'] }
     )
 }
+
+/** Een formulier onderaan de pagina valt half buiten beeld; de rondleiding schuift het er helemaal in. */
+async function bringIntoView(element) {
+    await nextTick()
+    element.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+
+/** De rondleiding klapt de formulieren open om ze te laten zien, en daarna weer dicht en leeg. */
+function opensForm(shown, form, element) {
+    return async () => {
+        if (!canManage.value || shown.value) return null
+        shown.value = true
+        await bringIntoView(element)
+
+        return () => {
+            shown.value = false
+            form.reset()
+            form.clearErrors()
+        }
+    }
+}
+
+useTour('rooster', {
+    openRecurringForm: opensForm(showRecurringForm, recurringForm, recurringFormRef),
+    openHolidayForm: opensForm(showHolidayForm, holidayForm, holidayFormRef),
+    chooseBiweekly: async () => {
+        if (!showRecurringForm.value || recurringForm.repeat === 'biweekly') return null
+        const previous = recurringForm.repeat
+        recurringForm.repeat = 'biweekly'
+        await bringIntoView(recurringFormRef)
+
+        return () => { recurringForm.repeat = previous }
+    },
+})
 </script>
 
 <template>
-    <div v-if="canManage" class="space-y-6">
+    <div v-if="canManage" class="space-y-6" data-tour="roster.section">
+        <div class="-mt-2 flex justify-end">
+            <TourButton tour="rooster" label="Uitleg" data-tour="roster.tour" />
+        </div>
 
         <!-- Recurring off-periods -->
         <div>
@@ -107,7 +148,7 @@ function destroy(id) {
                         </span>
                         <span v-if="entry.label" class="text-gray-400 ml-1">— {{ entry.label }}</span>
                     </span>
-                    <button type="button" @click="destroy(entry.id)"
+                    <button type="button" @click="destroy(entry.id)" data-tour="roster.remove"
                             class="ml-3 text-red-400 hover:text-red-600 text-base leading-none">×</button>
                 </div>
             </div>
@@ -117,11 +158,11 @@ function destroy(id) {
                     @click="showRecurringForm = true"
                     class="text-sm text-blue-600 hover:underline">+ Toevoegen</button>
 
-            <form v-else @submit.prevent="submitRecurring"
+            <form v-else ref="recurringFormRef" @submit.prevent="submitRecurring" data-tour="roster.recurring.form"
                   class="space-y-3 border border-gray-200 dark:border-slate-600 rounded p-3 bg-gray-50 dark:bg-slate-800/50">
 
                 <div class="grid grid-cols-2 gap-3">
-                    <div>
+                    <div data-tour="roster.recurring.day">
                         <label class="block text-xs text-gray-500 mb-1">Dag</label>
                         <SelectMenuComponent v-model="recurringForm.day_of_week"
                                              :options="DAY_OPTIONS" label="Kies dag" />
@@ -129,14 +170,14 @@ function destroy(id) {
                             {{ recurringForm.errors.day_of_week }}
                         </p>
                     </div>
-                    <div>
+                    <div data-tour="roster.recurring.repeat">
                         <label class="block text-xs text-gray-500 mb-1">Herhaling</label>
                         <SelectMenuComponent v-model="recurringForm.repeat"
                                              :options="REPEAT_OPTIONS" />
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-3" data-tour="roster.recurring.times">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Van</label>
                         <input v-model="recurringForm.start_time" type="time"
@@ -155,7 +196,7 @@ function destroy(id) {
                     </div>
                 </div>
 
-                <div v-if="recurringForm.repeat === 'biweekly'">
+                <div v-if="recurringForm.repeat === 'biweekly'" data-tour="roster.recurring.first">
                     <label class="block text-xs text-gray-500 mb-1">Eerste keer (ankerdatum)</label>
                     <input v-model="recurringForm.reference_date" type="date"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
@@ -166,12 +207,12 @@ function destroy(id) {
 
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Label (optioneel)</label>
-                    <input v-model="recurringForm.label" type="text" placeholder="bijv. Parttime dag"
+                    <input v-model="recurringForm.label" type="text" placeholder="bijv. Parttime dag" data-tour="roster.recurring.label"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" :disabled="recurringForm.processing"
+                    <button type="submit" :disabled="recurringForm.processing" data-tour="roster.save"
                             class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded">
                         Opslaan
                     </button>
@@ -197,7 +238,7 @@ function destroy(id) {
                         <span v-if="entry.end_date && entry.end_date !== entry.date"> – {{ entry.end_date?.slice(0, 10) }}</span>
                         <span v-if="entry.label" class="text-gray-400 ml-1">— {{ entry.label }}</span>
                     </span>
-                    <button type="button" @click="destroy(entry.id)"
+                    <button type="button" @click="destroy(entry.id)" data-tour="roster.remove"
                             class="ml-3 text-red-400 hover:text-red-600 text-base leading-none">×</button>
                 </div>
             </div>
@@ -207,11 +248,11 @@ function destroy(id) {
                     @click="showHolidayForm = true"
                     class="text-sm text-blue-600 hover:underline">+ Toevoegen</button>
 
-            <form v-else @submit.prevent="submitHoliday"
+            <form v-else ref="holidayFormRef" @submit.prevent="submitHoliday" data-tour="roster.holidays.form"
                   class="space-y-3 border border-gray-200 dark:border-slate-600 rounded p-3 bg-gray-50 dark:bg-slate-800/50">
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
+                <div class="grid grid-cols-2 gap-3" data-tour="roster.holidays.period">
+                    <div data-tour="roster.holidays.from">
                         <label class="block text-xs text-gray-500 mb-1">Van</label>
                         <input v-model="holidayForm.date" type="date"
                                class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
@@ -232,12 +273,12 @@ function destroy(id) {
 
                 <div>
                     <label class="block text-xs text-gray-500 mb-1">Label (optioneel)</label>
-                    <input v-model="holidayForm.label" type="text" placeholder="bijv. Vakantie"
+                    <input v-model="holidayForm.label" type="text" placeholder="bijv. Vakantie" data-tour="roster.holidays.label"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                 </div>
 
                 <div class="flex gap-2">
-                    <button type="submit" :disabled="holidayForm.processing"
+                    <button type="submit" :disabled="holidayForm.processing" data-tour="roster.save"
                             class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded">
                         Opslaan
                     </button>

@@ -1,0 +1,39 @@
+{
+    "tour": "planner",
+    "chapter": "kaart-en-route",
+    "version": 1,
+    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "audio": "kaart-en-route.mp3",
+    "steps": [
+        {
+            "text": "Delen je monteurs hun locatie, dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
+            "hash": "d27764bb3b31e486085f868d6c0c5c9eecc3afa4",
+            "start": 0,
+            "end": 6.269
+        },
+        {
+            "text": "Zo staan ze allemaal op de kaart.",
+            "hash": "54baac2582a91549704ddd67dc2a65a04478716f",
+            "start": 6.569,
+            "end": 8.613
+        },
+        {
+            "text": "In de rij van een monteur staat zijn laatste locatie op een kleine kaart. Met het pijltje maak je hem groter.",
+            "hash": "91f1fc9d12e778eb5c7c4a71c81e24c68f72fa56",
+            "start": 8.913,
+            "end": 15.461
+        },
+        {
+            "text": "Staat er voor een dag een route klaar, dan zie je bovenin die dag een knop Route. Die opent de route in Google Maps.",
+            "hash": "b0618b41dcfc2695d136b47955eabe03367b3f73",
+            "start": 15.761,
+            "end": 22.68
+        },
+        {
+            "text": "Een route maak je op de kaart van de keuringen of van de storingen. Zet je hem in de planning, dan verschijnt hij hier bij de monteur.",
+            "hash": "750f5dd852267bd36b68fc34600ecdce8406781e",
+            "start": 22.98,
+            "end": 31.014
+        }
+    ]
+}
