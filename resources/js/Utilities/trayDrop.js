@@ -1,6 +1,8 @@
 import { watchEffect } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { useTray, isTrayDrag, readTrayDrag, pasteFromTray, endTrayDrag } from '@/Composables/useTray.js'
+import {
+    useTray, canPaste, isTrayDrag, readTrayDrag, pasteFromTray, pasteCarried, endTrayDrag,
+} from '@/Composables/useTray.js'
 
 /** Room the label needs above a place to hang over its top edge. */
 const LABEL_ROOM = 16
@@ -24,48 +26,70 @@ function placeLabel(el) {
 }
 
 /**
- * Makes an element a place to drop things off the bakje.
+ * Makes an element a place to paste things off the bakje.
  *
- *     v-tray-drop="{ accepts: ['ticket'], target: { type: 'serviceorder', id: order.id } }"
+ *     v-tray-drop="{ target: { type: 'serviceorder', id: order.id }, label: 'op deze werkbon te zetten' }"
  *
- * While something it accepts is being dragged it fades in a dashed outline and a
- * label, so a person sees where they can let go before they do; on the drop it
- * ripples once. Everything else on the page stays as it is. After the paste the
- * page reloads, unless the binding brings its own `onDone`.
+ * Which kinds of thing it takes is the server's to say, by the target type. Where
+ * one page has two places of the same type, `accepts` narrows each to its own:
+ * keuringen and storingen are both pasted on a werkbon, in different blocks.
+ *
+ * While something it takes is being carried it fades in a dashed outline and a
+ * label, so a person sees where it can go before letting go: "Loslaten om …" for
+ * a drag, "Tik om …" for something picked up by tapping. On the paste it ripples
+ * once. After the paste the page reloads, unless the binding brings its own
+ * `onDone`.
  */
 export const vTrayDrop = {
     mounted(el, binding) {
         const { state } = useTray()
-        const tray = { binding, over: false }
+        const tray = { binding, over: false, landed: false }
         el._tray = tray
 
         if (getComputedStyle(el).position === 'static') {
             el.style.position = 'relative'
         }
 
-        const accepts = () => !!state.dragging && (tray.binding.value?.accepts ?? []).includes(state.dragging.kind)
+        const takes = (kind) => {
+            const value = tray.binding.value
+            return canPaste(kind, value?.target?.type) && (value?.accepts?.includes(kind) ?? true)
+        }
 
-        el.setAttribute('data-tray-label', binding.value?.label ?? 'Hier loslaten')
+        const accepting = () => !!state.carrying && takes(state.carrying.kind)
 
         const paint = () => {
             if (tray.landed) {
                 el.setAttribute('data-tray-drop', 'landed')
                 return
             }
-            if (!accepts()) {
+            if (!accepting()) {
                 tray.over = false
                 el.setAttribute('data-tray-drop', 'idle')
                 return
             }
             if (!tray.over) placeLabel(el)
+            const verb = state.carrying.by === 'tap' ? 'Tik om ' : 'Loslaten om '
+            el.setAttribute('data-tray-label', verb + (tray.binding.value?.label ?? 'hier te plakken'))
             el.setAttribute('data-tray-drop', tray.over ? 'over' : 'accepting')
-            el.setAttribute('data-tray-label', tray.binding.value?.label ?? 'Hier loslaten')
         }
 
         tray.stop = watchEffect(paint)
 
+        const land = (paste) => {
+            const value = tray.binding.value
+            tray.over = false
+            tray.landed = true
+            paint()
+            clearTimeout(tray.landedTimer)
+            tray.landedTimer = setTimeout(() => {
+                tray.landed = false
+                paint()
+            }, 700)
+            paste(value.target, value.onDone ?? (() => router.reload({ preserveScroll: true })))
+        }
+
         tray.onOver = (event) => {
-            if (!accepts() || !isTrayDrag(event)) return
+            if (!accepting() || !isTrayDrag(event)) return
             event.preventDefault()
             event.dataTransfer.dropEffect = 'copy'
             if (!tray.over) {
@@ -85,23 +109,23 @@ export const vTrayDrop = {
             event.preventDefault()
             event.stopPropagation()
             const payload = readTrayDrag(event)
-            const value = tray.binding.value
-            tray.over = false
             endTrayDrag()
-            if (!payload || !value?.accepts?.includes(payload.kind)) return
-            tray.landed = true
-            paint()
-            clearTimeout(tray.landedTimer)
-            tray.landedTimer = setTimeout(() => {
-                tray.landed = false
-                paint()
-            }, 700)
-            pasteFromTray(payload.item_ids, value.target, value.onDone ?? (() => router.reload({ preserveScroll: true })))
+            if (!payload || !takes(payload.kind)) return
+            land((target, onDone) => pasteFromTray(payload.item_ids, target, onDone))
+        }
+
+        /** Picked up by tapping, the tap is the drop; it never reaches the buttons and links inside. */
+        tray.onTap = (event) => {
+            if (state.carrying?.by !== 'tap' || !accepting()) return
+            event.preventDefault()
+            event.stopPropagation()
+            land(pasteCarried)
         }
 
         el.addEventListener('dragover', tray.onOver)
         el.addEventListener('dragleave', tray.onLeave)
         el.addEventListener('drop', tray.onDrop)
+        el.addEventListener('click', tray.onTap, true)
     },
 
     updated(el, binding) {
@@ -115,5 +139,6 @@ export const vTrayDrop = {
         el.removeEventListener('dragover', tray.onOver)
         el.removeEventListener('dragleave', tray.onLeave)
         el.removeEventListener('drop', tray.onDrop)
+        el.removeEventListener('click', tray.onTap, true)
     },
 }

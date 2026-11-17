@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Tray\Tray;
+use App\Domain\Tray\TrayKinds;
 use App\Http\Requests\Tray\TrayClearRequest;
 use App\Http\Requests\Tray\TrayIndexRequest;
 use App\Http\Requests\Tray\TrayItemDestroyRequest;
@@ -21,9 +22,13 @@ class TrayController extends Controller
 {
     public function __construct(private Tray $tray) {}
 
+    /** The bakje, and what each kind of thing on it is called and where it can go, so no page has to know. */
     public function index(TrayIndexRequest $request): JsonResponse
     {
-        return response()->json(['items' => $this->tray->items($request->user())]);
+        return response()->json([
+            'items' => $this->tray->items($request->user()),
+            'kinds' => TrayKinds::forScreens(),
+        ]);
     }
 
     public function store(TrayStoreRequest $request): JsonResponse

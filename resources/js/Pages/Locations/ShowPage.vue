@@ -60,7 +60,7 @@
             </BoxComponent>
 
             <BoxComponent
-                v-tray-drop="{ accepts: ['asset'], target: { type: 'location', id: location.id }, label: 'Loslaten om naar deze locatie te verhuizen' }">
+                v-tray-drop="{ target: { type: 'location', id: location.id }, label: 'naar deze locatie te verhuizen' }">
                 <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                     <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
                     <span class="text-sm font-medium">Machines op deze locatie</span>

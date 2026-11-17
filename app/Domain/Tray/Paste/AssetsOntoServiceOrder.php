@@ -3,7 +3,7 @@
 namespace App\Domain\Tray\Paste;
 
 use App\Actions\ServiceOrders\AddServiceJobsAction;
-use App\Domain\Tray\AssetFacts;
+use App\Domain\Tray\Kinds\AssetKind;
 use App\Enums\ServiceJobOutcomes;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
@@ -22,14 +22,14 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
 {
     public function question(Paste $paste): ?Question
     {
-        $this->toAdd($paste, $this->order($paste));
+        $this->toAdd($paste, DropTarget::openServiceOrder($paste));
 
         return null;
     }
 
     public function perform(Paste $paste): PasteResult
     {
-        $order = $this->order($paste);
+        $order = DropTarget::openServiceOrder($paste);
         $assets = $this->toAdd($paste, $order);
 
         Gate::forUser($paste->user)->authorize('create', ServiceJob::class);
@@ -37,7 +37,7 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
         ['jobs' => $jobs, 'parts' => $parts] = app(AddServiceJobsAction::class)->execute($order, $assets);
 
         $message = $jobs->count() === 1
-            ? AssetFacts::title($assets->first()) . ' staat nu op werkbon ' . $order->number . '.'
+            ? AssetKind::title($assets->first()) . ' staat nu op werkbon ' . $order->number . '.'
             : $jobs->count() . ' machines staan nu op werkbon ' . $order->number . '.';
 
         return new PasteResult($message, undo: [
@@ -74,21 +74,6 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
             . ' weer van werkbon ' . $order->number . ' af.';
     }
 
-    private function order(Paste $paste): ServiceOrder
-    {
-        $order = ServiceOrder::visibleTo($paste->user)->find($paste->target['id']);
-
-        if (!$order) {
-            throw new Refusal('Deze werkbon kun je niet openen.');
-        }
-
-        if ($order->is_closed) {
-            throw new Refusal('Werkbon ' . $order->number . ' is al afgesloten.');
-        }
-
-        return $order;
-    }
-
     /**
      * The machines that have no keuring on this werkbon yet, each checked
      * against the werkbon's customer.
@@ -101,13 +86,12 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
         $assets = $paste->records->reject(fn (Asset $asset) => $present->contains($asset->id))->values();
 
         if ($assets->isEmpty()) {
-            throw new Refusal(($paste->records->count() === 1 ? 'Deze machine staat' : 'Deze machines staan')
-                . ' al op werkbon ' . $order->number . '.');
+            throw new Refusal($paste->these('staat', 'staan') . ' al op werkbon ' . $order->number . '.');
         }
 
         $assets->each(function (Asset $asset) use ($order) {
-            if (AssetFacts::customerId($asset) !== (int) $order->customer_id) {
-                throw new Refusal(AssetFacts::title($asset) . ' hoort bij een andere klant dan werkbon '
+            if (AssetKind::customerId($asset) !== (int) $order->customer_id) {
+                throw new Refusal(AssetKind::title($asset) . ' hoort bij een andere klant dan werkbon '
                     . $order->number . '.');
             }
         });

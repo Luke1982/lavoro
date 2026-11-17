@@ -4,15 +4,13 @@ namespace App\Domain\Tray\Paste;
 
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
 use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
-use App\Domain\Tray\TicketFacts;
-use App\Domain\Tray\TrayKinds;
+use App\Domain\Tray\Kinds\TicketKind;
 use App\Exceptions\Refusal;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 /**
  * Storingen dropped on a werkbon: they are hung off it.
@@ -25,7 +23,7 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
 {
     public function question(Paste $paste): ?Question
     {
-        $order = $this->order($paste);
+        $order = DropTarget::openServiceOrder($paste);
         $moving = $this->moving($this->toAttach($paste, $order));
 
         if ($moving->isEmpty()) {
@@ -35,11 +33,11 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
         $one = $moving->count() === 1;
 
         return new Question(
-            title: Str::ucfirst(TrayKinds::counted('ticket', $moving->count())) . ' verplaatsen?',
+            title: TicketKind::heading($moving->count()) . ' verplaatsen?',
             subtitle: $one
                 ? 'Deze storing staat nu op werkbon ' . $moving->first()->serviceOrder?->number . '.'
                 : 'Deze storingen staan nu op een andere werkbon.',
-            items: TicketFacts::listed($moving),
+            items: TicketKind::listed($moving),
             choices: [new Choice(
                 value: 'move',
                 label: 'Verplaatsen naar werkbon ' . $order->number,
@@ -51,7 +49,7 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
 
     public function perform(Paste $paste): PasteResult
     {
-        $order = $this->order($paste);
+        $order = DropTarget::openServiceOrder($paste);
         $tickets = $this->toAttach($paste, $order);
         $moved = $this->moving($tickets)->isNotEmpty();
         $gate = Gate::forUser($paste->user);
@@ -62,7 +60,7 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
         });
 
         $message = $tickets->count() === 1
-            ? '"' . TicketFacts::title($tickets->first()) . '" staat nu op werkbon ' . $order->number . '.'
+            ? '"' . TicketKind::title($tickets->first()) . '" staat nu op werkbon ' . $order->number . '.'
             : $tickets->count() . ' storingen staan nu op werkbon ' . $order->number . '.';
 
         return new PasteResult($message, undo: $moved ? null : [
@@ -94,21 +92,6 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
             . ' weer van werkbon ' . $order->number . ' af.';
     }
 
-    private function order(Paste $paste): ServiceOrder
-    {
-        $order = ServiceOrder::visibleTo($paste->user)->find($paste->target['id']);
-
-        if (!$order) {
-            throw new Refusal('Deze werkbon kun je niet openen.');
-        }
-
-        if ($order->is_closed) {
-            throw new Refusal('Werkbon ' . $order->number . ' is al afgesloten.');
-        }
-
-        return $order;
-    }
-
     /**
      * The storingen that are not on this werkbon yet, each checked against its
      * customer: a storing on another customer's machine does not belong here.
@@ -122,15 +105,14 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
             ->values();
 
         if ($tickets->isEmpty()) {
-            throw new Refusal(($paste->records->count() === 1 ? 'Deze storing staat' : 'Deze storingen staan')
-                . ' al op werkbon ' . $order->number . '.');
+            throw new Refusal($paste->these('staat', 'staan') . ' al op werkbon ' . $order->number . '.');
         }
 
         $tickets->each(function (Ticket $ticket) use ($order) {
-            $customer_id = TicketFacts::customerId($ticket);
+            $customer_id = TicketKind::customerId($ticket);
 
             if ($customer_id !== null && $customer_id !== (int) $order->customer_id) {
-                throw new Refusal('"' . TicketFacts::title($ticket) . '" hoort bij een andere klant dan werkbon '
+                throw new Refusal('"' . TicketKind::title($ticket) . '" hoort bij een andere klant dan werkbon '
                     . $order->number . '.');
             }
         });

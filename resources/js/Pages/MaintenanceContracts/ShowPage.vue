@@ -94,7 +94,7 @@
             </BoxComponent>
 
             <BoxComponent class="mt-4"
-                v-tray-drop="{ accepts: ['asset'], target: { type: 'maintenancecontract', id: maintenanceContract.id }, label: 'Loslaten om onder dit contract te brengen' }">
+                v-tray-drop="{ target: { type: 'maintenancecontract', id: maintenanceContract.id }, label: 'onder dit contract te brengen' }">
                 <MaintenanceContractAssetsWidget :maintenance-contract-id="maintenanceContract.id"
                     :assets="maintenanceContract.assets" :customer-assets="customerAssets"
                     :manage-per-asset="maintenanceContract.manage_frequency_per_asset"

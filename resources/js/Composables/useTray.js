@@ -6,14 +6,20 @@ import axios from 'axios'
  *
  * One state for the whole app, so the bakje in the corner, a "put it on the
  * bakje" button and a drop on the planner all see the same thing. The server
- * keeps it per user and answers every change with the bakje as it now is.
+ * keeps it per user and answers every change with the bakje as it now is, and
+ * says which kind of thing can go where, so no page has to know that itself.
+ *
+ * Something taken off the bakje to paste is carried: by dragging it, or, where
+ * there is no dragging such as on a phone, by tapping Plakken and then tapping
+ * the place it goes. Every place to drop on takes both.
  */
 const DND_MIME = 'application/x-lavoro-tray'
 
 const state = reactive({
     items: [],
+    kinds: {},
     open: false,
-    dragging: null,
+    carrying: null,
     question: null,
     toast: null,
     busy: false,
@@ -86,7 +92,10 @@ function flyToTray(source, count) {
 
 export function loadTray() {
     loading ??= axios.get('/api/tray')
-        .then(response => { state.items = response.data.items })
+        .then(response => {
+            state.items = response.data.items
+            state.kinds = response.data.kinds
+        })
         .catch(() => {})
         .finally(() => { loading = null })
     return loading
@@ -181,6 +190,18 @@ export function undoTrayPaste() {
     })
 }
 
+/** "storing" or "3 storingen", in the words the server uses. */
+export function trayCounted(kind, count) {
+    const words = state.kinds[kind]
+    if (!words) return ''
+    return count === 1 ? words.one : `${count} ${words.many}`
+}
+
+/** Whether this kind of thing can be pasted on this kind of place. */
+export function canPaste(kind, type) {
+    return !!state.kinds[kind]?.places.includes(type)
+}
+
 /**
  * Starts dragging bakje items: one item, or a whole stack. The bakje steps
  * aside a tick later, after the browser has taken its picture of what is
@@ -189,11 +210,29 @@ export function undoTrayPaste() {
 export function startTrayDrag(event, kind, itemIds) {
     event.dataTransfer.setData(DND_MIME, JSON.stringify({ kind, item_ids: itemIds }))
     event.dataTransfer.effectAllowed = 'copy'
-    setTimeout(() => { state.dragging = { kind, itemIds } }, 0)
+    setTimeout(() => { state.carrying = { kind, itemIds, by: 'drag' } }, 0)
 }
 
+/** A drag that ends anywhere is over. Something picked up by tapping stays picked up. */
 export function endTrayDrag() {
-    state.dragging = null
+    if (state.carrying?.by === 'drag') state.carrying = null
+}
+
+/** Picks bakje items up to paste them by tapping the place they go. */
+export function pickUpFromTray(kind, itemIds) {
+    state.open = false
+    state.carrying = { kind, itemIds, by: 'tap' }
+}
+
+export function putDownTray() {
+    state.carrying = null
+}
+
+/** Pastes what was picked up on the place that was tapped. */
+export function pasteCarried(target, onDone = null) {
+    const carried = state.carrying
+    state.carrying = null
+    return pasteFromTray(carried.itemIds, target, onDone)
 }
 
 export function isTrayDrag(event) {

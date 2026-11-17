@@ -19,7 +19,7 @@ Op een groot scherm staat links een donker menu. Bovenin zit een **Zoeken**-knop
 
 Onderin het menu staan een licentiekaart, een **Support**-kaart met het telefoonnummer (tikken belt direct), je eigen profielkaart (naar je profielpagina) en de **Uitloggen**-knop.
 
-Op een telefoon verdwijnt het zijmenu. Bovenin staat een balk met logo, zoekknop en meldingen; scrol je naar beneden, dan schuift die weg, en een veeg omhoog haalt hem terug; onderin een zwevende balk met vijf knoppen: Menu, Agenda, een grote **plus-knop (Nieuw)**, Meldingen en Profiel. De plus-knop klapt een rijtje open om snel iets aan te maken: een werkbon, storing, afspraak of klant — met alleen de velden die echt nodig zijn; de rest vul je op de pagina van het record zelf in. De hele onderbalk kun je opzij vegen; hij klapt dan weg tot een klein lipje aan de rand en blijft zo staan tot je hem terughaalt.
+Op een telefoon verdwijnt het zijmenu. Bovenin staat een balk met een terugpijl, het logo, de zoekknop en meldingen; de terugpijl gaat naar de vorige pagina, of naar de startpagina als er geen vorige is; scrol je naar beneden, dan schuift die weg, en een veeg omhoog haalt hem terug; onderin een zwevende balk met vijf knoppen: Menu, Agenda, een grote **plus-knop (Nieuw)**, het **Bakje** (met het aantal dat erop ligt, zie *Het bakje*) en Profiel. De plus-knop klapt een rijtje open om snel iets aan te maken: een werkbon, storing, afspraak of klant — met alleen de velden die echt nodig zijn; de rest vul je op de pagina van het record zelf in. De hele onderbalk kun je opzij vegen; hij klapt dan weg tot een klein lipje aan de rand en blijft zo staan tot je hem terughaalt.
 
 **Zoeken** (via de zoekknop of de sneltoets) opent een zoekvenster dat twee dingen tegelijk doorzoekt: pagina's uit het menu en records (klanten, machines, werkbonnen, storingen, enzovoort). Resultaten staan gegroepeerd per soort, met statuslabels erbij. Je ziet alleen records waar je bij mag.
 
@@ -34,7 +34,7 @@ Een paar vaste gewoontes in de hele applicatie:
 
 ## Het bakje
 
-Het bakje is een plek om iets even neer te leggen en het op een andere pagina weer op te pakken, zoals een klembord. Je legt bijvoorbeeld drie storingen op het bakje vanuit de storingenlijst, gaat naar de planner en sleept ze op de dag van een monteur. Het bakje werkt op een computerscherm; op een telefoon is het nog niet te zien. Voorlopig kunnen er storingen en machines op.
+Het bakje is een plek om iets even neer te leggen en het op een andere pagina weer op te pakken, zoals een klembord. Je legt bijvoorbeeld drie storingen op het bakje vanuit de storingenlijst, gaat naar de planner en sleept ze op de dag van een monteur. Op een computer staat het bakje rechtsonder; op een telefoon open je het met de knop **Bakje** in de balk onderin. Voorlopig kunnen er storingen en machines op.
 
 **Erop leggen.** Vink in de storingenlijst storingen aan en klik in de balk onderin op **Op het bakje**. Op de pagina van een storing staat bovenaan de knop **Op het bakje**, en op de pagina van een machine ook. Het bakje hoort bij jou, niet bij je computer: wat erop ligt zie je op elk scherm waarop je inlogt, en niemand anders ziet het. Je kunt er alleen op leggen wat je mag inzien; wat verwijderd wordt of wat je niet meer mag inzien, valt er vanzelf af.
 
@@ -42,7 +42,11 @@ Het bakje is een plek om iets even neer te leggen en het op een andere pagina we
 
 **Stapels.** Liggen er meerdere storingen op het bakje, dan liggen ze op één stapel; machines vormen hun eigen stapel. Sleep je de stapel, dan gaan ze allemaal tegelijk mee. Wil je er maar één, klik dan op het pijltje van de stapel: hij gaat open en elke storing is los te slepen. Wat je sleept is precies wat er geplakt wordt.
 
-**Plakken.** Sleep een item of de stapel naar een plek die het aanneemt. Tijdens het slepen krijgen die plekken een blauwe stippellijn met een label, en het bakje gaat even uit beeld. Waar je een storing kwijt kunt:
+**Plakken.** Sleep een item of de stapel naar een plek die het aanneemt. Tijdens het slepen krijgen die plekken een blauwe stippellijn met een label, en het bakje gaat even uit beeld.
+
+Slepen gaat niet op een telefoon, en hoeft ook niet op een computer: kies in het menu van een item **Plakken**, of bij een stapel het plak-pictogram voor de hele stapel. Onderin staat dan wat je hebt opgepakt, met **Annuleren**. Ga naar de pagina waar het heen moet; de plekken die het aannemen krijgen dezelfde stippellijn, met *Tik om …* in het label. Tik erop en het wordt geplakt, net als na slepen. Op de planner plak je alleen door te slepen, omdat daar de tijd telt waar je loslaat.
+
+Waar je een storing kwijt kunt:
 
 - **Op de dag van een monteur in de planner.** De storing wordt ingepland op het punt waar je loslaat, met de standaardduur van de planner. Eerst komt de vraag op welke werkbon: een **nieuwe werkbon** voor de klant van de storing, of een **open werkbon** van die klant (de vijf nieuwste, met erbij of hij al eerder ingepland is). Staat de storing al op een werkbon, dan wordt die werkbon ingepland. Storingen van verschillende klanten, of een stapel waarvan een deel al op een werkbon staat, worden geweigerd met de reden erbij; pak ze dan los uit de stapel.
 - **Op het blok Storingen van een werkbon.** De storing komt meteen op die werkbon, zonder vraag. In de melding staat **Ongedaan maken**: dat haalt hem er weer af, net als losmaken op de werkbon zelf, en legt hem terug op het bakje. Staat de storing al op een andere werkbon, dan wordt eerst gevraagd of je hem wilt verplaatsen; dat is daarna niet met één klik ongedaan te maken. Een storing van een andere klant, of een afgesloten werkbon, wordt geweigerd.

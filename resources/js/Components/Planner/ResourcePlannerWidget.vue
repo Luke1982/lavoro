@@ -568,7 +568,7 @@ import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
-import { useTray, isTrayDrag, readTrayDrag, endTrayDrag, pasteFromTray } from '@/Composables/useTray.js'
+import { useTray, canPaste, isTrayDrag, readTrayDrag, endTrayDrag, pasteFromTray } from '@/Composables/useTray.js'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
@@ -2076,16 +2076,10 @@ function dropStartMinutes(info, durationMin) {
     return Math.max(0, Math.min(maxStart, snapped))
 }
 
-/** What off the bakje can be planned: storingen and machines, which can both become a werkbon. */
-const TRAY_PLANNABLE = ['ticket', 'asset']
-
-/**
- * Werkbonnen from the list beside the planner, and storingen or machines off the
- * bakje. Nothing else on the bakje has a place on the planner yet.
- */
+/** Werkbonnen from the list beside the planner, and whatever off the bakje can be planned. */
 function acceptsDrag(e) {
     if (e.dataTransfer?.types?.includes('application/x-planner-payload')) return true
-    return isTrayDrag(e) && TRAY_PLANNABLE.includes(trayState.dragging?.kind)
+    return isTrayDrag(e) && canPaste(trayState.carrying?.kind, 'planner')
 }
 
 function onDragOver(e) {
@@ -2253,14 +2247,13 @@ function onExternalDrop(e, user, day) {
 }
 
 /**
- * Storingen or machines off the bakje on a technician's day. Which werkbon they
- * go on is the bakje's question to ask; the planner only says who, when and for
- * how long.
+ * Something off the bakje on a technician's day. Which werkbon it goes on is the
+ * bakje's question to ask; the planner only says who, when and for how long.
  */
 function dropFromTray(e, user, day) {
     const payload = readTrayDrag(e)
     endTrayDrag()
-    if (!TRAY_PLANNABLE.includes(payload?.kind)) return
+    if (!canPaste(payload?.kind, 'planner')) return
 
     dropAt(e, user, day, plannerMinutes.value, (start, end) => pasteFromTray(payload.item_ids, {
         type: 'planner',

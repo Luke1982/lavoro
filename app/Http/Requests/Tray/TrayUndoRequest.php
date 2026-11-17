@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Tray;
 
-use App\Domain\Tray\Tray;
 use App\Domain\Tray\TrayKinds;
 use App\Models\TrayItem;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,8 +22,7 @@ class TrayUndoRequest extends FormRequest
     {
         return [
             'undo' => ['required', 'array'],
-            'undo.handler' => ['required', 'string', Rule::in(Tray::undoable())],
-            'undo.kind' => ['required', 'string', Rule::in(TrayKinds::names())],
+            'undo.handler' => ['required', 'string', Rule::in(TrayKinds::undoable())],
             'undo.record_ids' => ['required', 'array', 'min:1', 'max:100'],
             'undo.record_ids.*' => ['integer'],
             'undo.service_order_id' => [

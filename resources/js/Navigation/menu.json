@@ -213,7 +213,7 @@
         { "id": "menu", "label": "Menu", "icon": "Menu", "action": "menu" },
         { "id": "agenda", "label": "Agenda", "icon": "CalendarDays", "href": "/planner", "permission": "event.read" },
         { "id": "nieuw", "label": "Nieuw", "icon": "Plus", "action": "create", "variant": "fab" },
-        { "id": "meldingen", "label": "Meldingen", "icon": "Bell", "href": "/usernotifications", "badge": "unread_notifications" },
+        { "id": "bakje", "label": "Bakje", "icon": "Inbox", "action": "tray" },
         { "id": "profiel", "label": "Profiel", "icon": "User", "href": "/me/edit" }
     ]
 }

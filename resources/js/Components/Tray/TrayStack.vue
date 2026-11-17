@@ -5,7 +5,7 @@
                 :class="[plate.inset, open ? plate.folded : plate.hover, 'absolute h-10 rounded-2xl border border-sidebar-border transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none']">
             </div>
             <div draggable="true" @dragstart="startTrayDrag($event, kind, items.map(item => item.id))" @dragend="endTrayDrag"
-                :title="`Sleep om alle ${items.length} ${look.many} tegelijk te plakken`"
+                title="Sleep om ze allemaal tegelijk te plakken"
                 class="relative flex cursor-grab items-center gap-2.5 rounded-2xl bg-[#17223a] py-2 pr-1 pl-1.5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:cursor-grabbing motion-reduce:transition-none">
                 <GripVerticalIcon class="size-4 flex-none text-sidebar-indicator" aria-hidden="true" />
                 <span :class="[look.tile, 'flex size-9 flex-none items-center justify-center rounded-xl']">
@@ -13,11 +13,16 @@
                 </span>
                 <div class="min-w-0 flex-1">
                     <div class="text-[11px] uppercase tracking-wider text-slate-400">
-                        Stapel · {{ items.length }} {{ look.many }}
+                        Stapel · {{ trayCounted(kind, items.length) }}
                     </div>
                     <div class="truncate text-sm font-semibold text-white">{{ heading }}</div>
                     <div class="truncate text-xs text-slate-400">{{ items.map(item => item.title).join(' · ') }}</div>
                 </div>
+                <button type="button" @click="pickUpFromTray(kind, items.map(item => item.id))"
+                    aria-label="De hele stapel plakken" title="De hele stapel plakken"
+                    class="flex size-9 flex-none items-center justify-center rounded-xl text-slate-400 transition hover:bg-sidebar-hover hover:text-white active:scale-90">
+                    <ClipboardPasteIcon class="size-5" aria-hidden="true" />
+                </button>
                 <button type="button" @click="open = !open" :aria-expanded="open"
                     :aria-label="open ? 'Stapel dichtdoen' : 'Stapel openen om er één uit te pakken'"
                     class="flex size-9 flex-none items-center justify-center rounded-xl text-slate-400 transition hover:bg-sidebar-hover hover:text-white active:scale-90">
@@ -45,16 +50,16 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ChevronDownIcon, GripVerticalIcon, LayersIcon } from '@lucide/vue'
-import { startTrayDrag, endTrayDrag } from '@/Composables/useTray.js'
-import { trayKind } from '@/Components/Tray/trayKinds.js'
+import { ChevronDownIcon, ClipboardPasteIcon, GripVerticalIcon, LayersIcon } from '@lucide/vue'
+import { startTrayDrag, endTrayDrag, pickUpFromTray, trayCounted } from '@/Composables/useTray.js'
+import { trayLook } from '@/Components/Tray/trayLooks.js'
 import TrayItemCard from '@/Components/Tray/TrayItemCard.vue'
 
 /**
  * Several bakje items of one kind, lying on one stack.
  *
- * Nothing assumes the whole stack is meant: dragging the stack takes all of
- * them, and opening it lays every item out to be dragged on its own. The stack
+ * Nothing assumes the whole stack is meant: dragging or pasting the stack takes
+ * all of them, and opening it lays every item out to be taken on its own. The stack
  * opens by growing its row from nothing to its full height, so the bakje grows
  * with it instead of jumping; closed, the cards are inert, out of reach of the
  * keyboard as well as out of sight.
@@ -71,7 +76,7 @@ const PLATES = [
 
 const open = ref(false)
 
-const look = computed(() => trayKind(props.kind))
+const look = computed(() => trayLook(props.kind))
 
 const heading = computed(() => {
     const customers = new Set(props.items.map(item => item.customer_name).filter(Boolean))

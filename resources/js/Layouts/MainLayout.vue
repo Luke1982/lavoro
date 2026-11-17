@@ -52,15 +52,21 @@
         </div>
 
         <!--
-            Zoals in het ontwerp: het logo links, zoeken en meldingen rechts, en
-            verder niets. Het menu en het profiel staan onderin binnen duimbereik,
+            Zoals in het ontwerp: terug en het logo links, zoeken en meldingen
+            rechts, en verder niets. Het menu en het profiel staan onderin binnen duimbereik,
             dus die hoeven hier niet nog een keer. Naar beneden scrollen schuift
             hem weg, omhoog haalt hem terug.
         -->
         <div ref="headerEl"
             class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden"
             :class="headerHidden ? '-translate-y-full' : 'translate-y-0'" @focusin="revealHeader">
-            <img src="/img/logo-neg.svg" class="h-8" alt="Lavoro">
+            <div class="flex items-center gap-x-1">
+                <button type="button" class="-ml-2 p-2 text-sidebar-muted hover:text-lavoro-green" @click="goBack">
+                    <span class="sr-only">Terug</span>
+                    <ArrowLeftIcon class="size-6" aria-hidden="true" />
+                </button>
+                <img src="/img/logo-neg.svg" class="h-8" alt="Lavoro">
+            </div>
             <div class="flex items-center gap-x-1">
                 <button type="button" class="p-2 text-sidebar-muted hover:text-lavoro-green" @click="openNavigator">
                     <span class="sr-only">Zoeken</span>
@@ -112,7 +118,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { usePage, router } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
 import { useMenu } from '@/Composables/useMenu.js'
@@ -205,6 +211,19 @@ const sidebarOpen = ref(false)
  * stand gaat aan voordat het eerste trage stuk begint en gaat niet meer uit:
  * hierna verlaten we de pagina toch.
  */
+/**
+ * Terug naar de vorige pagina, zoals de terugknop van de browser die een app op
+ * een telefoon niet heeft. Wie hier binnenkwam zonder vorige pagina, vanuit een
+ * link of een melding, gaat naar het begin.
+ */
+const goBack = () => {
+    if (window.history.length > 1) {
+        window.history.back()
+    } else {
+        router.visit('/')
+    }
+}
+
 const logout = async () => {
     if (loggingOut.value) return
 

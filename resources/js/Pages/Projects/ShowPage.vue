@@ -289,7 +289,7 @@
                         </BoxComponent>
 
                         <BoxComponent class="mt-4 grow"
-                            v-tray-drop="{ accepts: ['ticket', 'asset'], target: { type: 'project', id: project.id }, label: 'Loslaten voor een werkbon onder dit project' }">
+                            v-tray-drop="{ target: { type: 'project', id: project.id }, label: 'een werkbon onder dit project te maken' }">
                             <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
                                 subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
                                 <template v-if="canCreateServiceOrder" #actions>

@@ -2,30 +2,16 @@
 
 namespace App\Domain\Tray;
 
-use App\Domain\Tray\Paste\AssetsOntoAsset;
-use App\Domain\Tray\Paste\AssetsOntoContract;
-use App\Domain\Tray\Paste\AssetsOntoCustomer;
-use App\Domain\Tray\Paste\AssetsOntoLocation;
-use App\Domain\Tray\Paste\AssetsOntoPlanner;
-use App\Domain\Tray\Paste\AssetsOntoProject;
-use App\Domain\Tray\Paste\AssetsOntoServiceOrder;
+use App\Domain\Tray\Kinds\TrayKind;
 use App\Domain\Tray\Paste\Paste;
-use App\Domain\Tray\Paste\PasteHandler;
-use App\Domain\Tray\Paste\TicketsOntoAsset;
-use App\Domain\Tray\Paste\TicketsOntoPlanner;
-use App\Domain\Tray\Paste\TicketsOntoProject;
-use App\Domain\Tray\Paste\TicketsOntoServiceOrder;
 use App\Domain\Tray\Paste\UndoablePasteHandler;
 use App\Exceptions\Refusal;
-use App\Models\Asset;
 use App\Models\Customer;
-use App\Models\Ticket;
 use App\Models\TrayItem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * A person's bakje: what is on it, putting things on it, and pasting them off.
@@ -35,41 +21,8 @@ use Illuminate\Support\Str;
  */
 class Tray
 {
-    /** @var array<string, class-string<PasteHandler>> What can be dropped where, as "kind:target". */
-    private const HANDLERS = [
-        'ticket:planner' => TicketsOntoPlanner::class,
-        'ticket:serviceorder' => TicketsOntoServiceOrder::class,
-        'ticket:asset' => TicketsOntoAsset::class,
-        'ticket:project' => TicketsOntoProject::class,
-        'asset:planner' => AssetsOntoPlanner::class,
-        'asset:serviceorder' => AssetsOntoServiceOrder::class,
-        'asset:asset' => AssetsOntoAsset::class,
-        'asset:customer' => AssetsOntoCustomer::class,
-        'asset:location' => AssetsOntoLocation::class,
-        'asset:project' => AssetsOntoProject::class,
-        'asset:maintenancecontract' => AssetsOntoContract::class,
-    ];
-
     /** @var array<int, ?string> */
     private array $customer_names = [];
-
-    /** @return array<int, string> Every place something can be dropped. */
-    public static function targets(): array
-    {
-        return array_values(array_unique(array_map(
-            fn (string $key) => Str::after($key, ':'),
-            array_keys(self::HANDLERS),
-        )));
-    }
-
-    /** @return array<int, string> The pastes that can be taken back, as "kind:target". */
-    public static function undoable(): array
-    {
-        return array_keys(array_filter(
-            self::HANDLERS,
-            fn (string $handler) => is_subclass_of($handler, UndoablePasteHandler::class),
-        ));
-    }
 
     /**
      * What is on the bakje, in the order it was put there. Anything that has gone,
@@ -83,10 +36,10 @@ class Tray
         $described = [];
 
         foreach ($items->groupBy('trayable_type') as $type => $group) {
-            $kind = TrayKinds::kindFor($type);
+            $kind = TrayKinds::forModel($type);
             $records = $kind === null
                 ? collect()
-                : TrayKinds::visible($kind, $group->pluck('trayable_id')->all(), $user)->keyBy('id');
+                : $kind::visible($group->pluck('trayable_id')->all(), $user)->keyBy(fn (Model $record) => $record->getKey());
 
             foreach ($group as $item) {
                 if ($record = $records->get($item->trayable_id)) {
@@ -109,10 +62,11 @@ class Tray
      *
      * @param  array<int, int>  $ids
      */
-    public function place(User $user, string $kind, array $ids): void
+    public function place(User $user, string $name, array $ids): void
     {
+        $kind = TrayKinds::get($name);
         $ids = array_unique(array_map('intval', $ids));
-        $records = TrayKinds::visible($kind, $ids, $user);
+        $records = $kind::visible($ids, $user);
 
         if ($records->count() !== count($ids)) {
             throw new Refusal('Een deel hiervan kun je niet openen, dus het kan niet op je bakje.');
@@ -138,32 +92,32 @@ class Tray
             throw new Refusal('Dit ligt niet meer op je bakje.');
         }
 
-        $kinds = $items->map(fn (TrayItem $item) => TrayKinds::kindFor($item->trayable_type))->unique();
+        $kinds = $items->map(fn (TrayItem $item) => TrayKinds::forModel($item->trayable_type))->unique();
 
         if ($kinds->count() !== 1 || $kinds->first() === null) {
             throw new Refusal('Plak één soort tegelijk.');
         }
 
         $kind = $kinds->first();
-        $records = TrayKinds::visible($kind, $items->pluck('trayable_id')->all(), $user);
+        $records = $kind::visible($items->pluck('trayable_id')->all(), $user);
 
         if ($records->count() !== $items->count()) {
             throw new Refusal('Een deel hiervan kun je niet meer openen.');
         }
 
-        $key = $kind . ':' . $target['type'];
-        $handler = $this->handler($key, $kind);
-        $question = $handler->question(new Paste($user, $records, $target));
+        $handler = TrayKinds::handler($kind, $target['type']);
+        $paste = new Paste($user, $kind, $records, $target);
+        $question = $handler->question($paste);
 
         if ($question !== null && $answer === null) {
             return ['question' => $question];
         }
 
         if ($question !== null && !$question->offers($answer)) {
-            throw new Refusal('Die keuze is er niet meer. Sleep het opnieuw.');
+            throw new Refusal('Die keuze is er niet meer. Plak het opnieuw.');
         }
 
-        $paste = new Paste($user, $records, $target, $answer);
+        $paste = $paste->withAnswer($answer);
         $result = app(TrayContext::class)->run(fn () => DB::transaction(fn () => $handler->perform($paste)));
 
         if ($remove) {
@@ -176,8 +130,7 @@ class Tray
             'created' => $result->created,
             'undo' => $result->undo === null ? null : [
                 ...$result->undo,
-                'handler' => $key,
-                'kind' => $kind,
+                'handler' => $kind::name() . ':' . $target['type'],
                 'record_ids' => $records->modelKeys(),
             ],
             'items' => $this->items($user),
@@ -193,7 +146,9 @@ class Tray
      */
     public function undo(User $user, array $undo): array
     {
-        $handler = app(self::HANDLERS[$undo['handler']]);
+        [$name, $target] = explode(':', $undo['handler']);
+        $kind = TrayKinds::get($name);
+        $handler = TrayKinds::handler($kind, $target);
 
         if (!$handler instanceof UndoablePasteHandler) {
             throw new Refusal('Dit kun je niet ongedaan maken.');
@@ -201,7 +156,7 @@ class Tray
 
         $message = app(TrayContext::class)->run(fn () => DB::transaction(fn () => $handler->undo($user, $undo)));
 
-        $this->put($user, $undo['kind'], TrayKinds::visible($undo['kind'], $undo['record_ids'], $user));
+        $this->put($user, $kind, $kind::visible($undo['record_ids'], $user));
 
         return ['message' => $message, 'items' => $this->items($user)];
     }
@@ -209,79 +164,36 @@ class Tray
     /**
      * Two clicks that both arrive before either is saved both find the record
      * missing; createOrFirst lets the second take the row the first just wrote.
+     *
+     * @param  class-string<TrayKind>  $kind
      */
     private function put(User $user, string $kind, Collection $records): void
     {
-        $type = TrayKinds::classFor($kind);
         $position = (int) $user->trayItems()->max('position');
 
         foreach ($records as $record) {
             TrayItem::createOrFirst(
-                ['user_id' => $user->id, 'trayable_type' => $type, 'trayable_id' => $record->getKey()],
+                ['user_id' => $user->id, 'trayable_type' => $kind::model(), 'trayable_id' => $record->getKey()],
                 ['position' => ++$position],
             );
         }
     }
 
-    private function handler(string $key, string $kind): PasteHandler
-    {
-        if (!isset(self::HANDLERS[$key])) {
-            throw new Refusal('Een ' . TrayKinds::counted($kind, 1) . ' kun je hier niet plakken.');
-        }
-
-        return app(self::HANDLERS[$key]);
-    }
-
     /**
+     * @param  class-string<TrayKind>  $kind
      * @return array<string, mixed>
      */
     private function describe(string $kind, TrayItem $item, Model $record): array
     {
+        $card = $kind::describe($record);
+
         return [
             'id' => $item->id,
-            'kind' => $kind,
+            'kind' => $kind::name(),
             'record_id' => $record->getKey(),
             'pinned' => $item->pinned,
-            ...match ($kind) {
-                'ticket' => $this->describeTicket($record),
-                'asset' => $this->describeAsset($record),
-            },
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function describeTicket(Ticket $ticket): array
-    {
-        $customer_id = TicketFacts::customerId($ticket);
-
-        return [
-            'title' => TicketFacts::title($ticket),
-            'subtitle' => TicketFacts::machine($ticket),
-            'customer_id' => $customer_id,
-            'customer_name' => $customer_id === null ? null : $this->customerName($customer_id),
-            'service_order_id' => $ticket->service_order_id,
-            'service_order_number' => $ticket->serviceOrder?->number,
-            'url' => '/tickets/' . $ticket->id,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function describeAsset(Asset $asset): array
-    {
-        $customer_id = AssetFacts::customerId($asset);
-
-        return [
-            'title' => AssetFacts::title($asset),
-            'subtitle' => $asset->parentAsset
-                ? 'in ' . AssetFacts::title($asset->parentAsset)
-                : AssetFacts::locationName($asset),
-            'customer_id' => $customer_id,
-            'customer_name' => $customer_id === null ? null : $this->customerName($customer_id),
-            'url' => '/assets/' . $asset->id,
+            ...$card,
+            'customer_name' => $card['customer_id'] === null ? null : $this->customerName($card['customer_id']),
         ];
     }
 

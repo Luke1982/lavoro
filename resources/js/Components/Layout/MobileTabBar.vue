@@ -59,7 +59,7 @@
             @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
             @click.capture="onClickCapture">
             <ul class="flex items-end justify-around rounded-2xl bg-sidebar-card px-2 pt-2 pb-2 shadow-[0_8px_30px_rgba(2,6,23,0.45)] ring-1 ring-sidebar-border">
-                <li v-for="tab in tabs" :key="tab.id" class="flex-1">
+                <li v-for="tab in shownTabs" :key="tab.id" class="flex-1">
                     <!-- De grote knop steekt boven de kaart uit, met zijn naam eronder. -->
                     <button v-if="tab.variant === 'fab'" type="button" :aria-expanded="creating"
                         :class="[TAB_CLASS, 'text-lavoro-blue']" @click="creating = !creating">
@@ -71,20 +71,15 @@
                         <span class="text-[11px] leading-none">{{ tab.label }}</span>
                     </button>
 
-                    <button v-else-if="tab.action === 'menu'" type="button"
-                        :class="[TAB_CLASS, menuOpen ? 'text-lavoro-blue' : 'text-sidebar-muted']"
-                        @click="$emit('menu')">
-                        <component :is="navIcon(tab.icon)" class="size-6" />
-                        <span class="text-[11px] leading-none">{{ tab.label }}</span>
-                    </button>
-
                     <!--
-                        Alle tabbladen dezelfde kolom: een anchor lijnt zijn tekst
-                        links uit en een button in het midden, dus zonder dit staat
-                        het ene woord onder zijn pictogram en het andere ernaast.
+                        Een tabblad is een link naar een pagina, of een knop die
+                        iets op deze pagina opent: het menu of het bakje. Ze zien
+                        er hetzelfde uit en tonen allebei een getal als dat er is.
                     -->
-                    <Link v-else :href="tab.href"
-                        :class="[TAB_CLASS, tab.active ? 'text-lavoro-blue' : 'text-sidebar-muted']">
+                    <component v-else :is="tab.href ? Link : 'button'" :href="tab.href"
+                        :type="tab.href ? null : 'button'" :aria-expanded="tab.href ? null : tab.active"
+                        :class="[TAB_CLASS, tab.active ? 'text-lavoro-blue' : 'text-sidebar-muted']"
+                        @click="tab.action && act(tab.action)">
                         <span class="relative flex">
                             <component :is="navIcon(tab.icon)" class="size-6" />
                             <span v-if="tab.badgeValue"
@@ -93,7 +88,7 @@
                             </span>
                         </span>
                         <span class="text-[11px] leading-none">{{ tab.label }}</span>
-                    </Link>
+                    </component>
                 </li>
             </ul>
         </nav>
@@ -128,17 +123,18 @@ import { navIcon } from '@/Navigation/icons.js'
 import { useMenu } from '@/Composables/useMenu.js'
 import { useTabBar } from '@/Composables/useTabBar.js'
 import { useSwipe } from '@/Composables/useSwipe.js'
+import { useTray } from '@/Composables/useTray.js'
 
 /**
  * De balk onderaan op een telefoon. Welke knoppen erin staan en wat de grote
  * knop opent komt uit menu.json, net als de rest van het menu.
  */
-defineProps({
+const props = defineProps({
     /** Het menu zelf staat elders open; de balk laat alleen zien dát het openstaat. */
     menuOpen: { type: Boolean, default: false },
 })
 
-defineEmits(['menu'])
+const emit = defineEmits(['menu'])
 
 /**
  * Elk tabblad is dezelfde kolom, wat het ook voor element is. Een anchor lijnt
@@ -148,6 +144,23 @@ defineEmits(['menu'])
 const TAB_CLASS = 'flex w-full flex-col items-center gap-y-1 py-2'
 
 const { mobileTabs: tabs, createActions: visibleActions } = useMenu()
+const { state: tray } = useTray()
+
+/**
+ * Een knop die iets op de pagina opent is actief zolang dat openstaat. Het
+ * bakje telt wat erop ligt, zoals meldingen hun ongelezen berichten tellen.
+ */
+const shownTabs = computed(() => tabs.value.map((tab) => ({
+    ...tab,
+    active: { menu: props.menuOpen, tray: tray.open }[tab.action] ?? tab.active,
+    badgeValue: tab.action === 'tray' ? tray.items.length : tab.badgeValue,
+})))
+
+/** Wat een knop in de balk doet die geen pagina opent. */
+const act = (action) => {
+    if (action === 'menu') emit('menu')
+    if (action === 'tray') tray.open = !tray.open
+}
 
 const creating = ref(false)
 const drawerOpen = ref(false)

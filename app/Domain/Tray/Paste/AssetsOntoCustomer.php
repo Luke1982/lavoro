@@ -2,8 +2,7 @@
 
 namespace App\Domain\Tray\Paste;
 
-use App\Domain\Tray\AssetFacts;
-use App\Domain\Tray\TrayKinds;
+use App\Domain\Tray\Kinds\AssetKind;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\Customer;
@@ -36,11 +35,11 @@ class AssetsOntoCustomer implements PasteHandler
             : app(AssetTransferService::class)->preview($transferring, $customer->id)['contracts'];
 
         return new Question(
-            title: Str::ucfirst(TrayKinds::counted('asset', $assets->count())) . ' verhuizen',
+            title: AssetKind::heading($assets->count()) . ' verhuizen',
             subtitle: $transferring->isEmpty()
                 ? 'Naar een andere locatie van ' . $customer->name . '.'
                 : 'Overdragen aan ' . $customer->name . '.',
-            items: [...AssetFacts::listed($assets), ...$this->partsGoingAlong($assets)],
+            items: [...AssetKind::listed($assets), ...$this->partsGoingAlong($assets)],
             choices: $this->choices($paste, $customer, $this->leavingNote($leaving)),
             legend: 'Naar welke locatie?',
         );
@@ -68,20 +67,14 @@ class AssetsOntoCustomer implements PasteHandler
         }
 
         return new PasteResult(($assets->count() === 1
-            ? AssetFacts::title($assets->first()) . ' staat nu bij '
+            ? AssetKind::title($assets->first()) . ' staat nu bij '
             : $assets->count() . ' machines staan nu bij ')
-            . $customer->name . ', ' . ($location ? AssetFacts::locationLabel($location) : 'zonder locatie') . '.');
+            . $customer->name . ', ' . ($location ? AssetKind::locationLabel($location) : 'zonder locatie') . '.');
     }
 
     protected function customer(Paste $paste): Customer
     {
-        $customer = Customer::find($paste->target['id']);
-
-        if (!$customer || Gate::forUser($paste->user)->denies('view', $customer)) {
-            throw new Refusal('Deze klant kun je niet openen.');
-        }
-
-        return $customer;
+        return DropTarget::customer($paste);
     }
 
     /** The location the drop itself already picked, when it was dropped on one. */
@@ -103,7 +96,7 @@ class AssetsOntoCustomer implements PasteHandler
 
         $choices = $locations->map(fn (Location $location) => new Choice(
             value: 'location:' . $location->id,
-            label: AssetFacts::locationLabel($location),
+            label: AssetKind::locationLabel($location),
             description: $this->underLabel($location, $customer) . '.' . $leaving,
             confirm: 'Verhuizen',
         ))->all();
@@ -151,7 +144,7 @@ class AssetsOntoCustomer implements PasteHandler
     {
         return app(AssetTransferService::class)->treeFor($assets)
             ->reject(fn (Asset $asset) => $assets->contains('id', $asset->id))
-            ->map(fn (Asset $part) => ['title' => AssetFacts::title($part), 'subtitle' => 'Onderdeel, gaat mee'])
+            ->map(fn (Asset $part) => ['title' => AssetKind::title($part), 'subtitle' => 'Onderdeel, gaat mee'])
             ->values()
             ->all();
     }
@@ -174,7 +167,7 @@ class AssetsOntoCustomer implements PasteHandler
      */
     private function toMove(Paste $paste, Customer $customer): Collection
     {
-        AssetFacts::refuseParts($paste->records, 'verhuist alleen mee met die machine');
+        AssetKind::refuseParts($paste->records, 'verhuist alleen mee met die machine');
 
         $picked = $this->destination($paste);
         $assets = $paste->records
@@ -184,8 +177,7 @@ class AssetsOntoCustomer implements PasteHandler
             ->values();
 
         if ($assets->isEmpty()) {
-            throw new Refusal(($paste->records->count() === 1 ? 'Deze machine staat' : 'Deze machines staan')
-                . ' al op deze locatie.');
+            throw new Refusal($paste->these('staat', 'staan') . ' al op deze locatie.');
         }
 
         return $assets;

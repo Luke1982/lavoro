@@ -161,7 +161,7 @@
                             :bundle-parts-by-product="bundlePartsByProduct" :hidden-count="hiddenTaskCount"
                             class="my-4" />
                         <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4"
-                            v-tray-drop="{ accepts: ['asset'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'Loslaten om een keuring op deze werkbon te zetten' }">
+                            v-tray-drop="{ accepts: ['asset'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'een keuring op deze werkbon te zetten' }">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
                                 <template v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
@@ -192,7 +192,7 @@
                         </BoxComponent>
                         <BoxComponent class="my-4"
                             v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
-                            v-tray-drop="{ accepts: ['ticket'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'Loslaten om op deze werkbon te zetten' }">
+                            v-tray-drop="{ accepts: ['ticket'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'op deze werkbon te zetten' }">
                             <SectionHeader :icon="ExclamationTriangleIcon" title="Storingen"
                                 subtitle="Koppel een bestaande storing aan dit werk of voeg een nieuwe toe."
                                 chapter="tickets">

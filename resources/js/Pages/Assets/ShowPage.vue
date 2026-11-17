@@ -143,7 +143,7 @@
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-6" />
             </BoxComponent>
             <BoxComponent class="mt-5" v-auto-animate
-                v-tray-drop="{ accepts: ['ticket'], target: { type: 'asset', id: asset.id }, label: 'Loslaten om aan deze machine te hangen' }">
+                v-tray-drop="{ accepts: ['ticket'], target: { type: 'asset', id: asset.id }, label: 'aan deze machine te hangen' }">
                 <SectionHeader :icon="ExclamationCircleIcon" title="Storingen"
                     subtitle="Openstaande en afgehandelde storingen aan deze machine." chapter="tickets">
                     <template #actions>
@@ -194,7 +194,7 @@
             <BoxComponent
                 v-if="asset.child_assets?.length || asset.parent_asset || (asset.product.productables?.length && hasPermission('assetrelation.create')) || (productHasChildTypes && hasPermission('assetrelation.create'))"
                 class="mt-5"
-                v-tray-drop="{ accepts: ['asset'], target: { type: 'asset', id: asset.id }, label: 'Loslaten om als onderdeel in deze machine te zetten' }">
+                v-tray-drop="{ accepts: ['asset'], target: { type: 'asset', id: asset.id }, label: 'als onderdeel in deze machine te zetten' }">
                 <SectionHeader :icon="LinkIcon" title="Gerelateerde machines"
                     subtitle="Onderdelen en toebehoren die bij deze machine horen." chapter="assets" />
 

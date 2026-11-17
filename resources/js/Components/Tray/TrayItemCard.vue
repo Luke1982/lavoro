@@ -7,7 +7,7 @@
         </span>
         <div class="min-w-0 flex-1">
             <div class="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-slate-400">
-                {{ look.one }}
+                {{ state.kinds[item.kind]?.one }}
                 <Transition enter-active-class="transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
                     enter-from-class="-translate-x-1 opacity-0" leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
                     leave-to-class="opacity-0">
@@ -26,6 +26,12 @@
                 <EllipsisVerticalIcon class="size-5" aria-hidden="true" />
                 <span class="sr-only">Meer acties</span>
             </template>
+            <MenuItem v-slot="{ active }">
+                <button type="button" @click="pickUpFromTray(item.kind, [item.id])"
+                    :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-700 dark:text-slate-200']">
+                    <ClipboardPasteIcon class="size-4" aria-hidden="true" />Plakken
+                </button>
+            </MenuItem>
             <MenuItem v-slot="{ active }">
                 <Link :href="item.url"
                     :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200']">
@@ -54,17 +60,19 @@ import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import {
-    EllipsisVerticalIcon, ExternalLinkIcon, GripVerticalIcon, PinIcon, PinOffIcon, Trash2Icon,
+    ClipboardPasteIcon, EllipsisVerticalIcon, ExternalLinkIcon, GripVerticalIcon, PinIcon, PinOffIcon, Trash2Icon,
 } from '@lucide/vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
-import { startTrayDrag, endTrayDrag, pinOnTray, removeFromTray } from '@/Composables/useTray.js'
-import { trayKind } from '@/Components/Tray/trayKinds.js'
+import { useTray, startTrayDrag, endTrayDrag, pickUpFromTray, pinOnTray, removeFromTray } from '@/Composables/useTray.js'
+import { trayLook } from '@/Components/Tray/trayLooks.js'
 
 const props = defineProps({
     item: { type: Object, required: true },
 })
 
-const look = computed(() => trayKind(props.item.kind))
+const { state } = useTray()
+
+const look = computed(() => trayLook(props.item.kind))
 
 const details = computed(() => [
     props.item.subtitle,

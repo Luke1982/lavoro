@@ -4,7 +4,7 @@ namespace App\Domain\Tray\Paste;
 
 use App\Actions\Contracts\AttachContractAssetAction;
 use App\Actions\Contracts\DetachContractAssetAction;
-use App\Domain\Tray\AssetFacts;
+use App\Domain\Tray\Kinds\AssetKind;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\MaintenanceContract;
@@ -20,14 +20,14 @@ class AssetsOntoContract implements UndoablePasteHandler
 {
     public function question(Paste $paste): ?Question
     {
-        $this->toAttach($paste, $this->contract($paste));
+        $this->toAttach($paste, DropTarget::contract($paste));
 
         return null;
     }
 
     public function perform(Paste $paste): PasteResult
     {
-        $contract = $this->contract($paste);
+        $contract = DropTarget::contract($paste);
         $assets = $this->toAttach($paste, $contract);
 
         Gate::forUser($paste->user)->authorize('attachAsset', $contract);
@@ -35,7 +35,7 @@ class AssetsOntoContract implements UndoablePasteHandler
         $assets->each(fn (Asset $asset) => app(AttachContractAssetAction::class)->execute($contract, $asset));
 
         $message = $assets->count() === 1
-            ? AssetFacts::title($assets->first()) . ' valt nu onder ' . $contract->display_title . '.'
+            ? AssetKind::title($assets->first()) . ' valt nu onder ' . $contract->display_title . '.'
             : $assets->count() . ' machines vallen nu onder ' . $contract->display_title . '.';
 
         return new PasteResult($message, undo: [
@@ -71,17 +71,6 @@ class AssetsOntoContract implements UndoablePasteHandler
             . ' weer van ' . $contract->display_title . ' af.';
     }
 
-    private function contract(Paste $paste): MaintenanceContract
-    {
-        $contract = MaintenanceContract::find($paste->target['id']);
-
-        if (!$contract || Gate::forUser($paste->user)->denies('view', $contract)) {
-            throw new Refusal('Dit contract kun je niet openen.');
-        }
-
-        return $contract;
-    }
-
     /**
      * The machines not on this contract yet. A contract is drawn up for a
      * customer's own machines; a part comes along with the machine it is in.
@@ -90,19 +79,18 @@ class AssetsOntoContract implements UndoablePasteHandler
      */
     private function toAttach(Paste $paste, MaintenanceContract $contract): Collection
     {
-        AssetFacts::refuseParts($paste->records, 'komt alleen met die machine onder een contract');
+        AssetKind::refuseParts($paste->records, 'komt alleen met die machine onder een contract');
 
         $present = $contract->assets()->pluck('assets.id');
         $assets = $paste->records->reject(fn (Asset $asset) => $present->contains($asset->id))->values();
 
         if ($assets->isEmpty()) {
-            throw new Refusal(($paste->records->count() === 1 ? 'Deze machine valt' : 'Deze machines vallen')
-                . ' al onder dit contract.');
+            throw new Refusal($paste->these('valt', 'vallen') . ' al onder dit contract.');
         }
 
         $assets->each(function (Asset $asset) use ($contract) {
             if ((int) $asset->customer_id !== (int) $contract->customer_id) {
-                throw new Refusal(AssetFacts::title($asset) . ' hoort niet bij de klant van dit contract.');
+                throw new Refusal(AssetKind::title($asset) . ' hoort niet bij de klant van dit contract.');
             }
         });
 

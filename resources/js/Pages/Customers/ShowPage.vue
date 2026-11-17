@@ -783,9 +783,8 @@ const newContactForm = useForm({
 
 /** Machines off the bakje move to this customer: on its machines, and on its name wherever the page is. */
 const moveMachinesHere = {
-    accepts: ['asset'],
     target: { type: 'customer', id: props.customer.id },
-    label: 'Loslaten om naar deze klant te verhuizen',
+    label: 'naar deze klant te verhuizen',
 }
 
 function submitNewContact() {

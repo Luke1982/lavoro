@@ -2,42 +2,51 @@
 
 namespace App\Domain\Tray;
 
-use App\Models\Asset;
-use App\Models\Ticket;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
+use App\Domain\Tray\Kinds\AssetKind;
+use App\Domain\Tray\Kinds\TicketKind;
+use App\Domain\Tray\Kinds\TrayKind;
+use App\Domain\Tray\Paste\PasteHandler;
+use App\Domain\Tray\Paste\UndoablePasteHandler;
+use App\Exceptions\Refusal;
 
 /**
- * What can be put on the bakje, by the short name the screens use for it.
+ * Every kind of thing that can lie on the bakje, and what follows from all of
+ * them together: which places take what, and which pastes can be taken back.
  *
- * Every kind answers one question the bakje cannot answer for it: which of these
- * records may this person still see. Something that has been deleted, or moved
- * out of their sight, falls off their bakje the next time it is read.
+ * The screens are told where each kind can go rather than knowing it themselves,
+ * so a place offered on a page is always one the server will accept.
  */
 final class TrayKinds
 {
-    /** @var array<string, array{class: class-string, one: string, many: string}> */
+    /** @var array<int, class-string<TrayKind>> */
     private const KINDS = [
-        'ticket' => ['class' => Ticket::class, 'one' => 'storing', 'many' => 'storingen'],
-        'asset' => ['class' => Asset::class, 'one' => 'machine', 'many' => 'machines'],
+        TicketKind::class,
+        AssetKind::class,
     ];
 
     /** @return array<int, string> */
     public static function names(): array
     {
-        return array_keys(self::KINDS);
+        return array_map(fn (string $kind) => $kind::name(), self::KINDS);
     }
 
-    /** @return class-string */
-    public static function classFor(string $kind): string
+    /** @return class-string<TrayKind> */
+    public static function get(string $name): string
     {
-        return self::KINDS[$kind]['class'];
+        foreach (self::KINDS as $kind) {
+            if ($kind::name() === $name) {
+                return $kind;
+            }
+        }
+
+        throw new Refusal('Dit kan niet op het bakje.');
     }
 
-    public static function kindFor(string $class): ?string
+    /** @return class-string<TrayKind>|null */
+    public static function forModel(string $class): ?string
     {
-        foreach (self::KINDS as $kind => $definition) {
-            if ($definition['class'] === ltrim($class, '\\')) {
+        foreach (self::KINDS as $kind) {
+            if ($kind::model() === ltrim($class, '\\')) {
                 return $kind;
             }
         }
@@ -45,26 +54,54 @@ final class TrayKinds
         return null;
     }
 
-    /** "storing" for one, "3 storingen" for more. */
-    public static function counted(string $kind, int $count): string
+    /**
+     * The handler for this kind dropped on this kind of place.
+     *
+     * @param  class-string<TrayKind>  $kind
+     */
+    public static function handler(string $kind, string $target): PasteHandler
     {
-        return $count === 1 ? self::KINDS[$kind]['one'] : $count . ' ' . self::KINDS[$kind]['many'];
+        $handler = $kind::places()[$target]
+            ?? throw new Refusal('Een ' . $kind::one() . ' kun je hier niet plakken.');
+
+        return app($handler);
     }
 
     /**
-     * @param  array<int, int>  $ids
+     * Each kind as the screens need it: what to call it and where it can go.
+     *
+     * @return array<string, array{one: string, many: string, places: array<int, string>}>
      */
-    public static function visible(string $kind, array $ids, User $user): Collection
+    public static function forScreens(): array
     {
-        return match ($kind) {
-            'ticket' => Ticket::visibleTo($user)
-                ->whereIn('id', $ids)
-                ->with(['asset.product.brand', 'serviceOrder'])
-                ->get(),
-            'asset' => Asset::visibleTo($user)
-                ->whereIn('id', $ids)
-                ->with(['product.brand', 'product.productType', 'linkedLocation', 'parentAsset.product.brand'])
-                ->get(),
-        };
+        return collect(self::KINDS)
+            ->mapWithKeys(fn (string $kind) => [$kind::name() => [
+                'one' => $kind::one(),
+                'many' => $kind::many(),
+                'places' => array_keys($kind::places()),
+            ]])
+            ->all();
+    }
+
+    /** @return array<int, string> Every place something can be dropped. */
+    public static function targets(): array
+    {
+        return collect(self::KINDS)
+            ->flatMap(fn (string $kind) => array_keys($kind::places()))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /** @return array<int, string> The pastes that can be taken back, as "kind:target". */
+    public static function undoable(): array
+    {
+        return collect(self::KINDS)
+            ->flatMap(fn (string $kind) => collect($kind::places())
+                ->filter(fn (string $handler) => is_subclass_of($handler, UndoablePasteHandler::class))
+                ->keys()
+                ->map(fn (string $target) => $kind::name() . ':' . $target))
+            ->values()
+            ->all();
     }
 }

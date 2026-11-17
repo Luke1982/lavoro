@@ -2,15 +2,13 @@
 
 namespace App\Domain\Tray\Paste;
 
-use App\Domain\Tray\AssetFacts;
-use App\Domain\Tray\TicketFacts;
-use App\Domain\Tray\TrayKinds;
+use App\Domain\Tray\Kinds\AssetKind;
+use App\Domain\Tray\Kinds\TicketKind;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\Ticket;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 /**
  * Storingen dropped on a machine: they were reported on the wrong one, and are
@@ -21,19 +19,18 @@ class TicketsOntoAsset implements PasteHandler
 {
     public function question(Paste $paste): Question
     {
-        $asset = $this->asset($paste);
+        $asset = DropTarget::asset($paste);
         $tickets = $this->toMove($paste, $asset);
-        $machine = AssetFacts::title($asset);
-        $one = $tickets->count() === 1;
+        $machine = AssetKind::title($asset);
 
         return new Question(
-            title: Str::ucfirst(TrayKinds::counted('ticket', $tickets->count())) . ' verhangen?',
+            title: TicketKind::heading($tickets->count()) . ' verhangen?',
             subtitle: 'Naar ' . $machine . '.',
-            items: TicketFacts::listed($tickets),
+            items: TicketKind::listed($tickets),
             choices: [new Choice(
                 value: 'move',
                 label: 'Verhangen naar ' . $machine,
-                description: $one
+                description: $tickets->count() === 1
                     ? 'De storing staat daarna bij deze machine, niet meer bij de machine hierboven.'
                     : 'De storingen staan daarna bij deze machine, niet meer bij de machines hierboven.',
                 confirm: 'Verhangen',
@@ -43,7 +40,7 @@ class TicketsOntoAsset implements PasteHandler
 
     public function perform(Paste $paste): PasteResult
     {
-        $asset = $this->asset($paste);
+        $asset = DropTarget::asset($paste);
         $tickets = $this->toMove($paste, $asset);
         $gate = Gate::forUser($paste->user);
 
@@ -53,18 +50,7 @@ class TicketsOntoAsset implements PasteHandler
         });
 
         return new PasteResult(($tickets->count() === 1 ? 'De storing hangt' : 'De storingen hangen')
-            . ' nu aan ' . AssetFacts::title($asset) . '.');
-    }
-
-    private function asset(Paste $paste): Asset
-    {
-        $asset = Asset::visibleTo($paste->user)->with('product.brand')->find($paste->target['id']);
-
-        if (!$asset) {
-            throw new Refusal('Deze machine kun je niet openen.');
-        }
-
-        return $asset;
+            . ' nu aan ' . AssetKind::title($asset) . '.');
     }
 
     /**
@@ -80,8 +66,7 @@ class TicketsOntoAsset implements PasteHandler
             ->values();
 
         if ($tickets->isEmpty()) {
-            throw new Refusal(($paste->records->count() === 1 ? 'Deze storing hangt' : 'Deze storingen hangen')
-                . ' al aan deze machine.');
+            throw new Refusal($paste->these('hangt', 'hangen') . ' al aan deze machine.');
         }
 
         $customer_id = $asset->resolvedCustomerId();
@@ -90,7 +75,7 @@ class TicketsOntoAsset implements PasteHandler
             $order = $ticket->serviceOrder;
 
             if ($order && (int) $order->customer_id !== $customer_id) {
-                throw new Refusal('"' . TicketFacts::title($ticket) . '" staat op werkbon ' . $order->number
+                throw new Refusal('"' . TicketKind::title($ticket) . '" staat op werkbon ' . $order->number
                     . ' van een andere klant. Haal hem daar eerst af.');
             }
         });

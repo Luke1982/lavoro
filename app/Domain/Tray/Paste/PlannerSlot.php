@@ -45,11 +45,30 @@ final class PlannerSlot
     }
 
     /**
+     * A new werkbon for the customer, or one of their werkbonnen still open.
+     *
+     * @param  string  $contents  What the new werkbon holds: "met de storing erop".
+     * @return array<int, Choice>
+     */
+    public function choices(Customer $customer, string $contents): array
+    {
+        return [
+            new Choice(
+                value: self::NEW_ORDER,
+                label: 'Nieuwe werkbon',
+                description: 'Voor ' . $customer->name . ', ' . $contents . '.',
+                confirm: 'Werkbon maken en inplannen',
+            ),
+            ...$this->openOrderChoices($customer),
+        ];
+    }
+
+    /**
      * The customer's werkbonnen that are still open, newest first, as choices.
      *
      * @return array<int, Choice>
      */
-    public function openOrderChoices(Customer $customer): array
+    private function openOrderChoices(Customer $customer): array
     {
         return ServiceOrder::visibleTo($this->paste->user)
             ->where('customer_id', $customer->id)
@@ -82,9 +101,15 @@ final class PlannerSlot
         return new Choice(
             value: 'serviceorder:' . $order->id,
             label: ($already !== null ? 'Werkbon ' : 'Bij open werkbon ') . $order->number,
-            description: ($order->description ?: 'Zonder omschrijving') . '. ' . $state,
+            description: $this->about($order) . '. ' . $state,
             confirm: $already !== null ? 'Inplannen' : 'Toevoegen en inplannen',
         );
+    }
+
+    /** What the werkbon is for, short enough to read in a choice. */
+    private function about(ServiceOrder $order): string
+    {
+        return rtrim(mb_strimwidth($order->description ?: 'Zonder omschrijving', 0, 80, '…'), '.');
     }
 
     /**

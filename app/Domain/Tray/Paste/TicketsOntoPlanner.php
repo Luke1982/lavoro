@@ -3,16 +3,13 @@
 namespace App\Domain\Tray\Paste;
 
 use App\Actions\ServiceOrders\CreateServiceOrderAction;
-use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
-use App\Domain\Tray\TicketFacts;
-use App\Domain\Tray\TrayKinds;
+use App\Domain\Tray\Kinds\TicketKind;
 use App\Exceptions\Refusal;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 
 /**
  * Storingen dropped on a technician's day in the planner.
@@ -29,9 +26,9 @@ class TicketsOntoPlanner implements PasteHandler
         $slot = new PlannerSlot($paste);
 
         return new Question(
-            title: Str::ucfirst(TrayKinds::counted('ticket', $paste->records->count())) . ' inplannen',
+            title: $paste->heading() . ' inplannen',
             subtitle: $slot->subtitle(),
-            items: TicketFacts::listed($paste->records),
+            items: TicketKind::listed($paste->records),
             choices: $this->choices($paste, $slot),
             legend: 'Op welke werkbon?',
         );
@@ -48,24 +45,13 @@ class TicketsOntoPlanner implements PasteHandler
 
         if ($slot->wantsNewOrder()) {
             $gate->authorize('create', ServiceOrder::class);
-            $order = $this->newOrder($paste);
+            $order = app(CreateServiceOrderAction::class)->execute(TicketKind::newServiceOrder($paste->records));
         } else {
             $order = $slot->chosenOrder();
             $loose->each(fn (Ticket $ticket) => app(AttachTicketToServiceOrderAction::class)->execute($order, $ticket));
         }
 
         return $slot->plan($order);
-    }
-
-    /** Through the same action the werkbon screen uses, which hangs the storingen off it as it goes. */
-    private function newOrder(Paste $paste): ServiceOrder
-    {
-        return app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
-            customer_id: TicketFacts::sharedCustomer($paste->records)->id,
-            location_id: TicketFacts::sharedLocationId($paste->records),
-            description: TicketFacts::serviceOrderDescription($paste->records),
-            ticket_ids: $paste->records->pluck('id')->all(),
-        ));
     }
 
     /**
@@ -88,18 +74,6 @@ class TicketsOntoPlanner implements PasteHandler
                 . 'Pak ze los uit de stapel en plan ze apart in.');
         }
 
-        $customer = TicketFacts::sharedCustomer($tickets);
-        $count = $tickets->count();
-
-        return [
-            new Choice(
-                value: PlannerSlot::NEW_ORDER,
-                label: 'Nieuwe werkbon',
-                description: 'Voor ' . $customer->name . ', met '
-                    . ($count === 1 ? 'de storing' : 'alle ' . $count . ' storingen') . ' erop.',
-                confirm: 'Werkbon maken en inplannen',
-            ),
-            ...$slot->openOrderChoices($customer),
-        ];
+        return $slot->choices(TicketKind::sharedCustomer($tickets), 'met ' . $paste->every() . ' erop');
     }
 }

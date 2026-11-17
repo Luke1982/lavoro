@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Tray;
 
-use App\Domain\Tray\Tray;
+use App\Domain\Tray\TrayKinds;
 use App\Models\TrayItem;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +28,7 @@ class TrayPasteRequest extends FormRequest
             'item_ids' => ['required', 'array', 'min:1', 'max:100'],
             'item_ids.*' => ['integer'],
             'target' => ['required', 'array'],
-            'target.type' => ['required', 'string', Rule::in(Tray::targets())],
+            'target.type' => ['required', 'string', Rule::in(TrayKinds::targets())],
             'target.id' => ['exclude_if:target.type,planner', 'required', 'integer'],
             'target.user_id' => ['exclude_unless:target.type,planner', 'required', 'integer', 'exists:users,id'],
             'target.start' => ['exclude_unless:target.type,planner', 'required', 'date_format:Y-m-d H:i'],

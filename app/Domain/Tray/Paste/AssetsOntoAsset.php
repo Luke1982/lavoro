@@ -3,7 +3,7 @@
 namespace App\Domain\Tray\Paste;
 
 use App\Actions\Assets\AttachChildAssetAction;
-use App\Domain\Tray\AssetFacts;
+use App\Domain\Tray\Kinds\AssetKind;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\Location;
@@ -19,7 +19,7 @@ class AssetsOntoAsset implements UndoablePasteHandler
 {
     public function question(Paste $paste): ?Question
     {
-        $parent = $this->parent($paste);
+        $parent = DropTarget::asset($paste);
         $paste->records->each(fn (Asset $child) => $this->check($parent, $child));
 
         return null;
@@ -27,7 +27,7 @@ class AssetsOntoAsset implements UndoablePasteHandler
 
     public function perform(Paste $paste): PasteResult
     {
-        $parent = $this->parent($paste);
+        $parent = DropTarget::asset($paste);
         Gate::forUser($paste->user)->authorize('attachChild', $parent);
 
         $locations = $paste->records->mapWithKeys(fn (Asset $child) => [$child->id => $child->location_id]);
@@ -35,8 +35,8 @@ class AssetsOntoAsset implements UndoablePasteHandler
         $paste->records->each(fn (Asset $child) => app(AttachChildAssetAction::class)->execute($parent, $child));
 
         $message = $paste->records->count() === 1
-            ? AssetFacts::title($paste->records->first()) . ' zit nu in ' . AssetFacts::title($parent) . '.'
-            : $paste->records->count() . ' machines zitten nu in ' . AssetFacts::title($parent) . '.';
+            ? AssetKind::title($paste->records->first()) . ' zit nu in ' . AssetKind::title($parent) . '.'
+            : $paste->records->count() . ' machines zitten nu in ' . AssetKind::title($parent) . '.';
 
         return new PasteResult($message, undo: [
             'parent_asset_id' => $parent->id,
@@ -78,21 +78,10 @@ class AssetsOntoAsset implements UndoablePasteHandler
             . ' weer op zichzelf.';
     }
 
-    private function parent(Paste $paste): Asset
-    {
-        $parent = Asset::visibleTo($paste->user)->with('product.productType')->find($paste->target['id']);
-
-        if (!$parent) {
-            throw new Refusal('Deze machine kun je niet openen.');
-        }
-
-        return $parent;
-    }
-
     private function check(Asset $parent, Asset $child): void
     {
         if ($reason = app(AttachChildAssetAction::class)->refusal($parent, $child)) {
-            throw new Refusal(AssetFacts::title($child) . ': ' . lcfirst($reason));
+            throw new Refusal(AssetKind::title($child) . ': ' . lcfirst($reason));
         }
     }
 }
