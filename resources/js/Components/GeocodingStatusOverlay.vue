@@ -9,7 +9,7 @@
                 <span>Adressen zoeken...</span>
                 <span class="text-sm">{{ geocodedCount }} / {{ totalToGeocode }}</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+            <div class="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2.5 mt-2">
                 <div class="bg-blue-600 h-2.5 rounded-full" :style="{ width: progress + '%' }"></div>
             </div>
         </div>
@@ -59,11 +59,11 @@ const showFailedList = ref(false);
 const boxClasses = computed(() => {
     switch (props.status) {
         case 'processing':
-            return 'bg-gray-100 border border-gray-400 text-gray-700';
+            return 'bg-gray-100 dark:bg-slate-800 border border-gray-400 text-gray-700 dark:text-slate-300';
         case 'success':
-            return 'bg-green-100 border border-green-400 text-green-700';
+            return 'bg-green-100 dark:bg-green-900/30 border border-green-400 text-green-700 dark:text-green-300';
         case 'failed':
-            return 'bg-red-100 border border-red-400 text-red-700';
+            return 'bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-300';
         default:
             return '';
     }

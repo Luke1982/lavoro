@@ -3,7 +3,7 @@
         class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-800/60 shadow-sm dark:shadow-none mb-4 overflow-hidden">
         <h2 class="sr-only">Ticket statistieken</h2>
         <div
-            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100 dark:divide-slate-700/60">
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100 dark:md:divide-slate-800 dark:divide-slate-700/60">
             <div class="p-6">
                 <StatCard label="Open" :value="openCount" :baseline="avgCount" :delta="openPctVsAvg" type="open" />
             </div>
@@ -63,7 +63,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="tickets.data.length">
             <div
-                class="hidden lg:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+                class="hidden lg:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox
                         :model-value="allCurrentPageSelected"
@@ -135,7 +135,7 @@
                             {{ ticket.asset.customer.name }}
                         </Link>
                         <Link v-if="ticket.asset.linked_location" :href="`/locations/${ticket.asset.linked_location.id}`"
-                            class="text-xs text-lavoro-blue truncate"
+                            class="text-xs text-lavoro-blue dark:text-blue-400 truncate"
                             :title="ticket.asset.linked_location.title">
                             {{ ticket.asset.linked_location.title }}
                         </Link>

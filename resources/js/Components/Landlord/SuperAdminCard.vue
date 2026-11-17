@@ -13,21 +13,21 @@
 
 
         <table v-if="superadmins.length" class="w-full text-left">
-            <tr v-for="admin in superadmins" :key="admin.id" class="border-t border-slate-200">
-                <td class="py-2">{{ admin.name }} <span class="text-slate-500">{{ admin.email }}</span></td>
+            <tr v-for="admin in superadmins" :key="admin.id" class="border-t border-slate-200 dark:border-slate-700">
+                <td class="py-2">{{ admin.name }} <span class="text-slate-500 dark:text-slate-400">{{ admin.email }}</span></td>
                 <td class="w-28 py-2 text-right">
-                    <button type="button" class="text-blue-700 underline" @click="remove(admin)">verwijderen</button>
+                    <button type="button" class="text-blue-700 dark:text-blue-300 underline" @click="remove(admin)">verwijderen</button>
                 </td>
             </tr>
         </table>
-        <p v-else class="text-sm text-slate-500">Nog geen superbeheerder voor deze klant.</p>
+        <p v-else class="text-sm text-slate-500 dark:text-slate-400">Nog geen superbeheerder voor deze klant.</p>
 
         <form class="mt-3" @submit.prevent="submit">
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <input v-model="form.email" type="email" required placeholder="e-mailadres"
                         class="panel-field w-full">
-                    <p v-if="form.errors.email" class="mt-1 font-semibold text-red-700">{{ form.errors.email }}</p>
+                    <p v-if="form.errors.email" class="mt-1 font-semibold text-red-700 dark:text-red-300">{{ form.errors.email }}</p>
                 </div>
                 <input v-model="form.password" type="text" placeholder="wachtwoord (leeg = genereren)"
                     class="panel-field w-full">

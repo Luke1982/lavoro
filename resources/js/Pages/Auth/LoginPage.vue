@@ -50,7 +50,7 @@
                         <label class="block text-sm text-gray-400 mb-2">E-mailadres</label>
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors">
-                            <EnvelopeIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <EnvelopeIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input v-model="loginForm.email" id="email" name="email" type="email" autocomplete="email"
                                 required placeholder="jouw@email.nl"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
@@ -62,12 +62,12 @@
                         <label class="block text-sm text-gray-400 mb-2">Wachtwoord</label>
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors">
-                            <LockClosedIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <LockClosedIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input :type="showPassword ? 'text' : 'password'" v-model="loginForm.password" id="password"
                                 name="password" autocomplete="current-password" required placeholder="••••••••"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
                             <button type="button" @click="showPassword = !showPassword"
-                                class="text-gray-500 hover:text-gray-300 transition-colors">
+                                class="text-gray-500 dark:text-slate-400 hover:text-gray-300 transition-colors">
                                 <EyeSlashIcon v-if="showPassword" class="h-5 w-5" />
                                 <EyeIcon v-else class="h-5 w-5" />
                             </button>
@@ -106,15 +106,15 @@
                     </button>
                 </form>
 
-                <p class="mt-8 text-center text-sm text-gray-600">
+                <p class="mt-8 text-center text-sm text-gray-600 dark:text-slate-400">
                     Nog geen account?
-                    <a href="mailto:" class="text-gray-500 hover:text-gray-400 transition-colors">Neem contact op</a>
+                    <a href="mailto:" class="text-gray-500 dark:text-slate-400 hover:text-gray-400 transition-colors">Neem contact op</a>
                     met je beheerder.
                 </p>
 
                 <p v-if="page.props.privacy_url" class="mt-3 text-center text-xs">
                     <a :href="page.props.privacy_url" target="_blank" rel="noopener"
-                        class="text-gray-500 hover:text-gray-400 transition-colors">Privacyverklaring</a>
+                        class="text-gray-500 dark:text-slate-400 hover:text-gray-400 transition-colors">Privacyverklaring</a>
                 </p>
             </div>
         </div>
@@ -156,7 +156,7 @@ const features = [
     },
     {
         icon: ShieldCheckIcon,
-        color: 'text-lavoro-blue',
+        color: 'text-lavoro-blue dark:text-blue-400',
         title: 'Betrouwbaar en veilig',
         body: 'Jouw data is bij ons in veilige handen.',
     },

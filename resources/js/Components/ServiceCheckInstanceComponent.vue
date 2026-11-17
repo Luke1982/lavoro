@@ -5,8 +5,8 @@
             <!-- Card header: type icon + name + action icons + status -->
             <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-8 h-8 rounded-lg bg-lavoro-lightblue flex items-center justify-center flex-none">
-                        <component :is="typeIcon" class="w-4 h-4 text-lavoro-blue" />
+                    <div class="w-8 h-8 rounded-lg bg-lavoro-lightblue dark:bg-blue-900/30 flex items-center justify-center flex-none">
+                        <component :is="typeIcon" class="w-4 h-4 text-lavoro-blue dark:text-blue-400" />
                     </div>
                     <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 leading-snug">
                         {{ serviceCheckInstance.service_check.name }}
@@ -62,7 +62,7 @@
                                     <input :id="`sci-${serviceCheckInstance.id}-value-${value.id}`"
                                         :name="`sci-${serviceCheckInstance.id}-value-${value.id}`" type="checkbox"
                                         v-model="form.values" :value="value.id"
-                                        class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:border-lavoro-blue checked:bg-lavoro-blue indeterminate:border-lavoro-blue indeterminate:bg-lavoro-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lavoro-blue disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:checked:bg-gray-100 forced-colors:appearance-auto" />
+                                        class="col-start-1 row-start-1 appearance-none rounded-sm border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 checked:border-lavoro-blue checked:bg-lavoro-blue indeterminate:border-lavoro-blue indeterminate:bg-lavoro-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lavoro-blue disabled:border-gray-300 disabled:bg-gray-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 disabled:checked:bg-gray-100 dark:disabled:checked:bg-slate-800 forced-colors:appearance-auto" />
                                     <svg class="pointer-events-none col-start-1 row-start-1 size-3.5 self-center justify-self-center stroke-white group-has-disabled:stroke-gray-950/25"
                                         viewBox="0 0 14 14" fill="none">
                                         <path class="opacity-0 group-has-checked:opacity-100" d="M3 8L6 11L11 3.5"

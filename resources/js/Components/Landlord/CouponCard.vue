@@ -8,7 +8,7 @@
                     &middot; via {{ reseller.name }} ({{ reseller.commission_percent }}% commissie)
                 </template>
             </p>
-            <p class="text-sm text-slate-500">
+            <p class="text-sm text-slate-500 dark:text-slate-400">
                 Deze maand commissie: {{ euro(subscription.commission_cents) }}
             </p>
         </template>
@@ -21,7 +21,7 @@
                 <button type="submit" :disabled="form.processing"
                     class="panel-button">Verzilveren</button>
             </div>
-            <p v-if="form.errors.code" class="mt-1 font-semibold text-red-700">{{ form.errors.code }}</p>
+            <p v-if="form.errors.code" class="mt-1 font-semibold text-red-700 dark:text-red-300">{{ form.errors.code }}</p>
         </form>
     </PanelSection>
 </template>

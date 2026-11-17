@@ -1,12 +1,12 @@
 <template>
     <Head title="Klanten" />
 
-    <p class="mb-3 text-sm text-slate-500">
+    <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
         {{ rows.length }} tenants &middot; samen {{ euro(monthly) }} per maand
     </p>
 
-    <table class="w-full overflow-hidden rounded-lg border border-slate-200 bg-white text-left">
-        <thead class="bg-slate-100 text-xs uppercase tracking-wide text-slate-500">
+    <table class="w-full overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-left">
+        <thead class="bg-slate-100 dark:bg-slate-800 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
             <tr>
                 <th class="px-3 py-2.5">Naam</th>
                 <th class="px-3 py-2.5">Pakket</th>
@@ -18,13 +18,13 @@
             </tr>
         </thead>
         <tbody>
-            <tr v-for="row in rows" :key="row.id" class="border-t border-slate-200">
+            <tr v-for="row in rows" :key="row.id" class="border-t border-slate-200 dark:border-slate-700">
                 <td class="px-3 py-2.5">
                     <strong>{{ row.name }}</strong><br>
-                    <span class="text-slate-500">{{ row.database }}</span>
-                    <span v-if="row.busy" class="block text-slate-500">wordt nu aangemaakt…</span>
-                    <span v-if="row.broken" class="block font-semibold text-red-700">{{ row.broken }}</span>
-                    <span v-if="!row.starts_on && !row.busy" class="block font-semibold text-amber-700">
+                    <span class="text-slate-500 dark:text-slate-400">{{ row.database }}</span>
+                    <span v-if="row.busy" class="block text-slate-500 dark:text-slate-400">wordt nu aangemaakt…</span>
+                    <span v-if="row.broken" class="block font-semibold text-red-700 dark:text-red-300">{{ row.broken }}</span>
+                    <span v-if="!row.starts_on && !row.busy" class="block font-semibold text-amber-700 dark:text-amber-300">
                         geen ingangsdatum &mdash; wordt niet gefactureerd
                     </span>
                 </td>
@@ -40,7 +40,7 @@
                 </td>
                 <td class="px-3 py-2.5">{{ euro(row.total) }}</td>
                 <td class="px-3 py-2.5 text-right">
-                    <Link :href="`/beheer/${row.id}`" class="text-blue-700 underline">bewerken</Link>
+                    <Link :href="`/beheer/${row.id}`" class="text-blue-700 dark:text-blue-300 underline">bewerken</Link>
                 </td>
             </tr>
         </tbody>
@@ -71,7 +71,7 @@ defineProps({
 const euro = (cents) => new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' })
     .format((cents ?? 0) / 100)
 
-const over = (used, limit) => (used > limit ? 'font-semibold text-red-700' : '')
+const over = (used, limit) => (used > limit ? 'font-semibold text-red-700 dark:text-red-300' : '')
 
 /**
  * Het scherm houdt zichzelf bij de tijd. usePoll komt uit Inertia zelf: het

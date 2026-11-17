@@ -7,7 +7,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0">
         <div v-if="announcements.length">
             <div
-                class="hidden md:grid md:grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                class="hidden md:grid md:grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-5">Aankondiging</div>
                 <div class="col-span-2">Doelgroep</div>
                 <div class="col-span-2">Bevestigd</div>
@@ -69,7 +69,7 @@
                     <textarea v-model="form.body" rows="5"
                         class="w-full text-sm border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Wat moet iedereen weten?"></textarea>
-                    <p v-if="form.errors.body" class="mt-1 text-xs text-red-600">{{ form.errors.body }}</p>
+                    <p v-if="form.errors.body" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.errors.body }}</p>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">

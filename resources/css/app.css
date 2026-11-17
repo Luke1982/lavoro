@@ -37,6 +37,16 @@
     --color-nav-lijsten: #2563eb;
 }
 
+/*
+ * Het donkere thema volgt het besturingssysteem. color-scheme laat de browser
+ * zijn eigen onderdelen mee wisselen: schuifbalken, datumkiezers, de lijst van
+ * een select en de achtergrond van een veld zonder eigen kleur. Zonder deze regel
+ * staat er midden in een donker scherm een witte kalender.
+ */
+:root {
+    color-scheme: light dark;
+}
+
 @utility bg-svg {
     position: relative;
     isolation: isolate;
@@ -288,6 +298,16 @@
     transform: translateX(0);
 }
 
+/*
+ * De achtergrondplaat is lichtgrijs. Op een donkere pagina legt hij met dezelfde
+ * dekking een grijze waas over alles; hier blijft er alleen een vleugje over.
+ */
+@media (prefers-color-scheme: dark) {
+    .bg-svg::before {
+        opacity: 0.04;
+    }
+}
+
 @keyframes sidebarItemIn {
     from {
         opacity: 0;
@@ -480,6 +500,13 @@
     @apply rounded-md border border-slate-300 px-2 py-1.5;
 }
 
+@media (prefers-color-scheme: dark) {
+    .panel-field,
+    .panel-field-narrow {
+        @apply border-slate-600 bg-slate-900 text-slate-100;
+    }
+}
+
 .panel-button {
     @apply rounded-md bg-blue-700 px-4 py-2 text-white disabled:opacity-60;
 }
@@ -643,5 +670,113 @@
 
     [data-tray-drop='landed'] {
         animation: none;
+    }
+}
+
+/*
+ * Onderdelen van buiten die hun eigen lichte kleuren meebrengen. Tailwind komt
+ * daar niet bij, dus het donkere thema staat hier.
+ *
+ * Elke selector weegt een klasse zwaarder dan die van de bibliotheek: hun
+ * stylesheets worden pas geladen als de pagina die ze nodig heeft opengaat, dus
+ * na deze, en bij gelijk gewicht wint de laatste.
+ */
+/*
+ * Waar een gekleurd blok zijn kleur mengt (een afspraak in de planner, een fase
+ * op de tijdlijn) mengt het met deze achtergrond, zodat het blok in een donker
+ * scherm een donkere tint krijgt in plaats van een licht vlak met lichte tekst.
+ */
+:root {
+    --tint-base: #fff;
+    --tour-surface: #fff;
+    --tour-hot: rgb(231 239 254);
+    --tour-hot-text: var(--color-lavoro-blue);
+    --tour-hot-danger: rgb(254 226 226);
+    --tour-line: rgb(229 231 235);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --tint-base: var(--color-slate-900);
+        --tour-surface: var(--color-slate-900);
+        --tour-hot: rgb(30 58 138 / 0.5);
+        --tour-hot-text: var(--color-blue-300);
+        --tour-hot-danger: rgb(127 29 29 / 0.45);
+        --tour-line: var(--color-slate-700);
+    }
+
+    /* floating-vue: het kaartje onder een uitklapper. Het belletje gebruikt een eigen, zwaardere regel. */
+    .v-popper__popper.v-popper--theme-dropdown .v-popper__inner {
+        background: var(--color-slate-900);
+        color: var(--color-slate-100);
+        border-color: var(--color-slate-700);
+    }
+
+    .v-popper__popper.v-popper--theme-dropdown .v-popper__arrow-inner {
+        border-color: var(--color-slate-900);
+    }
+
+    .v-popper__popper.v-popper--theme-dropdown .v-popper__arrow-outer {
+        border-color: var(--color-slate-700);
+    }
+
+    /* Leaflet: de kaart blijft licht, maar de ballon en de knoppen erop volgen het thema. */
+    .leaflet-container .leaflet-popup-content-wrapper,
+    .leaflet-container .leaflet-popup-tip {
+        background: var(--color-slate-900);
+        color: var(--color-slate-100);
+        box-shadow: 0 3px 14px rgb(0 0 0 / 0.6);
+    }
+
+    .leaflet-container a.leaflet-popup-close-button {
+        color: var(--color-slate-400);
+    }
+
+    .leaflet-container .leaflet-bar a {
+        background-color: var(--color-slate-900);
+        border-bottom-color: var(--color-slate-700);
+        color: var(--color-slate-100);
+    }
+
+    .leaflet-container .leaflet-bar a:hover {
+        background-color: var(--color-slate-800);
+    }
+
+    .leaflet-container .leaflet-bar a.leaflet-disabled {
+        background-color: var(--color-slate-800);
+        color: var(--color-slate-500);
+    }
+
+    /* jspreadsheet: de financiële notities op een project. */
+    .spreadsheet-container .jss_worksheet,
+    .spreadsheet-container .jss_worksheet tbody .jss_freezed,
+    .spreadsheet-container .jss_worksheet .editor .jss_richtext,
+    .spreadsheet-container .jss_worksheet .editor .jupload {
+        background-color: var(--color-slate-900);
+        color: var(--color-slate-100);
+    }
+
+    .spreadsheet-container .jss_worksheet > thead > tr > td,
+    .spreadsheet-container .jss_worksheet > tbody > tr > td:first-child,
+    .spreadsheet-container .jss_worksheet > tfoot > tr > td,
+    .spreadsheet-container .jss_toolbar,
+    .spreadsheet-container .jss_page_selected {
+        background-color: var(--color-slate-800);
+        color: var(--color-slate-300);
+    }
+
+    .spreadsheet-container .jss_worksheet > thead > tr > td.selected,
+    .spreadsheet-container .jss_worksheet > tbody > tr.selected > td:first-child,
+    .spreadsheet-container .jss_worksheet > tbody > tr.dragging > td {
+        background-color: var(--color-slate-700);
+    }
+
+    .spreadsheet-container .jss_worksheet td {
+        border-color: var(--color-slate-700) !important;
+    }
+
+    .spreadsheet-container .jss_worksheet .editor {
+        background-color: var(--color-slate-800);
+        color: var(--color-slate-100);
     }
 }

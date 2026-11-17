@@ -27,13 +27,13 @@
                         {{ option.label }}
                     </button>
                 </div>
-                <p v-if="errors.requested" class="mt-1 text-sm text-red-600">{{ errors.requested }}</p>
+                <p v-if="errors.requested" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.requested }}</p>
             </div>
 
             <div>
                 <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Bericht</label>
                 <TipTapEditor v-model="form.body" :hasError="!!errors.body" />
-                <p v-if="errors.body" class="mt-1 text-sm text-red-600">{{ errors.body }}</p>
+                <p v-if="errors.body" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.body }}</p>
                 <p class="mt-1 text-xs text-gray-400 dark:text-slate-500">
                     De knop naar de aanleverpagina wordt onder dit bericht toegevoegd.
                 </p>

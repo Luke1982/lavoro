@@ -115,12 +115,12 @@
                                     <PencilSquareIcon
                                         class="size-6 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100" />
                                 </button>
-                                <button v-else @click="saveRecord(item)" class="text-green-600 hover:text-green-800"
+                                <button v-else @click="saveRecord(item)" class="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
                                     v-tooltip="'Opslaan'">
                                     <CheckIcon class="size-6" />
                                 </button>
                                 <button @click.stop="deleteServiceCheck(item.id)" v-tooltip="'Verwijder dit keurpunt'">
-                                    <TrashIcon class="size-6 text-red-400 hover:text-red-600" />
+                                    <TrashIcon class="size-6 text-red-400 hover:text-red-600 dark:hover:text-red-400" />
                                 </button>
                             </div>
                         </div>

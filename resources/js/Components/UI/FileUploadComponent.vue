@@ -6,7 +6,7 @@
             <div>
                 <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Bestand</label>
                 <input ref="fileInput" type="file" @change="onFileSelected"
-                    class="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-slate-700 file:text-sm file:font-medium hover:file:bg-gray-200 cursor-pointer" />
+                    class="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-slate-700 file:text-sm file:font-medium hover:file:bg-gray-200 dark:hover:file:bg-slate-700 cursor-pointer" />
             </div>
             <div>
                 <button type="submit" :disabled="!name || !file || uploading"
@@ -22,7 +22,7 @@
                     <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ item.name }}</p>
                     <p class="text-xs text-gray-400 truncate">{{ item.original_filename }}</p>
                 </div>
-                <button type="button" @click="remove(item)" class="text-xs text-red-600 hover:underline shrink-0 ml-3">
+                <button type="button" @click="remove(item)" class="text-xs text-red-600 dark:text-red-400 hover:underline shrink-0 ml-3">
                     Verwijderen
                 </button>
             </li>

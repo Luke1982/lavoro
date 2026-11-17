@@ -20,7 +20,7 @@
                             class="flex items-start gap-3 px-4 py-3 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0"
                             :class="integrations.mail_transport === option.value ? 'bg-blue-50 dark:bg-slate-700/50' : ''">
                             <input type="radio" v-model="integrations.mail_transport" :value="option.value"
-                                class="mt-0.5 text-lavoro-blue focus:ring-lavoro-blue" />
+                                class="mt-0.5 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue" />
                             <span>
                                 <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ option.label }}</span>
                                 <span class="block text-xs text-gray-500 dark:text-slate-400">{{ option.hint }}</span>
@@ -78,7 +78,7 @@
                             <ComboBox label="Beveiliging" :options="SCHEMES" v-model="integrations.mail_smtp_scheme"
                                 :initial-id="integrations.mail_smtp_scheme" emit-value
                                 placeholder="Afleiden uit de poort" />
-                            <p v-if="integrations.errors.mail_smtp_scheme" class="mt-1 text-sm text-red-600">
+                            <p v-if="integrations.errors.mail_smtp_scheme" class="mt-1 text-sm text-red-600 dark:text-red-400">
                                 {{ integrations.errors.mail_smtp_scheme }}
                             </p>
                         </div>
@@ -178,9 +178,9 @@
                             placeholder="naam@voorbeeld.nl"
                             class="block w-full rounded-md border-0 py-1.5 pl-2 text-gray-900 dark:text-white dark:bg-slate-900 ring-1 ring-inset sm:text-sm sm:leading-6"
                             :class="form.errors.email
-                                ? 'ring-red-300 focus:ring-red-500 placeholder:text-red-300'
+                                ? 'ring-red-300 dark:ring-red-700 focus:ring-red-500 placeholder:text-red-300'
                                 : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset'" />
-                        <p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p>
+                        <p v-if="form.errors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.email }}</p>
                     </div>
                 </div>
 

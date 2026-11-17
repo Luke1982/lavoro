@@ -46,9 +46,9 @@
                                     <div v-for="u in event.executing_users" :key="u.id"
                                         class="inline-flex items-center gap-1">
                                         <img v-if="u.avatar" :src="u.avatar" :alt="u.name"
-                                            class="h-4 w-4 rounded-full ring-1 ring-gray-300 object-cover" />
+                                            class="h-4 w-4 rounded-full ring-1 ring-gray-300 dark:ring-slate-600 object-cover" />
                                         <span v-else
-                                            class="h-4 w-4 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[9px] font-medium ring-1 ring-gray-300">{{
+                                            class="h-4 w-4 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-slate-400 flex items-center justify-center text-[9px] font-medium ring-1 ring-gray-300 dark:ring-slate-600">{{
                                                 initials(u.name) }}</span>
                                         <span class="text-[11px] leading-none text-gray-600 dark:text-gray-400">{{
                                             u.name }}</span>
@@ -62,7 +62,7 @@
                             <div class="text-right text-xs whitespace-nowrap text-gray-500 dark:text-gray-400 relative">
                                 <span class="absolute right-0 top-5">
                                     <ClockIcon v-if="event.is_event && !event.completed" class="size-4 text-blue-500" />
-                                    <CheckIcon v-if="event.is_event && event.completed" class="size-4 text-green-600" />
+                                    <CheckIcon v-if="event.is_event && event.completed" class="size-4 text-green-600 dark:text-green-400" />
                                 </span>
                                 <time :datetime="event.datetime">{{ event.date }}</time>
                             </div>
@@ -73,7 +73,7 @@
         </ul>
         <div v-if="showToggle" class="mt-1 -mx-3">
             <button type="button" @click="toggle" :aria-expanded="expanded.toString()"
-                class="group w-full flex items-center justify-start gap-2 text-xs font-medium text-indigo-600 px-3 py-2 rounded-md hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1">
+                class="group w-full flex items-center justify-start gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 px-3 py-2 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1">
                 <span class="select-none">{{ expanded ? 'Toon minder' : 'Toon alle ' + raw.length }}</span>
                 <svg v-if="!expanded" class="size-3 text-indigo-500 group-hover:translate-y-0.5 transition-transform"
                     viewBox="0 0 20 20" fill="currentColor">
@@ -90,7 +90,7 @@
             </button>
         </div>
     </div>
-    <div v-else class="text-xs text-gray-500">Geen activiteiten</div>
+    <div v-else class="text-xs text-gray-500 dark:text-slate-400">Geen activiteiten</div>
 </template>
 
 <script setup>

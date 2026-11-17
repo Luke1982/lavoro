@@ -2,7 +2,7 @@
     <div class="relative h-[17rem] w-[24rem] bg-gray-50 p-4 text-gray-900 dark:bg-slate-800 dark:text-slate-100">
         <div v-if="variant !== 'undo'" class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200 dark:bg-slate-900 dark:ring-slate-700">
             <p class="text-sm font-bold">Storing inplannen</p>
-            <p class="text-[11px] text-gray-500">Bij Bas Visser, dinsdag 09:00</p>
+            <p class="text-[11px] text-gray-500 dark:text-slate-400">Bij Bas Visser, dinsdag 09:00</p>
             <div class="mt-2.5 flex flex-col gap-1.5">
                 <div v-for="(choice, index) in choices" :key="choice.label"
                     class="flex items-start gap-2 rounded-lg border-2 border-gray-200 px-2.5 py-1.5 dark:border-slate-700"
@@ -10,7 +10,7 @@
                     <span class="mt-0.5 size-3 flex-none rounded-full border border-gray-300 dark:border-slate-600" :class="index === 0 ? 'scene-radio' : ''" />
                     <span>
                         <span class="block text-[11px] font-semibold">{{ choice.label }}</span>
-                        <span class="block text-[10px] text-gray-500">{{ choice.description }}</span>
+                        <span class="block text-[10px] text-gray-500 dark:text-slate-400">{{ choice.description }}</span>
                     </span>
                 </div>
             </div>
@@ -108,13 +108,13 @@ const choices = [
 }
 
 @keyframes choice {
-    0%, 24% { border-color: rgb(229 231 235); }
+    0%, 24% { border-color: var(--tour-line); }
     26%, 100% { border-color: var(--color-lavoro-blue); }
 }
 
 @keyframes radio {
     0%, 24% { box-shadow: none; }
-    26%, 100% { box-shadow: inset 0 0 0 3px white; background: var(--color-lavoro-blue); }
+    26%, 100% { box-shadow: inset 0 0 0 3px var(--tour-surface); background: var(--color-lavoro-blue); }
 }
 
 @keyframes confirm {

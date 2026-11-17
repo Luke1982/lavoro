@@ -1,6 +1,6 @@
 <template>
     <button v-if="openedByTheApp" type="button"
-        class="fixed top-3 right-3 z-[1000] inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-md ring-1 ring-black/10 hover:bg-gray-50"
+        class="fixed top-3 right-3 z-[1000] inline-flex items-center gap-2 rounded-md bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-gray-800 dark:text-slate-200 shadow-md ring-1 ring-black/10 dark:ring-white/10 hover:bg-gray-50 dark:hover:bg-slate-800/50"
         @click="close">
         <XMarkIcon class="h-5 w-5" />
         Sluiten

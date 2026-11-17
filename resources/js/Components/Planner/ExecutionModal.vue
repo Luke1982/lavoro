@@ -5,7 +5,7 @@
             <div v-if="signature">
                 <p class="text-xs text-gray-500 dark:text-slate-400 mb-1">Huidige handtekening</p>
                 <img :src="signature" alt="Handtekening"
-                    class="max-h-28 w-auto rounded-md border border-gray-200 dark:border-slate-600 bg-white" />
+                    class="max-h-28 w-auto rounded-md border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900" />
                 <p class="text-xs text-gray-400 dark:text-slate-500 mt-1">Teken hieronder om te vervangen.</p>
             </div>
             <SignaturePad v-model="signature" />

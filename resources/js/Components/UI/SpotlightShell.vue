@@ -16,7 +16,7 @@
                     enter-to="opacity-100 scale-100" leave="ease-in duration-100" leave-from="opacity-100 scale-100"
                     leave-to="opacity-0 scale-95">
                     <DialogPanel
-                        class="mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 transition-all"
+                        class="mx-auto max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all"
                         @dragover.prevent
                         @drop.prevent="onFiles($event.dataTransfer?.files)"
                         @paste="onFiles($event.clipboardData?.files)">
@@ -35,13 +35,13 @@
                             -->
                             <textarea ref="inputRef" :value="modelValue" :disabled="disabled" rows="1"
                                 :placeholder="placeholder"
-                                class="max-h-40 w-full resize-none self-center overflow-y-auto border-0 bg-transparent py-0 leading-relaxed text-slate-900 placeholder:text-slate-400 shadow-none outline-none ring-0 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0 sm:text-sm disabled:opacity-50"
+                                class="max-h-40 w-full resize-none self-center overflow-y-auto border-0 bg-transparent py-0 leading-relaxed text-slate-900 dark:text-slate-100 placeholder:text-slate-400 shadow-none outline-none ring-0 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0 sm:text-sm disabled:opacity-50"
                                 @input="onInput" @keydown.enter.exact.prevent="emit('enter')"
                                 @keydown.esc="emit('close')" @keydown.down="onArrow($event, 'down')"
                                 @keydown.up="onArrow($event, 'up')" />
                             <div class="flex h-[1.625rem] shrink-0 items-center">
                                 <kbd
-                                    class="hidden sm:inline-flex items-center rounded border border-slate-200 px-1.5 font-sans text-[10px] text-slate-400">
+                                    class="hidden sm:inline-flex items-center rounded border border-slate-200 dark:border-slate-700 px-1.5 font-sans text-[10px] text-slate-400">
                                     esc
                                 </kbd>
                             </div>
@@ -56,11 +56,11 @@
                             nothing to disclaim.
                         -->
                         <p v-if="$slots.notice"
-                            class="border-t border-slate-100 px-4 pt-2 text-center text-[11px] text-slate-400">
+                            class="border-t border-slate-100 dark:border-slate-800 px-4 pt-2 text-center text-[11px] text-slate-400">
                             <slot name="notice" />
                         </p>
 
-                        <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
+                        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-4 py-2.5">
                             <p class="text-[11px] text-slate-400">
                                 <slot name="footer-left" />
                             </p>

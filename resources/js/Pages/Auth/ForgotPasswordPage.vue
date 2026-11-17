@@ -36,7 +36,7 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors"
                             :class="{ 'border-red-500/50': form.errors.email }">
-                            <EnvelopeIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <EnvelopeIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input v-model="form.email" type="email" autocomplete="email" required
                                 placeholder="jouw@email.nl"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
@@ -56,8 +56,8 @@
                     </button>
                 </form>
 
-                <p class="mt-8 text-center text-sm text-gray-600">
-                    <a href="/login" class="text-gray-500 hover:text-gray-400 transition-colors">
+                <p class="mt-8 text-center text-sm text-gray-600 dark:text-slate-400">
+                    <a href="/login" class="text-gray-500 dark:text-slate-400 hover:text-gray-400 transition-colors">
                         Terug naar inloggen
                     </a>
                 </p>

@@ -13,14 +13,14 @@
     <BoxComponent>
         <div class="flex items-center mb-4">
             <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
-                <UserIcon class="size-6 text-lavoro-blue stroke-2" />
+                <UserIcon class="size-6 text-lavoro-blue dark:text-blue-400 stroke-2" />
             </div>
             <span class="text-md font-bold dark:text-slate-100">Contactgegevens</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="flex items-center gap-3">
                 <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                    <UserIcon class="size-5 text-lavoro-blue stroke-2" />
+                    <UserIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <EditableTextField v-model="form.first_name" type="input" label="Voornaam"
                     :error="form.errors.first_name" :readonly="!canUpdate"
@@ -28,7 +28,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                    <IdentificationIcon class="size-5 text-lavoro-blue stroke-2" />
+                    <IdentificationIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <EditableTextField v-model="form.last_name" type="input" label="Achternaam"
                     :error="form.errors.last_name" :readonly="!canUpdate"
@@ -36,7 +36,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                    <EnvelopeIcon class="size-5 text-lavoro-blue stroke-2" />
+                    <EnvelopeIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <EditableTextField v-model="form.email" type="input" label="E-mail"
                     :error="form.errors.email" :readonly="!canUpdate"
@@ -44,7 +44,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                    <PhoneIcon class="size-5 text-lavoro-blue stroke-2" />
+                    <PhoneIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <EditableTextField v-model="form.phone" type="input" label="Telefoon"
                     :error="form.errors.phone" :readonly="!canUpdate"
@@ -52,7 +52,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                    <DevicePhoneMobileIcon class="size-5 text-lavoro-blue stroke-2" />
+                    <DevicePhoneMobileIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
                     :error="form.errors.mobile" :readonly="!canUpdate"

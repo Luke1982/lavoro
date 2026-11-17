@@ -38,7 +38,7 @@
                 <div v-if="queueHasFailures" class="mt-2 flex items-center justify-between gap-3 text-sm">
                     <span class="text-red-600 dark:text-red-400">{{ queueFailed }} mislukt</span>
                     <button type="button" @click="retryFailed()" :disabled="uploading"
-                        class="font-medium text-lavoro-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                        class="font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                         Opnieuw proberen
                     </button>
                 </div>
@@ -77,25 +77,25 @@
                         <div v-if="!received && (mayEdit() || mayUpdate() || mayDelete())"
                             class="pointer-events-none absolute inset-x-1 top-1 hidden items-center justify-end gap-1 opacity-0 transition-opacity sm:flex group-hover:opacity-100 group-hover:pointer-events-auto">
                             <button v-if="mayEdit()" @click.stop="openEditor(image)" title="Bewerken"
-                                class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 text-gray-700 cursor-pointer hover:bg-gray-100">
+                                class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 text-gray-700 dark:text-slate-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800">
                                 <PencilSquareIcon class="size-4" />
                             </button>
                             <button v-if="mayShare()" @click.stop="toggleShared(image)"
-                                class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 cursor-pointer hover:bg-gray-100"
+                                class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
                                 :class="image.is_shared ? 'text-lavoro-blue' : 'text-gray-700'"
                                 :title="image.is_shared ? 'Niet meer delen met de werkbonnen' : 'Delen met de werkbonnen van dit project'">
                                 <ShareIconSolid v-if="image.is_shared" class="size-4" />
                                 <ShareIcon v-else class="size-4" />
                             </button>
                             <button v-if="mayUpdate()" @click.stop="setMain(image.id, image.pivot?.main)"
-                                class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 cursor-pointer hover:bg-gray-100"
+                                class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
                                 :class="image.pivot?.main ? 'text-yellow-500' : 'text-gray-700'"
                                 :title="image.pivot?.main ? 'Dit is de hoofdafbeelding' : 'Instellen als hoofdafbeelding'">
                                 <StarIconSolid v-if="image.pivot?.main" class="size-4" />
                                 <StarIcon v-else class="size-4" />
                             </button>
                             <button v-if="mayDelete()" @click.stop="confirmDeleteImage(image)" title="Verwijder deze afbeelding"
-                                class="flex items-center justify-center rounded-full bg-white shadow-md p-1.5 text-red-600 cursor-pointer hover:bg-gray-100">
+                                class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 text-red-600 dark:text-red-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
@@ -128,12 +128,12 @@
             <h3 class="text-lg font-semibold">Deze foto's wil je uploaden</h3>
             <div class="grid grid-cols-4 gap-4 mt-2">
                 <div v-for="item in stagedItems" :key="item.id"
-                    class="text-center rounded-md border border-gray-00 p-5 col-span-4 md:col-span-2 relative">
+                    class="text-center rounded-md border border-gray-00 dark:border-slate-800 p-5 col-span-4 md:col-span-2 relative">
                     <img v-if="item.previewUrl" :src="item.previewUrl" alt="Image preview"
-                        class="w-24 h-24 object-cover rounded-lg border border-gray-300 inline-block" />
-                    <p v-else class="text-gray-700">{{ item.name }}</p>
-                    <p class="text-sm text-gray-500 truncate mt-1">{{ item.name }}</p>
-                    <input type="text" v-model="item.title" class="rounded-md border-gray-200 my-2 w-full"
+                        class="w-24 h-24 object-cover rounded-lg border border-gray-300 dark:border-slate-600 inline-block" />
+                    <p v-else class="text-gray-700 dark:text-slate-300">{{ item.name }}</p>
+                    <p class="text-sm text-gray-500 dark:text-slate-400 truncate mt-1">{{ item.name }}</p>
+                    <input type="text" v-model="item.title" class="rounded-md border-gray-200 dark:border-slate-700 my-2 w-full"
                         placeholder="Titel">
                     <TrashIcon class="h-5 w-5 text-red-500 cursor-pointer absolute top-2 right-2"
                         @click="removeStaged(item.id)" />

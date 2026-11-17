@@ -1,14 +1,14 @@
 <template>
     <div class="min-w-[240px]">
         <h3 class="font-bold text-base mb-1">{{ customer.name }}</h3>
-        <p class="text-sm text-gray-600 mb-2">
+        <p class="text-sm text-gray-600 dark:text-slate-400 mb-2">
             {{ formatAddress(customer) }}
         </p>
 
-        <div v-if="customer.tickets?.length" class="border-t border-gray-200 pt-2 mt-2 max-h-[200px] overflow-y-auto">
+        <div v-if="customer.tickets?.length" class="border-t border-gray-200 dark:border-slate-700 pt-2 mt-2 max-h-[200px] overflow-y-auto">
             <div v-for="ticket in customer.tickets" :key="ticket.id" class="mb-2 last:mb-0 text-sm">
                 <div class="flex justify-between items-baseline gap-2">
-                    <a :href="`/tickets/${ticket.id}`" class="font-medium text-blue-700 underline truncate"
+                    <a :href="`/tickets/${ticket.id}`" class="font-medium text-blue-700 dark:text-blue-300 underline truncate"
                         :title="ticket.subject">
                         {{ ticket.subject }}
                     </a>
@@ -23,13 +23,13 @@
                         {{ ticket.status }}
                     </span>
                     <span v-if="ticket.on_contract"
-                        class="inline-flex items-center rounded bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/20">
+                        class="inline-flex items-center rounded bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-600/20 dark:ring-violet-500/30">
                         Onderhoudscontract
                     </span>
                 </div>
             </div>
         </div>
-        <div v-else class="text-sm text-gray-500 italic mt-2 border-t pt-2">
+        <div v-else class="text-sm text-gray-500 dark:text-slate-400 italic mt-2 border-t pt-2">
             Geen storingen
         </div>
     </div>

@@ -175,4 +175,34 @@ function onClick(event) {
     border-color: var(--color-slate-200, #e2e8f0);
     margin: 0.6rem 0;
 }
+
+@media (prefers-color-scheme: dark) {
+    .assistant-markdown :deep(h1),
+    .assistant-markdown :deep(h2),
+    .assistant-markdown :deep(h3),
+    .assistant-markdown :deep(h4),
+    .assistant-markdown :deep(strong) {
+        color: var(--color-slate-100, #f1f5f9);
+    }
+
+    .assistant-markdown :deep(a) {
+        color: var(--color-blue-400, #60a5fa);
+    }
+
+    .assistant-markdown :deep(code),
+    .assistant-markdown :deep(pre) {
+        background: var(--color-slate-800, #1e293b);
+    }
+
+    .assistant-markdown :deep(blockquote) {
+        border-left-color: var(--color-slate-700, #334155);
+        color: var(--color-slate-400, #94a3b8);
+    }
+
+    .assistant-markdown :deep(th),
+    .assistant-markdown :deep(td),
+    .assistant-markdown :deep(hr) {
+        border-color: var(--color-slate-700, #334155);
+    }
+}
 </style>

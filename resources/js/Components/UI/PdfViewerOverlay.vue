@@ -29,7 +29,7 @@
 
                 <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center gap-3 text-gray-500 dark:text-slate-400 text-sm">
                     <p>Dit document kon niet worden geladen.</p>
-                    <button type="button" @click="download" class="text-indigo-600 hover:underline cursor-pointer">
+                    <button type="button" @click="download" class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
                         Probeer te downloaden
                     </button>
                 </div>
@@ -38,7 +38,7 @@
                     v-for="n in pageCount"
                     :key="n"
                     :ref="el => { if (el) canvases[n - 1] = el }"
-                    class="max-w-full shadow-md rounded bg-white"
+                    class="max-w-full shadow-md rounded bg-white dark:bg-slate-900"
                 />
             </div>
         </div>

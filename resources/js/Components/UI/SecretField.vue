@@ -2,10 +2,10 @@
     <div>
         <TextInput :label="label" v-model="internalValue" type="password" autocomplete="new-password"
             :placeholder="stored ? '••••••••  (opgeslagen)' : ''" :has-error="!!error" :error-message="error || ''" />
-        <p v-if="stored && !internalValue" class="mt-1 text-xs text-gray-500">
+        <p v-if="stored && !internalValue" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
             Staat opgeslagen. Laat leeg om hem te laten staan.
             <button type="button" @click="$emit('forget')"
-                class="text-red-600 hover:underline">Wissen</button>
+                class="text-red-600 dark:text-red-400 hover:underline">Wissen</button>
         </p>
     </div>
 </template>

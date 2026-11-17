@@ -53,7 +53,7 @@
     <div class="fixed right-4 bottom-4 z-30">
         <div v-auto-animate class="flex flex-col gap-2">
             <p v-if="form.errors.assets"
-                class="rounded-md bg-red-50 p-2 text-sm text-red-700 shadow-lg ring-1 ring-red-600/20 dark:bg-red-950 dark:text-red-300">
+                class="rounded-md bg-red-50 p-2 text-sm text-red-700 shadow-lg ring-1 ring-red-600/20 dark:ring-red-500/30 dark:bg-red-950 dark:text-red-300">
                 {{ form.errors.assets }}
             </p>
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"

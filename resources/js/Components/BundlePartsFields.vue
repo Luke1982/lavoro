@@ -1,9 +1,9 @@
 <template>
     <div v-if="parts.length">
-        <p class="text-xs font-medium text-gray-500 mb-2">Onderdelen</p>
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Onderdelen</p>
         <div v-for="part in parts" :key="part.productable_id" class="mb-4">
             <div class="flex items-center justify-between gap-2 mb-1">
-                <label class="block text-xs text-gray-500">{{ part.relation_name }}: {{ part.name }}</label>
+                <label class="block text-xs text-gray-500 dark:text-slate-400">{{ part.relation_name }}: {{ part.name }}</label>
                 <input v-if="part.flex_quantity" type="number" :min="part.is_required ? 1 : 0" max="999"
                     :value="quantities[part.productable_id] ?? 0"
                     @input="quantities[part.productable_id] = Number($event.target.value)"

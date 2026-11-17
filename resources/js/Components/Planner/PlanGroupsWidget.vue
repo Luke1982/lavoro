@@ -6,7 +6,7 @@
             <div class="flex flex-col">
                 <div class="flex items-center justify-between px-3 pt-2 pb-2">
                     <span class="text-xs font-medium text-lavoro-dark">Groepen</span>
-                    <button class="flex items-center gap-1 text-xs text-lavoro-blue hover:underline" data-tour="planner.groups.add"
+                    <button class="flex items-center gap-1 text-xs text-lavoro-blue dark:text-blue-400 hover:underline" data-tour="planner.groups.add"
                         @click="startNewGroup">
                         <PlusIcon class="size-3" />
                         Toevoegen
@@ -21,8 +21,8 @@
                         @keydown.enter="confirmNewGroup" @keydown.escape="newGroup = null" />
                     <input type="color" v-model="newGroup.color" data-tour="planner.groups.color"
                         class="h-6 w-6 cursor-pointer rounded border-0 p-0 bg-transparent" />
-                    <button class="text-xs font-semibold text-lavoro-blue" @click="confirmNewGroup">OK</button>
-                    <button class="text-xs text-gray-400 hover:text-gray-600" @click="newGroup = null">✕</button>
+                    <button class="text-xs font-semibold text-lavoro-blue dark:text-blue-400" @click="confirmNewGroup">OK</button>
+                    <button class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-slate-400" @click="newGroup = null">✕</button>
                 </div>
 
                 <!-- Group rows (drag to reorder) -->
@@ -45,7 +45,7 @@
 
                         <!-- Color swatch / picker -->
                         <label class="cursor-pointer shrink-0 relative">
-                            <span class="block h-3.5 w-3.5 rounded-sm ring-1 ring-black/10"
+                            <span class="block h-3.5 w-3.5 rounded-sm ring-1 ring-black/10 dark:ring-white/10"
                                 :style="{ background: group.color }" />
                             <input type="color" :value="group.color"
                                 class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
@@ -61,7 +61,7 @@
                             @keydown.enter="confirmEditName(group)"
                             @keydown.escape="editingGroupId = null" />
                         <span v-else data-tour="planner.groups.group-name"
-                            class="flex-1 text-xs font-medium text-lavoro-dark truncate cursor-pointer hover:text-lavoro-blue"
+                            class="flex-1 text-xs font-medium text-lavoro-dark truncate cursor-pointer hover:text-lavoro-blue dark:hover:text-blue-400"
                             @click="startEditName(group)">{{ group.name }}</span>
 
                         <span class="text-[10px] text-gray-400 shrink-0">{{ usersInGroup(group.id).length }}</span>
@@ -120,7 +120,7 @@
 
                         <!-- Plannable checkbox -->
                         <input type="checkbox" :checked="user.plannable" data-tour="planner.groups.plannable"
-                            class="h-3.5 w-3.5 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer shrink-0"
+                            class="h-3.5 w-3.5 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer shrink-0"
                             :title="user.plannable ? 'Inplanbaar — klik om uit te zetten' : 'Niet inplanbaar — klik om aan te zetten'"
                             @change="$emit('plannable-toggled', user.id, $event.target.checked)" />
                     </div>
@@ -132,7 +132,7 @@
                 </div>
 
                 <button v-if="filteredUsers.length > maxVisibleUsers" type="button"
-                    class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-lavoro-blue hover:underline"
+                    class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-lavoro-blue dark:text-blue-400 hover:underline"
                     @click="isUsersExpanded = !isUsersExpanded">
                     <template v-if="isUsersExpanded">
                         <ChevronUpIcon class="size-3.5" />

@@ -11,7 +11,7 @@
             <div v-for="(row, index) in rows" :key="row.title" class="flex items-center gap-2.5 px-3 py-2 text-[11px]">
                 <span class="size-3.5 flex-none rounded border border-gray-300 dark:border-slate-600" :class="index === 0 ? 'scene-check' : ''" />
                 <span class="font-semibold">{{ row.title }}</span>
-                <span class="truncate text-gray-500">{{ row.customer }}</span>
+                <span class="truncate text-gray-500 dark:text-slate-400">{{ row.customer }}</span>
             </div>
         </div>
         <div class="scene-pill absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-sidebar-bg py-1 pl-1 pr-3 text-[11px] font-bold text-white shadow-lg">

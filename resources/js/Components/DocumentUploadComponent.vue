@@ -134,7 +134,7 @@
                         <th class="w-16 px-5 py-3 @2xl:w-20 @2xl:px-6">
                             <input type="checkbox" :checked="allVisibleSelected" :indeterminate="someVisibleSelected"
                                 @change="toggleSelectAll" aria-label="Alles selecteren"
-                                class="size-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                class="size-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer" />
                         </th>
                         <th class="px-3 py-3">
                             <button type="button" @click="toggleSort('name')"
@@ -163,7 +163,7 @@
                         <td class="px-5 py-3 align-top @2xl:px-6 @xl:align-middle">
                             <input type="checkbox" :value="doc.id" v-model="selectedIds"
                                 :aria-label="`${doc.title || doc.name} selecteren`"
-                                class="mt-1 size-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer @xl:mt-0" />
+                                class="mt-1 size-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer @xl:mt-0" />
                         </td>
 
                         <td class="px-3 py-3">
@@ -176,7 +176,7 @@
                                     <EditableTextField v-if="mayUpdate" :modelValue="doc.title" placeholder="Geen titel"
                                         @update:modelValue="updateTitle(doc.id, $event)" />
                                     <button v-else type="button" @click="openDocument(doc)"
-                                        class="block w-full truncate text-left text-sm font-semibold text-gray-900 dark:text-slate-100 hover:text-lavoro-blue cursor-pointer">
+                                        class="block w-full truncate text-left text-sm font-semibold text-gray-900 dark:text-slate-100 hover:text-lavoro-blue dark:hover:text-blue-400 cursor-pointer">
                                         {{ doc.title || doc.name }}
                                     </button>
                                     <!-- Stands in for the columns that dropped out, each
@@ -206,7 +206,7 @@
                                         <span class="truncate">{{ doc.category.name }}</span>
                                     </span>
                                     <span v-else
-                                        class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-slate-600 px-2.5 py-1 text-xs text-gray-400 dark:text-slate-500 hover:border-lavoro-blue hover:text-lavoro-blue">
+                                        class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-gray-300 dark:border-slate-600 px-2.5 py-1 text-xs text-gray-400 dark:text-slate-500 hover:border-lavoro-blue hover:text-lavoro-blue dark:hover:text-blue-400">
                                         <PlusIcon class="size-3.5 flex-none" />
                                         <span class="truncate">Categorie</span>
                                     </span>
@@ -218,7 +218,7 @@
                                         :class="['size-2.5 flex-none rounded-full', documentCategorySwatchClasses(category.color)]"></span>
                                     <span class="flex-1 truncate">{{ category.name }}</span>
                                     <CheckIcon v-if="doc.category?.id === category.id"
-                                        class="size-4 flex-none text-lavoro-blue" />
+                                        class="size-4 flex-none text-lavoro-blue dark:text-blue-400" />
                                 </button>
                                 </MenuItem>
                                 <p v-if="categories.length === 0"
@@ -335,7 +335,7 @@
                 <span v-else></span>
                 <div class="flex items-center gap-4">
                     <button v-if="queueHasFailures" type="button" @click="retryFailed()" :disabled="uploading"
-                        class="font-medium text-lavoro-blue hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                        class="font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                         Opnieuw proberen
                     </button>
                     <button type="button" @click="cancelUploads()"
@@ -366,7 +366,7 @@
                 <div class="relative flex flex-col items-center text-center">
                     <div
                         class="flex size-14 items-center justify-center rounded-full bg-lavoro-blue/10 dark:bg-lavoro-blue/20">
-                        <CloudArrowUpIcon class="size-7 text-lavoro-blue" />
+                        <CloudArrowUpIcon class="size-7 text-lavoro-blue dark:text-blue-400" />
                     </div>
                     <!-- Below this width the copy wraps into a wall of text taller
                          than the drop zone itself. The icon and the button already
@@ -380,7 +380,7 @@
                         </p>
                         <p class="text-sm text-gray-500 dark:text-slate-400">Max. {{ MAX_FILE_MB }}MB per bestand</p>
                     </div>
-                    <p v-if="uploadTargetCategory" class="mt-1 text-sm text-lavoro-blue">
+                    <p v-if="uploadTargetCategory" class="mt-1 text-sm text-lavoro-blue dark:text-blue-400">
                         Nieuwe bestanden komen in "{{ uploadTargetCategory.name }}"
                     </p>
                     <button type="button" @click.stop="openFilePicker"
@@ -423,7 +423,7 @@
                                     : 'hover:scale-105'
                             ]"></button>
                     </div>
-                    <p v-if="categoryForm.errors.color" class="mt-2 text-sm text-red-600">
+                    <p v-if="categoryForm.errors.color" class="mt-2 text-sm text-red-600 dark:text-red-400">
                         {{ categoryForm.errors.color }}
                     </p>
                 </div>

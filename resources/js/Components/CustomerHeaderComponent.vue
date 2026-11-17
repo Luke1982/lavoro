@@ -48,17 +48,17 @@
         <!-- Counters -->
         <div :class="{ 'flex items-center gap-2 my-2': true, 'pr-12': hasExpired }">
             <div v-if="counters.assets > 0"
-                class="rounded-md text-xs font-extrabold text-gray-600 border-1 py-2 px-3 border-gray-200 bg-gray-50">
+                class="rounded-md text-xs font-extrabold text-gray-600 dark:text-slate-400 border-1 py-2 px-3 border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
                 {{ counters.assets }} machine{{ counters.assets > 1 ? 's' : '' }}
             </div>
             <div v-if="counters.openTickets > 0"
-                class="rounded-md text-xs font-extrabold text-red-600 border-1 py-2 px-3 border-red-100 bg-red-50 flex"
+                class="rounded-md text-xs font-extrabold text-red-600 dark:text-red-400 border-1 py-2 px-3 border-red-100 dark:border-red-800 bg-red-50 dark:bg-red-900/20 flex"
                 v-tooltip="counters.openTickets + ' storing(en) staan open bij deze klant'">
                 <TriangleAlert class="size-4 text-red-400 inline-block mr-1" aria-hidden="true" />
                 {{ counters.openTickets }}
             </div>
             <div v-if="counters.pendingTickets > 0"
-                class="rounded-md text-xs font-extrabold text-orange-600 border-1 py-2 px-3 border-orange-100 bg-orange-50 flex"
+                class="rounded-md text-xs font-extrabold text-orange-600 dark:text-orange-400 border-1 py-2 px-3 border-orange-100 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 flex"
                 v-tooltip="counters.pendingTickets + ' storing(en) staan lopend bij deze klant'">
                 <ClockAlert class="size-4 text-orange-400 inline-block mr-1" aria-hidden="true" />
                 {{ counters.pendingTickets }}

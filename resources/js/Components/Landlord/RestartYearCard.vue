@@ -1,15 +1,15 @@
 <template>
-    <section class="mt-6 rounded-lg border border-red-300 bg-white p-5">
-        <h3 class="mt-0 mb-2 text-base font-semibold text-red-700">{{ numbering.year }} opnieuw beginnen</h3>
+    <section class="mt-6 rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-slate-900 p-5">
+        <h3 class="mt-0 mb-2 text-base font-semibold text-red-700 dark:text-red-300">{{ numbering.year }} opnieuw beginnen</h3>
 
-        <p class="text-sm text-slate-500">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
             Dit verwijdert alle {{ numbering.issued }} facturen van {{ numbering.year }}, creditfacturen
             meegerekend, en de volgende factuur wordt weer {{ numbering.prefix }}1. Wat ze verrekenden
             (bijgekocht AI-tegoed, verrekeningen) staat daarna weer open. Het automatisch factureren
             maakt de facturen van de lopende periode daarna opnieuw aan. Er is geen weg terug.
         </p>
 
-        <p v-if="reached.length" class="mt-2 text-sm font-semibold text-red-700">
+        <p v-if="reached.length" class="mt-2 text-sm font-semibold text-red-700 dark:text-red-300">
             Al de deur uit: {{ reached.join(', ') }}. Die heeft een klant, de bank of de boekhouding al;
             daar zet je ze zelf recht. Een boeking die in e-Boekhouden blijft staan, botst met de nieuwe
             factuur met hetzelfde nummer.
@@ -21,7 +21,7 @@
                     <label class="mb-1 block font-semibold">Tik {{ numbering.year }} over om te bevestigen</label>
                     <input v-model="form.confirm_year" type="text" autocomplete="off"
                         :placeholder="String(numbering.year)" class="panel-field w-full">
-                    <p v-if="form.errors.confirm_year" class="mt-1 font-semibold text-red-700">
+                    <p v-if="form.errors.confirm_year" class="mt-1 font-semibold text-red-700 dark:text-red-300">
                         {{ form.errors.confirm_year }}
                     </p>
                 </div>

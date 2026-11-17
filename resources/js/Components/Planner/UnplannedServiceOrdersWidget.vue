@@ -36,7 +36,7 @@
                         <span v-if="so.order_date" class="text-xs text-gray-400 dark:text-slate-500 shrink-0">{{
                             nlDate(so.order_date) }}</span>
                     </div>
-                    <div v-if="so.customer" class="text-xs font-medium text-lavoro-blue truncate">
+                    <div v-if="so.customer" class="text-xs font-medium text-lavoro-blue dark:text-blue-400 truncate">
                         {{ so.customer.name }}
                     </div>
                     <div v-if="so.resolved_city" class="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
@@ -88,7 +88,7 @@
             </div>
 
             <button v-if="filteredServiceOrders.length > maxVisible" type="button"
-                class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-lavoro-blue hover:underline"
+                class="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-lavoro-blue dark:text-blue-400 hover:underline"
                 @click="isExpanded = !isExpanded">
                 <template v-if="isExpanded">
                     <ChevronUpIcon class="size-3.5" />

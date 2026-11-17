@@ -21,10 +21,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                    <button type="button" @click="openEdit(email)" class="text-sm text-lavoro-blue hover:underline">
+                    <button type="button" @click="openEdit(email)" class="text-sm text-lavoro-blue dark:text-blue-400 hover:underline">
                         Bewerken
                     </button>
-                    <button type="button" @click="remove(email)" class="text-sm text-red-600 hover:underline">
+                    <button type="button" @click="remove(email)" class="text-sm text-red-600 dark:text-red-400 hover:underline">
                         Verwijderen
                     </button>
                 </div>
@@ -45,13 +45,13 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inhoud</label>
                     <TipTapEditor v-model="form.body" :placeholders="placeholders" :hasError="Boolean(form.errors.body)" />
-                    <p v-if="form.errors.body" class="mt-1 text-xs text-red-600">{{ form.errors.body }}</p>
+                    <p v-if="form.errors.body" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.errors.body }}</p>
                 </div>
 
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Automatisch versturen bij</label>
-                        <button type="button" @click="addTrigger" class="text-sm text-lavoro-blue hover:underline">
+                        <button type="button" @click="addTrigger" class="text-sm text-lavoro-blue dark:text-blue-400 hover:underline">
                             Trigger toevoegen
                         </button>
                     </div>
@@ -61,7 +61,7 @@
                         <ComboBox v-model="trigger.trigger_type" :options="triggerTypes"
                             :initial-id="trigger.trigger_type" class="flex-1" placeholder="Verzendwijze..." />
                         <button type="button" @click="form.triggers.splice(index, 1)"
-                            class="p-2 text-gray-400 hover:text-red-600">
+                            class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400">
                             <XMarkIcon class="h-4 w-4" />
                         </button>
                     </div>

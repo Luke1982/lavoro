@@ -4,7 +4,7 @@
             subtitle="De taken die op deze werkbon uitgevoerd moeten worden." chapter="serviceorders">
             <template v-if="canCreate" #actions>
                 <button type="button" @click="addDrawerOpen = true"
-                    class="inline-flex items-center gap-1.5 text-sm font-medium text-lavoro-blue hover:opacity-80 transition-opacity ml-2 sm:ml-0 justify-center py-3 sm:pt-2 px-3 sm:px-0 border-1 border-gray-200 rounded-lavoro-sm sm:border-0 cursor-pointer">
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 transition-opacity ml-2 sm:ml-0 justify-center py-3 sm:pt-2 px-3 sm:px-0 border-1 border-gray-200 dark:border-slate-700 rounded-lavoro-sm sm:border-0 cursor-pointer">
                     <PlusIcon class="w-4 h-4" />
                     <span class="hidden sm:inline">Taak toevoegen</span>
                 </button>
@@ -175,13 +175,13 @@
                                 'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
                                 newUserRoleIds.includes(role.id)
                                     ? 'bg-lavoro-blue border-lavoro-blue text-white'
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                                    : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/50',
                             ]">
                             {{ role.name }}
                         </button>
                     </div>
                 </div>
-                <p v-for="message in formErrors(addForm)" :key="message" class="text-xs text-red-600">{{ message }}</p>
+                <p v-for="message in formErrors(addForm)" :key="message" class="text-xs text-red-600 dark:text-red-400">{{ message }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -242,13 +242,13 @@
                                 'px-3 py-1.5 rounded-md text-sm font-medium border transition-colors',
                                 editUserRoleIds.includes(role.id)
                                     ? 'bg-lavoro-blue border-lavoro-blue text-white'
-                                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
+                                    : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/50',
                             ]">
                             {{ role.name }}
                         </button>
                     </div>
                 </div>
-                <p v-for="message in formErrors(editForm)" :key="message" class="text-xs text-red-600">{{ message }}</p>
+                <p v-for="message in formErrors(editForm)" :key="message" class="text-xs text-red-600 dark:text-red-400">{{ message }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -285,7 +285,7 @@
             :title="materialsInstance ? `Materialen — ${taskInstanceTitle(materialsInstance)}` : 'Materialen'"
             max-width-class="sm:max-w-3xl">
             <button type="button" @click="materialsModalOpen = false" aria-label="Sluiten"
-                class="absolute top-4 right-4 z-10 flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors">
+                class="absolute top-4 right-4 z-10 flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors">
                 <XIcon class="h-5 w-5" />
             </button>
             <MaterialsWidget v-if="materialsInstance" :service-order-id="serviceOrderId"
@@ -306,7 +306,7 @@
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Handtekening</label>
                     <SignaturePad ref="signaturePadRef" :key="signModalKey" v-model="signatureData" />
                 </div>
-                <p v-if="signError" class="text-xs text-red-600">{{ signError }}</p>
+                <p v-if="signError" class="text-xs text-red-600 dark:text-red-400">{{ signError }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -341,7 +341,7 @@
             <template #footer>
                 <div class="flex justify-between items-center">
                     <button v-if="canSign" type="button" @click="openUnsignConfirm(viewingInstance)"
-                        class="inline-flex items-center p-2 rounded-full border border-gray-200 bg-white text-red-500 hover:text-red-700 hover:border-gray-300 transition-colors"
+                        class="inline-flex items-center p-2 rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-red-500 hover:text-red-700 dark:hover:text-red-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
                         v-tooltip="'Verwijder handtekening'">
                         <TrashIcon class="w-4 h-4" />
                     </button>
@@ -366,7 +366,7 @@
                     <textarea v-model="cancelReason" rows="3" placeholder="Reden voor annulering..."
                         class="w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm sm:leading-6 resize-y" />
                 </div>
-                <p v-if="cancelError" class="text-xs text-red-600">{{ cancelError }}</p>
+                <p v-if="cancelError" class="text-xs text-red-600 dark:text-red-400">{{ cancelError }}</p>
             </div>
             <template #footer>
                 <div class="flex justify-end gap-3">
@@ -387,8 +387,8 @@
             max-width-class="sm:max-w-sm">
             <div class="sm:flex sm:items-start gap-4">
                 <div
-                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 sm:mx-0 sm:size-10">
-                    <AlertTriangleIcon class="size-6 text-yellow-600" />
+                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 sm:mx-0 sm:size-10">
+                    <AlertTriangleIcon class="size-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div class="mt-3 sm:mt-0 text-center sm:text-left">
                     <p class="text-base font-semibold text-gray-900 dark:text-white">Handtekening wordt verwijderd</p>
@@ -416,8 +416,8 @@
         <ModalDialog :open="unsignConfirmOpen" @update:open="unsignConfirmOpen = $event" max-width-class="sm:max-w-sm">
             <div class="sm:flex sm:items-start gap-4">
                 <div
-                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
-                    <AlertTriangleIcon class="size-6 text-red-600" />
+                    class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:size-10">
+                    <AlertTriangleIcon class="size-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div class="mt-3 sm:mt-0 text-center sm:text-left">
                     <p class="text-base font-semibold text-gray-900 dark:text-white">Handtekening verwijderen</p>

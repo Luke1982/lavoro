@@ -22,7 +22,7 @@
     <ModalDialog :open="resultOpen" @update:open="closeResult" title="Serienummer herkennen"
         max-width-class="sm:max-w-md">
         <div class="flex flex-col gap-3">
-            <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+            <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
             <template v-else-if="candidates.length">
                 <p class="text-sm text-gray-500 dark:text-slate-400">

@@ -51,7 +51,7 @@
                     <p class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ serviceOrder.signed_by }}</p>
                     <img :src="serviceOrder.signature_base64" alt="Handtekening" class="mt-2 max-h-32">
                     <button v-if="!serviceOrder.is_closed" type="button" @click="startResigning"
-                        class="mt-3 text-sm text-lavoro-blue underline cursor-pointer">
+                        class="mt-3 text-sm text-lavoro-blue dark:text-blue-400 underline cursor-pointer">
                         Opnieuw ondertekenen
                     </button>
                 </div>

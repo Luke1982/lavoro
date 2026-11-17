@@ -39,7 +39,7 @@
         <template #footer>
             <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button type="button" @click="dismissTrayQuestion"
-                    class="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-95 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    class="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:hover:bg-slate-800/50 active:scale-95 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                     Annuleren
                 </button>
                 <button type="button" :disabled="!chosen || state.busy" @click="answerTrayQuestion(chosen, remove)"

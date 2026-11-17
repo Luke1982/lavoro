@@ -6,7 +6,7 @@
             <div class="flex flex-col items-start gap-2" :class="stacked ? '' : 'md:flex-row'">
                 <div class="flex flex-col flex-grow w-full" :class="stacked ? '' : 'sm:w-40'">
                     <TextInput v-model="quickForm.name" placeholder="Naam" :has-error="!!quickForm.errors.name"
-                        :error-message="quickForm.errors.name" class="bg-white" />
+                        :error-message="quickForm.errors.name" class="bg-white dark:bg-slate-900" />
                 </div>
                 <div class="flex flex-col" :class="stacked ? 'w-full' : ''">
                     <ComboBox :options="categories" v-model="quickForm.material_category_id" placeholder="Categorie"
@@ -35,7 +35,7 @@
         <div class="flex flex-col items-center gap-2 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700"
             :class="stacked ? '' : 'mb-4 md:flex-row p-0 sm:p-4 sm:border dark:bg-slate-800/50'">
             <div class="flex flex-col flex-grow w-full py-2"
-                :class="stacked ? '' : 'sm:border-r border-r-gray-200/70 p-0 sm:pr-4 sm:mr-4'">
+                :class="stacked ? '' : 'sm:border-r border-r-gray-200/70 dark:border-r-slate-700/70 p-0 sm:pr-4 sm:mr-4'">
                 <div class="flex items-center justify-between mb-0.5">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Kies een materiaal</span>
                 </div>

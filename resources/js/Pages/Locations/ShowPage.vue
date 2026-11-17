@@ -9,7 +9,7 @@
             <span class="text-slate-800 dark:text-slate-200 font-bold text-sm inline">{{ location.title }}</span>
         </div>
         <button v-if="canDelete" type="button" @click="deleteModalOpen = true"
-            class="px-3 py-1.5 text-sm font-medium bg-white text-red-600 ring-gray-200 ring-1 rounded-full cursor-pointer">
+            class="px-3 py-1.5 text-sm font-medium bg-white dark:bg-slate-900 text-red-600 dark:text-red-400 ring-gray-200 dark:ring-slate-700 ring-1 rounded-full cursor-pointer">
             <TrashIcon class="size-5" />
         </button>
     </div>
@@ -36,7 +36,7 @@
         <div class="lg:col-span-2 space-y-6">
             <BoxComponent>
                 <div class="flex items-center mb-4">
-                    <MapPinIcon class="size-5 text-gray-500 mr-2" />
+                    <MapPinIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
                     <span class="text-md font-bold">Locatiegegevens</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -62,10 +62,10 @@
             <BoxComponent
                 v-tray-drop="{ target: { type: 'location', id: location.id }, label: 'naar deze locatie te verhuizen' }">
                 <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
-                    <PuzzlePieceIcon class="size-5 text-gray-500 mr-2" />
+                    <PuzzlePieceIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
                     <span class="text-sm font-medium">Machines op deze locatie</span>
                     <button v-if="canCreateAsset" type="button" @click="addAssetDrawerOpen = true"
-                        class="text-blue-600 hover:text-blue-800 ml-1 p-1 cursor-pointer"
+                        class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 ml-1 p-1 cursor-pointer"
                         v-tooltip="'Nieuwe machine op deze locatie'">
                         <PlusIcon class="size-4" />
                     </button>

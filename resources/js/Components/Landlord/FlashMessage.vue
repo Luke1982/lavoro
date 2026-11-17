@@ -21,6 +21,6 @@ const flash = computed(() => usePage().props.flash ?? {})
 const message = computed(() => flash.value.status || flash.value.error || flash.value.message)
 
 const tone = computed(() => (flash.value.status
-    ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-    : 'border-red-300 bg-red-50 text-red-900'))
+    ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-200'
+    : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200'))
 </script>

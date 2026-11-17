@@ -1,20 +1,20 @@
 <template>
-    <div class="flex flex-col overflow-hidden bg-white"
+    <div class="flex flex-col overflow-hidden bg-white dark:bg-slate-900"
         :class="variant === 'sidebar' ? 'h-full' : 'max-h-[70vh] rounded-2xl shadow-xl'">
         <div
-            class="flex items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-r from-lavoro-blue/10 via-violet-500/5 to-transparent px-3 py-2">
+            class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-lavoro-blue/10 via-violet-500/5 to-transparent px-3 py-2">
             <div class="flex min-w-0 items-center gap-2">
                 <span
                     class="shrink-0 rounded-xl bg-gradient-to-br from-lavoro-blue via-indigo-500 to-violet-500 p-1.5 shadow-sm shadow-lavoro-blue/40">
                     <SparklesIcon class="size-5 text-white" />
                 </span>
                 <div class="min-w-0 leading-tight">
-                    <p class="text-sm font-semibold text-slate-900">Lavoro AI</p>
-                    <p class="truncate text-[11px] text-slate-500">Je slimme assistent voor werkbonnen en planning.</p>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Lavoro AI</p>
+                    <p class="truncate text-[11px] text-slate-500 dark:text-slate-400">Je slimme assistent voor werkbonnen en planning.</p>
                 </div>
             </div>
             <button type="button" title="Sluiten"
-                class="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-white/70 hover:text-slate-600" @click="close">
+                class="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/70 hover:text-slate-600 dark:hover:text-slate-400" @click="close">
                 <XMarkIcon class="size-5" />
             </button>
         </div>
@@ -31,20 +31,20 @@
                     <!-- Nieuwe chat -->
                     <template #chapter-0>
                         <div v-if="!exchanges.length" class="space-y-3 px-3 py-3">
-                            <p class="text-sm font-semibold text-slate-900">Hallo! Waarmee kan ik je vandaag helpen?</p>
+                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Hallo! Waarmee kan ik je vandaag helpen?</p>
 
                             <div v-if="prompts.length" class="space-y-1.5">
                                 <button v-for="(prompt, promptIndex) in prompts" :key="prompt.id" type="button"
-                                    class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-transparent hover:shadow-md hover:shadow-slate-900/5"
+                                    class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-2.5 py-2 text-left transition hover:-translate-y-px hover:border-transparent hover:shadow-md hover:shadow-slate-900/5"
                                     :class="tile(promptIndex).hover" @click="askPrompt(prompt)">
                                     <span class="shrink-0 rounded-lg p-1.5" :class="tile(promptIndex).tile">
                                         <component :is="tile(promptIndex).icon" class="size-4" />
                                     </span>
                                     <span class="min-w-0 leading-tight">
-                                        <span class="block truncate text-[13px] font-semibold text-slate-900">
+                                        <span class="block truncate text-[13px] font-semibold text-slate-900 dark:text-slate-100">
                                             {{ prompt.label }}
                                         </span>
-                                        <span class="block truncate text-[11px] text-slate-500">
+                                        <span class="block truncate text-[11px] text-slate-500 dark:text-slate-400">
                                             {{ prompt.question }}
                                         </span>
                                     </span>
@@ -56,7 +56,7 @@
                                     <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                                         Recente gesprekken
                                     </p>
-                                    <button type="button" class="text-[11px] font-medium text-lavoro-blue hover:underline"
+                                    <button type="button" class="text-[11px] font-medium text-lavoro-blue dark:text-blue-400 hover:underline"
                                         @click="chapter = HISTORY">
                                         Bekijk alles
                                     </button>
@@ -67,7 +67,7 @@
                                             class="flex w-full items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-lavoro-blue/5"
                                             @click="reopen(thread)">
                                             <ClockIcon class="size-3.5 shrink-0 text-lavoro-blue/70" />
-                                            <span class="min-w-0 flex-1 truncate text-xs text-slate-700">
+                                            <span class="min-w-0 flex-1 truncate text-xs text-slate-700 dark:text-slate-300">
                                                 {{ thread.title }}
                                             </span>
                                             <span class="shrink-0 text-[11px] text-slate-400">
@@ -81,7 +81,7 @@
 
                         <div v-else>
                             <p v-if="openingQuestion" :title="openingQuestion"
-                                class="sticky top-0 z-10 truncate border-b border-slate-100 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-slate-500 backdrop-blur">
+                                class="sticky top-0 z-10 truncate border-b border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-3 py-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 backdrop-blur">
                                 {{ openingQuestion }}
                             </p>
 
@@ -93,12 +93,12 @@
 
                                 <div v-if="exchange.images?.length" class="flex justify-end gap-1.5">
                                     <img v-for="(image, imageIndex) in exchange.images" :key="imageIndex" :src="image"
-                                        alt="" class="size-12 rounded-lg object-cover ring-1 ring-slate-200">
+                                        alt="" class="size-12 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700">
                                 </div>
 
                                 <div v-if="exchange.files?.length" class="flex flex-wrap justify-end gap-1.5">
                                     <span v-for="(name, fileIndex) in exchange.files" :key="fileIndex"
-                                        class="inline-flex max-w-[70%] items-center gap-1 rounded-lg bg-violet-50 px-2 py-1 text-[11px] font-medium text-violet-700 ring-1 ring-violet-200">
+                                        class="inline-flex max-w-[70%] items-center gap-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 px-2 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300 ring-1 ring-violet-200 dark:ring-violet-800">
                                         <PaperClipIcon class="size-3 shrink-0" />
                                         <span class="truncate">{{ name }}</span>
                                     </span>
@@ -108,8 +108,8 @@
                                     <li v-for="(tool, toolIndex) in exchange.tools" :key="toolIndex"
                                         class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
                                         :class="tool.failed
-                                            ? 'bg-red-50 text-red-600 ring-1 ring-red-100'
-                                            : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'">
+                                            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 ring-1 ring-red-100 dark:ring-red-800'
+                                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-100 dark:ring-emerald-800'">
                                         <span class="size-1 rounded-full"
                                             :class="tool.failed ? 'bg-red-500' : 'bg-emerald-500'" />
                                         {{ toolLabel(tool.name) }}
@@ -117,25 +117,25 @@
                                 </ul>
 
                                 <p v-if="exchange.pending"
-                                    class="flex items-center gap-1.5 text-xs font-medium text-lavoro-blue">
+                                    class="flex items-center gap-1.5 text-xs font-medium text-lavoro-blue dark:text-blue-400">
                                     <ArrowPathIcon class="size-3.5 animate-spin" />
                                     Aan het opzoeken…
                                 </p>
 
-                                <p v-if="exchange.error" class="text-sm text-red-600">{{ exchange.error }}</p>
+                                <p v-if="exchange.error" class="text-sm text-red-600 dark:text-red-400">{{ exchange.error }}</p>
 
                                 <MarkdownText v-if="exchange.answer" :text="exchange.answer" @navigate="close" />
 
                                 <p v-for="(reference, referenceIndex) in exchange.unverified" :key="'u' + referenceIndex"
-                                    class="rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                                    class="rounded-md bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 text-xs text-amber-800 dark:text-amber-200">
                                     Let op: {{ reference }} kwam niet uit een zoekopdracht. Controleer dat zelf.
                                 </p>
 
                                 <div v-for="group in byMachine(exchange.findings, exchange.photos)" :key="group.subject"
                                     :data-machine="group.subject"
-                                    class="rounded-xl bg-gradient-to-br from-slate-50 to-lavoro-blue/5 px-2.5 py-2 ring-1 ring-slate-200">
+                                    class="rounded-xl bg-gradient-to-br from-slate-50 dark:from-slate-800/50 to-lavoro-blue/5 px-2.5 py-2 ring-1 ring-slate-200 dark:ring-slate-700">
                                     <div class="flex items-start justify-between gap-2">
-                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                             {{ group.subject }}
                                         </p>
                                         <div v-if="group.photos.length" class="flex shrink-0 gap-1">
@@ -143,22 +143,22 @@
                                                 type="button" @click="openImageLightbox(group.photos, photoIndex)"
                                                 class="cursor-pointer" title="De foto waar dit vanaf gelezen is">
                                                 <img :src="photo" alt=""
-                                                    class="size-9 rounded object-cover ring-1 ring-slate-300 hover:ring-lavoro-blue">
+                                                    class="size-9 rounded object-cover ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-lavoro-blue">
                                             </button>
                                         </div>
                                     </div>
                                     <ul class="mt-1.5 space-y-1">
                                         <li v-for="(finding, findingIndex) in group.findings" :key="findingIndex">
                                             <div class="flex items-baseline justify-between gap-2 text-xs">
-                                                <span class="text-slate-500">{{ finding.field }}</span>
-                                                <span class="min-w-0 flex-1 truncate font-medium text-slate-900">
+                                                <span class="text-slate-500 dark:text-slate-400">{{ finding.field }}</span>
+                                                <span class="min-w-0 flex-1 truncate font-medium text-slate-900 dark:text-slate-100">
                                                     {{ finding.value }}
                                                 </span>
                                                 <span class="shrink-0 tabular-nums text-slate-400">
                                                     {{ finding.confidence }}%
                                                 </span>
                                             </div>
-                                            <div class="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                                            <div class="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                                                 <div class="h-full rounded-full transition-all"
                                                     :class="confidenceColour(finding.confidence)"
                                                     :style="{ width: finding.confidence + '%' }" />
@@ -167,28 +167,28 @@
                                     </ul>
                                 </div>
 
-                                <p v-if="exchange.unreadable?.length" class="text-[11px] text-slate-500">
+                                <p v-if="exchange.unreadable?.length" class="text-[11px] text-slate-500 dark:text-slate-400">
                                     Niet te lezen: {{ exchange.unreadable.join(' · ') }}
                                 </p>
 
                                 <div v-for="(choice, choiceIndex) in exchange.choices" :key="'c' + choiceIndex
                                     " class="rounded-lg bg-lavoro-blue/5 px-3 py-2.5 ring-1 ring-lavoro-blue/30">
-                                    <p class="text-xs font-medium text-slate-800">
+                                    <p class="text-xs font-medium text-slate-800 dark:text-slate-200">
                                         {{ choice.chosen && !choice.stale ? 'Gekozen: ' + choice.chosen : choice.question }}
                                     </p>
-                                    <p v-if="choice.stale" class="mt-1 text-[11px] text-slate-500">
+                                    <p v-if="choice.stale" class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                                         Vervallen — er is daarna iets anders gevraagd.
                                     </p>
                                     <ul v-if="!choice.chosen && !choice.stale" class="mt-2 space-y-1">
                                         <li v-for="(option, optionIndex) in choice.options" :key="optionIndex"
                                             class="flex items-center gap-2">
                                             <button type="button" :disabled="asking"
-                                                class="min-w-0 flex-1 truncate rounded-md bg-white px-2.5 py-1 text-left text-xs font-medium text-slate-800 ring-1 ring-lavoro-blue/40 hover:bg-lavoro-blue/10 disabled:opacity-50"
+                                                class="min-w-0 flex-1 truncate rounded-md bg-white dark:bg-slate-900 px-2.5 py-1 text-left text-xs font-medium text-slate-800 ring-1 ring-lavoro-blue/40 hover:bg-lavoro-blue/10 disabled:opacity-50"
                                                 @click="choose(choice, option)">
                                                 {{ option.label }}
                                             </button>
                                             <a v-if="option.link" :href="option.link"
-                                                class="shrink-0 text-[11px] text-lavoro-blue underline"
+                                                class="shrink-0 text-[11px] text-lavoro-blue dark:text-blue-400 underline"
                                                 @click.prevent="openRecord(option.link)">bekijken</a>
                                         </li>
                                     </ul>
@@ -197,10 +197,10 @@
                                 <div v-for="(offer, offerIndex) in exchange.tours ?? []" :key="'t' + offerIndex"
                                     class="flex items-center justify-between gap-3 rounded-lg bg-gradient-to-r from-lavoro-blue/10 to-lavoro-green/20 px-3 py-2.5 ring-1 ring-lavoro-blue/30">
                                     <div class="flex min-w-0 items-center gap-2">
-                                        <AcademicCapIcon class="size-5 shrink-0 text-lavoro-blue" />
+                                        <AcademicCapIcon class="size-5 shrink-0 text-lavoro-blue dark:text-blue-400" />
                                         <div class="min-w-0">
-                                            <p class="truncate text-xs font-semibold text-slate-800">{{ offer.label }}</p>
-                                            <p class="text-[11px] text-slate-500">{{ tourOfferNote(offer) }}</p>
+                                            <p class="truncate text-xs font-semibold text-slate-800 dark:text-slate-200">{{ offer.label }}</p>
+                                            <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ tourOfferNote(offer) }}</p>
                                         </div>
                                     </div>
                                     <button type="button" :disabled="!tourOfferFits(offer)"
@@ -213,10 +213,10 @@
 
                                 <div v-for="(action, actionIndex) in exchange.pendingActions" :key="'p' + actionIndex"
                                     class="flex items-center justify-between gap-3 rounded-lg px-3 py-2 ring-1" :class="[
-                                        action.done && !action.failed ? 'bg-emerald-50 text-emerald-900 ring-emerald-200' : '',
-                                        action.failed ? 'bg-red-50 text-red-900 ring-red-200' : '',
-                                        action.stale ? 'bg-slate-50 text-slate-500 ring-slate-200' : '',
-                                        !action.done && !action.stale ? 'bg-amber-50 text-amber-900 ring-amber-200' : '',
+                                        action.done && !action.failed ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-200 ring-emerald-200 dark:ring-emerald-800' : '',
+                                        action.failed ? 'bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-200 ring-red-200 dark:ring-red-800' : '',
+                                        action.stale ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 ring-slate-200 dark:ring-slate-700' : '',
+                                        !action.done && !action.stale ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 ring-amber-200 dark:ring-amber-800' : '',
                                     ]">
                                     <div class="min-w-0">
                                         <p class="truncate text-xs font-medium">{{ action.done || action.preview }}</p>
@@ -236,8 +236,8 @@
 
                     <!-- Gesprekken -->
                     <template #chapter-1>
-                        <div class="divide-y divide-slate-100">
-                            <p v-if="history_error" class="px-4 py-3 text-sm text-red-600">{{ history_error }}</p>
+                        <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <p v-if="history_error" class="px-4 py-3 text-sm text-red-600 dark:text-red-400">{{ history_error }}</p>
                             <p v-else-if="loading_history" class="px-4 py-3 text-sm text-slate-400">
                                 Bezig met ophalen…
                             </p>
@@ -245,14 +245,14 @@
                                 Je hebt nog geen gesprekken gehad.
                             </p>
                             <button v-for="thread in earlier" v-else :key="thread.id" type="button"
-                                class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50"
+                                class="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
                                 @click="reopen(thread)">
                                 <ChatBubbleLeftRightIcon class="mt-0.5 size-4 shrink-0 text-slate-400" />
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm font-medium text-slate-900">
+                                    <span class="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                                         {{ thread.title }}
                                     </span>
-                                    <span class="block truncate text-xs text-slate-500">{{ thread.preview }}</span>
+                                    <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ thread.preview }}</span>
                                 </span>
                                 <span class="shrink-0 text-right text-[11px] text-slate-400">
                                     <span class="block">{{ askedAt(thread.last_at) }}</span>
@@ -266,23 +266,23 @@
                     <template #chapter-2>
                         <div>
                             <div v-for="prompt in all_prompts" :key="prompt.id"
-                                class="border-b border-slate-100 px-4 py-2.5">
+                                class="border-b border-slate-100 dark:border-slate-800 px-4 py-2.5">
                                 <AssistantPromptForm v-if="editing?.id === prompt.id" :initial="editing" :pages="PAGES"
                                     @save="savePrompt" @cancel="editing = null" />
                                 <div v-else class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-slate-900">{{ prompt.label }}</p>
-                                        <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ prompt.question }}</p>
+                                        <p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ prompt.label }}</p>
+                                        <p class="mt-0.5 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{{ prompt.question }}</p>
                                         <p class="mt-0.5 text-[11px] text-slate-400">
                                             {{ pageLabel(prompt.context) }}{{ prompt.mine ? '' : ' · standaardvraag' }}
                                         </p>
                                     </div>
                                     <div v-if="prompt.mine" class="flex shrink-0 gap-2 text-[11px]">
-                                        <button type="button" class="text-lavoro-blue hover:underline"
+                                        <button type="button" class="text-lavoro-blue dark:text-blue-400 hover:underline"
                                             @click="editing = { ...prompt }">
                                             wijzigen
                                         </button>
-                                        <button type="button" class="text-slate-400 hover:text-red-600"
+                                        <button type="button" class="text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                                             @click="forgetPrompt(prompt)">
                                             verwijderen
                                         </button>
@@ -294,10 +294,10 @@
                                 <AssistantPromptForm v-if="editing && !editing.id" :initial="editing" :pages="PAGES"
                                     @save="savePrompt" @cancel="editing = null" />
                                 <button v-else type="button"
-                                    class="text-xs font-medium text-lavoro-blue hover:underline" @click="addPrompt">
+                                    class="text-xs font-medium text-lavoro-blue dark:text-blue-400 hover:underline" @click="addPrompt">
                                     Vraag toevoegen
                                 </button>
-                                <p v-if="prompt_error" class="mt-1.5 text-[11px] text-red-600">{{ prompt_error }}</p>
+                                <p v-if="prompt_error" class="mt-1.5 text-[11px] text-red-600 dark:text-red-400">{{ prompt_error }}</p>
                             </div>
                         </div>
                     </template>
@@ -307,27 +307,27 @@
 
         <template v-if="chapter === CHAT">
             <div v-if="pending_images.length || pending_files.length || attachment_error"
-                class="space-y-1.5 border-t border-slate-100 bg-slate-50/60 px-3 py-2">
+                class="space-y-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 px-3 py-2">
                 <div v-if="pending_images.length || pending_files.length" class="flex flex-wrap items-center gap-1.5">
                     <button v-for="(image, imageIndex) in pending_images" :key="'i' + imageIndex" type="button"
-                        class="size-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200 hover:ring-2 hover:ring-red-400"
+                        class="size-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-2 hover:ring-red-400"
                         title="Klik om deze foto te verwijderen" @click="pending_images.splice(imageIndex, 1)">
                         <img :src="image" alt="" class="size-full object-cover">
                     </button>
                     <button v-for="(file, fileIndex) in pending_files" :key="'f' + fileIndex" type="button"
-                        class="inline-flex max-w-[60%] items-center gap-1 rounded-lg bg-violet-100 px-2 py-1.5 text-[11px] font-medium text-violet-800 ring-1 ring-violet-200 hover:ring-2 hover:ring-red-400"
+                        class="inline-flex max-w-[60%] items-center gap-1 rounded-lg bg-violet-100 dark:bg-violet-900/30 px-2 py-1.5 text-[11px] font-medium text-violet-800 dark:text-violet-200 ring-1 ring-violet-200 dark:ring-violet-800 hover:ring-2 hover:ring-red-400"
                         title="Klik om dit bestand te verwijderen" @click="pending_files.splice(fileIndex, 1)">
                         <PaperClipIcon class="size-3.5 shrink-0" />
                         <span class="truncate">{{ file.name }}</span>
                     </button>
-                    <p class="text-[11px] text-slate-500">Gaat mee met je volgende vraag.</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Gaat mee met je volgende vraag.</p>
                 </div>
-                <p v-if="attachment_error" class="text-[11px] font-medium text-red-600">{{ attachment_error }}</p>
+                <p v-if="attachment_error" class="text-[11px] font-medium text-red-600 dark:text-red-400">{{ attachment_error }}</p>
             </div>
 
             <div v-if="asking_about_photos"
-                class="border-t border-slate-100 bg-gradient-to-r from-lavoro-blue/10 to-violet-500/5 px-3 py-2.5">
-                <p class="text-xs font-medium text-slate-700">
+                class="border-t border-slate-100 dark:border-slate-800 bg-gradient-to-r from-lavoro-blue/10 to-violet-500/5 px-3 py-2.5">
+                <p class="text-xs font-medium text-slate-700 dark:text-slate-300">
                     Er horen {{ photos_sent }} foto('s) bij dit gesprek. In je opslag bewaren? Dit telt mee voor je
                     opslaglimiet.
                 </p>
@@ -338,21 +338,21 @@
                         Bewaren
                     </button>
                     <button type="button" :disabled="deciding_photos"
-                        class="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 disabled:opacity-50"
+                        class="rounded-lg bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 ring-1 ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 disabled:opacity-50"
                         @click="decidePhotos(false)">
                         Weggooien
                     </button>
-                    <p v-if="photo_outcome" class="text-[11px] text-slate-500">{{ photo_outcome }}</p>
+                    <p v-if="photo_outcome" class="text-[11px] text-slate-500 dark:text-slate-400">{{ photo_outcome }}</p>
                 </div>
             </div>
 
-            <div v-if="asking_reason" class="border-t border-slate-100 bg-amber-50 px-3 py-2.5">
-                <label class="text-xs font-medium text-amber-900" for="report-reason">
+            <div v-if="asking_reason" class="border-t border-slate-100 dark:border-slate-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5">
+                <label class="text-xs font-medium text-amber-900 dark:text-amber-200" for="report-reason">
                     Wat ging er mis, of wat had je verwacht? (mag leeg blijven)
                 </label>
                 <div class="mt-1.5 flex items-center gap-2">
                     <input id="report-reason" ref="reasonRef" v-model="report_reason" type="text"
-                        class="min-w-0 flex-1 rounded-lg border-amber-300 text-sm focus:border-amber-500 focus:ring-amber-500"
+                        class="min-w-0 flex-1 rounded-lg border-amber-300 dark:border-amber-700 text-sm focus:border-amber-500 focus:ring-amber-500"
                         placeholder="Bijvoorbeeld: hij noemde de verkeerde klant"
                         @keydown.enter.prevent="reportConversation" @keydown.esc.stop.prevent="asking_reason = false">
                     <button type="button" :disabled="reporting"
@@ -363,8 +363,8 @@
                 </div>
             </div>
 
-            <div class="border-t border-slate-100 p-2">
-                <div class="rounded-2xl bg-white ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-lavoro-blue"
+            <div class="border-t border-slate-100 dark:border-slate-800 p-2">
+                <div class="rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-700 focus-within:ring-2 focus-within:ring-lavoro-blue"
                     @dragover.prevent @drop.prevent="readFiles($event.dataTransfer?.files)"
                     @paste="readFiles($event.clipboardData?.files)">
                     <textarea ref="inputRef" v-model="question" rows="2" :disabled="asking" placeholder="Stel je vraag…"
@@ -374,31 +374,31 @@
                     <div class="flex items-center justify-between gap-2 px-1.5 pb-1.5">
                         <div class="flex gap-1">
                             <button type="button" title="Foto meesturen"
-                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-lavoro-blue/5 hover:text-lavoro-blue hover:ring-lavoro-blue/40"
+                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-lavoro-blue/5 hover:text-lavoro-blue hover:ring-lavoro-blue/40"
                                 @click="imageInputRef?.click()">
-                                <PhotoIcon class="size-4 text-lavoro-blue" />
+                                <PhotoIcon class="size-4 text-lavoro-blue dark:text-blue-400" />
                                 Foto
                             </button>
                             <input ref="imageInputRef" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                                 multiple class="hidden" @change="addAttachments">
                             <button type="button" title="Pdf of tekstbestand meesturen"
-                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-violet-50 hover:text-violet-700 hover:ring-violet-300"
+                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-300 hover:ring-violet-300 dark:hover:ring-violet-700"
                                 @click="fileInputRef?.click()">
-                                <PaperClipIcon class="size-4 text-violet-600" />
+                                <PaperClipIcon class="size-4 text-violet-600 dark:text-violet-400" />
                                 Bestand
                             </button>
                             <input ref="fileInputRef" type="file" accept="application/pdf,text/plain,text/csv" multiple
                                 class="hidden" @change="addAttachments">
                             <button v-if="exchanges.length" type="button" :disabled="reporting || !!reported"
-                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:ring-amber-300 disabled:opacity-50"
+                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300 hover:ring-amber-300 dark:hover:ring-amber-700 disabled:opacity-50"
                                 @click="startReport">
-                                <FlagIcon class="size-4 text-amber-600" />
+                                <FlagIcon class="size-4 text-amber-600 dark:text-amber-400" />
                                 {{ reported || (asking_reason ? 'Annuleren' : 'Melden') }}
                             </button>
                             <button v-if="exchanges.length" type="button" title="Nieuw gesprek"
-                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:ring-emerald-300"
+                                class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-300 hover:ring-emerald-300 dark:hover:ring-emerald-700"
                                 @click="newThread">
-                                <PlusIcon class="size-4 text-emerald-600" />
+                                <PlusIcon class="size-4 text-emerald-600 dark:text-emerald-400" />
                                 Nieuw
                             </button>
                         </div>
@@ -412,20 +412,20 @@
             </div>
         </template>
 
-        <div class="border-t border-slate-100 px-3 py-1.5">
-            <p v-if="costingMore" class="mb-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-800">
+        <div class="border-t border-slate-100 dark:border-slate-800 px-3 py-1.5">
+            <p v-if="costingMore" class="mb-1 rounded-lg bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-[11px] font-medium text-amber-800 dark:text-amber-200">
                 Foto's gaan mee met deze vraag. Dat kost al gauw tientallen keren zoveel als een vraag zonder foto's, en
                 gaat dus sneller door je tegoed heen.
             </p>
             <p v-else-if="costingSome"
-                class="mb-1 rounded-lg bg-violet-50 px-2 py-1 text-[11px] font-medium text-violet-800">
+                class="mb-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 px-2 py-1 text-[11px] font-medium text-violet-800 dark:text-violet-200">
                 Een bestand gaat mee met deze vraag. Een pdf van tientallen pagina's kost een veelvoud van een gewone
                 vraag.
             </p>
             <div class="flex items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">De AI assistent kan fouten maken, controleer de gegevens altijd</p>
                 <button v-if="chapter !== PROMPTS" type="button"
-                    class="flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-lavoro-blue hover:underline"
+                    class="flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-lavoro-blue dark:text-blue-400 hover:underline"
                     @click="chapter = PROMPTS">
                     Vragen beheren
                     <ChevronRightIcon class="size-3" />
@@ -498,9 +498,9 @@ const RECENT = 4
  */
 const TILES = [
     { icon: ClipboardDocumentListIcon, tile: 'bg-lavoro-blue/10 text-lavoro-blue', hover: 'hover:bg-lavoro-blue/5' },
-    { icon: CalendarDaysIcon, tile: 'bg-emerald-100 text-emerald-600', hover: 'hover:bg-emerald-50' },
-    { icon: CubeIcon, tile: 'bg-violet-100 text-violet-600', hover: 'hover:bg-violet-50' },
-    { icon: SparklesIcon, tile: 'bg-amber-100 text-amber-600', hover: 'hover:bg-amber-50' },
+    { icon: CalendarDaysIcon, tile: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' },
+    { icon: CubeIcon, tile: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400', hover: 'hover:bg-violet-50 dark:hover:bg-violet-900/20' },
+    { icon: SparklesIcon, tile: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400', hover: 'hover:bg-amber-50 dark:hover:bg-amber-900/20' },
 ]
 
 const tile = (index) => TILES[index % TILES.length]

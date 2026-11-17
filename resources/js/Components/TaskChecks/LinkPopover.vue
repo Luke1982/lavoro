@@ -7,7 +7,7 @@
                 'rounded px-2 py-1 text-xs font-semibold transition-colors',
                 link.required === option.value
                     ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-700 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-800 dark:text-slate-400',
+                    : 'text-gray-500 hover:text-gray-800 dark:hover:text-slate-200 dark:text-slate-400',
             ]">
                 {{ option.label }}
             </button>
@@ -16,7 +16,7 @@
             Optioneel maakt de hele checklist optioneel voor deze taak.
         </p>
         <button type="button" @click="$emit('unlink')"
-            class="mt-3 w-full rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
+            class="mt-3 w-full rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
             Ontkoppelen
         </button>
     </div>

@@ -1,10 +1,10 @@
 <template>
     <div class="space-y-1.5">
         <input v-model="label" type="text" placeholder="Naam op de knop"
-            class="w-full rounded-md border-slate-300 text-sm">
+            class="w-full rounded-md border-slate-300 dark:border-slate-600 text-sm">
         <textarea v-model="body" rows="2" placeholder="De vraag zelf"
-            class="w-full rounded-md border-slate-300 text-sm" />
-        <select v-model="context" class="w-full rounded-md border-slate-300 text-sm">
+            class="w-full rounded-md border-slate-300 dark:border-slate-600 text-sm" />
+        <select v-model="context" class="w-full rounded-md border-slate-300 dark:border-slate-600 text-sm">
             <option v-for="page in pages" :key="page.value ?? 'all'" :value="page.value">{{ page.label }}</option>
         </select>
         <div class="flex gap-2">
@@ -13,7 +13,7 @@
                 @click="$emit('save', { label, question: body, context })">
                 Bewaren
             </button>
-            <button type="button" class="text-xs text-slate-500 hover:text-slate-700" @click="$emit('cancel')">
+            <button type="button" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" @click="$emit('cancel')">
                 Annuleren
             </button>
         </div>

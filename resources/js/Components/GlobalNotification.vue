@@ -27,7 +27,7 @@
                             </div>
                             <div class="ml-4 flex flex-shrink-0">
                                 <button type="button" @click="closeNotification"
-                                    class="inline-flex rounded-md bg-white text-green-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                                    class="inline-flex rounded-md bg-white dark:bg-slate-900 text-green-700 dark:text-green-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                     <span class="sr-only">Close</span>
                                     <SolidXMarkIcon class="h-5 w-5" aria-hidden="true" />
                                 </button>

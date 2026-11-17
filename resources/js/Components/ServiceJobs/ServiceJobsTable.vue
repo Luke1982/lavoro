@@ -1,5 +1,5 @@
 <template>
-    <div v-if="groupedItems.length" class="border-1 border-gray-200/70 rounded-lavoro-sm">
+    <div v-if="groupedItems.length" class="border-1 border-gray-200/70 dark:border-slate-700/70 rounded-lavoro-sm">
         <!-- Header -->
         <div
             class="hidden lg:flex items-center gap-3 py-3 border-b border-gray-200/70 dark:border-slate-700/60 text-xs font-semibold text-gray-400 uppercase bg-gray-50/60">
@@ -24,7 +24,7 @@
             </div>
         </div>
     </div>
-    <p v-else class="text-sm text-gray-500 mt-3">Geen keuringen gevonden.</p>
+    <p v-else class="text-sm text-gray-500 dark:text-slate-400 mt-3">Geen keuringen gevonden.</p>
 </template>
 
 <script setup>

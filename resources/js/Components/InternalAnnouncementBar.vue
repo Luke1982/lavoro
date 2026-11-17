@@ -17,13 +17,13 @@
             :class="collapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-72'" role="region" aria-label="Aankondiging">
             <div
                 class="pointer-events-auto flex flex-col gap-3 bg-lavoro-green px-4 py-4 shadow-[0_-8px_30px_rgba(2,6,23,0.35)] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <div class="flex min-w-0 items-start gap-3 text-gray-900">
+                <div class="flex min-w-0 items-start gap-3 text-gray-900 dark:text-slate-100">
                     <span class="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-gray-900/10">
                         <Megaphone class="size-5" aria-hidden="true" />
                     </span>
                     <div class="min-w-0 max-h-40 overflow-y-auto">
                         <p class="break-words text-sm font-semibold">{{ announcement.title }}</p>
-                        <p class="mt-0.5 whitespace-pre-line break-words text-sm text-gray-900/75">{{ announcement.body }}</p>
+                        <p class="mt-0.5 whitespace-pre-line break-words text-sm text-gray-900/75 dark:text-slate-100">{{ announcement.body }}</p>
                     </div>
                 </div>
                 <button type="button" :disabled="acknowledging"

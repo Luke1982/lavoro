@@ -28,7 +28,7 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors"
                             :class="{ 'border-red-500/50': form.errors.email }">
-                            <EnvelopeIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <EnvelopeIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input v-model="form.email" type="email" autocomplete="email" required
                                 placeholder="jouw@email.nl"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
@@ -41,12 +41,12 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors"
                             :class="{ 'border-red-500/50': form.errors.password }">
-                            <LockClosedIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <LockClosedIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input :type="showPassword ? 'text' : 'password'" v-model="form.password"
                                 autocomplete="new-password" required placeholder="Minimaal 8 tekens"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />
                             <button type="button" @click="showPassword = !showPassword"
-                                class="text-gray-500 hover:text-gray-300 transition-colors">
+                                class="text-gray-500 dark:text-slate-400 hover:text-gray-300 transition-colors">
                                 <EyeSlashIcon v-if="showPassword" class="h-5 w-5" />
                                 <EyeIcon v-else class="h-5 w-5" />
                             </button>
@@ -59,7 +59,7 @@
                         <div
                             class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3 focus-within:border-lavoro-blue transition-colors"
                             :class="{ 'border-red-500/50': form.errors.password_confirmation }">
-                            <LockClosedIcon class="h-5 w-5 text-gray-500 shrink-0" />
+                            <LockClosedIcon class="h-5 w-5 text-gray-500 dark:text-slate-400 shrink-0" />
                             <input :type="showPassword ? 'text' : 'password'" v-model="form.password_confirmation"
                                 autocomplete="new-password" required placeholder="Herhaal wachtwoord"
                                 class="flex-1 bg-transparent text-white placeholder-gray-600 text-sm outline-none" />

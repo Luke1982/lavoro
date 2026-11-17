@@ -14,8 +14,8 @@
                     'bg-white dark:bg-slate-900 block w-full border-0 rounded-md py-1.5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 sm:text-sm sm:leading-6': !hasError,
                     'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError && !disabled,
                     'ring-1 ring-inset ring-gray-200 dark:ring-slate-600 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed': disabled && !hasError,
-                    'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 placeholder:text-red-300 sm:text-sm sm:leading-6 border-red-500': hasError,
-                    'ring-1 ring-inset ring-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500': hasError && ring,
+                    'block w-full border-0 rounded-md py-1.5 pr-10 text-red-900 dark:text-red-200 placeholder:text-red-300 sm:text-sm sm:leading-6 border-red-500': hasError,
+                    'ring-1 ring-inset ring-red-300 dark:ring-red-700 focus:ring-2 focus:ring-inset focus:ring-red-500': hasError && ring,
                     'pl-10': iconLeft,
                     'pl-2': !iconLeft,
                     'rounded-r-none': !rightCorners,
@@ -28,7 +28,7 @@
             enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
             leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
             leave-to-class="opacity-0 -translate-y-1">
-            <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
+            <p v-if="hasError" class="mt-2 text-sm text-red-600 dark:text-red-400" :id="errorId">{{ errorMessage }}</p>
         </Transition>
     </div>
 </template>

@@ -53,7 +53,7 @@ const props = defineProps({
 });
 
 const themes = {
-    blue: { bg: 'bg-lavoro-blue/10', text: 'text-lavoro-blue' },
+    blue: { bg: 'bg-lavoro-blue/10', text: 'text-lavoro-blue dark:text-blue-400' },
     sky: { bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400' },
     cyan: { bg: 'bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400' },
     indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400' },

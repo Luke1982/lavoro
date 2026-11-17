@@ -2,7 +2,7 @@
     <Head :title="tenant.name" />
 
     <h2 class="mb-1 text-xl font-semibold">{{ tenant.name }}</h2>
-    <p class="mb-5 text-sm text-slate-500">{{ tenant.database }} &middot; {{ tenant.id }}</p>
+    <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">{{ tenant.database }} &middot; {{ tenant.id }}</p>
 
     <div class="grid gap-5 lg:grid-cols-2 lg:items-start">
         <SubscriptionForm :tenant="tenant" :packages="packages" :modules="modules"
@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div v-if="unreachable" class="mt-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-red-900">
+    <div v-if="unreachable" class="mt-6 rounded-md border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-red-900 dark:text-red-200">
         De database van deze klant is niet bereikbaar, dus een deel van dit scherm
         blijft leeg: <span class="font-semibold">{{ unreachable }}</span><br>
         Hieronder kun je hem opruimen.

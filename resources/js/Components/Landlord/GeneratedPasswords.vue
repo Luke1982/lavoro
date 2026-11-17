@@ -7,14 +7,14 @@
 
 
         <table class="w-full text-left">
-            <tr v-for="password in passwords" :key="password.id" class="border-t border-slate-200">
+            <tr v-for="password in passwords" :key="password.id" class="border-t border-slate-200 dark:border-slate-700">
                 <td class="px-3 py-2.5">
                     <strong>{{ password.name }}</strong><br>
                     {{ password.email }} &middot;
-                    <code class="rounded bg-slate-100 px-1.5 py-0.5">{{ password.password }}</code>
+                    <code class="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5">{{ password.password }}</code>
                 </td>
                 <td class="w-28 px-3 py-2.5 text-right">
-                    <button type="button" class="text-blue-700 underline"
+                    <button type="button" class="text-blue-700 dark:text-blue-300 underline"
                         @click="forget(password)">wissen</button>
                 </td>
             </tr>

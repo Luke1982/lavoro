@@ -136,7 +136,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <PuzzlePieceIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <PuzzlePieceIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Storing aan</span>
                         </div>
@@ -173,7 +173,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <ChatBubbleBottomCenterTextIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <ChatBubbleBottomCenterTextIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Onderwerp</span>
                         </div>
@@ -187,7 +187,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <DocumentTextIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <DocumentTextIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Omschrijving</span>
                         </div>
@@ -201,7 +201,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <HashtagIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <HashtagIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Storingscode</span>
                         </div>
@@ -216,7 +216,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <ArrowPathIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <ArrowPathIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</span>
                         </div>
@@ -237,7 +237,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <FlagIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <FlagIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Prioriteit</span>
                         </div>
@@ -273,7 +273,7 @@
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                <UserIcon class="size-5 text-lavoro-blue stroke-2" />
+                                <UserIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                             </div>
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Gesloten door</span>
                         </div>
@@ -430,8 +430,8 @@ const followLabel = computed(() => (props.subscriptionId ? 'Stop met volgen' : '
  * over — heeft iemand dat recht niet, dan zou het menu leeg opengaan.
  */
 const moreButtonClass = computed(() => [
-    'inline-flex items-center justify-center size-9 rounded-lavoro-sm border border-gray-200',
-    'dark:border-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50',
+    'inline-flex items-center justify-center size-9 rounded-lavoro-sm border border-gray-200 dark:border-slate-700',
+    'dark:border-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/50',
     'dark:hover:bg-slate-800 cursor-pointer',
     hasPermission('ticket.delete') ? '' : 'sm:hidden',
 ].join(' '));

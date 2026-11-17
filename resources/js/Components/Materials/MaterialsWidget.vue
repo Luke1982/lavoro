@@ -35,7 +35,7 @@
 
         <!-- Table -->
         <div v-if="materials.length > 0 || freeformMaterials.length > 0"
-            class="border-1 rounded-lavoro-sm border-gray-200/70">
+            class="border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70">
             <!-- Column headers (hidden on mobile) -->
             <div class="hidden md:grid text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 pt-3 pb-4 dark:border-slate-700 mb-1"
                 :class="showFinancial ? 'grid-cols-12' : 'grid-cols-12'">
@@ -95,7 +95,7 @@
                     <!-- Unforseen toggle -->
                     <div v-if="showUnforseen"
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
-                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!material.pivot.unforseen"
                             :disabled="locked || !canEditLine(material)"
                             @update:model-value="val => updateLine(material, { unforseen: val })"
@@ -104,7 +104,7 @@
 
                     <!-- Price per unit -->
                     <div v-if="showFinancial" class="col-span-6 md:col-span-2 mt-2 md:mt-0 pl-0 sm:pl-3">
-                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Prijs per {{
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block sm:hidden">Prijs per {{
                             material.usage_unit ? ' ' +
                                 material.usage_unit.name
                                 : 'eenheid' }}</span>
@@ -113,7 +113,7 @@
 
                     <!-- Line total -->
                     <div v-if="showFinancial" class="col-span-5 md:col-span-2 mt-2 md:mt-0">
-                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Totaal</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block sm:hidden">Totaal</span>
                         <span class="text-sm font-medium text-gray-900 dark:text-slate-100">
                             {{ nlCurrency(Number(material.pivot.quantity) * Number(material.price)) }}
                         </span>
@@ -172,7 +172,7 @@
                     </div>
                     <div v-if="showUnforseen"
                         class="col-span-12 md:col-span-1 flex justify-between sm:justify-center mt-2 md:mt-0 items-center py-2 sm:py-0 border-b md:border-0 border-gray-200/70 dark:border-slate-700">
-                        <span class="text-xs text-slate-500 font-medium block sm:hidden">Onvoorzien</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium block sm:hidden">Onvoorzien</span>
                         <SwitchComponent :model-value="!!freeform.unforseen"
                             :disabled="locked || !canEditLine(freeform)"
                             @update:model-value="val => updateLine(freeform, { unforseen: val })"

@@ -11,8 +11,8 @@
         <EditableGridComponent :headers="headers" :items="innerFields" @update="onCellUpdate"
             urlBase="customfields" />
         <PaginationComponent v-if="innerFields.length > 0" :paginator="customFields"
-            class="border-t border-gray-200 pt-2" />
-        <div v-else class="text-center text-gray-500 p-4">
+            class="border-t border-gray-200 dark:border-slate-700 pt-2" />
+        <div v-else class="text-center text-gray-500 dark:text-slate-400 p-4">
             <p>Geen extra velden gevonden.</p>
             <p>Probeer een andere zoekterm of voeg een nieuw veld toe.</p>
         </div>

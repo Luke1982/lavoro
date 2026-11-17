@@ -29,7 +29,7 @@
                         <button type="button" @click="selectPeriod(option.value)"
                             :class="['flex w-full items-center justify-between px-4 py-2.5 text-left text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '', option.value === period.value ? 'font-semibold text-gray-900 dark:text-slate-50' : 'text-gray-700 dark:text-slate-200']">
                             {{ option.title }}
-                            <CheckIcon v-if="option.value === period.value" class="size-4 text-lavoro-blue"
+                            <CheckIcon v-if="option.value === period.value" class="size-4 text-lavoro-blue dark:text-blue-400"
                                 aria-hidden="true" />
                         </button>
                         </MenuItem>
@@ -58,7 +58,7 @@
                         <button type="button" @click="startCreating(action)"
                             :class="['flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 dark:text-slate-200', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                             <span class="flex size-7 flex-none items-center justify-center rounded-lg bg-lavoro-blue/10">
-                                <component :is="navIcon(action.icon)" class="size-4 text-lavoro-blue" />
+                                <component :is="navIcon(action.icon)" class="size-4 text-lavoro-blue dark:text-blue-400" />
                             </span>
                             {{ action.label }}
                         </button>

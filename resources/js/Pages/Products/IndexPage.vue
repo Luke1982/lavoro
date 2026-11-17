@@ -14,7 +14,7 @@
                         <ComboBox :options="productTypes" v-model="productTypeToShow" multiple
                             placeholder="Selecteer producttype" class="w-full" label="Filter op type" />
                         <button type="button" @click="productTypeToShow = []"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-slate-400"
                             v-tooltip="'Reset filter op producttype'">
                             <XCircleIcon class="h-5 w-5" />
                         </button>
@@ -25,13 +25,13 @@
                         <ComboBox :options="brands" v-model="brandToShow" multiple placeholder="Selecteer merk"
                             class="w-full" label="Filter op merk" />
                         <button type="button" @click="brandToShow = []"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-slate-400"
                             v-tooltip="'Reset filter op merk'">
                             <XCircleIcon class="h-5 w-5" />
                         </button>
                     </div>
                 </div>
-                <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -44,7 +44,7 @@
                             :placeholder="`Selecteer ${attr.name.toLowerCase()}`" class="w-full"
                             :label="`Filter op ${attr.name.toLowerCase()}`" />
                         <button type="button" @click="attrValuesSelected[attr.id] = []"
-                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                            class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-slate-400"
                             v-tooltip="`Reset filter op ${attr.name.toLowerCase()}`">
                             <XCircleIcon class="h-5 w-5" />
                         </button>
@@ -66,7 +66,7 @@
                         <span class="absolute -inset-1" />
                     </button>
                 </span>
-                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer"
                     v-if="activeFilters.length" @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -76,7 +76,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProducts.length">
             <div
-                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
@@ -108,15 +108,15 @@
                                     @update="(val) => router.patch(`/products/${product.id}`, { model: val }, { preserveScroll: true, preserveState: true })">
                                     <template #display><span class="font-bold">{{ product.brand.name }} {{ product.model }}</span></template>
                                 </EditableTextField>
-                                <span class="text-slate-600">{{ product.part_no }}</span>
+                                <span class="text-slate-600 dark:text-slate-400">{{ product.part_no }}</span>
                                 <div v-if="product.attribute_value_map" class="mt-1">
                                     <div v-for="(value, key) in product.attribute_value_map" :key="key"
-                                        class="flex flex-col gap-y-1 sm:grid grid-cols-3 text-xs text-gray-500 mt-0.5">
+                                        class="flex flex-col gap-y-1 sm:grid grid-cols-3 text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                                         <div class="col-span-1 pr-2 font-bold">{{ key }}</div>
                                         <div class="col-span-2">{{ value }}</div>
                                     </div>
                                 </div>
-                                <div class="flex flex-col sm:hidden text-xs text-gray-500 mt-1 gap-y-2 items-start">
+                                <div class="flex flex-col sm:hidden text-xs text-gray-500 dark:text-slate-400 mt-1 gap-y-2 items-start">
                                     {{ product.product_type?.name }}
                                     <BadgeComponent :color="productKindColor(product)">
                                         {{ productKindLabel(product) }}
@@ -150,7 +150,7 @@
                                         <input type="date" v-model="saleEdits[product.id].end_sell"
                                             class="ring ring-gray-300 rounded-md p-1 text-sm py-2 bg-white dark:bg-slate-800 dark:ring-slate-700/60 dark:text-slate-200" />
                                         <button @click.stop="saveSalePeriod(product.id, close)"
-                                            class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 font-medium text-left">Opslaan</button>
+                                            class="text-sm text-green-600 hover:text-green-800 dark:hover:text-green-200 dark:text-green-400 font-medium text-left">Opslaan</button>
                                     </div>
                                 </template>
                             </EditableTextField>
@@ -165,13 +165,13 @@
                                 </template>
                                 <template #open="{ close }">
                                     <div class="flex flex-col gap-3" @click.stop>
-                                        <label class="flex items-center gap-2 text-xs text-gray-500">
+                                        <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                                             <SwitchComponent v-model="bundleEdits[product.id].bundle"
                                                 @update:modelValue="updateProduct(product.id, { bundle: bundleEdits[product.id].bundle }, close)" />
                                             Bundel
                                         </label>
                                         <label v-if="!bundleEdits[product.id].bundle"
-                                            class="flex items-center gap-2 text-xs text-gray-500">
+                                            class="flex items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                                             <SwitchComponent v-model="bundleEdits[product.id].registable"
                                                 @update:modelValue="updateProduct(product.id, { registable: bundleEdits[product.id].registable }, close)" />
                                             Registreerbaar
@@ -202,7 +202,7 @@
                     </div>
                 </div>
             </div>
-            <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
+            <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
                 <PageRecordCountComponent :total="products.total" :per-page="perPage" label="producten" />
                 <PaginationComponent v-if="products.data.length" :paginator="products" />
             </div>

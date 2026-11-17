@@ -29,7 +29,7 @@
                 <div class="mt-1 grid grid-cols-5 overflow-hidden rounded border border-gray-200 text-[10px] dark:border-slate-700">
                     <div v-for="(day, index) in days" :key="day" class="relative h-12 border-l border-gray-100 first:border-l-0 dark:border-slate-700">
                         <span class="absolute left-1 top-0.5 text-gray-400">{{ day }}</span>
-                        <div v-if="blockFor(index)" class="scene-block absolute bottom-1 top-4 overflow-hidden px-1 text-[9px] font-medium text-gray-500"
+                        <div v-if="blockFor(index)" class="scene-block absolute bottom-1 top-4 overflow-hidden px-1 text-[9px] font-medium text-gray-500 dark:text-slate-400"
                             :style="{ left: blockFor(index).left, right: '2px', background: pattern }">{{ blockFor(index).label }}</div>
                     </div>
                 </div>
@@ -58,7 +58,7 @@ function blockFor(index) {
 <style scoped>
 .scene-focus {
     box-shadow: 0 0 0 2px var(--color-lavoro-blue);
-    background: rgb(231 239 254 / 0.5);
+    background: color-mix(in srgb, var(--tour-hot) 50%, transparent);
 }
 
 .scene-new {

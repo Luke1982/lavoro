@@ -115,7 +115,7 @@
                             <SwitchComponent v-model="autoGenerateSwitch" @update="handleAutoGenerateToggle" />
                         </div>
                         <button v-if="canGenerate" type="button"
-                            class="text-sm font-medium text-lavoro-blue hover:underline disabled:opacity-50"
+                            class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50"
                             :disabled="generating" @click="generateServiceOrders">
                             Werkbon aanmaken
                         </button>

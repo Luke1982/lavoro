@@ -3,7 +3,7 @@
         :data-tour="isMine ? 'planner.execution' : null" @click.stop @pointerdown.stop>
         <template v-if="isMine">
             <template v-if="status === 'Afgerond'">
-                <Check v-if="!labelled" class="size-4 text-green-600" v-tooltip="'Tijden geregistreerd'" />
+                <Check v-if="!labelled" class="size-4 text-green-600 dark:text-green-400" v-tooltip="'Tijden geregistreerd'" />
             </template>
 
             <template v-else-if="status === 'Geannuleerd'">
@@ -14,7 +14,7 @@
                 <button type="button" v-tooltip="labelled ? null : 'Tijden en handtekening registreren'" data-tour="planner.execution.times"
                     :class="labelled
                         ? 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-lavoro-sm bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40'
-                        : 'p-1 rounded text-blue-600 hover:bg-blue-50 disabled:opacity-40'"
+                        : 'p-1 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40'"
                     :disabled="busy" @click="openModal">
                     <Clock class="size-4" />
                     <template v-if="labelled">Tijden invullen</template>
@@ -22,7 +22,7 @@
                 <button type="button" v-tooltip="labelled ? null : 'Annuleren'" data-tour="planner.execution.cancel"
                     :class="labelled
                         ? 'whitespace-nowrap rounded-lavoro-sm px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-900/20'
-                        : 'p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-40'"
+                        : 'p-1 rounded text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40'"
                     :disabled="busy" @click="cancel">
                     <template v-if="labelled">Annuleren</template>
                     <X v-else class="size-4" />
@@ -34,14 +34,14 @@
             v-tooltip="`Geannuleerd door ${rowExecution.name}`" />
 
         <button v-if="canRelease" type="button" v-tooltip="releaseCopy.tooltip" data-tour="planner.execution.release"
-            class="p-1 rounded text-amber-600 hover:bg-amber-50 disabled:opacity-40"
+            class="p-1 rounded text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:opacity-40"
             :disabled="busy" @click="release">
             <RotateCcw class="size-4" />
         </button>
 
         <button v-if="executeOthersTarget" type="button" data-tour="planner.execution.others"
             v-tooltip="`Tijden invullen namens ${executeOthersTarget.name}`"
-            class="p-1 rounded text-blue-600 hover:bg-blue-50 disabled:opacity-40"
+            class="p-1 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-40"
             :disabled="busy" @click="openModalForOther">
             <UserPen class="size-4" />
         </button>

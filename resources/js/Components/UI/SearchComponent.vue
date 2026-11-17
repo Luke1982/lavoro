@@ -1,13 +1,13 @@
 <template>
     <div class="w-full">
         <label v-if="label" class="block text-sm font-medium text-gray-900 dark:text-gray-300">{{ label }}</label>
-        <div :class="[label ? 'mt-2' : '', 'relative rounded-md border-gray-200 border-1']">
+        <div :class="[label ? 'mt-2' : '', 'relative rounded-md border-gray-200 dark:border-slate-700 border-1']">
             <TextInput :id="inputId" v-model="internalValue" :placeholder="placeholder" :disabled="inAction"
                 :ring="false" :iconLeft="inAction ? LoaderCircle : Search" :iconLeftProps="{
                     class: (inAction ? 'animate-spin ' : '') + 'h-5 w-5 text-gray-400'
                 }" class="w-full bg-white rounded-md pr-20 py-1" type="search" />
             <div
-                class="rounded-sm absolute bg-gray-100 right-2 inset-y-2 text-xs p-1 w-12 text-gray-500 text-center flex items-center justify-center pointer-events-none">
+                class="rounded-sm absolute bg-gray-100 dark:bg-slate-800 right-2 inset-y-2 text-xs p-1 w-12 text-gray-500 dark:text-slate-400 text-center flex items-center justify-center pointer-events-none">
                 <SquareChevronUpIcon class="inline h-4 w-4 mr-1" />K
             </div>
         </div>

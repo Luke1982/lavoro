@@ -14,7 +14,7 @@
                 </Link>
             </div>
 
-            <button type="button" class="text-sm font-medium text-lavoro-blue hover:underline disabled:opacity-40"
+            <button type="button" class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-40"
                 :disabled="!unread" @click="markAll">
                 Alles markeren als gelezen
             </button>

@@ -8,9 +8,9 @@
                 <span class="w-20 shrink-0 truncate px-2 text-[10px] font-semibold">{{ name }}</span>
                 <span class="h-full flex-1 border-l border-gray-100 dark:border-slate-700" />
             </div>
-            <div class="scene-landed absolute left-[7.6rem] top-[3.2rem] h-10 w-[4.4rem] rounded-md border-l-4 border-sky-500 bg-sky-100 px-1.5 py-1 text-[9px] leading-tight text-gray-900">
+            <div class="scene-landed absolute left-[7.6rem] top-[3.2rem] h-10 w-[4.4rem] rounded-md border-l-4 border-sky-500 bg-sky-100 dark:bg-sky-900/30 px-1.5 py-1 text-[9px] leading-tight text-gray-900 dark:text-slate-100">
                 <p class="font-semibold">Ketel lekt</p>
-                <p class="text-gray-600">09:00 – 11:00</p>
+                <p class="text-gray-600 dark:text-slate-400">09:00 – 11:00</p>
             </div>
         </div>
         <div class="w-[8.5rem] shrink-0 rounded-2xl bg-sidebar-bg p-2.5 text-white">

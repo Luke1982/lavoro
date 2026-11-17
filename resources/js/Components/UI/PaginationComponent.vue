@@ -3,7 +3,7 @@
         v-if="middleLinks.length > 1 || prevUrl || nextUrl">
         <div class="flex-1">
             <Link v-if="prevUrl" :href="appendParams(prevUrl)"
-                class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
+                class="inline-flex items-center text-sm text-gray-500 dark:text-slate-400 bg-lavoro-gray-150 dark:bg-slate-800/50 px-3 py-3 rounded-md border-1 border-gray-200 dark:border-slate-700"
                 preserve-scroll :preserve-state="preserveState">
                 <ChevronLeftIcon class="h-4 w-4" />
             </Link>
@@ -24,7 +24,7 @@
         </div>
         <div class="flex-1 text-right">
             <Link v-if="nextUrl" :href="appendParams(nextUrl)"
-                class="inline-flex items-center text-sm text-gray-500 bg-lavoro-gray-150 px-3 py-3 rounded-md border-1 border-gray-200"
+                class="inline-flex items-center text-sm text-gray-500 dark:text-slate-400 bg-lavoro-gray-150 dark:bg-slate-800/50 px-3 py-3 rounded-md border-1 border-gray-200 dark:border-slate-700"
                 preserve-scroll :preserve-state="preserveState">
                 <ChevronRightIcon class="h-4 w-4" />
             </Link>

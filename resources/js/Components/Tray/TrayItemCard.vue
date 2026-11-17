@@ -1,7 +1,7 @@
 <template>
     <div draggable="true" @dragstart="startTrayDrag($event, item.kind, [item.id])" @dragend="endTrayDrag"
         class="group flex cursor-grab items-center gap-2.5 rounded-2xl border border-sidebar-border bg-sidebar-card py-2 pr-1 pl-1.5 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-600 hover:shadow-lg active:scale-[0.98] active:cursor-grabbing motion-reduce:transition-none">
-        <GripVerticalIcon class="size-4 flex-none text-slate-500 transition-colors group-hover:text-sidebar-indicator" aria-hidden="true" />
+        <GripVerticalIcon class="size-4 flex-none text-slate-500 dark:text-slate-400 transition-colors group-hover:text-sidebar-indicator" aria-hidden="true" />
         <span :class="[look.tile, 'flex size-9 flex-none items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none']">
             <component :is="look.icon" class="size-5" aria-hidden="true" />
         </span>

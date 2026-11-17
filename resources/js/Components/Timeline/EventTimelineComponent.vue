@@ -43,7 +43,7 @@
                                 <div class="text-right text-[11px] whitespace-nowrap text-gray-500 dark:text-slate-500">
                                     <time :datetime="ev.start">{{ ev.compactDate }}</time>
                                     <button v-if="hasPermission('event.provide_feedback') && !ev.service_order_id" @click="feedback.openFeedback(ev)"
-                                        class="mt-1 text-gray-400 hover:text-lavoro-blue" title="Terugkoppeling">
+                                        class="mt-1 text-gray-400 hover:text-lavoro-blue dark:hover:text-blue-400" title="Terugkoppeling">
                                         <MessageCircleReply class="size-4 inline" />
                                     </button>
                                 </div>

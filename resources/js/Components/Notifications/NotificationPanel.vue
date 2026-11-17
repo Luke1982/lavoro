@@ -2,7 +2,7 @@
     <div class="flex flex-col overflow-hidden rounded-2xl bg-sidebar-bg ring-1 ring-sidebar-border">
         <div class="flex items-center justify-between px-4 pt-4">
             <p class="text-base font-semibold text-sidebar-text">Meldingen</p>
-            <button type="button" class="text-[13px] font-medium text-lavoro-blue hover:underline disabled:opacity-40"
+            <button type="button" class="text-[13px] font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-40"
                 :disabled="!unreadCount" @click="acknowledgeAll">
                 Alles markeren
             </button>

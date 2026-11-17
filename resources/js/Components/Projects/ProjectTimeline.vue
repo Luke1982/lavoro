@@ -845,8 +845,8 @@ function soChipStyle(chip, lane) {
         width: `max(130px, ${widthPct}%)`,
         top: (lane * LANE_HEIGHT.value + 4) + 'px',
         height: (LANE_HEIGHT.value - 8) + 'px',
-        backgroundColor: closed ? 'color-mix(in srgb, #16a34a 12%, white)' : 'color-mix(in srgb, #3b82f6 10%, white)',
-        borderColor: closed ? 'color-mix(in srgb, #16a34a 45%, white)' : 'color-mix(in srgb, #3b82f6 45%, white)',
+        backgroundColor: closed ? 'color-mix(in srgb, #16a34a 12%, var(--tint-base))' : 'color-mix(in srgb, #3b82f6 10%, var(--tint-base))',
+        borderColor: closed ? 'color-mix(in srgb, #16a34a 45%, var(--tint-base))' : 'color-mix(in srgb, #3b82f6 45%, var(--tint-base))',
     }
 }
 
@@ -860,8 +860,8 @@ function evChipStyle(chip, lane) {
         width: `max(120px, ${widthPct}%)`,
         top: (lane * LANE_HEIGHT.value + 4) + 'px',
         height: (LANE_HEIGHT.value - 8) + 'px',
-        backgroundColor: `color-mix(in srgb, ${color} 12%, white)`,
-        borderColor: `color-mix(in srgb, ${color} 45%, white)`,
+        backgroundColor: `color-mix(in srgb, ${color} 12%, var(--tint-base))`,
+        borderColor: `color-mix(in srgb, ${color} 45%, var(--tint-base))`,
     }
 }
 
@@ -875,8 +875,8 @@ function ticketChipStyle(chip, lane) {
         width: `max(120px, ${widthPct}%)`,
         top: (lane * LANE_HEIGHT.value + 4) + 'px',
         height: (LANE_HEIGHT.value - 8) + 'px',
-        backgroundColor: closed ? 'color-mix(in srgb, #6b7280 12%, white)' : 'color-mix(in srgb, #f97316 12%, white)',
-        borderColor: closed ? 'color-mix(in srgb, #6b7280 45%, white)' : 'color-mix(in srgb, #f97316 45%, white)',
+        backgroundColor: closed ? 'color-mix(in srgb, #6b7280 12%, var(--tint-base))' : 'color-mix(in srgb, #f97316 12%, var(--tint-base))',
+        borderColor: closed ? 'color-mix(in srgb, #6b7280 45%, var(--tint-base))' : 'color-mix(in srgb, #f97316 45%, var(--tint-base))',
     }
 }
 

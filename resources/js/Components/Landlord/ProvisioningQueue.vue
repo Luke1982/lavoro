@@ -7,21 +7,21 @@
 
 
         <table class="w-full text-left">
-            <tr v-for="request in requests" :key="request.id" class="border-t border-slate-200">
+            <tr v-for="request in requests" :key="request.id" class="border-t border-slate-200 dark:border-slate-700">
                 <td class="w-28 px-3 py-2.5 align-top">
-                    <span v-if="request.status === 'failed'" class="font-semibold text-red-700">mislukt</span>
-                    <span v-else class="text-slate-500">
+                    <span v-if="request.status === 'failed'" class="font-semibold text-red-700 dark:text-red-300">mislukt</span>
+                    <span v-else class="text-slate-500 dark:text-slate-400">
                         {{ request.status === 'running' ? 'bezig' : 'in de wacht' }}
                     </span>
                 </td>
                 <td class="px-3 py-2.5">
                     {{ request.action === 'delete' ? 'Verwijderen' : 'Aanmaken' }}:
                     <strong>{{ request.name }}</strong>
-                    <span v-if="request.error" class="block font-semibold text-red-700">{{ request.error }}</span>
+                    <span v-if="request.error" class="block font-semibold text-red-700 dark:text-red-300">{{ request.error }}</span>
                 </td>
                 <td class="w-28 px-3 py-2.5 text-right align-top">
                     <button v-if="request.status === 'failed'" type="button"
-                        class="text-blue-700 underline" @click="dismiss(request)">weghalen</button>
+                        class="text-blue-700 dark:text-blue-300 underline" @click="dismiss(request)">weghalen</button>
                 </td>
             </tr>
         </table>

@@ -2,7 +2,7 @@
     <Head title="Catalogus" />
 
     <h2 class="mb-1 text-xl font-semibold">Catalogus</h2>
-    <p class="mb-5 text-sm text-slate-500">
+    <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">
         Wat er te koop is en tegen welke prijs. Bedragen in centen, zodat er niets
         wordt afgerond onderweg.
     </p>
@@ -11,7 +11,7 @@
 
         <div class="overflow-x-auto">
             <table class="w-full text-left">
-                <thead class="text-xs uppercase tracking-wide text-slate-500">
+                <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="py-2 pr-3">Sleutel</th>
                         <th class="py-2 pr-3">Naam</th>
@@ -25,8 +25,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="row in packageRows" :key="row.id" class="border-t border-slate-200 align-top">
-                        <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
+                    <tr v-for="row in packageRows" :key="row.id" class="border-t border-slate-200 dark:border-slate-700 align-top">
+                        <td class="py-2 pr-3"><code class="text-slate-500 dark:text-slate-400">{{ row.key }}</code></td>
                         <td class="py-2 pr-3">
                             <input v-model="row.name" type="text" class="panel-field-narrow w-32">
                         </td>
@@ -38,21 +38,21 @@
                         </td>
                         <td class="py-2 pr-3">
                             <input v-model.number="row.price_cents" type="number" min="0" class="panel-field-narrow w-24">
-                            <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.price_cents) }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ euro(row.price_cents) }}</span>
                         </td>
                         <td class="py-2 pr-3">
                             <input v-model.number="row.extra_field_cents" type="number" min="0" class="panel-field-narrow w-24">
-                            <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.extra_field_cents) }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ euro(row.extra_field_cents) }}</span>
                         </td>
                         <td class="py-2 pr-3">
                             <input v-model.number="row.extra_office_cents" type="number" min="0" class="panel-field-narrow w-24">
-                            <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.extra_office_cents) }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ euro(row.extra_office_cents) }}</span>
                         </td>
-                        <td class="py-2 pr-3 text-slate-500">{{ usage[row.key] ?? 0 }} klant(en)</td>
+                        <td class="py-2 pr-3 text-slate-500 dark:text-slate-400">{{ usage[row.key] ?? 0 }} klant(en)</td>
                         <td class="py-2 text-right">
                             <button type="button" @click="savePackage(row)"
                                 class="panel-button-narrow">Opslaan</button>
-                            <span v-if="errors[`package-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
+                            <span v-if="errors[`package-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700 dark:text-red-300">
                                 {{ errors[`package-${row.id}`] }}
                             </span>
                         </td>
@@ -65,7 +65,7 @@
     <PanelSection title="Modules" class="mb-6">
 
         <table class="w-full text-left">
-            <thead class="text-xs uppercase tracking-wide text-slate-500">
+            <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
                     <th class="py-2 pr-3">Sleutel</th>
                     <th class="py-2 pr-3">Naam</th>
@@ -74,19 +74,19 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="row in moduleRows" :key="row.id" class="border-t border-slate-200 align-top">
-                    <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
+                <tr v-for="row in moduleRows" :key="row.id" class="border-t border-slate-200 dark:border-slate-700 align-top">
+                    <td class="py-2 pr-3"><code class="text-slate-500 dark:text-slate-400">{{ row.key }}</code></td>
                     <td class="py-2 pr-3">
                         <input v-model="row.name" type="text" class="panel-field-narrow w-48">
                     </td>
                     <td class="py-2 pr-3">
                         <input v-model.number="row.price_cents" type="number" min="0" class="panel-field-narrow w-24">
-                        <span class="mt-0.5 block text-xs text-slate-500">{{ euro(row.price_cents) }}</span>
+                        <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ euro(row.price_cents) }}</span>
                     </td>
                     <td class="py-2 text-right">
                         <button type="button" @click="saveModule(row)"
                             class="panel-button-narrow">Opslaan</button>
-                        <span v-if="errors[`module-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
+                        <span v-if="errors[`module-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700 dark:text-red-300">
                             {{ errors[`module-${row.id}`] }}
                         </span>
                     </td>
@@ -98,7 +98,7 @@
     <PanelSection title="Bundels" class="mb-6">
 
         <table class="w-full text-left">
-            <thead class="text-xs uppercase tracking-wide text-slate-500">
+            <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
                     <th class="py-2 pr-3">Naam</th>
                     <th class="py-2 pr-3">Modules</th>
@@ -106,13 +106,13 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="bundle in bundles" :key="bundle.id" class="border-t border-slate-200">
+                <tr v-for="bundle in bundles" :key="bundle.id" class="border-t border-slate-200 dark:border-slate-700">
                     <td class="py-2 pr-3">{{ bundle.name }}</td>
-                    <td class="py-2 pr-3 text-slate-500">{{ bundle.module_keys.join(', ') }}</td>
+                    <td class="py-2 pr-3 text-slate-500 dark:text-slate-400">{{ bundle.module_keys.join(', ') }}</td>
                     <td class="py-2">{{ euro(bundle.price_cents) }}</td>
                 </tr>
                 <tr v-if="!bundles.length">
-                    <td colspan="3" class="py-2 text-slate-500">Nog geen bundels.</td>
+                    <td colspan="3" class="py-2 text-slate-500 dark:text-slate-400">Nog geen bundels.</td>
                 </tr>
             </tbody>
         </table>
@@ -121,7 +121,7 @@
     <PanelSection title="Instellingen" class="mb-6">
 
         <table class="w-full text-left">
-            <thead class="text-xs uppercase tracking-wide text-slate-500">
+            <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
                     <th class="py-2 pr-3">Sleutel</th>
                     <th class="py-2 pr-3">Waarde</th>
@@ -129,15 +129,15 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="row in settingRows" :key="row.id" class="border-t border-slate-200 align-top">
-                    <td class="py-2 pr-3"><code class="text-slate-500">{{ row.key }}</code></td>
+                <tr v-for="row in settingRows" :key="row.id" class="border-t border-slate-200 dark:border-slate-700 align-top">
+                    <td class="py-2 pr-3"><code class="text-slate-500 dark:text-slate-400">{{ row.key }}</code></td>
                     <td class="py-2 pr-3">
                         <input v-model.number="row.value" type="number" min="0" class="panel-field-narrow w-36">
                     </td>
                     <td class="py-2 text-right">
                         <button type="button" @click="saveSetting(row)"
                             class="panel-button-narrow">Opslaan</button>
-                        <span v-if="errors[`setting-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700">
+                        <span v-if="errors[`setting-${row.id}`]" class="mt-1 block text-xs font-semibold text-red-700 dark:text-red-300">
                             {{ errors[`setting-${row.id}`] }}
                         </span>
                     </td>
@@ -157,11 +157,11 @@
             <div class="grid gap-3 md:grid-cols-2">
                 <div v-for="row in issuer_rows" :key="row.id">
                     <label class="mb-1 block font-semibold" :for="`issuer-${row.key}`">
-                        <code class="font-mono text-xs text-slate-500">{{ row.key }}</code>
+                        <code class="font-mono text-xs text-slate-500 dark:text-slate-400">{{ row.key }}</code>
                     </label>
                     <input :id="`issuer-${row.key}`" v-model="issuerForm.issuer[row.key]" type="text"
                         class="panel-field w-full">
-                    <p v-if="issuerForm.errors[`issuer.${row.key}`]" class="mt-1 text-sm font-semibold text-red-700">
+                    <p v-if="issuerForm.errors[`issuer.${row.key}`]" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">
                         {{ issuerForm.errors[`issuer.${row.key}`] }}
                     </p>
                 </div>
@@ -171,9 +171,9 @@
                 class="panel-button mt-4">Opslaan</button>
         </form>
 
-        <div class="mt-6 border-t border-slate-200 pt-4">
+        <div class="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
             <h4 class="font-semibold">Factuurnummering {{ numbering.year }}</h4>
-            <p class="mt-1 text-sm text-slate-500">
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 <template v-if="numbering.counter">
                     Uitgegeven tot en met <strong>{{ numbering.prefix }}{{ numbering.counter }}</strong>;
                     het hoogste nummer dat nog op een factuur staat is
@@ -183,7 +183,7 @@
             </p>
 
             <template v-if="numbering.counter > numbering.highest">
-                <p class="mt-1 text-sm text-slate-500">
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     De nummers daarna zijn van facturen die onder de oude regel verwijderd zijn en
                     hun nummer hielden. Die zijn nooit gemaild, geïncasseerd of naar e-Boekhouden
                     gestuurd, dus ze kunnen opnieuw uitgegeven worden &mdash; tenzij je er een als pdf
@@ -193,7 +193,7 @@
                     Terugzetten: de volgende wordt {{ numbering.prefix }}{{ numbering.highest + 1 }}
                 </button>
             </template>
-            <p v-else class="mt-1 text-sm text-slate-500">De nummering sluit aan op de laatste factuur.</p>
+            <p v-else class="mt-1 text-sm text-slate-500 dark:text-slate-400">De nummering sluit aan op de laatste factuur.</p>
         </div>
     </PanelSection>
 

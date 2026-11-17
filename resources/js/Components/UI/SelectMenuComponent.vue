@@ -6,7 +6,7 @@
         <div class="relative w-full" ref="wrapperRef">
             <div class="inline-flex divide-x rounded-md outline-hidden w-full">
                 <div
-                    class="inline-flex min-w-0 flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 border-r-1 border-r-gray-100">
+                    class="inline-flex min-w-0 flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 dark:ring-slate-700 border-r-1 border-r-gray-100 dark:border-r-slate-800">
                     <component :is="icon" v-if="icon"
                         :class="['ml-0.5 size-5 mr-1 shrink-0', spin ? 'animate-spin' : '']" aria-hidden="true" />
                     <div class="relative min-w-0 flex-1">
@@ -19,7 +19,7 @@
                     </div>
                 </div>
                 <ListboxButton
-                    class="inline-flex items-center rounded-l-none rounded-r-md bg-white p-2  dark:bg-lavoro-dark dark:text-white ring-1 ring-gray-200">
+                    class="inline-flex items-center rounded-l-none rounded-r-md bg-white p-2 dark:bg-lavoro-dark dark:text-white ring-1 ring-gray-200 dark:ring-slate-700">
                     <span class="sr-only">Selecteer optie</span>
                     <ChevronDownIcon class="size-5 text-lavoro-dark dark:text-white forced-colors:text-[Highlight]"
                         aria-hidden="true" />

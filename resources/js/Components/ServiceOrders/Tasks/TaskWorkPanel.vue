@@ -36,7 +36,7 @@
             </div>
         </template>
 
-        <p v-if="serialError" class="text-xs text-red-600">{{ serialError }}</p>
+        <p v-if="serialError" class="text-xs text-red-600 dark:text-red-400">{{ serialError }}</p>
 
         <div v-if="canReopen" class="flex justify-end">
             <button type="button" @click="$emit('reopen')"

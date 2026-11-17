@@ -9,7 +9,7 @@
                     <ComboBox :options="stages" v-model="stageFilter" multiple placeholder="Selecteer fase(n)"
                         class="w-full" label="Filter op fase" />
                 </div>
-                <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="hidden sm:flex w-1/6 items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -39,7 +39,7 @@
                         <span class="absolute -inset-1" />
                     </button>
                 </span>
-                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -50,7 +50,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="serviceOrders.data.length">
             <div
-                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray">
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
@@ -77,10 +77,10 @@
                             <Link :href="`/serviceorders/${so.id}`" class="font-bold">
                                 {{ so.customer?.name ?? '—' }}
                             </Link>
-                            <span v-if="so.resolved_location || so.customer?.city" class="text-slate-600 text-xs mb-1">
+                            <span v-if="so.resolved_location || so.customer?.city" class="text-slate-600 dark:text-slate-400 text-xs mb-1">
                                 {{ so.resolved_location || so.customer.city }}
                             </span>
-                            <span v-if="so.external_purchaseorder_no" class="text-slate-600 text-xs">
+                            <span v-if="so.external_purchaseorder_no" class="text-slate-600 dark:text-slate-400 text-xs">
                                 Inkoopordernr.: {{ so.external_purchaseorder_no }}
                             </span>
                             <div v-if="so.maintenance_contract_id" class="mt-2">
@@ -159,7 +159,7 @@
                             </div>
                             <div
                                 v-if="hasPermission('serviceorder.delete') && !so.sent_to_administration"
-                                class="border-1 border-lavoro-darkergray rounded-full p-2 flex cursor-pointer text-red-500 hover:text-red-700"
+                                class="border-1 border-lavoro-darkergray rounded-full p-2 flex cursor-pointer text-red-500 hover:text-red-700 dark:hover:text-red-300"
                                 @click="deleteServiceOrder(so.id)">
                                 <TrashIcon class="h-5 w-5" />
                             </div>

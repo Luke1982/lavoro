@@ -149,21 +149,21 @@ useTour('rooster', {
                         <span v-if="entry.label" class="text-gray-400 ml-1">— {{ entry.label }}</span>
                     </span>
                     <button type="button" @click="destroy(entry.id)" data-tour="roster.remove"
-                            class="ml-3 text-red-400 hover:text-red-600 text-base leading-none">×</button>
+                            class="ml-3 text-red-400 hover:text-red-600 dark:hover:text-red-400 text-base leading-none">×</button>
                 </div>
             </div>
             <p v-else class="text-sm text-gray-400 mb-3">Geen vaste vrije momenten.</p>
 
             <button v-if="!showRecurringForm" type="button"
                     @click="showRecurringForm = true"
-                    class="text-sm text-blue-600 hover:underline">+ Toevoegen</button>
+                    class="text-sm text-blue-600 dark:text-blue-400 hover:underline">+ Toevoegen</button>
 
             <form v-else ref="recurringFormRef" @submit.prevent="submitRecurring" data-tour="roster.recurring.form"
                   class="space-y-3 border border-gray-200 dark:border-slate-600 rounded p-3 bg-gray-50 dark:bg-slate-800/50">
 
                 <div class="grid grid-cols-2 gap-3">
                     <div data-tour="roster.recurring.day">
-                        <label class="block text-xs text-gray-500 mb-1">Dag</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Dag</label>
                         <SelectMenuComponent v-model="recurringForm.day_of_week"
                                              :options="DAY_OPTIONS" label="Kies dag" />
                         <p v-if="recurringForm.errors.day_of_week" class="text-xs text-red-500 mt-1">
@@ -171,7 +171,7 @@ useTour('rooster', {
                         </p>
                     </div>
                     <div data-tour="roster.recurring.repeat">
-                        <label class="block text-xs text-gray-500 mb-1">Herhaling</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Herhaling</label>
                         <SelectMenuComponent v-model="recurringForm.repeat"
                                              :options="REPEAT_OPTIONS" />
                     </div>
@@ -179,7 +179,7 @@ useTour('rooster', {
 
                 <div class="grid grid-cols-2 gap-3" data-tour="roster.recurring.times">
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Van</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Van</label>
                         <input v-model="recurringForm.start_time" type="time"
                                class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                         <p v-if="recurringForm.errors.start_time" class="text-xs text-red-500 mt-1">
@@ -187,7 +187,7 @@ useTour('rooster', {
                         </p>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Tot</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Tot</label>
                         <input v-model="recurringForm.end_time" type="time"
                                class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                         <p v-if="recurringForm.errors.end_time" class="text-xs text-red-500 mt-1">
@@ -197,7 +197,7 @@ useTour('rooster', {
                 </div>
 
                 <div v-if="recurringForm.repeat === 'biweekly'" data-tour="roster.recurring.first">
-                    <label class="block text-xs text-gray-500 mb-1">Eerste keer (ankerdatum)</label>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Eerste keer (ankerdatum)</label>
                     <input v-model="recurringForm.reference_date" type="date"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                     <p v-if="recurringForm.errors.reference_date" class="text-xs text-red-500 mt-1">
@@ -206,7 +206,7 @@ useTour('rooster', {
                 </div>
 
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">Label (optioneel)</label>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Label (optioneel)</label>
                     <input v-model="recurringForm.label" type="text" placeholder="bijv. Parttime dag" data-tour="roster.recurring.label"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                 </div>
@@ -218,7 +218,7 @@ useTour('rooster', {
                     </button>
                     <button type="button"
                             @click="showRecurringForm = false; recurringForm.reset()"
-                            class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
+                            class="px-3 py-1.5 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300">
                         Annuleren
                     </button>
                 </div>
@@ -239,21 +239,21 @@ useTour('rooster', {
                         <span v-if="entry.label" class="text-gray-400 ml-1">— {{ entry.label }}</span>
                     </span>
                     <button type="button" @click="destroy(entry.id)" data-tour="roster.remove"
-                            class="ml-3 text-red-400 hover:text-red-600 text-base leading-none">×</button>
+                            class="ml-3 text-red-400 hover:text-red-600 dark:hover:text-red-400 text-base leading-none">×</button>
                 </div>
             </div>
             <p v-else class="text-sm text-gray-400 mb-3">Geen vrije dagen.</p>
 
             <button v-if="!showHolidayForm" type="button"
                     @click="showHolidayForm = true"
-                    class="text-sm text-blue-600 hover:underline">+ Toevoegen</button>
+                    class="text-sm text-blue-600 dark:text-blue-400 hover:underline">+ Toevoegen</button>
 
             <form v-else ref="holidayFormRef" @submit.prevent="submitHoliday" data-tour="roster.holidays.form"
                   class="space-y-3 border border-gray-200 dark:border-slate-600 rounded p-3 bg-gray-50 dark:bg-slate-800/50">
 
                 <div class="grid grid-cols-2 gap-3" data-tour="roster.holidays.period">
                     <div data-tour="roster.holidays.from">
-                        <label class="block text-xs text-gray-500 mb-1">Van</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Van</label>
                         <input v-model="holidayForm.date" type="date"
                                class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                         <p v-if="holidayForm.errors.date" class="text-xs text-red-500 mt-1">
@@ -261,7 +261,7 @@ useTour('rooster', {
                         </p>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Tot (optioneel)</label>
+                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Tot (optioneel)</label>
                         <input v-model="holidayForm.end_date" type="date"
                                :min="holidayForm.date"
                                class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
@@ -272,7 +272,7 @@ useTour('rooster', {
                 </div>
 
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">Label (optioneel)</label>
+                    <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Label (optioneel)</label>
                     <input v-model="holidayForm.label" type="text" placeholder="bijv. Vakantie" data-tour="roster.holidays.label"
                            class="block w-full rounded border-gray-300 dark:border-slate-600 dark:bg-slate-700 text-sm py-2 px-3" />
                 </div>
@@ -284,7 +284,7 @@ useTour('rooster', {
                     </button>
                     <button type="button"
                             @click="showHolidayForm = false; holidayForm.reset()"
-                            class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
+                            class="px-3 py-1.5 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300">
                         Annuleren
                     </button>
                 </div>

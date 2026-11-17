@@ -3,7 +3,7 @@
         <div class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-2 justify-between items-center">
             <div class="flex items-center">
                 <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
-                    <MapPinIcon class="size-6 text-lavoro-blue stroke-2" />
+                    <MapPinIcon class="size-6 text-lavoro-blue dark:text-blue-400 stroke-2" />
                 </div>
                 <h2 class="font-semibold text-base dark:text-slate-200">Locaties</h2>
             </div>
@@ -16,7 +16,7 @@
 
         <PagedList v-if="locations.length" v-slot="{ items }" :items="locations" :search-keys="searchKeys"
             label="locaties" search-placeholder="Zoek op naam, code of adres..." storage-key="customerLocationsPerPage">
-            <div class="border-1 rounded-lavoro-sm border-gray-200/70" v-auto-animate>
+            <div class="border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70" v-auto-animate>
                 <div v-for="location in items" :key="location.id"
                     class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-slate-800 last:border-b-0">
                     <button type="button" @click="openMapModal(location)" :disabled="!formatAddress(location)"

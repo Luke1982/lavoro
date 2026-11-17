@@ -1,28 +1,28 @@
 <template>
     <div ref="panel" class="fixed top-3 left-14 z-[1000] w-96 max-w-[calc(100vw-4.5rem)]">
         <button type="button" :aria-pressed="active"
-            class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-md ring-1 ring-black/10"
-            :class="active ? 'bg-blue-700 text-white hover:bg-blue-800' : 'bg-white text-gray-800 hover:bg-gray-50'"
+            class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-md ring-1 ring-black/10 dark:ring-white/10"
+            :class="active ? 'bg-blue-700 text-white hover:bg-blue-800' : 'bg-white text-gray-800 dark:text-slate-200 hover:bg-gray-50'"
             @click="toggleActive">
             <MapIcon class="h-5 w-5" />
             Route plannen
         </button>
 
         <div v-if="active"
-            class="mt-2 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg bg-white p-3 text-sm shadow-lg ring-1 ring-black/10">
-            <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">Werkdag</h3>
-            <div class="mt-1 flex items-center gap-2 text-gray-700">
+            class="mt-2 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg bg-white dark:bg-slate-900 p-3 text-sm shadow-lg ring-1 ring-black/10 dark:ring-white/10">
+            <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Werkdag</h3>
+            <div class="mt-1 flex items-center gap-2 text-gray-700 dark:text-slate-300">
                 <input v-model="workdayStart" type="time" aria-label="Begin van de werkdag"
-                    class="rounded-md border border-gray-300 px-2 py-1" @input="invalidate" />
+                    class="rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1" @input="invalidate" />
                 tot
                 <input v-model="workdayEnd" type="time" aria-label="Einde van de werkdag"
-                    class="rounded-md border border-gray-300 px-2 py-1" @input="invalidate" />
+                    class="rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1" @input="invalidate" />
             </div>
-            <label for="route-start" class="mt-3 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            <label for="route-start" class="mt-3 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                 Begin en einde
             </label>
             <select id="route-start" v-model="startChoice"
-                class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1 text-gray-800" @change="chooseStart">
+                class="mt-1 w-full rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1 text-gray-800 dark:text-slate-200" @change="chooseStart">
                 <option value="company" :disabled="!config.start">
                     {{ config.start ? 'Bedrijf' : 'Bedrijf (geen adres ingevuld)' }}
                 </option>
@@ -32,28 +32,28 @@
                 <option value="elsewhere">Ander adres</option>
             </select>
             <AddressSearch v-if="startChoice === 'elsewhere'" class="mt-2" @pick="pickStart" />
-            <p class="mt-2 text-gray-600">{{ startText }}</p>
+            <p class="mt-2 text-gray-600 dark:text-slate-400">{{ startText }}</p>
 
-            <div v-if="warnings.length" role="alert" class="mt-3 space-y-1 rounded bg-red-50 p-2 font-medium text-red-700">
+            <div v-if="warnings.length" role="alert" class="mt-3 space-y-1 rounded bg-red-50 dark:bg-red-900/20 p-2 font-medium text-red-700 dark:text-red-300">
                 <p v-for="text in warnings" :key="text">{{ text }}</p>
             </div>
 
             <template v-for="section in sections" :key="section.id">
-                <h3 class="mt-4 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <h3 class="mt-4 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                     {{ section.title }} ({{ section.stops.length }})
                 </h3>
-                <ol class="divide-y divide-gray-100">
+                <ol class="divide-y divide-gray-100 dark:divide-slate-800">
                     <RouteStopRow v-for="stop in section.stops" :key="stop.key" :stop="stop"
                         @remove="toggleStop(stop.item)" @minutes="(minutes) => changeStop(stop.key, { minutes })"
                         @urgent="changeStop(stop.key, { urgent: !stop.urgent })"
                         @before="(before) => changeStop(stop.key, { before })" />
                 </ol>
             </template>
-            <p v-if="!stops.length" class="mt-1 text-gray-600">
+            <p v-if="!stops.length" class="mt-1 text-gray-600 dark:text-slate-400">
                 Klik op de punten op de kaart die je wilt bezoeken.
             </p>
 
-            <p v-if="error" class="mt-2 rounded bg-red-50 p-2 text-red-700">{{ error }}</p>
+            <p v-if="error" class="mt-2 rounded bg-red-50 dark:bg-red-900/20 p-2 text-red-700 dark:text-red-300">{{ error }}</p>
 
             <button v-if="!result" type="button" :disabled="!canCalculate"
                 class="mt-3 w-full rounded-md bg-blue-700 px-3 py-2 font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -61,11 +61,11 @@
                 {{ busy ? 'Route berekenen…' : 'Route berekenen' }}
             </button>
 
-            <div v-else-if="result.order.length" class="mt-3 border-t border-gray-200 pt-3">
+            <div v-else-if="result.order.length" class="mt-3 border-t border-gray-200 dark:border-slate-700 pt-3">
                 <div class="flex items-start justify-between gap-2">
                     <div>
-                        <p class="font-medium text-gray-900">Terug om {{ clock(result.finish) }}</p>
-                        <p class="text-xs text-gray-500">
+                        <p class="font-medium text-gray-900 dark:text-slate-100">Terug om {{ clock(result.finish) }}</p>
+                        <p class="text-xs text-gray-500 dark:text-slate-400">
                             {{ formatMeters(result.distance) }} · {{ formatSeconds(result.duration) }} rijden ·
                             {{ formatSeconds(timeOnSite) }} op locatie, zonder files.
                         </p>
@@ -73,40 +73,40 @@
                     <button v-if="result.order.length > 1" type="button" :aria-pressed="reversed"
                         :disabled="busy || assigning" title="Dezelfde adressen in omgekeerde volgorde, met hetzelfde begin en einde"
                         class="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-50"
-                        :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white text-gray-700 ring-gray-300 hover:bg-gray-50'"
+                        :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50'"
                         @click="reverse">
                         <ArrowsRightLeftIcon class="h-4 w-4" />
                         {{ busy ? 'Andersom…' : 'Andersom' }}
                     </button>
                 </div>
                 <a v-for="(link, index) in googleLinks" :key="link" :href="link" target="_blank" rel="noopener"
-                    class="mt-2 flex items-center justify-center gap-2 rounded-md bg-white px-3 py-2 font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50">
+                    class="mt-2 flex items-center justify-center gap-2 rounded-md bg-white dark:bg-slate-900 px-3 py-2 font-medium text-gray-800 dark:text-slate-200 ring-1 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50">
                     <ArrowTopRightOnSquareIcon class="h-4 w-4" />
                     {{ googleLinks.length > 1 ? `Deel ${index + 1} openen in Google Maps` : 'Openen in Google Maps' }}
                 </a>
-                <p v-if="googleLinks.length > 1" class="mt-1 text-xs text-gray-500">
+                <p v-if="googleLinks.length > 1" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
                     Google Maps neemt hoogstens tien adressen per keer, dus de route staat in delen klaar.
                 </p>
 
-                <form v-if="assignable.length" class="mt-3 border-t border-gray-200 pt-3" @submit.prevent="assign">
-                    <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">In planning zetten</h3>
+                <form v-if="assignable.length" class="mt-3 border-t border-gray-200 dark:border-slate-700 pt-3" @submit.prevent="assign">
+                    <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">In planning zetten</h3>
                     <div class="mt-1 flex items-center gap-2">
                         <select v-model="assignee" aria-label="Monteur"
-                            class="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-gray-800">
+                            class="min-w-0 flex-1 rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1 text-gray-800 dark:text-slate-200">
                             <option :value="null" disabled>Kies een monteur</option>
                             <option v-for="person in assignable" :key="person.id" :value="person.id">
                                 {{ person.name }}
                             </option>
                         </select>
                         <input v-model="assignDate" type="date" aria-label="Dag"
-                            class="rounded-md border border-gray-300 px-2 py-1 text-gray-800" />
+                            class="rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1 text-gray-800 dark:text-slate-200" />
                     </div>
                     <button type="submit" :disabled="assigning || busy"
-                        class="mt-2 w-full rounded-md bg-white px-3 py-2 font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                        class="mt-2 w-full rounded-md bg-white dark:bg-slate-900 px-3 py-2 font-medium text-gray-800 dark:text-slate-200 ring-1 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50 disabled:cursor-not-allowed disabled:opacity-50">
                         {{ assigning ? 'In planning zetten…' : 'In planning zetten' }}
                     </button>
-                    <p v-if="assigned" role="status" class="mt-2 text-green-700">{{ assigned }}</p>
-                    <p v-if="assignError" class="mt-2 rounded bg-red-50 p-2 text-red-700">{{ assignError }}</p>
+                    <p v-if="assigned" role="status" class="mt-2 text-green-700 dark:text-green-300">{{ assigned }}</p>
+                    <p v-if="assignError" class="mt-2 rounded bg-red-50 dark:bg-red-900/20 p-2 text-red-700 dark:text-red-300">{{ assignError }}</p>
                 </form>
             </div>
         </div>
@@ -320,7 +320,7 @@ const formatMeters = (meters) => {
 
 const startIcon = L.divIcon({
     className: 'custom-marker',
-    html: '<span class="flex h-7 w-7 items-center justify-center rounded-md border-2 border-white bg-gray-900 shadow"><svg viewBox="0 0 24 24" class="h-4 w-4 fill-white"><path d="M12 3 2 12h3v8h5v-5h4v5h5v-8h3z"/></svg></span>',
+    html: '<span class="flex h-7 w-7 items-center justify-center rounded-md border-2 border-white dark:border-slate-900 bg-gray-900 shadow"><svg viewBox="0 0 24 24" class="h-4 w-4 fill-white"><path d="M12 3 2 12h3v8h5v-5h4v5h5v-8h3z"/></svg></span>',
     iconSize: [28, 28],
     iconAnchor: [14, 14],
 });

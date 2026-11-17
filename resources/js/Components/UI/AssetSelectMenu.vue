@@ -3,10 +3,10 @@
         :class="{ 'border-1 rounded-lavoro-sm border-gray-200/70': needsBox }">
         <div class="relative">
             <ListboxButton
-                class="w-full flex items-center gap-3 rounded-lg bg-white dark:bg-lavoro-darkdark:ring-white/10 px-3 py-2.5 text-left focus:outline-none">
+                class="w-full flex items-center gap-3 rounded-lg bg-white dark:bg-slate-900 dark:bg-lavoro-darkdark:ring-white/10 px-3 py-2.5 text-left focus:outline-none">
                 <template v-if="model">
                     <img v-if="model.thumbnail_url" :src="model.thumbnail_url" :alt="model.name"
-                        class="size-12 rounded-md object-contain bg-gray-50 shrink-0" />
+                        class="size-12 rounded-md object-contain bg-gray-50 dark:bg-slate-800/50 shrink-0" />
                     <div v-else class="size-12 rounded-md bg-gray-100 dark:bg-slate-700 shrink-0" />
                 </template>
                 <div v-else class="size-12 rounded-md bg-gray-100 dark:bg-slate-700 shrink-0" />
@@ -20,7 +20,7 @@
                                 {{ [model.category, model.article_number].filter(Boolean).join(' • ') }}
                             </p>
                             <span v-if="model.location"
-                                class="inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium text-lavoro-blue ring-1 ring-inset ring-lavoro-blue/60">
+                                class="inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium text-lavoro-blue dark:text-blue-400 ring-1 ring-inset ring-lavoro-blue/60">
                                 <Target class="size-3 shrink-0" />
                                 <span class="truncate">{{ [model.location.title, model.location.city].filter(Boolean).join(' · ') }}</span>
                             </span>
@@ -53,7 +53,7 @@
                             'flex items-center gap-3 px-3 py-2.5 cursor-default select-none',
                         ]">
                             <img v-if="asset.thumbnail_url" :src="asset.thumbnail_url" :alt="asset.name"
-                                class="size-12 rounded-md object-contain bg-gray-50 shrink-0" />
+                                class="size-12 rounded-md object-contain bg-gray-50 dark:bg-slate-800/50 shrink-0" />
                             <div v-else class="size-12 rounded-md bg-gray-100 dark:bg-slate-700 shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
@@ -102,7 +102,7 @@
                                     </li>
                                 </ul>
                                 <span v-if="asset.location" :class="[
-                                    active ? 'text-white ring-white/60' : 'text-lavoro-blue ring-lavoro-blue/60',
+                                    active ? 'text-white ring-white/60' : 'text-lavoro-blue dark:text-blue-400 ring-lavoro-blue/60',
                                     'inline-flex items-center gap-1 mt-1 max-w-full rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset',
                                 ]">
                                     <Target class="size-3 shrink-0" />

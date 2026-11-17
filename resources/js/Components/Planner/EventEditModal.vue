@@ -9,7 +9,7 @@
                 <div class="flex items-start flex-shrink-0 p-6 pb-5">
                     <div
                         class="flex-shrink-0 w-12 h-12 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-xl flex items-center justify-center mr-4">
-                        <CalendarDaysIcon class="h-6 w-6 text-lavoro-blue" />
+                        <CalendarDaysIcon class="h-6 w-6 text-lavoro-blue dark:text-blue-400" />
                     </div>
                     <div class="flex-1 min-w-0">
                         <h2 class="text-xl font-bold text-gray-900 dark:text-white">
@@ -19,7 +19,7 @@
                             in.</p>
                     </div>
                     <button @click="closeModal"
-                        class="flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 transition-colors ml-4">
+                        class="flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors ml-4">
                         <XMarkIcon class="h-5 w-5" />
                     </button>
                 </div>
@@ -34,7 +34,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Start</span>
                             </div>
@@ -48,13 +48,13 @@
                                     <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
                                 </select>
                             </div>
-                            <p v-if="form.errors.start" class="mt-1 text-sm text-red-600">{{ form.errors.start }}</p>
+                            <p v-if="form.errors.start" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.start }}</p>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <CalendarDaysIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Einde</span>
                             </div>
@@ -68,7 +68,7 @@
                                     <option v-for="m in minutes" :key="m" :value="m">{{ m }}</option>
                                 </select>
                             </div>
-                            <p v-if="form.errors.end" class="mt-1 text-sm text-red-600">{{ form.errors.end }}</p>
+                            <p v-if="form.errors.end" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.end }}</p>
                         </div>
                     </div>
 
@@ -78,7 +78,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <TagIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <TagIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Type
                                     afspraak</span>
@@ -91,7 +91,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <CheckCircleIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <CheckCircleIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Status</span>
                             </div>
@@ -107,7 +107,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <DocumentTextIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <DocumentTextIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Titel</span>
                             </div>
@@ -118,7 +118,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <UserIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <UserIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Klant</span>
                             </div>
@@ -135,7 +135,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <DocumentIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <DocumentIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                     Werkbon
@@ -147,7 +147,7 @@
                                     Deze afspraak heeft geen werkbon nodig.
                                 </p>
                                 <button type="button" @click="startLinkingServiceOrder"
-                                    class="text-sm text-lavoro-blue font-medium hover:underline flex items-center gap-1">
+                                    class="text-sm text-lavoro-blue dark:text-blue-400 font-medium hover:underline flex items-center gap-1">
                                     <PlusIcon class="h-4 w-4" />
                                     Werkbon koppelen
                                 </button>
@@ -171,14 +171,14 @@
                                     data-tour="planner.appointment.serviceorder.create" class="flex items-center gap-2 mt-2 select-none"
                                     :class="selectedCustomer ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'">
                                     <input type="checkbox" v-model="form.create_service_order" :disabled="!selectedCustomer"
-                                        class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
+                                        class="rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer disabled:cursor-not-allowed" />
                                     <span class="text-sm text-gray-600 dark:text-gray-400">Maak een nieuwe werkbon
                                         aan</span>
                                 </label>
                                 <label v-if="!editingExisting || linkingServiceOrder" data-tour="planner.appointment.serviceorder.none"
                                     class="flex items-center gap-2 mt-2 select-none cursor-pointer">
                                     <input type="checkbox" v-model="form.no_service_order"
-                                        class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                        class="rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer" />
                                     <span class="text-sm text-gray-600 dark:text-gray-400">Geen werkbon nodig</span>
                                 </label>
                             </template>
@@ -187,7 +187,7 @@
                             <div class="flex items-center gap-2 mb-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <BuildingOffice2Icon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <BuildingOffice2Icon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Locatie</span>
                             </div>
@@ -207,13 +207,13 @@
 
                                 <button v-if="locationMode === 'freeform' && hasLocations" type="button"
                                     data-tour="planner.appointment.location.pick" @click="switchToPickerLocation"
-                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
+                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue dark:hover:text-blue-400 hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
                                     v-tooltip="'Kies een locatie van deze klant'">
                                     <LocateFixed class="size-5" />
                                 </button>
                                 <button v-if="locationMode === 'picker'" type="button"
                                     data-tour="planner.appointment.location.address" @click="switchToFreeformLocation"
-                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
+                                    class="shrink-0 p-2 rounded-md text-slate-500 dark:text-slate-400 hover:text-lavoro-blue dark:hover:text-blue-400 hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 cursor-pointer transition-colors"
                                     v-tooltip="'Vrije invoer'">
                                     <PencilSquareIcon class="size-5" />
                                 </button>
@@ -233,7 +233,7 @@
                         <div class="flex items-center gap-2 mb-2">
                             <div
                                 class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <Bars3BottomLeftIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                <Bars3BottomLeftIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                             </div>
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Omschrijving</span>
                         </div>
@@ -254,13 +254,13 @@
                             <div class="flex items-center gap-2">
                                 <div
                                     class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                    <UsersIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                    <UsersIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                                 </div>
                                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Uitvoerende
                                     gebruikers</span>
                             </div>
                             <button @click="showUserSelector = !showUserSelector"
-                                class="text-sm text-lavoro-blue font-medium hover:underline flex items-center gap-1">
+                                class="text-sm text-lavoro-blue dark:text-blue-400 font-medium hover:underline flex items-center gap-1">
                                 <PlusIcon class="h-4 w-4" />
                                 Gebruiker toevoegen
                             </button>
@@ -299,7 +299,7 @@
                                         class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 select-none cursor-pointer">
                                         <input :id="`diverging-${user.id}`" type="checkbox"
                                             v-model="userDivergingTimes[String(user.id)].has_diverging_times"
-                                            class="rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                            class="rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer" />
                                         Afwijkende tijden
                                     </label>
                                     <template v-if="userDivergingTimes[String(user.id)].has_diverging_times">
@@ -340,7 +340,7 @@
                     <div v-if="editingExisting && form.id" class="pb-2">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
-                                <EnvelopeIcon class="h-3.5 w-3.5 text-lavoro-blue" />
+                                <EnvelopeIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
                             </div>
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">E-mail</span>
                         </div>
@@ -350,7 +350,7 @@
                                 placeholder="Kies standaard e-mail..." />
                             <button type="button" @click="sendSelectedStandardEmailWithEdit" :disabled="!selectedStandardEmailId"
                                 v-tooltip="'Bewerken en verzenden'"
-                                class="px-3 py-2 rounded-xl border border-lavoro-blue text-lavoro-blue hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 disabled:opacity-50">
+                                class="px-3 py-2 rounded-xl border border-lavoro-blue text-lavoro-blue dark:text-blue-400 hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 disabled:opacity-50">
                                 <MailQuestionMark class="h-4 w-4" />
                             </button>
                             <button type="button" @click="sendSelectedStandardEmailDirect"
@@ -368,7 +368,7 @@
                                     <p class="text-xs text-gray-400">{{ nlDate(item.created_at) }} {{ nlTime(item.created_at) }}</p>
                                 </div>
                                 <button v-if="item.standard_email_id" type="button" @click="resendHistoryItem(item)"
-                                    class="text-xs text-lavoro-blue font-medium hover:underline shrink-0 ml-2">
+                                    class="text-xs text-lavoro-blue dark:text-blue-400 font-medium hover:underline shrink-0 ml-2">
                                     Opnieuw versturen
                                 </button>
                             </div>
@@ -416,7 +416,7 @@
                         <!-- Voorlopig -->
                         <div class="flex items-center gap-3 py-1" data-tour="planner.appointment.preliminary">
                             <input id="is_preliminary" type="checkbox" v-model="form.is_preliminary"
-                                class="h-4 w-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue cursor-pointer" />
+                                class="h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-lavoro-blue dark:text-blue-400 focus:ring-lavoro-blue cursor-pointer" />
                             <label for="is_preliminary"
                                 class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
                                 <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />

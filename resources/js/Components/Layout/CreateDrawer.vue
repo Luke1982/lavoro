@@ -154,7 +154,7 @@ const page = usePage()
 
 const priorities = ['Laag', 'Normaal', 'Hoog']
 
-const inputClass = 'mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 '
+const inputClass = 'mt-1 w-full rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 '
     + 'dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
 const textareaClass = inputClass
 const selectClass = inputClass

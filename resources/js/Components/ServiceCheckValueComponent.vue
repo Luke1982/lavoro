@@ -14,7 +14,7 @@
             class="px-3 py-1 bg-red-600 text-white cursor-pointer hover:bg-red-700 rounded-r-md">
             <TrashIcon class="w-5 h-5" />
         </button>
-        <Bars4Icon class="size-6 mt-1 ml-2 text-gray-500 cursor-move rounded-r draghandle"
+        <Bars4Icon class="size-6 mt-1 ml-2 text-gray-500 dark:text-slate-400 cursor-move rounded-r draghandle"
             v-tooltip="'Versleep deze waarde naar een andere volgorde'" />
     </div>
 </template>

@@ -161,14 +161,14 @@ function circleClasses(idx) {
 function checkColorClasses(idx) {
     const status = stepStatus(idx)
     if (status === 'complete') return 'text-white'
-    if (status === 'current') return 'text-lavoro-blue'
+    if (status === 'current') return 'text-lavoro-blue dark:text-blue-400'
     return 'text-gray-400 dark:text-slate-500'
 }
 
 function labelColorClasses(idx) {
     const status = stepStatus(idx)
     if (status === 'complete' || status === 'current') {
-        return 'text-lavoro-blue'
+        return 'text-lavoro-blue dark:text-blue-400'
     }
     return 'text-gray-600 dark:text-slate-400'
 }

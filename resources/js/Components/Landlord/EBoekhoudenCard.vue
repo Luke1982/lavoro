@@ -1,15 +1,15 @@
 <template>
     <PanelSection title="e-Boekhouden">
 
-        <p v-if="!eboekhouden.configured" class="text-sm text-slate-500">
+        <p v-if="!eboekhouden.configured" class="text-sm text-slate-500 dark:text-slate-400">
             Niet ingesteld: zet EBOEKHOUDEN_USERNAME en de twee beveiligingscodes in .env.
         </p>
 
         <template v-else>
-            <p class="mb-3 text-sm text-slate-500">
+            <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
                 <template v-if="eboekhouden.relation_code">
                     De facturen van deze klant worden geboekt op relatie
-                    <strong class="text-slate-900">{{ eboekhouden.relation_code }}</strong>.
+                    <strong class="text-slate-900 dark:text-slate-100">{{ eboekhouden.relation_code }}</strong>.
                     Klik op de gekoppelde relatie om hem los te maken.
                 </template>
                 <template v-else>
@@ -24,24 +24,24 @@
                     aria-label="Zoeken in e-Boekhouden">
                 <button type="submit" :disabled="form.processing" class="panel-button">Zoeken</button>
             </form>
-            <p v-if="form.errors.term" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.term }}</p>
+            <p v-if="form.errors.term" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">{{ form.errors.term }}</p>
 
-            <p v-if="eboekhouden.matches && !eboekhouden.matches.length" class="mt-3 text-sm text-slate-500">
+            <p v-if="eboekhouden.matches && !eboekhouden.matches.length" class="mt-3 text-sm text-slate-500 dark:text-slate-400">
                 Niets gevonden voor &ldquo;{{ eboekhouden.term }}&rdquo;.
             </p>
 
-            <ul v-if="rows.length" class="mt-3 divide-y divide-slate-200 overflow-hidden rounded-md border border-slate-300">
+            <ul v-if="rows.length" class="mt-3 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600">
                 <li v-for="relation in rows" :key="relation.code">
-                    <button type="button" class="flex w-full items-baseline gap-3 px-3 py-2 text-left hover:bg-slate-50"
+                    <button type="button" class="flex w-full items-baseline gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
                         :class="{ 'bg-blue-50': isLinked(relation) }" @click="toggle(relation)">
                         <span class="font-mono text-sm">{{ relation.code }}</span>
                         <span class="flex-1">
                             {{ relation.name }}
-                            <span class="text-sm text-slate-500">
+                            <span class="text-sm text-slate-500 dark:text-slate-400">
                                 {{ [relation.city, relation.email, relation.coc_number].filter(Boolean).join(' · ') }}
                             </span>
                         </span>
-                        <span v-if="isLinked(relation)" class="text-sm font-semibold text-blue-700">gekoppeld</span>
+                        <span v-if="isLinked(relation)" class="text-sm font-semibold text-blue-700 dark:text-blue-300">gekoppeld</span>
                     </button>
                 </li>
             </ul>

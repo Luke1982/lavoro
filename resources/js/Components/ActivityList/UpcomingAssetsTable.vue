@@ -21,7 +21,7 @@
                 </label>
                 <div role="cell" class="hidden sm:block">
                     <img :src="row.image_id ? `/files/images/${row.image_id}` : '/img/placeholder.png'" alt=""
-                        class="size-11 rounded-sm border border-gray-200 dark:border-slate-700 object-contain bg-white" />
+                        class="size-11 rounded-sm border border-gray-200 dark:border-slate-700 object-contain bg-white dark:bg-slate-900" />
                 </div>
                 <div role="cell" class="hidden lg:block min-w-0">
                     <span :title="row.serial_number"
@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 <div role="cell" class="hidden lg:flex items-center gap-2 min-w-0">
-                    <Building2Icon class="size-4 shrink-0 text-lavoro-blue" aria-hidden="true" />
+                    <Building2Icon class="size-4 shrink-0 text-lavoro-blue dark:text-blue-400" aria-hidden="true" />
                     <Link :href="`/customers/${row.customer_id}`" :title="row.customer"
                         class="truncate text-gray-700 dark:text-slate-200 hover:underline">
                         {{ row.customer }}

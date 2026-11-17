@@ -1,6 +1,6 @@
 <template>
     <PillButton v-if="allowed" @click="openAssistant" :title="'Vraag de assistent (' + shortcut + ')'"
-        class="text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-700">
+        class="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700">
         <SparklesIcon class="size-5" />
         <span class="hidden sm:inline text-xs text-slate-400 font-normal">{{ shortcut }}</span>
     </PillButton>

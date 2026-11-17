@@ -62,9 +62,9 @@
                             </template>
                         </EditableTextField>
                         <div>
-                            <h3 class="text-xs font-semibold mb-1 text-slate-500">Serienummer</h3>
-                            <span v-if="asset.product.bundle" class="text-sm text-gray-500 italic">Bundel</span>
-                            <span v-else-if="!asset.product.registable" class="text-sm text-gray-500 italic">Geen
+                            <h3 class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Serienummer</h3>
+                            <span v-if="asset.product.bundle" class="text-sm text-gray-500 dark:text-slate-400 italic">Bundel</span>
+                            <span v-else-if="!asset.product.registable" class="text-sm text-gray-500 dark:text-slate-400 italic">Geen
                                 serienummer</span>
                             <div v-else class="flex items-center gap-2">
                                 <EditableTextField v-model="form.serial_number" :readonly="!canUpdate"
@@ -90,12 +90,12 @@
                             @revert="form.clearErrors('location_id')">
                             <template #display>
                                 <Link v-if="asset.linked_location" :href="`/locations/${asset.linked_location.id}`"
-                                    class="text-blue-600 underline">{{ asset.linked_location.title }}</Link>
+                                    class="text-blue-600 dark:text-blue-400 underline">{{ asset.linked_location.title }}</Link>
                                 <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie</span>
                             </template>
                         </EditableTextField>
                     </div>
-                    <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                    <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70 mt-6 md:mt-0">
                         <EditableTextField v-model="form.next_service_date" inputType="date" :readonly="!canUpdate"
                             label="Volgende keuring" :error="form.errors.next_service_date"
                             @revert="form.clearErrors('next_service_date')" />
@@ -106,7 +106,7 @@
                             @revert="form.clearErrors('customer_id')">
                             <template #display>
                                 <Link v-if="owningCustomer" :href="`/customers/${owningCustomer.id}`"
-                                    class="text-blue-600 underline">{{ owningCustomer.name }}</Link>
+                                    class="text-blue-600 dark:text-blue-400 underline">{{ owningCustomer.name }}</Link>
                                 <span v-else class="text-gray-400">—</span>
                                 <span v-if="isChildAsset" class="text-xs text-gray-400 ml-2">
                                     via bovenliggende machine
@@ -117,7 +117,7 @@
                             :indicator="preferredSupplier ? 'link' : ''">
                             <template #display>
                                 <Link v-if="preferredSupplier && canReadSuppliers"
-                                    :href="`/suppliers/${preferredSupplier.id}`" class="text-blue-600 underline">
+                                    :href="`/suppliers/${preferredSupplier.id}`" class="text-blue-600 dark:text-blue-400 underline">
                                     {{ preferredSupplier.name }}
                                 </Link>
                                 <span v-else-if="preferredSupplier">{{ preferredSupplier.name }}</span>
@@ -208,7 +208,7 @@
                                     ({{ slot.product_relation.name }})
                                 </span>
                                 <span v-if="slot.is_required"
-                                    class="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/30 rounded px-1">
+                                    class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 rounded px-1">
                                     verplicht
                                 </span>
                             </div>
@@ -223,20 +223,20 @@
                         <div v-for="child in childAssetsForSlot(slot.id)" :key="child.id"
                             class="flex items-center justify-between py-1 pl-2 border-b border-gray-100 dark:border-slate-600">
                             <div>
-                                <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                                <Link :href="`/assets/${child.id}`" class="text-blue-600 dark:text-blue-400 underline text-sm">
                                     {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
                                 <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
                             </div>
                             <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
-                                class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                class="text-red-400 hover:text-red-600 dark:hover:text-red-400" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
                         <div v-if="hasPermission('assetrelation.create') && slotHasRoom(slot)" class="mt-1.5 pl-2">
                             <div v-if="creatingForSlot !== slot.id">
                                 <button @click="openNewChildForm(slot.id)"
-                                    class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                                    class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200">
                                     <PlusIcon class="size-3" /> Nieuwe machine aanmaken
                                 </button>
                             </div>
@@ -255,7 +255,7 @@
                                     Aanmaken
                                 </button>
                                 <button @click="cancelNewChild"
-                                    class="mt-8 px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                    class="mt-8 px-3 py-1.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">
                                     Annuleren
                                 </button>
                             </div>
@@ -268,7 +268,7 @@
                         <div v-for="child in unslottedChildAssets" :key="child.id"
                             class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
                             <div>
-                                <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                                <Link :href="`/assets/${child.id}`" class="text-blue-600 dark:text-blue-400 underline text-sm">
                                     {{ child.product.brand.name }} {{ child.product.model }}
                                 </Link>
                                 <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
@@ -276,7 +276,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
                                 <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
-                                    class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                    class="text-red-400 hover:text-red-600 dark:hover:text-red-400" v-tooltip="'Koppeling verwijderen'">
                                     <TrashIcon class="size-4" />
                                 </button>
                             </div>
@@ -288,9 +288,9 @@
                 <div v-else-if="asset.child_assets?.length">
                     <p class="text-xs text-gray-400 mb-1">Onderdelen</p>
                     <div v-for="child in asset.child_assets" :key="child.id"
-                        class="flex items-center justify-between py-1 border-b border-gray-50">
+                        class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-800">
                         <div>
-                            <Link :href="`/assets/${child.id}`" class="text-blue-600 underline text-sm">
+                            <Link :href="`/assets/${child.id}`" class="text-blue-600 dark:text-blue-400 underline text-sm">
                                 {{ child.product.brand.name }} {{ child.product.model }}
                             </Link>
                             <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(child) }}</span>
@@ -298,7 +298,7 @@
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-400">{{ child.product_relation?.name ?? '—' }}</span>
                             <button v-if="hasPermission('assetrelation.delete')" @click="detachChild(child.id)"
-                                class="text-red-400 hover:text-red-600" v-tooltip="'Koppeling verwijderen'">
+                                class="text-red-400 hover:text-red-600 dark:hover:text-red-400" v-tooltip="'Koppeling verwijderen'">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
@@ -309,7 +309,7 @@
                     <p class="text-xs text-gray-400 mb-1">Onderdeel van</p>
                     <div class="flex items-center justify-between py-1 border-b border-gray-50 dark:border-slate-700">
                         <div>
-                            <Link :href="`/assets/${asset.parent_asset.id}`" class="text-blue-600 underline text-sm">
+                            <Link :href="`/assets/${asset.parent_asset.id}`" class="text-blue-600 dark:text-blue-400 underline text-sm">
                                 {{ asset.parent_asset.product.brand.name }} {{ asset.parent_asset.product.model }}
                             </Link>
                             <span class="text-xs text-gray-400 ml-2">{{ assetSerialLabel(asset.parent_asset) }}</span>
@@ -327,20 +327,20 @@
                 <div v-if="eligibleChildAssets.length && hasPermission('assetrelation.create')" class="mt-3">
                     <div v-if="!addingManualLink">
                         <button @click="addingManualLink = true"
-                            class="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
+                            class="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200">
                             <PlusIcon class="size-4" /> Machine handmatig koppelen
                         </button>
                     </div>
                     <div v-else
-                        class="p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2 mt-2">
+                        class="p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2 mt-2">
                         <div class="flex gap-2 flex-wrap">
                             <div class="flex-1 min-w-48">
-                                <label class="block text-xs text-gray-500 mb-1">Machine</label>
+                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Machine</label>
                                 <ComboBox :options="eligibleChildAssets" v-model="manualLink.child_asset_id"
                                     placeholder="Selecteer machine" />
                             </div>
                             <div class="flex-1 min-w-32">
-                                <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Relatietype</label>
                                 <ComboBox :options="productRelations" v-model="manualLink.product_relation_id"
                                     placeholder="Selecteer type" />
                             </div>
@@ -352,7 +352,7 @@
                             </button>
                             <button
                                 @click="addingManualLink = false; manualLink.child_asset_id = null; manualLink.product_relation_id = null"
-                                class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                class="px-3 py-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">
                                 Annuleren
                             </button>
                         </div>
@@ -374,7 +374,7 @@
             <BoxComponent v-if="asset.product.images.length > 0 && hasPermission('image.see')" class="mt-6">
                 <SectionHeader :icon="CubeIcon" chapter="products" border>
                     Foto's van het
-                    <Link :href="`/products/${asset.product.id}`" class="text-blue-600 underline">product</Link>
+                    <Link :href="`/products/${asset.product.id}`" class="text-blue-600 dark:text-blue-400 underline">product</Link>
                 </SectionHeader>
                 <div class="grid grid-cols-2 gap-6 items-center mt-4">
                     <img v-for="image in asset.product.images" :key="image.id" :src="imageFileUrl(image)"

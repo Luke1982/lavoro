@@ -78,9 +78,9 @@
                                     {{ product.brand.name }} {{ product.model }}
                                 </Link>
                             </td>
-                            <td class="py-1.5 text-gray-500">{{ product.pivot.article_number || '—' }}</td>
+                            <td class="py-1.5 text-gray-500 dark:text-slate-400">{{ product.pivot.article_number || '—' }}</td>
                             <td class="py-1.5 text-center">
-                                <span v-if="product.pivot.is_preferred" class="text-green-600 text-xs">✓</span>
+                                <span v-if="product.pivot.is_preferred" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                 <span v-else class="text-gray-300 text-xs">—</span>
                             </td>
                         </tr>
@@ -105,9 +105,9 @@
                         <tr v-for="material in supplier.materials" :key="material.id"
                             class="border-b border-gray-100 dark:border-slate-800">
                             <td class="py-1.5">{{ material.name }}</td>
-                            <td class="py-1.5 text-gray-500">{{ material.pivot.article_number || '—' }}</td>
+                            <td class="py-1.5 text-gray-500 dark:text-slate-400">{{ material.pivot.article_number || '—' }}</td>
                             <td class="py-1.5 text-center">
-                                <span v-if="material.pivot.is_preferred" class="text-green-600 text-xs">✓</span>
+                                <span v-if="material.pivot.is_preferred" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                 <span v-else class="text-gray-300 text-xs">—</span>
                             </td>
                         </tr>

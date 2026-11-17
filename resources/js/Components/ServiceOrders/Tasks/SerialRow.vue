@@ -16,7 +16,7 @@
             </span>
             <span v-else class="flex-none w-7" />
         </div>
-        <p v-if="error" class="text-xs text-red-600 mt-1 ml-7">{{ error }}</p>
+        <p v-if="error" class="text-xs text-red-600 dark:text-red-400 mt-1 ml-7">{{ error }}</p>
     </div>
 </template>
 

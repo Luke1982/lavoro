@@ -1,7 +1,7 @@
 <template>
     <BoxComponent>
-        <div class="flex items-center gap-3 border-b border-gray-200 pb-4 mb-4">
-            <Link href="/productattributes" class="text-gray-400 hover:text-gray-600">
+        <div class="flex items-center gap-3 border-b border-gray-200 dark:border-slate-700 pb-4 mb-4">
+            <Link href="/productattributes" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-400">
                 <ArrowLeftIcon class="size-5" />
             </Link>
             <div>
@@ -30,14 +30,14 @@
             <div class="flex items-center gap-2 mb-3">
                 <h3 class="text-sm font-semibold">Waarden</h3>
                 <button v-if="hasPermission('productattribute.update')" @click="addingValue = !addingValue"
-                    class="text-blue-600 hover:text-blue-800" v-tooltip="'Waarde toevoegen'">
+                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200" v-tooltip="'Waarde toevoegen'">
                     <PlusIcon class="size-4" />
                 </button>
             </div>
 
             <div v-if="addingValue" class="flex gap-2 items-center mb-3">
                 <input v-model="newValueText" type="text" placeholder="bijv. 'Rood'"
-                    class="flex-1 max-w-xs rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    class="flex-1 max-w-xs rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500"
                     @keyup.enter="submitValue" />
                 <button @click="submitValue"
                     class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
@@ -45,7 +45,7 @@
                     Toevoegen
                 </button>
                 <button @click="addingValue = false; newValueText = ''"
-                    class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
+                    class="px-3 py-1.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-slate-600">
                     Annuleren
                 </button>
             </div>
@@ -58,11 +58,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="val in attribute.values" :key="val.id" class="border-b border-gray-100">
+                    <tr v-for="val in attribute.values" :key="val.id" class="border-b border-gray-100 dark:border-slate-800">
                         <td class="py-1.5">
                             <template v-if="editingValueId === val.id">
                                 <input v-model="editValueText" type="text"
-                                    class="rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
+                                    class="rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
                                     @keyup.enter="saveValue(val.id)" @keyup.esc="editingValueId = null" />
                             </template>
                             <template v-else>{{ val.value }}</template>
@@ -73,17 +73,17 @@
                                     <button @click="saveValue(val.id)"
                                         class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
                                     <button @click="editingValueId = null"
-                                        class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                        class="px-2 py-0.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">Annuleren</button>
                                 </div>
                             </template>
                             <template v-else>
                                 <div class="flex justify-end gap-2">
                                     <button v-if="hasPermission('productattribute.update')" @click="startEditValue(val)"
-                                        class="text-gray-400 hover:text-gray-600">
+                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-400">
                                         <PencilIcon class="size-4" />
                                     </button>
                                     <button v-if="hasPermission('productattribute.update')" @click="deleteValue(val.id)"
-                                        class="text-red-400 hover:text-red-600">
+                                        class="text-red-400 hover:text-red-600 dark:hover:text-red-400">
                                         <TrashIcon class="size-4" />
                                     </button>
                                 </div>
@@ -97,9 +97,9 @@
 
         <!-- Danger zone -->
         <div v-if="hasPermission('productattribute.delete')"
-            class="mt-8 pt-4 border-t border-gray-200 flex justify-end">
+            class="mt-8 pt-4 border-t border-gray-200 dark:border-slate-700 flex justify-end">
             <button @click="confirmDelete"
-                class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 border border-red-200">
+                class="px-3 py-1.5 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800">
                 Kenmerk verwijderen
             </button>
         </div>

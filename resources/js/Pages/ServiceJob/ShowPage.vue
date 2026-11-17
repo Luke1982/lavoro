@@ -28,8 +28,8 @@
     <!-- ── HEADER CARD: title + meta info ── -->
     <BoxComponent class="mb-4">
         <div class="flex items-start gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-lavoro-lightblue flex items-center justify-center flex-none mt-0.5">
-                <ShieldCheckIcon class="w-5 h-5 text-lavoro-blue" />
+            <div class="w-10 h-10 rounded-xl bg-lavoro-lightblue dark:bg-blue-900/30 flex items-center justify-center flex-none mt-0.5">
+                <ShieldCheckIcon class="w-5 h-5 text-lavoro-blue dark:text-blue-400" />
             </div>
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -47,7 +47,7 @@
             <div class="sm:pr-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Klant</div>
                 <Link :href="`/customers/${servicejob.asset.customer.id}`"
-                    class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
+                    class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline">
                     {{ servicejob.asset.customer.name }}
                 </Link>
             </div>
@@ -61,7 +61,7 @@
                         @revert="serialForm.clearErrors('serial_number')">
                         <template #display>
                             <Link v-if="servicejob.asset.serial_number" :href="`/assets/${servicejob.asset.id}`"
-                                class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
+                                class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline">
                                 {{ servicejob.asset.serial_number }}
                             </Link>
                             <span v-else class="text-sm font-normal text-gray-400 dark:text-slate-500">
@@ -75,7 +75,7 @@
             <div class="sm:px-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Werkbon</div>
                 <Link :href="`/serviceorders/${servicejob.service_order.id}`"
-                    class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
+                    class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline">
                     Nummer {{ servicejob.service_order.id }}<template
                         v-if="servicejob.service_order.order_date"> van {{
                             nlDate(servicejob.service_order.order_date) }}</template>
@@ -84,7 +84,7 @@
             <div class="sm:pl-6">
                 <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Soort product</div>
                 <Link :href="`/producttypes?search=${servicejob.asset.product.product_type.name}`"
-                    class="text-sm font-medium text-lavoro-blue hover:opacity-80 underline">
+                    class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline">
                     {{ servicejob.asset.product.product_type.name }}
                 </Link>
             </div>
@@ -98,7 +98,7 @@
             <div class="font-semibold mb-1">{{ missing_checks_count }} ontbrekende keurpunt(en)</div>
             <ul class="list-disc ml-5 space-y-0.5">
                 <li v-for="mc in missing_checks" :key="mc.id">{{ mc.name }}<span
-                        class="text-gray-500 ml-1 text-xs">({{ mc.type }})</span></li>
+                        class="text-gray-500 dark:text-slate-400 ml-1 text-xs">({{ mc.type }})</span></li>
             </ul>
         </div>
         <div class="flex items-start md:items-center gap-2 md:ml-4">
@@ -113,7 +113,7 @@
     <div v-if="parent_job"
         class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md">
         <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Onderdeel van gecombineerde keuring:</p>
-        <Link :href="`/servicejobs/${parent_job.id}`" class="text-lavoro-blue underline text-sm">{{ parent_job.asset_label }}</Link>
+        <Link :href="`/servicejobs/${parent_job.id}`" class="text-lavoro-blue dark:text-blue-400 underline text-sm">{{ parent_job.asset_label }}</Link>
         <span class="text-xs text-gray-400 ml-2">{{ parent_job.outcome }}</span>
     </div>
 
@@ -146,7 +146,7 @@
     <div :class="child_jobs.length ? 'border-l-4 border-blue-500 pl-4' : ''">
         <h2 v-if="child_jobs.length" class="text-base font-bold text-blue-700 dark:text-blue-300 mb-3">
             {{ servicejob.asset.product.brand.name }} {{ servicejob.asset.product.model }}
-            <span class="font-normal text-gray-500 text-sm ml-1">({{ servicejob.asset.serial_number }})</span>
+            <span class="font-normal text-gray-500 dark:text-slate-400 text-sm ml-1">({{ servicejob.asset.serial_number }})</span>
         </h2>
 
         <!-- Keurpunten heading -->
@@ -216,8 +216,8 @@
     <div v-for="cj in child_jobs" :key="cj.id" class="mt-8 border-l-4 border-emerald-500 pl-4">
         <h2 class="text-base font-bold text-emerald-700 dark:text-emerald-300 mb-3">
             {{ cj.asset_label }}
-            <Link :href="`/assets/${cj.asset_id}`" class="text-xs font-normal text-lavoro-blue underline ml-2">machine</Link>
-            <Link :href="`/servicejobs/${cj.id}`" class="text-xs font-normal text-lavoro-blue underline ml-2">volledige keuring</Link>
+            <Link :href="`/assets/${cj.asset_id}`" class="text-xs font-normal text-lavoro-blue dark:text-blue-400 underline ml-2">machine</Link>
+            <Link :href="`/servicejobs/${cj.id}`" class="text-xs font-normal text-lavoro-blue dark:text-blue-400 underline ml-2">volledige keuring</Link>
         </h2>
         <div class="flex flex-col gap-4">
             <div v-for="group in groupsForChildJob(cj)" :key="group.key" class="w-full">

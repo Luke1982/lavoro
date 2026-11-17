@@ -3,7 +3,7 @@
         canEdit ? 'cursor-pointer' : '',
         isHighlighted ? 'ring-2 ring-offset-2 ring-lavoro-blue animate-pulse' : '',
     ]" :style="{
-        backgroundColor: `color-mix(in srgb, ${cardColor} 6%, white)`,
+        backgroundColor: `color-mix(in srgb, ${cardColor} 6%, var(--tint-base))`,
         borderColor: `color-mix(in srgb, ${cardColor} 9%, #e5e7eb)`,
         ...(isClosed ? { backgroundImage: COMPLETED_PATTERN } : {}),
     }" @click="$emit('tap', event)">
@@ -35,7 +35,7 @@
                 </div>
                 <EventExecutionControls :event="event" :user-id="relevantUserId" @changed="$emit('changed')" />
                 <button v-if="hasPermission('event.provide_feedback') && !event.eventable_id"
-                    @click.stop="$emit('feedback', event)" class="p-1 text-gray-400 hover:text-lavoro-blue relative"
+                    @click.stop="$emit('feedback', event)" class="p-1 text-gray-400 hover:text-lavoro-blue dark:hover:text-blue-400 relative"
                     title="Terugkoppeling">
                     <MessageCircleReply class="size-4" />
                     <span v-if="feedbackCount > 0"
@@ -73,7 +73,7 @@
                     <span class="text-xs text-gray-600 dark:text-slate-300 font-medium">{{ u.name }}</span>
                     <span v-for="r in u.roles" :key="r.id" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                         :style="{
-                            backgroundColor: `color-mix(in srgb, ${r.color} 18%, white)`,
+                            backgroundColor: `color-mix(in srgb, ${r.color} 18%, var(--tint-base))`,
                             color: `color-mix(in srgb, ${r.color} 70%, black)`,
                         }">
                         {{ r.name }}
@@ -84,13 +84,13 @@
             <!-- WB badge -->
             <div class="mt-2 flex items-center gap-2 flex-wrap">
                 <button v-if="event.eventable_id"
-                    class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 transition"
+                    class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg px-2 py-1 shadow-sm hover:border-gray-300 dark:hover:border-slate-600 transition"
                     @click.stop="router.visit(`/serviceorders/${event.eventable_id}`)">
                     <BuildingOfficeIcon class="size-3.5 shrink-0" />
                     <span>{{ formatWbNumber(event.eventable_id) }}</span>
                     <TriangleAlert v-if="event.is_incomplete" class="size-3.5 shrink-0 text-amber-500"
                         v-tooltip="'Werkbon gedeeltelijk afgerond'" />
-                    <CircleCheck v-else-if="event.is_closed" class="size-3.5 shrink-0 text-green-600"
+                    <CircleCheck v-else-if="event.is_closed" class="size-3.5 shrink-0 text-green-600 dark:text-green-400"
                         v-tooltip="'Werkbon afgerond'" />
                     <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                 </button>

@@ -1,18 +1,18 @@
 <template>
     <BoxComponent>
-        <div class="sticky top-[var(--app-header-offset,4rem)] lg:top-0 z-2 bg-white transition-[top] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
+        <div class="sticky top-[var(--app-header-offset,4rem)] lg:top-0 z-2 bg-white dark:bg-slate-900 transition-[top] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
             <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal" class="" :counters="{
                 assets: mainAsset.customer.upcoming_assets.length,
                 openTickets: mainAsset.customer.upcoming_assets.reduce((sum, asset) => sum + asset.open_tickets.length, 0),
                 pendingTickets: mainAsset.customer.upcoming_assets.reduce((sum, asset) => sum + asset.pending_tickets.length, 0)
             }" :has-expired="isExpired" />
-            <div v-if="isExpired" class="absolute right-2 top-2 text-red-700"
+            <div v-if="isExpired" class="absolute right-2 top-2 text-red-700 dark:text-red-300"
                 v-tooltip="'Deze klant heeft minimaal één machine die al verlopen is'">
                 <ClockAlert />
             </div>
         </div>
         <div
-            class="grid grid-cols-12 text-xs bg-lavoro-gray-150 -ml-6 -mr-6 px-6 py-3 text-gray-400 uppercase border-t-1 border-gray-200 border-b-1 mb-3">
+            class="grid grid-cols-12 text-xs bg-lavoro-gray-150 dark:bg-slate-800/50 -ml-6 -mr-6 px-6 py-3 text-gray-400 uppercase border-t-1 border-gray-200 dark:border-slate-700 border-b-1 mb-3">
             <div class="col-span-1">
                 <input type="checkbox" :checked="customerState(mainAsset.customer.id).all"
                     v-indeterminate="customerState(mainAsset.customer.id).some && !customerState(mainAsset.customer.id).all"
@@ -28,7 +28,7 @@
         </div>
         <template v-for="group in locationGroups" :key="group.location ? `loc-${group.location.id}` : 'no-loc'">
             <div class="flex items-center gap-2 mt-4 mb-3 pb-1 border-b border-gray-200 dark:border-slate-700">
-                <MapPin class="size-4 text-lavoro-blue shrink-0" />
+                <MapPin class="size-4 text-lavoro-blue dark:text-blue-400 shrink-0" />
                 <span class="font-semibold text-sm text-gray-700 dark:text-slate-200">
                     {{ group.location ? group.location.title : 'Geen locatie' }}
                 </span>
@@ -59,7 +59,7 @@
                             </span>
                             <!-- Mobile -->
                             <div class="text-xs block sm:hidden">
-                                <span class="inline text-gray-600 font-bold">{{ asset.product.product_type.name }}
+                                <span class="inline text-gray-600 dark:text-slate-400 font-bold">{{ asset.product.product_type.name }}
                                     met s/n </span>
                                 <Link :href="`/assets/${asset.id}`"
                                     class="cursor-pointer underline text-lavoro-blue dark:text-lavoro-blue hover:dark:text-lavoro-lightblue inline">

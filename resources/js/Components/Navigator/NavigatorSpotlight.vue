@@ -14,10 +14,10 @@
         </template>
 
         <template #after>
-            <div class="max-h-[26rem] overflow-y-auto border-t border-slate-100">
+            <div class="max-h-[26rem] overflow-y-auto border-t border-slate-100 dark:border-slate-800">
                 <div v-for="group in groups" :key="group.group">
                     <div
-                        class="flex items-center gap-2 px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        class="flex items-center gap-2 px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         <span class="h-3 w-1 rounded-full bg-lavoro-green ring-1 ring-slate-900/10"></span>
                         {{ group.group }}
                     </div>
@@ -30,7 +30,7 @@
                         <component :is="hit.icon" v-if="hit.icon" class="size-4 shrink-0"
                             :class="isActive(hit) ? 'text-slate-900' : 'text-slate-400'" />
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm text-slate-900">{{ hit.title }}</span>
+                            <span class="block truncate text-sm text-slate-900 dark:text-slate-100">{{ hit.title }}</span>
                             <!-- Muted grey vanishes on solid lavorogreen; on the selected row it goes dark. -->
                             <span v-if="hit.subtitle" class="block truncate text-xs"
                                 :class="isActive(hit) ? 'text-slate-700' : 'text-slate-400'">{{ hit.subtitle }}</span>
@@ -43,14 +43,14 @@
                                 <span v-for="(label, metaIndex) in hit.meta" :key="metaIndex"
                                     class="rounded px-1.5 py-0.5 text-[10px] font-medium" :class="metaIndex === 0
                                         ? 'bg-slate-900 text-lavoro-green'
-                                        : isActive(hit) ? 'bg-white text-slate-700' : 'bg-slate-100 text-slate-600'">{{
+                                        : isActive(hit) ? 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'">{{
                                             label }}</span>
                             </span>
                         </span>
                     </button>
                 </div>
 
-                <p v-if="error" class="px-4 py-6 text-sm text-red-600">{{ error }}</p>
+                <p v-if="error" class="px-4 py-6 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
                 <!--
                     Shown even when a page already matched: the records are still

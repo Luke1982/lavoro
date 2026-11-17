@@ -88,7 +88,7 @@
                                             @revert="form.clearErrors('retail_price')" />
                                     </div>
                                     <div>
-                                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Bundel</h3>
+                                        <h3 class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Bundel</h3>
                                         <div class="flex items-center gap-3">
                                             <SwitchComponent v-model="form.bundle" />
                                             <span class="text-sm text-gray-600 dark:text-slate-400">
@@ -97,11 +97,11 @@
                                                 <template v-else>Normaal product</template>
                                             </span>
                                         </div>
-                                        <p v-if="form.errors.bundle" class="text-sm text-red-600 mt-1">{{
+                                        <p v-if="form.errors.bundle" class="text-sm text-red-600 dark:text-red-400 mt-1">{{
                                             form.errors.bundle }}</p>
                                     </div>
                                     <div v-if="!form.bundle">
-                                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Registreerbaar</h3>
+                                        <h3 class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Registreerbaar</h3>
                                         <div class="flex items-center gap-3">
                                             <SwitchComponent v-model="form.registable" />
                                             <span class="text-sm text-gray-600 dark:text-slate-400">
@@ -111,12 +111,12 @@
                                                     serienummer</template>
                                             </span>
                                         </div>
-                                        <p v-if="form.errors.registable" class="text-sm text-red-600 mt-1">{{
+                                        <p v-if="form.errors.registable" class="text-sm text-red-600 dark:text-red-400 mt-1">{{
                                             form.errors.registable }}</p>
                                     </div>
                                 </div>
                                 <!-- Right column -->
-                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70">
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70">
                                     <EditableTextField v-model="form.typical_certificate_days" type="input"
                                         label="Typische certificeringstermijn (dagen)"
                                         :error="form.errors.typical_certificate_days"
@@ -137,7 +137,7 @@
                                             @revert="form.clearErrors('purchase_price')" />
                                     </div>
                                     <div>
-                                        <h3 class="text-xs font-semibold mb-1 text-slate-500">Actief</h3>
+                                        <h3 class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Actief</h3>
                                         <div class="flex items-center gap-3">
                                             <SwitchComponent v-model="form.active" />
                                             <span class="text-sm text-gray-600 dark:text-slate-400">
@@ -145,7 +145,7 @@
                                                 <template v-else>Product is inactief</template>
                                             </span>
                                         </div>
-                                        <p v-if="form.errors.active" class="text-sm text-red-600 mt-1">{{
+                                        <p v-if="form.errors.active" class="text-sm text-red-600 dark:text-red-400 mt-1">{{
                                             form.errors.active }}</p>
                                     </div>
                                 </div>
@@ -154,7 +154,7 @@
                                 :model-id="product.id" :custom-fields="customFields"
                                 :can-edit="hasPermission('customfield.update')" class="mt-6" />
                             <!-- Attribute values -->
-                            <div v-if="productAttributes.length" class="mt-6 border-t border-gray-100 pt-4">
+                            <div v-if="productAttributes.length" class="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4">
                                 <SectionHeader :icon="TagIcon" title="Kenmerken"
                                     subtitle="Eigenschappen waarop dit product te onderscheiden is." chapter="attributes" />
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -178,7 +178,7 @@
                             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                                 imageable-type="\App\Models\Product" />
                             <button v-if="hasPermission('image.upload')" @click="openGoogleImagesDialog"
-                                class="mt-2 w-full flex items-center justify-center gap-2 text-sm text-blue-600 border border-blue-300 rounded-md px-3 py-2 hover:bg-blue-50">
+                                class="mt-2 w-full flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-700 rounded-md px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                                 <MagnifyingGlassIcon class="h-4 w-4" />
                                 Zoek op Google Afbeeldingen
                             </button>
@@ -195,7 +195,7 @@
                             subtitle="De machines die op dit product gebaseerd zijn." chapter="assets" border>
                             <template v-if="hasPermission('asset.create')" #actions>
                                 <button @click="addAssetDrawerOpen = true"
-                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer"
                                     v-tooltip="'Nieuwe machine toevoegen'">
                                     <PlusIcon class="size-4" />
                                 </button>
@@ -216,7 +216,7 @@
                             <template v-if="hasPermission('productable.create') && eligibleChildProducts.length"
                                 #actions>
                                 <button @click="addingRelation = !addingRelation"
-                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer"
                                     v-tooltip="'Gerelateerd product toevoegen'">
                                     <PlusIcon class="size-4" />
                                 </button>
@@ -225,39 +225,39 @@
                         <!-- Add form -->
                         <div v-auto-animate>
                             <div v-if="addingRelation"
-                                class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                                class="mt-3 mb-3 p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
                                 <div class="flex gap-2 flex-wrap">
                                     <div class="flex-1 min-w-40">
-                                        <label class="block text-xs text-gray-500 mb-1">Gerelateerd product</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Gerelateerd product</label>
                                         <ComboBox :options="eligibleChildProducts"
                                             v-model="newRelation.child_product_id" placeholder="Selecteer product" />
                                     </div>
                                     <div class="flex-1 min-w-32">
-                                        <label class="block text-xs text-gray-500 mb-1">Relatietype</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Relatietype</label>
                                         <ComboBox :options="productRelations" v-model="newRelation.product_relation_id"
                                             placeholder="Selecteer type" />
                                     </div>
                                     <div class="w-20">
-                                        <label class="block text-xs text-gray-500 mb-1">Aantal</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Aantal</label>
                                         <input type="number" min="1" v-model.number="newRelation.quantity"
                                             :disabled="newRelation.flex_quantity"
-                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm sm:leading-6" />
+                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 dark:text-slate-100 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm sm:leading-6" />
                                     </div>
                                     <div class="flex flex-col">
-                                        <label class="block text-xs text-gray-500 mb-1"
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1"
                                             v-tooltip="'Het aantal wordt pas ingevuld als de bundel verkocht wordt, bijvoorbeeld het aantal zonnepanelen bij één omvormer.'">
                                             Vrij aantal
                                         </label>
                                         <SwitchComponent v-model="newRelation.flex_quantity" />
                                     </div>
                                     <div class="flex flex-col">
-                                        <label class="block text-xs text-gray-500 mb-1">Verplicht</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Verplicht</label>
                                         <SwitchComponent v-model="newRelation.is_required" />
                                     </div>
                                 </div>
                                 <div class="flex gap-2 justify-end">
                                     <button @click="addingRelation = false"
-                                        class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                        class="px-3 py-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">
                                         Annuleren
                                     </button>
                                     <button @click="submitNewRelation"
@@ -286,7 +286,7 @@
                             <tbody>
                                 <template v-for="rel in childProducts" :key="rel.productable_id">
                                     <tr v-if="editingId === rel.productable_id"
-                                        class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
+                                        class="border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800">
                                         <td class="py-1.5 pr-2">{{ rel.name }}</td>
                                         <td class="py-1.5 pr-2">
                                             <ComboBox :options="productRelations" v-model="editForm.product_relation_id"
@@ -296,13 +296,13 @@
                                             <div class="flex items-center gap-2">
                                                 <input type="number" min="1" v-model.number="editForm.quantity"
                                                     :disabled="editForm.flex_quantity"
-                                                    class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm" />
+                                                    class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 dark:text-slate-100 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 disabled:bg-gray-100 disabled:text-gray-400 dark:disabled:bg-slate-800 sm:text-sm" />
                                                 <SwitchComponent v-model="editForm.flex_quantity"
                                                     v-tooltip="'Vrij aantal: pas invullen bij verkoop'" />
                                             </div>
                                         </td>
                                         <td class="py-1.5 text-center">
-                                            <span v-if="rel.requires_serial" class="text-green-600 text-xs">✓</span>
+                                            <span v-if="rel.requires_serial" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                         <td class="py-1.5 text-center">
@@ -311,15 +311,15 @@
                                         <td class="py-1.5 text-right">
                                             <div class="flex justify-end gap-1">
                                                 <button @click="cancelEdit"
-                                                    class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                                    class="px-2 py-0.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">Annuleren</button>
                                                 <button @click="saveEdit"
                                                     class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr v-else class="border-b border-gray-100">
+                                    <tr v-else class="border-b border-gray-100 dark:border-slate-800">
                                         <td class="py-1.5">{{ rel.name }}</td>
-                                        <td class="py-1.5 text-gray-500">
+                                        <td class="py-1.5 text-gray-500 dark:text-slate-400">
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
                                                 '—'}}
                                         </td>
@@ -329,22 +329,22 @@
                                             <span v-else>{{ rel.quantity }}</span>
                                         </td>
                                         <td class="py-1.5 text-center">
-                                            <span v-if="rel.requires_serial" class="text-green-600 text-xs">✓</span>
+                                            <span v-if="rel.requires_serial" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                         <td class="py-1.5 text-center">
-                                            <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
+                                            <span v-if="rel.is_required" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                         <td class="py-1.5 text-right">
                                             <div class="flex justify-end gap-2">
                                                 <button v-if="hasPermission('productable.update')"
-                                                    @click="startEdit(rel)" class="text-gray-400 hover:text-gray-600">
+                                                    @click="startEdit(rel)" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-400">
                                                     <PencilIcon class="size-4" />
                                                 </button>
                                                 <button v-if="hasPermission('productable.delete')"
                                                     @click="removeRelation(rel.productable_id)"
-                                                    class="text-red-400 hover:text-red-600">
+                                                    class="text-red-400 hover:text-red-600 dark:hover:text-red-400">
                                                     <TrashIcon class="size-4" />
                                                 </button>
                                             </div>
@@ -359,7 +359,7 @@
                             toegevoegd.
                         </p>
                         <!-- Parent products -->
-                        <div v-if="parentProducts.length" class="mt-4 border-t border-gray-100 pt-3">
+                        <div v-if="parentProducts.length" class="mt-4 border-t border-gray-100 dark:border-slate-800 pt-3">
                             <p class="text-xs font-medium text-gray-400 mb-2">Onderdeel van</p>
                             <table class="w-full text-sm">
                                 <thead>
@@ -372,13 +372,13 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="rel in parentProducts" :key="rel.productable_id"
-                                        class="border-b border-gray-100">
+                                        class="border-b border-gray-100 dark:border-slate-800">
                                         <td class="py-1.5">
                                             <Link :href="`/products/${rel.product_id}`" class="text-blue-500 underline">
                                                 {{ rel.name }}
                                             </Link>
                                         </td>
-                                        <td class="py-1.5 text-gray-500">
+                                        <td class="py-1.5 text-gray-500 dark:text-slate-400">
                                             {{productRelations.find(r => r.id === rel.product_relation_id)?.name ??
                                                 '—'}}
                                         </td>
@@ -388,7 +388,7 @@
                                             <span v-else>{{ rel.quantity }}</span>
                                         </td>
                                         <td class="py-1.5 text-center">
-                                            <span v-if="rel.is_required" class="text-green-600 text-xs">✓</span>
+                                            <span v-if="rel.is_required" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                     </tr>
@@ -413,7 +413,7 @@
                             subtitle="Bij wie dit product ingekocht kan worden." chapter="suppliers" border>
                             <template v-if="hasPermission('product.update')" #actions>
                                 <button @click="addingSupplier = !addingSupplier"
-                                    class="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                    class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer"
                                     v-tooltip="'Leverancier koppelen'">
                                     <PlusIcon class="size-4" />
                                 </button>
@@ -423,29 +423,29 @@
                         <!-- Add form -->
                         <div v-auto-animate>
                             <div v-if="addingSupplier"
-                                class="mt-3 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
+                                class="mt-3 mb-3 p-3 border border-gray-200 dark:border-slate-700 rounded-md bg-gray-50 dark:bg-slate-800 space-y-2">
                                 <div class="flex gap-2 flex-wrap">
                                     <div class="flex-1 min-w-40">
-                                        <label class="block text-xs text-gray-500 mb-1">Leverancier</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Leverancier</label>
                                         <ComboBox :options="supplierOptions" v-model="newSupplierLink.supplier_id"
                                             placeholder="Selecteer leverancier"
                                             :has-external-searching="suppliersUseAjax" :searching="supplierSearching"
                                             @change="searchSuppliers" />
                                     </div>
                                     <div class="flex-1 min-w-32">
-                                        <label class="block text-xs text-gray-500 mb-1">Artikelnummer</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Artikelnummer</label>
                                         <input type="text" v-model="newSupplierLink.article_number"
-                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1.5 pl-2 text-gray-900 dark:text-slate-100 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                             placeholder="Optioneel" />
                                     </div>
                                     <div class="flex flex-col">
-                                        <label class="block text-xs text-gray-500 mb-1">Voorkeur</label>
+                                        <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Voorkeur</label>
                                         <SwitchComponent v-model="newSupplierLink.is_preferred" />
                                     </div>
                                 </div>
                                 <div class="flex gap-2 justify-end">
                                     <button @click="addingSupplier = false"
-                                        class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                        class="px-3 py-1 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">
                                         Annuleren
                                     </button>
                                     <button @click="submitNewSupplier" :disabled="!newSupplierLink.supplier_id"
@@ -472,11 +472,11 @@
                             <tbody>
                                 <template v-for="s in productSuppliers" :key="s.id">
                                     <tr v-if="editingSupplierId === s.id"
-                                        class="border-b border-gray-100 bg-gray-50 dark:bg-slate-800">
+                                        class="border-b border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800">
                                         <td class="py-1.5 pr-2">{{ s.name }}</td>
                                         <td class="py-1.5 pr-2">
                                             <input type="text" v-model="editSupplierForm.article_number"
-                                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                                                class="block w-full border-0 rounded-md bg-white dark:bg-slate-900 py-1 pl-2 text-gray-900 dark:text-slate-100 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
                                                 placeholder="Artikelnummer" />
                                         </td>
                                         <td class="py-1.5 text-center">
@@ -485,7 +485,7 @@
                                         <td class="py-1.5 text-right">
                                             <div class="flex justify-end gap-1">
                                                 <button @click="cancelEditSupplier"
-                                                    class="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Annuleren</button>
+                                                    class="px-2 py-0.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-slate-600">Annuleren</button>
                                                 <button @click="saveEditSupplier(s.id)"
                                                     class="px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Opslaan</button>
                                             </div>
@@ -497,21 +497,21 @@
                                                 {{ s.name }}
                                             </Link>
                                         </td>
-                                        <td class="py-1.5 text-gray-500">{{ s.article_number || '—' }}</td>
+                                        <td class="py-1.5 text-gray-500 dark:text-slate-400">{{ s.article_number || '—' }}</td>
                                         <td class="py-1.5 text-center">
-                                            <span v-if="s.is_preferred" class="text-green-600 text-xs">✓</span>
+                                            <span v-if="s.is_preferred" class="text-green-600 dark:text-green-400 text-xs">✓</span>
                                             <span v-else class="text-gray-300 text-xs">—</span>
                                         </td>
                                         <td class="py-1.5 text-right">
                                             <div class="flex justify-end gap-2">
                                                 <button v-if="hasPermission('product.update')"
                                                     @click="startEditSupplier(s)"
-                                                    class="text-gray-400 hover:text-gray-600">
+                                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-400">
                                                     <PencilIcon class="size-4" />
                                                 </button>
                                                 <button v-if="hasPermission('product.update')"
                                                     @click="removeSupplier(s.id)"
-                                                    class="text-red-400 hover:text-red-600">
+                                                    class="text-red-400 hover:text-red-600 dark:hover:text-red-400">
                                                     <TrashIcon class="size-4" />
                                                 </button>
                                             </div>
@@ -532,7 +532,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-base font-semibold">Afbeelding via Google importeren</h2>
-                <button @click="googleDialog.open = false" class="text-gray-400 hover:text-gray-600">✕</button>
+                <button @click="googleDialog.open = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-400">✕</button>
             </div>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Google Afbeeldingen wordt geopend in een nieuw tabblad. Klik met de rechtermuisknop op een afbeelding en
@@ -542,30 +542,30 @@
                 hieronder met Ctrl+V).
             </p>
             <a :href="googleDialog.searchUrl" target="_blank" rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 text-sm text-blue-600 underline mb-4">
+                class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 underline mb-4">
                 <MagnifyingGlassIcon class="h-4 w-4" />
                 Open Google Afbeeldingen: {{ product.brand.name }} {{ product.model }}
             </a>
             <div class="mt-2">
-                <label class="block text-xs text-gray-500 mb-1">Afbeeldings-URL of geplakte afbeelding</label>
+                <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Afbeeldings-URL of geplakte afbeelding</label>
                 <div class="relative">
                     <input v-model="googleDialog.url" type="text"
                         placeholder="https://... of Ctrl+V om een gekopieerde afbeelding te plakken"
-                        class="w-full rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10"
+                        class="w-full rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500 pr-10"
                         @paste.prevent="handleImagePaste" />
                     <span v-if="googleDialog.pastedPreview"
                         class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 text-xs font-semibold">✓
                         afbeelding</span>
                 </div>
                 <div v-if="googleDialog.pastedPreview" class="mt-2">
-                    <img :src="googleDialog.pastedPreview" class="max-h-20 rounded border border-gray-200"
+                    <img :src="googleDialog.pastedPreview" class="max-h-20 rounded border border-gray-200 dark:border-slate-700"
                         alt="Voorbeeld" />
                 </div>
             </div>
             <div v-if="googleDialog.error" class="text-red-500 text-xs mt-2">{{ googleDialog.error }}</div>
             <div class="flex justify-end gap-2 mt-4">
                 <button @click="googleDialog.open = false"
-                    class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuleren</button>
+                    class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-md hover:bg-gray-200 dark:hover:bg-slate-700">Annuleren</button>
                 <button @click="importGoogleImage" :disabled="!googleDialog.url || googleDialog.importing"
                     class="px-3 py-1.5 text-sm bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-50">
                     {{ googleDialog.importing ? 'Bezig…' : 'Importeren' }}

@@ -6,12 +6,12 @@
         <div class="flex flex-col w-full" :class="stacked ? '' : 'sm:w-28'">
             <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
             <TextInput v-model="form.quantity" type="number" placeholder="Aantal" :has-error="!!form.errors.quantity"
-                :error-message="form.errors.quantity" class="bg-white" />
+                :error-message="form.errors.quantity" class="bg-white dark:bg-slate-900" />
         </div>
         <div class="flex flex-col flex-grow">
             <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Omschrijving</span>
             <TextInput v-model="form.description" placeholder="Vrije materiaalregel"
-                :has-error="!!form.errors.description" :error-message="form.errors.description" class="bg-white" />
+                :has-error="!!form.errors.description" :error-message="form.errors.description" class="bg-white dark:bg-slate-900" />
         </div>
         <div v-if="showUnforseen" class="flex items-center gap-1 w-full"
             :class="stacked ? 'justify-between pt-2' : 'flex-col sm:w-auto'">

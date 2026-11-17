@@ -7,7 +7,7 @@
 
         <!-- Desktop: tab bar -->
         <!-- Dense bars live in narrow frames, where three chapters can outgrow the column. -->
-        <div class="hidden sm:flex relative border-b-2 border-gray-200"
+        <div class="hidden sm:flex relative border-b-2 border-gray-200 dark:border-slate-700"
             :class="dense ? 'mb-0 px-1 overflow-x-auto' : 'mb-5'">
             <slot />
             <div class="flex-grow"></div>

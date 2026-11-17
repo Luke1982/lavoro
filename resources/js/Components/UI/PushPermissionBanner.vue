@@ -22,7 +22,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" :disabled="asking"
-                        class="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm disabled:opacity-60"
+                        class="rounded-md bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-sm disabled:opacity-60"
                         @click="allow">
                         Toestaan
                     </button>

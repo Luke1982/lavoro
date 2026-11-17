@@ -27,7 +27,7 @@
                 </span>
             </div>
         </div>
-        <p v-if="error" class="text-xs text-red-600 mt-2">{{ error }}</p>
+        <p v-if="error" class="text-xs text-red-600 dark:text-red-400 mt-2">{{ error }}</p>
     </div>
 </template>
 

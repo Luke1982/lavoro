@@ -18,7 +18,7 @@
                     <label class="mb-1 block font-semibold">Bedrag betaald (€)</label>
                     <input v-model="form.paid_euro" type="number" step="0.01" min="0.01" placeholder="10.00"
                         class="panel-field w-full">
-                    <p v-if="form.errors.paid_euro" class="mt-1 font-semibold text-red-700">{{ form.errors.paid_euro }}</p>
+                    <p v-if="form.errors.paid_euro" class="mt-1 font-semibold text-red-700 dark:text-red-300">{{ form.errors.paid_euro }}</p>
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold">Notitie</label>
@@ -33,18 +33,18 @@
         </form>
 
         <table v-if="topups.length" class="mt-3 w-full text-left">
-            <thead class="text-xs uppercase tracking-wide text-slate-500">
+            <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
                     <th class="py-1.5">Datum</th><th class="py-1.5">Betaald</th>
                     <th class="py-1.5">Tegoed</th><th class="py-1.5">Notitie</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="topup in topups" :key="topup.id" class="border-t border-slate-200">
+                <tr v-for="topup in topups" :key="topup.id" class="border-t border-slate-200 dark:border-slate-700">
                     <td class="py-1.5">{{ topup.date }}</td>
                     <td class="py-1.5">{{ euro(topup.paid_cents) }}</td>
                     <td class="py-1.5">{{ euro(topup.granted_cents) }}</td>
-                    <td class="py-1.5 text-slate-500">{{ topup.note }}</td>
+                    <td class="py-1.5 text-slate-500 dark:text-slate-400">{{ topup.note }}</td>
                 </tr>
             </tbody>
         </table>

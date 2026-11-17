@@ -1,8 +1,8 @@
 <template>
-    <section class="mt-6 rounded-lg border border-red-300 bg-white p-5">
-        <h3 class="mt-0 mb-2 text-base font-semibold text-red-700">Klant verwijderen</h3>
+    <section class="mt-6 rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-slate-900 p-5">
+        <h3 class="mt-0 mb-2 text-base font-semibold text-red-700 dark:text-red-300">Klant verwijderen</h3>
 
-        <p class="mb-3 text-sm text-slate-500">
+        <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
             Dit gooit de database van {{ tenant.name }} weg, het databaseaccount, de
             bestanden en de centrale rijen. Er is geen weg terug en er is geen
             prullenbak. Tik de naam letterlijk over om te bevestigen.
@@ -15,7 +15,7 @@
                     <input v-model="form.confirm_name" type="text" required autocomplete="off"
                         :placeholder="tenant.name"
                         class="panel-field w-full">
-                    <p v-if="form.errors.confirm_name" class="mt-1 font-semibold text-red-700">
+                    <p v-if="form.errors.confirm_name" class="mt-1 font-semibold text-red-700 dark:text-red-300">
                         {{ form.errors.confirm_name }}
                     </p>
                 </div>

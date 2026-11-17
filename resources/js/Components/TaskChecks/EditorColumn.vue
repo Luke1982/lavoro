@@ -15,7 +15,7 @@
                     +
                 </button>
             </div>
-            <p v-if="error" class="mt-1 text-xs text-red-600">{{ error }}</p>
+            <p v-if="error" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
         </form>
         <div data-scroller class="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 pb-2">
             <slot />

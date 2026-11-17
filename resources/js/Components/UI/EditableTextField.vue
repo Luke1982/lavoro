@@ -2,7 +2,7 @@
     <div ref="rootRef"
         :class="[closedPadding, { 'group': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration && bordered }]"
         @click="onWrapperClick" v-auto-animate>
-        <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500">{{ label }}
+        <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">{{ label }}
             <slot name="label-suffix" />
         </h3>
         <span v-if="!editing" class="pr-4 font-semibold">
@@ -136,7 +136,7 @@ const indicatorMeta = computed(() => {
     const kind = props.indicator
         || (props.inputType === 'date' ? 'date' : props.inputType === 'currency' ? 'currency' : '');
     if (kind === 'date') return { icon: CalendarDaysIcon, class: 'text-slate-400 dark:text-slate-500' };
-    if (kind === 'link') return { icon: ArrowUpRightIcon, class: 'text-lavoro-blue' };
+    if (kind === 'link') return { icon: ArrowUpRightIcon, class: 'text-lavoro-blue dark:text-blue-400' };
     if (kind === 'currency') return { icon: BanknotesIcon, class: 'text-slate-400 dark:text-slate-500' };
     if (kind === 'select') return { icon: ChevronUpDownIcon, class: 'text-slate-400 dark:text-slate-500' };
     return null;

@@ -16,7 +16,7 @@
                         placeholder="Filter op tickets" class="w-full"
                         @update:modelValue="val => localStorage.setItem('selectedAssetTicketFilter', val)" />
                 </div>
-                <div class="hidden sm:flex items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer pb-0.5"
+                <div class="hidden sm:flex items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer pb-0.5"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -36,7 +36,7 @@
                         <span class="absolute -inset-1" />
                     </button>
                 </span>
-                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue font-semibold text-sm cursor-pointer"
+                <div class="flex sm:hidden p-2 items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer"
                     @click="clearAllFilters">
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
@@ -49,7 +49,7 @@
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div
-            class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+            class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
             <div class="col-span-3">Machine</div>
             <div class="col-span-2">Serienummer</div>
             <div class="col-span-1">In dienst</div>
@@ -63,7 +63,7 @@
             <div v-for="asset in filteredAssets" :key="asset.id" role="row"
                 class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
                 <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
-                    <img class="size-10 flex-none rounded-full bg-gray-50 object-cover"
+                    <img class="size-10 flex-none rounded-full bg-gray-50 dark:bg-slate-800/50 object-cover"
                         :src="asset.product.images.length > 0 ? imageFileUrl(asset.product.images[0]) : '/img/placeholder.png'"
                         alt="" />
                     <div class="min-w-0">
@@ -98,37 +98,37 @@
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center">
                     <span v-if="asset.status === 'Actief'"
-                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                        class="inline-flex items-center rounded-full bg-green-50 dark:bg-green-900/20 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 ring-1 ring-green-600/20 dark:ring-green-500/30 ring-inset">Actief</span>
                     <span v-else
-                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                        class="inline-flex items-center rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300 ring-1 ring-red-600/10 dark:ring-red-500/30 ring-inset">{{
                             asset.status }}</span>
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center justify-center">
                     <span v-if="asset.open_tickets_count > 0"
-                        class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
+                        class="inline-flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30 ring-inset min-w-[1.75rem]">
                         {{ asset.open_tickets_count }}
                     </span>
                     <span v-else class="text-gray-300 text-xs">—</span>
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center justify-center">
                     <span v-if="asset.pending_tickets_count > 0"
-                        class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
+                        class="inline-flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 ring-inset min-w-[1.75rem]">
                         {{ asset.pending_tickets_count }}
                     </span>
                     <span v-else class="text-gray-300 text-xs">—</span>
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center justify-center">
                     <span v-if="asset.closed_tickets_count > 0"
-                        class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
+                        class="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-slate-400 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
                         {{ asset.closed_tickets_count }}
                     </span>
                     <span v-else class="text-gray-300 text-xs">—</span>
                 </div>
                 <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
                     <span v-if="asset.status === 'Actief'"
-                        class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset">Actief</span>
+                        class="inline-flex items-center rounded-full bg-green-50 dark:bg-green-900/20 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-300 ring-1 ring-green-600/20 dark:ring-green-500/30 ring-inset">Actief</span>
                     <span v-else
-                        class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset">{{
+                        class="inline-flex items-center rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300 ring-1 ring-red-600/10 dark:ring-red-500/30 ring-inset">{{
                             asset.status }}</span>
                     <span class="text-xs text-gray-400">
                         {{ asset.next_service_date ? nlDate(asset.next_service_date) : '' }}
@@ -138,7 +138,7 @@
                     aria-hidden="true" />
             </div>
         </div>
-        <div class="flex justify-between bg-white rounded-b-lavoro-sm p-4">
+        <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
             <PageRecordCountComponent :total="assets.total" :per-page="perPage" label="machines" />
             <PaginationComponent v-if="assets.data.length" :paginator="assets" />
         </div>

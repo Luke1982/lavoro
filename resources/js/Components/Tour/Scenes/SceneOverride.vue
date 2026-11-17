@@ -1,15 +1,15 @@
 <template>
     <div class="w-[21rem] p-5 text-gray-900 dark:text-slate-100">
         <div class="flex items-start gap-3">
-            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                <AlertTriangle class="size-5 text-amber-600" />
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <AlertTriangle class="size-5 text-amber-600 dark:text-amber-400" />
             </span>
             <div>
                 <p class="text-sm font-semibold">Niet beschikbaar</p>
                 <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
                     Je staat op het punt een afspraak in te plannen op een tijdstip waarop de volgende monteur(s) niet beschikbaar zijn:
                 </p>
-                <p class="mt-1.5 text-xs font-medium">Jan de Vries <span class="font-normal text-gray-500">— Vakantie</span></p>
+                <p class="mt-1.5 text-xs font-medium">Jan de Vries <span class="font-normal text-gray-500 dark:text-slate-400">— Vakantie</span></p>
                 <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">Wil je toch doorgaan?</p>
             </div>
         </div>

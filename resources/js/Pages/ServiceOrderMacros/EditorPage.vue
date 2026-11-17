@@ -10,7 +10,7 @@
                 :has-error="!!form.errors.description" :error-message="form.errors.description" />
             <div class="flex gap-3">
                 <button v-if="macro" type="button" @click="confirmDelete = true"
-                    class="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
+                    class="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
                     Verwijderen
                 </button>
                 <button type="button" :disabled="form.processing" @click="save"
@@ -19,7 +19,7 @@
                 </button>
             </div>
         </div>
-        <p v-if="hasStepErrors" class="mt-3 text-sm text-red-600">
+        <p v-if="hasStepErrors" class="mt-3 text-sm text-red-600 dark:text-red-400">
             Niet alle blokken zijn goed ingevuld; de blokken met een uitroepteken laten zien wat er mist.
         </p>
     </BoxComponent>
@@ -62,7 +62,7 @@
         </p>
         <template #footer>
             <div class="flex justify-end gap-3">
-                <button type="button" class="text-sm text-gray-500 hover:text-gray-700" @click="confirmDelete = false">
+                <button type="button" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300" @click="confirmDelete = false">
                     Annuleren
                 </button>
                 <button type="button" class="rounded-md bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700"

@@ -1,11 +1,11 @@
 <template>
-    <section class="rounded-lg border border-slate-200 bg-white p-5">
+    <section class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
         <h3 v-if="title || $slots.title" class="mt-0 text-base font-semibold"
             :class="description || $slots.description ? 'mb-1' : 'mb-3'">
             <slot name="title">{{ title }}</slot>
         </h3>
 
-        <p v-if="description || $slots.description" class="mb-3 text-sm text-slate-500">
+        <p v-if="description || $slots.description" class="mb-3 text-sm text-slate-500 dark:text-slate-400">
             <slot name="description">{{ description }}</slot>
         </p>
 

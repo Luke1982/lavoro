@@ -113,7 +113,7 @@ function dayClasses(day) {
     return {
         'rounded-md enabled:hover:bg-gray-100 dark:enabled:hover:bg-slate-700': true,
         'text-gray-400 dark:text-slate-500': day.outside,
-        'font-semibold text-lavoro-blue ring-1 ring-inset ring-lavoro-blue': day.today,
+        'font-semibold text-lavoro-blue dark:text-blue-400 ring-1 ring-inset ring-lavoro-blue': day.today,
     }
 }
 </script>

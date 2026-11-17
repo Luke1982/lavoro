@@ -40,7 +40,7 @@
                 </tbody>
                 <tfoot>
                     <tr class="border-t-2 border-gray-200 dark:border-slate-600">
-                        <td colspan="3" class="pt-2 pr-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Subtotaal voorzien</td>
+                        <td colspan="3" class="pt-2 pr-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Subtotaal voorzien</td>
                         <td class="pt-2 text-right font-semibold text-gray-900 dark:text-slate-100 whitespace-nowrap">{{ nlCurrency(forseenSubtotal) }}</td>
                     </tr>
                 </tfoot>
@@ -78,7 +78,7 @@
                     </tbody>
                     <tfoot>
                         <tr class="border-t-2 border-gray-200 dark:border-slate-600">
-                            <td colspan="3" class="pt-2 pr-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">Subtotaal onvoorzien</td>
+                            <td colspan="3" class="pt-2 pr-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Subtotaal onvoorzien</td>
                             <td class="pt-2 text-right font-semibold text-gray-900 dark:text-slate-100 whitespace-nowrap">{{ nlCurrency(unforseenSubtotal) }}</td>
                         </tr>
                     </tfoot>

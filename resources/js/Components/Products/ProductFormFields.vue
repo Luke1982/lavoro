@@ -43,7 +43,7 @@
             <template #label>
                 <span class="flex">
                     Bundel
-                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
+                    <InfoIcon class="h-4 w-4 text-gray-500 dark:text-slate-400 mt-0.5 ml-1"
                         v-tooltip="'Een gebundeld product wordt gebruikt om andere producten te groeperen. Machines die van bundels gemaakt worden krijgen geen serienummer.'" />
                 </span>
             </template>
@@ -53,7 +53,7 @@
             <template #label>
                 <span class="flex">
                     Registreerbaar
-                    <InfoIcon class="h-4 w-4 text-gray-500 mt-0.5 ml-1"
+                    <InfoIcon class="h-4 w-4 text-gray-500 dark:text-slate-400 mt-0.5 ml-1"
                         v-tooltip="'Machines van een registreerbaar product worden stuk voor stuk op serienummer vastgelegd. Zet dit uit voor producten die per stuk geteld worden, zoals zonnepanelen.'" />
                 </span>
             </template>

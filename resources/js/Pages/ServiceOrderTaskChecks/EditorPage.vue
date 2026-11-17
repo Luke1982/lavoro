@@ -64,7 +64,7 @@
         </p>
         <template #footer>
             <div class="flex justify-end gap-3">
-                <button type="button" class="text-sm text-gray-500 hover:text-gray-700" @click="deleting = null">
+                <button type="button" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300" @click="deleting = null">
                     Annuleren
                 </button>
                 <button type="button" class="rounded-md bg-red-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-red-700"

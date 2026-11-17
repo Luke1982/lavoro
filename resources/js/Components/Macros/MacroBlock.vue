@@ -12,7 +12,7 @@
         <div v-if="selected" class="space-y-3 border-t border-black/10 dark:border-white/10 bg-white/70 px-3 py-3 text-gray-900 dark:bg-slate-900/60 dark:text-slate-100"
             @click.stop>
             <MacroBlockSettings :step-id="step.id" />
-            <p v-for="message in errors" :key="message" class="text-xs text-red-600">{{ message }}</p>
+            <p v-for="message in errors" :key="message" class="text-xs text-red-600 dark:text-red-400">{{ message }}</p>
             <div class="flex items-center justify-between">
                 <div class="flex gap-1">
                     <button type="button" title="Omhoog" :disabled="isFirst" :class="MOVE_BUTTON"
@@ -24,7 +24,7 @@
                         <ArrowDownIcon class="size-4" />
                     </button>
                 </div>
-                <button type="button" class="text-xs font-semibold text-red-600 hover:underline" @click="editor.remove(step.id)">
+                <button type="button" class="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline" @click="editor.remove(step.id)">
                     Blok verwijderen
                 </button>
             </div>

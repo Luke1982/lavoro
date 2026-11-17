@@ -1,9 +1,9 @@
 <template>
     <div data-planner-event :data-event-id="event.id" :data-tour="isLocked ? 'planner.event.shared' : 'planner.event'"
-        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900"
+        class="absolute rounded-md shadow-sm cursor-grab select-none border-l-4 text-gray-900 dark:text-slate-100"
         :class="[
             isBeingDragged ? 'opacity-30' : '',
-            isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60' : '',
+            isLocked ? 'ring-1 ring-offset-1 ring-blue-300/60 dark:ring-blue-500/30' : '',
             isHighlighted ? 'ring-2 ring-offset-2 ring-lavoro-blue animate-pulse' : '',
         ]" :style="style" @pointerdown.stop="onPointerDown" @click.stop="$emit('click')"
         @contextmenu.prevent.stop="$emit('contextmenu', $event)">
@@ -15,14 +15,14 @@
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1"
                     :class="isCancelled ? 'line-through text-gray-500' : ''">
                     <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />
-                    <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue"
+                    <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue dark:text-blue-400"
                         v-tooltip="'Uitvoerende met afwijkende tijden'" />
                     #{{ event.id }} {{ event.name || event.title }}
                 </div>
-                <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 truncate">
+                <div v-if="event.customer_name && !isCompact" class="text-[11px] text-gray-600 dark:text-slate-400 truncate">
                     {{ event.customer_name }}
                 </div>
-                <div v-if="!isCompact" class="text-[11px] text-gray-600 flex items-center gap-1">
+                <div v-if="!isCompact" class="text-[11px] text-gray-600 dark:text-slate-400 flex items-center gap-1">
                     <ClockIcon class="size-3 shrink-0" />
                     <span class="truncate">{{ effectiveStartLabel }} – {{ effectiveEndLabel }}</span>
                     <template v-if="userBreaktime">
@@ -31,28 +31,28 @@
                     </template>
                     <span v-if="isLocked" data-tour="planner.event.lock" class="ml-1" v-tooltip="'Vergrendeld – meerdere monteurs delen dit'">🔒</span>
                 </div>
-                <div v-if="!isCompact && event.location" class="text-[11px] text-gray-500 flex items-center gap-1">
+                <div v-if="!isCompact && event.location" class="text-[11px] text-gray-500 dark:text-slate-400 flex items-center gap-1">
                     <MapPinIcon class="size-3 shrink-0" />
                     <span class="truncate">{{ event.location }}</span>
                 </div>
                 <div v-if="!isCompact && !event.eventable_id && event.description"
-                    class="text-[11px] text-gray-600 mt-0.5 line-clamp-2 whitespace-pre-line">
+                    class="text-[11px] text-gray-600 dark:text-slate-400 mt-0.5 line-clamp-2 whitespace-pre-line">
                     {{ event.description }}
                 </div>
                 <button v-if="!isCompact && event.eventable_id"
-                    class="mt-1 inline-flex items-center gap-1 text-[10px] text-gray-600 bg-white/80 border border-gray-200 rounded px-1.5 py-1.5 hover:border-gray-300 transition leading-none"
+                    class="mt-1 inline-flex items-center gap-1 text-[10px] text-gray-600 dark:text-slate-400 bg-white/80 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-700 rounded px-1.5 py-1.5 hover:border-gray-300 dark:hover:border-slate-600 transition leading-none"
                     @pointerdown.stop @click.stop="router.visit(`/serviceorders/${event.eventable_id}`)">
                     <BuildingOfficeIcon class="size-3 shrink-0" />
                     <span class="truncate">WB-{{ String(event.eventable_id).padStart(4, '0') }}</span>
                     <template v-if="event.project_name">
-                        <ClipboardDocumentListIcon class="size-3 shrink-0 text-lavoro-blue"
+                        <ClipboardDocumentListIcon class="size-3 shrink-0 text-lavoro-blue dark:text-blue-400"
                             v-tooltip="event.project_name" />
                     </template>
                     <TriangleAlert v-if="event.is_incomplete" class="size-3 shrink-0 text-amber-500"
                         v-tooltip="'Werkbon gedeeltelijk afgerond'" />
-                    <CircleCheck v-else-if="event.is_closed" class="size-3 shrink-0 text-green-600"
+                    <CircleCheck v-else-if="event.is_closed" class="size-3 shrink-0 text-green-600 dark:text-green-400"
                         v-tooltip="'Werkbon afgerond'" />
-                    <Banknote v-if="event.is_invoiced" class="size-3 shrink-0 text-emerald-600"
+                    <Banknote v-if="event.is_invoiced" class="size-3 shrink-0 text-emerald-600 dark:text-emerald-400"
                         v-tooltip="'Werkbon gefactureerd'" />
                     <ArrowTopRightOnSquareIcon class="size-3 shrink-0" />
                 </button>
@@ -86,7 +86,7 @@
         <div class="absolute top-1 right-2 flex items-center gap-1 pointer-events-none">
             <button v-if="hasPermission('event.provide_feedback') && !event.eventable_id" class="pointer-events-auto relative"
                 @click.stop="$emit('open-feedback', event)" v-tooltip="'Terugkoppeling'">
-                <MessageCircleReply class="size-3 text-gray-500 hover:text-lavoro-blue" />
+                <MessageCircleReply class="size-3 text-gray-500 dark:text-slate-400 hover:text-lavoro-blue dark:hover:text-blue-400" />
                 <span v-if="feedbackCount > 0"
                     class="absolute -top-1.5 -right-1.5 min-w-[13px] h-[13px] px-0.5 rounded-full bg-lavoro-blue text-white text-[8px] leading-[13px] text-center font-semibold">
                     {{ feedbackCount }}
@@ -253,7 +253,7 @@ const style = computed(() => {
         ...(isStacked.value
             ? stackGeometry.value
             : { top: props.eventPaddingY + 'px', bottom: props.eventPaddingY + 'px' }),
-        backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, white)`,
+        backgroundColor: `color-mix(in srgb, ${color} ${bgStrength}, var(--tint-base))`,
         ...(isClosedForUser.value ? { backgroundImage: COMPLETED_PATTERN } : {}),
         borderColor: color,
         borderLeftStyle: props.event.is_preliminary ? 'dashed' : 'solid',

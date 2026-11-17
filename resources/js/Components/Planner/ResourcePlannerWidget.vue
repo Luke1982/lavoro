@@ -193,13 +193,13 @@
                                 class="h-4 px-1.5 rounded text-[10px] font-medium border transition-colors truncate max-w-[80px]"
                                 :class="selectedGroupIds.includes(group.id)
                                     ? 'text-white border-transparent'
-                                    : 'text-gray-500 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
+                                    : 'text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:border-gray-400'"
                                 :style="selectedGroupIds.includes(group.id) ? { background: group.color, borderColor: group.color } : {}"
                                 :title="group.name" @click="toggleGroupFilter(group.id)">
                                 {{ group.name }}
                             </button>
                             <button v-if="selectedGroupIds.length"
-                                class="text-[10px] text-gray-400 hover:text-gray-600 shrink-0" title="Alle groepen tonen"
+                                class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-slate-400 shrink-0" title="Alle groepen tonen"
                                 @click="selectedGroupIds = []">✕</button>
                         </div>
                         <!-- Monteurs count + collapse -->
@@ -321,7 +321,7 @@
                     <div class="flex-1 relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                             <!-- All-day project band -->
                             <div v-if="showProjects && allDayLaneHeight"
-                                class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-900/30 transition-[height] duration-200 ease-in-out"
+                                class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 transition-[height] duration-200 ease-in-out"
                                 :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
                                 <!-- Full project stack; scrolls with the grid (labels/hanging-SOs stay sticky to the left edge). -->
                                 <div class="relative"

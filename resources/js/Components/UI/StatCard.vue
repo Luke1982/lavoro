@@ -31,8 +31,8 @@ const isPositive = computed(() => {
 })
 const icon = computed(() => props.delta >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon)
 const deltaAbs = computed(() => Math.abs(props.delta).toFixed(2) + '%')
-const valueColour = computed(() => 'text-indigo-600')
-const badgeClasses = computed(() => isPositive.value ? 'inline-flex items-center rounded-full bg-green-100 text-green-800 px-2 py-0.5 text-xs font-medium' : 'inline-flex items-center rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs font-medium')
+const valueColour = computed(() => 'text-indigo-600 dark:text-indigo-400')
+const badgeClasses = computed(() => isPositive.value ? 'inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2 py-0.5 text-xs font-medium' : 'inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 px-2 py-0.5 text-xs font-medium')
 const formattedValue = computed(() => nf.format(props.value))
 const baselineFormatted = computed(() => nf.format(props.baseline))
 </script>

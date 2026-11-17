@@ -11,7 +11,7 @@
             <CalendarDaysIcon class="h-5 w-5" />
         </span>
         <CalendarDaysIcon v-else v-tooltip="'Inplannen in de planning'"
-            class="size-4.5 cursor-pointer text-lavoro-blue opacity-70 transition hover:opacity-100" />
+            class="size-4.5 cursor-pointer text-lavoro-blue dark:text-blue-400 opacity-70 transition hover:opacity-100" />
     </Link>
 </template>
 

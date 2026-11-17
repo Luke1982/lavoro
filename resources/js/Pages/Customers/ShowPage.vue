@@ -30,7 +30,7 @@
                         <span class="text-xs text-slate-400 font-bold">Adres</span>
                     </div>
                     <a :href="mapsLinkFromCustomer(form)" target="_blank" rel="noopener"
-                        class="text-md text-slate-600 pl-7 font-bold hover:underline break-words">
+                        class="text-md text-slate-600 dark:text-slate-400 pl-7 font-bold hover:underline break-words">
                         {{ form.address }}, {{ form.postal_code }} {{ form.city }}
                     </a>
                 </div>
@@ -55,7 +55,7 @@
                         <BoxComponent>
                             <div class="flex items-center mb-4">
                                 <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
-                                    <UserIcon class="size-6 text-lavoro-blue stroke-2" />
+                                    <UserIcon class="size-6 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                 </div>
                                 <span class="text-md font-bold dark:text-slate-100">Contactgegevens</span>
                             </div>
@@ -63,7 +63,7 @@
                                 <div class="flex flex-col gap-6 md:pr-8">
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <UserIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <UserIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.name" type="input" label="Naam"
                                             :error="form.errors.name" :disabled="!canUpdate"
@@ -71,7 +71,7 @@
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <IdentificationIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <IdentificationIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.contactname" type="input" label="Contactpersoon"
                                             placeholder="Nog niet ingesteld" :error="form.errors.contactname"
@@ -79,7 +79,7 @@
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <PhoneIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <PhoneIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.phone" type="input" label="Telefoon"
                                             placeholder="Nog niet ingesteld" :error="form.errors.phone"
@@ -87,17 +87,17 @@
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <DevicePhoneMobileIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <DevicePhoneMobileIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.mobile" type="input" label="Mobiel"
                                             placeholder="Nog niet ingesteld" :error="form.errors.mobile"
                                             :disabled="!canUpdate" @revert="form.clearErrors('mobile')" class="flex-grow min-w-0" />
                                     </div>
                                 </div>
-                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70 mt-6 md:mt-0">
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <EnvelopeIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <EnvelopeIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.email" type="input" label="E-mail"
                                             placeholder="Nog niet ingesteld" :error="form.errors.email"
@@ -105,7 +105,7 @@
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <div class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
-                                            <GlobeAltIcon class="size-5 text-lavoro-blue stroke-2" />
+                                            <GlobeAltIcon class="size-5 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <EditableTextField v-model="form.website" type="input" label="Website"
                                             placeholder="Nog niet ingesteld" :error="form.errors.website"
@@ -118,7 +118,7 @@
                         <BoxComponent class="mt-4">
                             <div class="flex items-center mb-4">
                                 <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-violet-600/10 mr-3">
-                                    <MapPinIcon class="size-6 text-violet-600 stroke-2" />
+                                    <MapPinIcon class="size-6 text-violet-600 dark:text-violet-400 stroke-2" />
                                 </div>
                                 <span class="text-md font-bold dark:text-slate-100">Adressen</span>
                             </div>
@@ -143,7 +143,7 @@
                                             :disabled="!canUpdate" @revert="form.clearErrors('country')" />
                                     </div>
                                 </div>
-                                <div class="mt-6 md:mt-0 md:border-l md:border-gray-200/70 md:pl-8">
+                                <div class="mt-6 md:mt-0 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70 md:pl-8">
                                     <h3
                                         class="text-xs font-semibold mb-3 text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                                         Postadres</h3>
@@ -170,7 +170,7 @@
                         <BoxComponent class="mt-4">
                             <div class="flex items-center mb-4">
                                 <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-green-600/10 mr-3">
-                                    <BanknotesIcon class="size-6 text-green-600 stroke-2" />
+                                    <BanknotesIcon class="size-6 text-green-600 dark:text-green-400 stroke-2" />
                                 </div>
                                 <span class="text-md font-bold dark:text-slate-100">Financiële informatie</span>
                             </div>
@@ -188,7 +188,7 @@
                                         :disabled="!canUpdate" @revert="form.clearErrors('iban')" />
                                     </div>
                                 </div>
-                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 mt-6 md:mt-0">
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70 mt-6 md:mt-0">
                                     <div v-if="hasPermission('customer.see_sensitive')">
 <EditableTextField v-model="form.vat_number" type="input" label="BTW-nummer"
                                         placeholder="Nog niet ingesteld" :error="form.errors.vat_number"
@@ -219,7 +219,7 @@
                                     class="flex mb-4 border-b border-gray-200 dark:border-slate-700/60 pb-3 justify-between items-center">
                                     <div class="flex items-center">
                                         <div class="flex-none flex items-center justify-center size-10 rounded-lavoro-sm bg-lavoro-blue/10 mr-3">
-                                            <UsersIcon class="size-6 text-lavoro-blue stroke-2" />
+                                            <UsersIcon class="size-6 text-lavoro-blue dark:text-blue-400 stroke-2" />
                                         </div>
                                         <h2 class="font-semibold text-base dark:text-slate-200">Contacten</h2>
                                     </div>
@@ -288,7 +288,7 @@
                                     </div>
                                     <button v-if="customer.contacts.length > contactPreviewCount" type="button"
                                         @click="showAllContacts = !showAllContacts"
-                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue hover:underline">
+                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:underline">
                                         {{ showAllContacts ? 'Minder tonen' : `Alle ${customer.contacts.length} contacten bekijken` }}
                                         <ArrowRightIcon class="size-4 transition-transform"
                                             :class="{ 'rotate-90': showAllContacts }" />
@@ -361,7 +361,7 @@
 
                                     <button v-if="customer.maintenance_contracts.length > contractPreviewCount"
                                         type="button" @click="showAllContracts = !showAllContracts"
-                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue hover:underline">
+                                        class="mt-3 flex items-center gap-1 text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:underline">
                                         {{ showAllContracts ? 'Minder tonen' : `Alle ${customer.maintenance_contracts.length} contracten bekijken` }}
                                         <ArrowRightIcon class="size-4 transition-transform"
                                             :class="{ 'rotate-90': showAllContracts }" />
@@ -388,7 +388,7 @@
                                         @change="searchCustomers" @update:modelValue="updateBillingCustomer"
                                         class="grow" />
                                     <XCircleIcon v-if="form.billing_customer_id"
-                                        class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                        class="size-6 mb-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-slate-400 cursor-pointer"
                                         @click="clearBillingCustomer" v-tooltip="'Factuurklant leegmaken'" />
                                 </div>
                             </BoxComponent>
@@ -404,7 +404,7 @@
                         <PuzzlePieceIcon class="size-5 text-gray-500 dark:text-slate-400 mr-2" />
                         <h3 class="text-sm font-medium dark:text-slate-200">Machines</h3>
                         <button v-if="hasPermission('asset.create')" @click="addAssetDrawerOpen = true"
-                            class="text-blue-600 hover:text-blue-800 pl-2 cursor-pointer"
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 pl-2 cursor-pointer"
                             v-tooltip="'Nieuwe machine toevoegen'">
                             <PlusIcon class="size-4" />
                         </button>

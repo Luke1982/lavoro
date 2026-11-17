@@ -14,8 +14,8 @@
                     class="absolute left-5 top-10 bottom-0 w-0.5 bg-gray-200 dark:bg-slate-700" />
 
                 <div
-                    class="relative flex h-10 w-10 flex-none items-center justify-center rounded-full bg-lavoro-blue/20 border-gray-300 border-1">
-                    <ChatBubbleLeftRightIcon class="h-4 w-4 text-lavoro-blue" />
+                    class="relative flex h-10 w-10 flex-none items-center justify-center rounded-full bg-lavoro-blue/20 border-gray-300 dark:border-slate-600 border-1">
+                    <ChatBubbleLeftRightIcon class="h-4 w-4 text-lavoro-blue dark:text-blue-400" />
                 </div>
 
                 <div class="flex-auto min-w-0">

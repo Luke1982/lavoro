@@ -15,7 +15,7 @@
         </div>
         <div v-if="!readonly"
             class="flex flex-col border-t border-gray-200 dark:border-slate-600 divide-y divide-gray-200 dark:divide-slate-600">
-            <div class="flex divide-x divide-gray-200">
+            <div class="flex divide-x divide-gray-200 dark:divide-slate-700">
                 <button type="button"
                     class="flex-1 py-3 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-slate-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700/50"
                     @click="handleClear">

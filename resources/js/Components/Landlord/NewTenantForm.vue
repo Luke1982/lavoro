@@ -6,13 +6,13 @@
                 <div>
                     <label class="mb-1 block font-semibold" for="name">Bedrijfsnaam</label>
                     <input id="name" v-model="form.name" type="text" class="panel-field w-full">
-                    <p class="mt-1 text-sm text-slate-500">De databasenaam volgt hieruit en ligt daarna vast.</p>
-                    <p v-if="form.errors.name" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.name }}</p>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">De databasenaam volgt hieruit en ligt daarna vast.</p>
+                    <p v-if="form.errors.name" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">{{ form.errors.name }}</p>
                 </div>
                 <div>
                     <label class="mb-1 block font-semibold" for="email">E-mail van de eerste beheerder</label>
                     <input id="email" v-model="form.email" type="email" class="panel-field w-full">
-                    <p v-if="form.errors.email" class="mt-1 text-sm font-semibold text-red-700">{{ form.errors.email }}</p>
+                    <p v-if="form.errors.email" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">{{ form.errors.email }}</p>
                 </div>
             </div>
 
@@ -26,7 +26,7 @@
             <p class="mb-1 mt-4 font-semibold">Modules</p>
             <label v-for="module in modules" :key="module.key" class="flex items-center gap-2 py-1">
                 <input v-model="form.modules" type="checkbox" :value="module.key">
-                {{ module.name }} <span class="text-slate-500">{{ euro(module.price_cents) }}</span>
+                {{ module.name }} <span class="text-slate-500 dark:text-slate-400">{{ euro(module.price_cents) }}</span>
             </label>
 
             <p class="mt-4">
@@ -36,7 +36,7 @@
                 </button>
             </p>
 
-            <p class="text-sm text-slate-500">
+            <p class="text-sm text-slate-500 dark:text-slate-400">
                 Het wachtwoord van de beheerder wordt gegenereerd en hierboven getoond
                 zodra de tenant klaar is.
             </p>

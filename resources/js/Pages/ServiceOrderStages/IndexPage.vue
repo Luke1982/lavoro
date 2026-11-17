@@ -6,7 +6,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalStages.length">
             <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-1"></div>
                 <div class="col-span-1">Volgorde</div>
                 <div class="col-span-3">Naam</div>
@@ -24,7 +24,7 @@
                     <!-- Mobile layout -->
                     <div class="md:hidden">
                         <div class="flex items-center gap-2">
-                            <Bars4Icon class="size-6 shrink-0 text-gray-500 cursor-move draghandle"
+                            <Bars4Icon class="size-6 shrink-0 text-gray-500 dark:text-slate-400 cursor-move draghandle"
                                 v-tooltip="'Sleep om de volgorde aan te passen'" />
                             <span class="w-5 shrink-0 text-gray-800 dark:text-slate-200">{{ stage.order }}</span>
                             <div class="flex-1 min-w-0">
@@ -38,32 +38,32 @@
                         </div>
                         <div class="mt-3 grid grid-cols-3 gap-2">
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Gepland</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Gepland</span>
                                 <SwitchComponent :model-value="stage.is_planned_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_planned_state: v })" />
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Gesloten</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Gesloten</span>
                                 <SwitchComponent :model-value="stage.is_closed_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_closed_state: v })" />
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Gefact.</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Gefact.</span>
                                 <SwitchComponent :model-value="stage.is_invoiced_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_invoiced_state: v })" />
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Planbaar</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Planbaar</span>
                                 <SwitchComponent :model-value="stage.is_plannable_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_plannable_state: v })" />
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Na annu.</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Na annu.</span>
                                 <SwitchComponent :model-value="stage.is_planning_cancelled_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_planning_cancelled_state: v })" />
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <span class="text-xs text-gray-500 text-center leading-tight">Onvolledig</span>
+                                <span class="text-xs text-gray-500 dark:text-slate-400 text-center leading-tight">Onvolledig</span>
                                 <SwitchComponent :model-value="stage.is_incomplete_state"
                                     @update:modelValue="(v) => saveStage(stage.id, { is_incomplete_state: v })" />
                             </div>
@@ -72,7 +72,7 @@
                     <!-- Desktop layout -->
                     <div class="hidden md:grid grid-cols-12 items-center">
                         <div class="col-span-1 flex items-center">
-                            <Bars4Icon class="size-6 text-gray-500 cursor-move draghandle"
+                            <Bars4Icon class="size-6 text-gray-500 dark:text-slate-400 cursor-move draghandle"
                                 v-tooltip="'Sleep om de volgorde aan te passen'" />
                         </div>
                         <div class="col-span-1 text-gray-800 dark:text-slate-200">

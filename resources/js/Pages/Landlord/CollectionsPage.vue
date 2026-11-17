@@ -2,24 +2,24 @@
     <Head title="Incasso" />
 
     <h2 class="mb-1 text-xl font-semibold">Incasso</h2>
-    <p class="mb-5 text-sm text-slate-500">
+    <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">
         Facturen van klanten met een machtiging die nog niet in een incassobestand zaten.
         Het bestand (SEPA-XML, pain.008) lever je aan via ASN Online Bankieren.
     </p>
 
     <div v-if="!issuer.incassant_id"
-        class="mb-5 rounded-lg border border-slate-200 border-l-4 border-l-red-700 bg-white p-5">
+        class="mb-5 rounded-lg border border-slate-200 dark:border-slate-700 border-l-4 border-l-red-700 bg-white dark:bg-slate-900 p-5">
         Er is nog geen incassant-ID ingesteld. Dat nummer geeft de bank uit bij het
         incassocontract; zonder dat nummer weigert de bank het bestand. Vul het in bij
-        <Link href="/beheer/catalogus#facturatie" class="text-blue-700 underline">Catalogus &rarr; Facturatie</Link>.
+        <Link href="/beheer/catalogus#facturatie" class="text-blue-700 dark:text-blue-300 underline">Catalogus &rarr; Facturatie</Link>.
     </div>
 
-    <p v-if="firstError" class="mb-5 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-red-900">
+    <p v-if="firstError" class="mb-5 rounded-md border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-red-900 dark:text-red-200">
         {{ firstError }}
     </p>
 
     <PanelSection>
-        <p v-if="!invoices.length" class="text-slate-500">Niets te incasseren.</p>
+        <p v-if="!invoices.length" class="text-slate-500 dark:text-slate-400">Niets te incasseren.</p>
 
         <!--
             Een gewoon formulier en geen Inertia-verzending: het antwoord is het
@@ -29,7 +29,7 @@
             <input type="hidden" name="_token" :value="csrf">
 
             <table class="w-full text-left">
-                <thead class="text-xs uppercase tracking-wide text-slate-500">
+                <thead class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="w-8 py-2"></th>
                         <th class="py-2 pr-3">Factuur</th>
@@ -39,13 +39,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="invoice in invoices" :key="invoice.id" class="border-t border-slate-200">
+                    <tr v-for="invoice in invoices" :key="invoice.id" class="border-t border-slate-200 dark:border-slate-700">
                         <td class="py-2">
                             <input type="checkbox" name="invoices[]" :value="invoice.id" checked>
                         </td>
                         <td class="py-2 pr-3">{{ invoice.number }}</td>
                         <td class="py-2 pr-3">{{ invoice.tenant.name }}</td>
-                        <td class="py-2 pr-3 text-slate-500">
+                        <td class="py-2 pr-3 text-slate-500 dark:text-slate-400">
                             {{ invoice.tenant.mandate_reference }} &middot; {{ invoice.tenant.iban }}
                         </td>
                         <td class="py-2 text-right">{{ euro(invoice.gross_cents) }}</td>
@@ -62,7 +62,7 @@
                 </button>
             </div>
 
-            <p class="mt-2 text-sm text-slate-500">
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Na het maken staan deze facturen op ge&iuml;ncasseerd en komen ze hier niet terug.
             </p>
         </form>

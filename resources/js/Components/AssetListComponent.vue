@@ -85,7 +85,7 @@
             </div>
             <div class="absolute top-2 right-2 flex items-center gap-2">
                 <LocateFixed v-if="customerId"
-                    class="w-5 h-5 text-slate-500 dark:text-slate-400 cursor-pointer opacity-80 hover:opacity-100 hover:text-lavoro-blue"
+                    class="w-5 h-5 text-slate-500 dark:text-slate-400 cursor-pointer opacity-80 hover:opacity-100 hover:text-lavoro-blue dark:hover:text-blue-400"
                     @click="openLocateModal(asset)" v-tooltip="'Locatie toewijzen'" />
                 <TrashIcon
                     class="w-5 h-5 text-red-500 dark:text-red-400 cursor-pointer opacity-80 hover:opacity-100"

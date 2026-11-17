@@ -41,7 +41,7 @@
 
                         <Menu v-if="(!readonly && hasPermission('ticket.change_status')) || (!readonly && disconnect !== null && hasPermission('ticket.detach_from_serviceorder')) || (disconnect === null && modes.find(m => m === 'nodelete') === undefined && hasPermission('ticket.delete'))" as="div" class="relative">
                             <MenuButton
-                                class="bg-white p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-slate-500 cursor-pointer">
+                                class="bg-white dark:bg-slate-900 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-slate-500 cursor-pointer">
                                 <EllipsisVerticalIcon class="w-5 h-5" />
                             </MenuButton>
                             <MenuItems
@@ -108,7 +108,7 @@
 
                 <div class="mt-3">
                     <Link :href="`/tickets/${ticket.id}`"
-                        class="bg-white inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        class="bg-white dark:bg-slate-900 inline-flex items-center gap-1.5 text-sm border border-gray-200 dark:border-slate-600 rounded-md px-3 py-1.5 text-gray-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                         Bekijk storing
                         <ArrowTopRightOnSquareIcon class="w-3.5 h-3.5" />
                     </Link>
@@ -160,7 +160,7 @@ const getIconColor = (status) => {
     if (s === 'open') return 'text-red-600 dark:text-red-400';
     if (s === 'in behandeling') return 'text-amber-600 dark:text-amber-400';
     if (s === 'gesloten') return 'text-green-600 dark:text-green-400';
-    return 'text-gray-500';
+    return 'text-gray-500 dark:text-slate-400';
 };
 
 const getWrapperClasses = (status) => {

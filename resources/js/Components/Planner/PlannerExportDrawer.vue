@@ -11,7 +11,7 @@
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-sm font-medium text-gray-900 dark:text-gray-300">Monteurs</span>
                     <button type="button"
-                        class="text-xs font-medium text-lavoro-blue hover:underline"
+                        class="text-xs font-medium text-lavoro-blue dark:text-blue-400 hover:underline"
                         @click="toggleAll">
                         {{ allSelected ? 'Selectie wissen' : 'Alles selecteren' }}
                     </button>
@@ -29,7 +29,7 @@
                                 <span v-else>{{ initials(user.name) }}</span>
                             </span>
                             <span class="flex-1 truncate">{{ user.name }}</span>
-                            <Check v-if="isSelected(user.id)" class="size-4 shrink-0 text-lavoro-blue" />
+                            <Check v-if="isSelected(user.id)" class="size-4 shrink-0 text-lavoro-blue dark:text-blue-400" />
                         </button>
                     </li>
                 </ul>

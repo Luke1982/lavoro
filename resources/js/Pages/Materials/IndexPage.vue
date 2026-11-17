@@ -18,7 +18,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="innerMaterials.length">
             <div
-                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-3">Naam</div>
                 <div class="col-span-2">Code</div>
                 <div class="col-span-2">Prijs</div>
@@ -96,7 +96,7 @@
                         <template #display>{{ mat.usageUnit?.name || '—' }}</template>
                     </EditableTextField>
                 </div>
-                <div class="col-span-2 lg:hidden flex items-center justify-end text-xs text-gray-500 gap-2">
+                <div class="col-span-2 lg:hidden flex items-center justify-end text-xs text-gray-500 dark:text-slate-400 gap-2">
                     <BadgeComponent :color="mat.is_active ? 'green' : 'gray'" :has-dot="false">
                         {{ mat.is_active ? 'Actief' : 'Inactief' }}
                     </BadgeComponent>

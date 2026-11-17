@@ -65,7 +65,7 @@
                 </div>
             </Teleport>
         </div>
-        <p v-if="hasError" class="mt-2 text-sm text-red-600">{{ errorMessage }}</p>
+        <p v-if="hasError" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ errorMessage }}</p>
     </Combobox>
 </template>
 

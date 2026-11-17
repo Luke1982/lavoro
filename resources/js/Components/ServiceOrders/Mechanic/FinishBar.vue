@@ -44,7 +44,7 @@ const TONES = {
     blue: 'bg-lavoro-blue text-white hover:brightness-110',
     green: 'bg-lavoro-green text-gray-800 hover:brightness-95',
     orange: 'bg-orange-500 text-gray-800 hover:brightness-95',
-    neutral: 'bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600',
+    neutral: 'bg-white text-gray-800 ring-1 ring-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-600',
 }
 
 const { tucked, clearance } = useTabBar()

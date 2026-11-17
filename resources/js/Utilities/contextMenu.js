@@ -8,10 +8,15 @@ import { isInsideTourLayer } from '@/Tours/layer'
  */
 export function showContextMenu(options) {
     return ContextMenu.showContextMenu({
+        theme: prefersDark() ? 'default dark' : 'default',
         clickCloseOnOutside: false,
         onClickOnOutside: (event) => {
             if (!isInsideTourLayer(event.target)) ContextMenu.closeContextMenu()
         },
         ...options,
     })
+}
+
+function prefersDark() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches === true
 }

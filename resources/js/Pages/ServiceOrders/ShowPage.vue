@@ -3,20 +3,20 @@
         <div class="inline sm:flex items-center">
             <Link href="/serviceorders" class="text-slate-400 text-sm font-medium inline">Werkbonnen</Link>
             <ChevronRightIcon class="size-4 text-gray-400 mx-2 inline" />
-            <span class="text-slate-800 font-bold text-sm inline">Werkbon #{{ serviceOrder.id }}<template
+            <span class="text-slate-800 dark:text-slate-200 font-bold text-sm inline">Werkbon #{{ serviceOrder.id }}<template
                     v-if="serviceOrder.order_date"> van {{ nlDate(serviceOrder.order_date) }}</template>
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
         <div class="flex items-end gap-4 sm:items-stretch">
             <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
-                <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
                 <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
             </div>
             <ButtonGroup>
                 <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
                 <AssistantButton />
                 <PillButton v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
-                    title="Werkbon verwijderen" class="text-red-600 hover:bg-red-50 dark:hover:bg-slate-700"
+                    title="Werkbon verwijderen" class="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700"
                     @click="deleteServiceOrder">
                     <TrashIcon class="size-5" />
                 </PillButton>
@@ -57,7 +57,7 @@
     </MechanicView>
     <ChaptersComponent v-else>
         <template v-if="chapterHeaders.length > 1">
-            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
             <ChapterHeaders>
                 <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
                     {{ header }}
@@ -77,7 +77,7 @@
                         </BoxComponent>
                         <div v-if="stages.length > 1" class="mb-4 block sm:hidden"
                             :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
-                            <span class="text-xs text-slate-500 font-medium mt-2 block sm:hidden pb-2">Fase</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Fase</span>
                             <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
                                 @update:modelValue="onStageChange" />
                         </div>
@@ -94,7 +94,7 @@
                                         <template #display>
                                             <component :is="hasPermission('customer.read') ? Link : 'span'"
                                                 :href="`/customers/${selectedCustomer.id}`" :class="{
-                                                    'underline text-lavoro-blue': hasPermission('customer.read')
+                                                    'underline text-lavoro-blue dark:text-blue-400': hasPermission('customer.read')
                                                 }">{{ selectedCustomer.name }}</component>
                                         </template>
                                     </EditableTextField>
@@ -106,7 +106,7 @@
                                             <component v-if="selectedProject"
                                                 :is="hasPermission('project.read') ? Link : 'span'"
                                                 :href="`/projects/${selectedProject.id}`" :class="{
-                                                    'underline text-lavoro-blue': hasPermission('project.read')
+                                                    'underline text-lavoro-blue dark:text-blue-400': hasPermission('project.read')
                                                 }">{{ selectedProject.title }}</component>
                                             <span v-else class="text-gray-400">—</span>
                                         </template>
@@ -126,14 +126,14 @@
                                         @update="onLocationChange" @revert="form.clearErrors('location_id')">
                                         <template #display>
                                             <Link v-if="selectedLocation" :href="`/locations/${selectedLocation.id}`"
-                                                class="underline text-lavoro-blue">{{ selectedLocationLabel }}</Link>
+                                                class="underline text-lavoro-blue dark:text-blue-400">{{ selectedLocationLabel }}</Link>
                                             <span v-else class="text-gray-400 dark:text-slate-500">Geen locatie (vrije
                                                 invoer)</span>
                                         </template>
                                     </EditableTextField>
                                 </div>
                                 <!-- Right column -->
-                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70" v-auto-animate>
+                                <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70" v-auto-animate>
                                     <EditableTextField
                                         :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
                                         inputType="date" label="Datum opdracht" v-model="form.order_date"
@@ -175,7 +175,7 @@
                                 </template>
                             </SectionHeader>
                             <div v-if="hasPermission('servicejob.create')"
-                                class="flex flex-col sm:flex-row justify-between divide-gray-200/70 divide-x-1 ring-1 ring-gray-200/70 rounded-lavoro-sm">
+                                class="flex flex-col sm:flex-row justify-between divide-gray-200/70 dark:divide-slate-700/70 divide-x-1 ring-1 ring-gray-200/70 dark:ring-slate-700/70 rounded-lavoro-sm">
                                 <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets"
                                     class="p-1 sm:p-4 sm:w-1/4 w-full sm:min-w-100" />
                                 <TitleValueIconComponent :icon="CalendarDaysIcon" title="Datum ingebruikname"
@@ -274,7 +274,7 @@
                                 class="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
                                 <div
                                     class="flex items-start sm:items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
-                                    <InformationCircleIcon class="size-6 sm:size-4 text-lavoro-blue" />
+                                    <InformationCircleIcon class="size-6 sm:size-4 text-lavoro-blue dark:text-blue-400" />
                                     {{ serviceOrder.tickets.length }} storingen gekoppeld aan dit werk
                                 </div>
                                 <div class="flex flex-col sm:flex-row items-center gap-4 mt-2">
@@ -452,7 +452,7 @@
                                 Verstuur naar SnelStart
                             </button>
                             <span v-else
-                                class="w-full inline-flex items-center justify-center px-4 py-2 text-sm rounded bg-green-100 text-green-700 border border-green-300">
+                                class="w-full inline-flex items-center justify-center px-4 py-2 text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700">
                                 Verzonden naar administratie
                             </span>
                         </BoxComponent>
@@ -549,7 +549,7 @@
                                     <button type="button" @click="openExportPdf"
                                         class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-[#FF0000] text-white rounded text-sm font-semibold hover:opacity-90 cursor-pointer">
                                         <span
-                                            class="bg-white text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
+                                            class="bg-white dark:bg-slate-900 text-[#FF0000] font-bold text-[10px] leading-none px-1 py-0.5 rounded mr-2">PDF</span>
                                         Genereer
                                     </button>
                                     <button @click="emailSelectedPdf" :disabled="exportEmailing"
@@ -575,7 +575,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Apparaat</label>
                 <AssetSelectMenu :assets="customerAssets" v-model="newTicketAsset" placeholder="Kies een apparaat..."
                     :needs-box="true" />
-                <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600">{{
+                <p v-if="newTicketForm.errors.asset_id" class="mt-1 text-sm text-red-600 dark:text-red-400">{{
                     newTicketForm.errors.asset_id
                     }}</p>
             </div>
@@ -583,7 +583,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
-                <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600">{{ newTicketForm.errors.subject
+                <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ newTicketForm.errors.subject
                     }}
                 </p>
             </div>
@@ -595,7 +595,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Omschrijving</label>
                 <textarea v-model="newTicketForm.description" rows="4" placeholder="Beschrijf het probleem in detail..."
                     :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
-                <p v-if="newTicketForm.errors.description" class="mt-1 text-sm text-red-600">{{
+                <p v-if="newTicketForm.errors.description" class="mt-1 text-sm text-red-600 dark:text-red-400">{{
                     newTicketForm.errors.description }}</p>
             </div>
         </div>
@@ -620,8 +620,8 @@
         title="Er staan nog taken open" max-width-class="sm:max-w-lg">
         <div class="sm:flex sm:items-start gap-4">
             <div
-                class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 sm:mx-0 sm:size-10">
-                <ExclamationTriangleIcon class="size-6 text-yellow-600" />
+                class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 sm:mx-0 sm:size-10">
+                <ExclamationTriangleIcon class="size-6 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div class="mt-3 sm:mt-0 min-w-0 flex-1 text-left">
                 <p class="text-sm text-gray-500 dark:text-slate-400">
@@ -856,21 +856,21 @@ const ticketsLastUpdate = computed(() => {
 
 const ticketPriorityIconBg = (priority) => {
     const p = priority.toLowerCase();
-    if (p === 'hoog') return 'bg-red-100';
-    if (p === 'normaal') return 'bg-amber-100';
-    return 'bg-green-100';
+    if (p === 'hoog') return 'bg-red-100 dark:bg-red-900/30';
+    if (p === 'normaal') return 'bg-amber-100 dark:bg-amber-900/30';
+    return 'bg-green-100 dark:bg-green-900/30';
 };
 const ticketPriorityIconColor = (priority) => {
     const p = priority.toLowerCase();
-    if (p === 'hoog') return 'text-red-600';
-    if (p === 'normaal') return 'text-amber-600';
-    return 'text-green-600';
+    if (p === 'hoog') return 'text-red-600 dark:text-red-400';
+    if (p === 'normaal') return 'text-amber-600 dark:text-amber-400';
+    return 'text-green-600 dark:text-green-400';
 };
 const ticketPriorityBadgeClass = (priority) => {
     const p = priority.toLowerCase();
-    if (p === 'hoog') return 'bg-red-100 text-red-700';
-    if (p === 'normaal') return 'bg-amber-100 text-amber-700';
-    return 'bg-green-100 text-green-700';
+    if (p === 'hoog') return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+    if (p === 'normaal') return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300';
+    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
 };
 
 const assetToCheck = ref(internalAssets[0]?.id || null);

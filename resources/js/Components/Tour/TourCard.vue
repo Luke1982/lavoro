@@ -30,7 +30,7 @@
 
         <template v-else-if="tourState.phase === 'interlude' && tourState.interlude">
             <div class="p-5">
-                <p class="text-[11px] font-semibold uppercase tracking-wider text-lavoro-blue">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-lavoro-blue dark:text-blue-400">
                     Volgende hoofdstuk · {{ tourState.interlude.chapterIndex + 1 }} van {{ run.chapters.length }}
                 </p>
                 <p class="mt-1 text-lg font-semibold">{{ tourState.interlude.chapter.title }}</p>
@@ -53,7 +53,7 @@
 
         <template v-else-if="run && chapter && step">
             <div class="flex items-center gap-2 border-b border-gray-100 px-4 pt-3 pb-2 dark:border-slate-800">
-                <AcademicCapIcon class="size-4 shrink-0 text-lavoro-blue" />
+                <AcademicCapIcon class="size-4 shrink-0 text-lavoro-blue dark:text-blue-400" />
                 <p class="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
                     <template v-if="run.chapters.length > 1">{{ shown.chapterIndex + 1 }}/{{ run.chapters.length }} · </template>{{ chapter.title }}
                 </p>
@@ -120,7 +120,7 @@
         </template>
 
         <div v-else-if="run" class="flex items-center gap-3 p-5 text-sm text-gray-500 dark:text-slate-400">
-            <AcademicCapIcon class="tour-speaking size-5 text-lavoro-blue" />
+            <AcademicCapIcon class="tour-speaking size-5 text-lavoro-blue dark:text-blue-400" />
             Even klaarzetten…
         </div>
     </div>

@@ -10,8 +10,8 @@
                 :class="{
                     'text-gray-900 dark:bg-slate-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600': !hasError,
                     'ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600': ring && !hasError,
-                    'pr-10 text-red-900 placeholder:text-red-300 border-red-500': hasError,
-                    'ring-1 ring-inset ring-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500': ring && hasError,
+                    'pr-10 text-red-900 dark:text-red-200 placeholder:text-red-300 border-red-500': hasError,
+                    'ring-1 ring-inset ring-red-300 dark:ring-red-700 focus:ring-2 focus:ring-inset focus:ring-red-500': ring && hasError,
                     'rounded-r-none': !rightCorners,
                 }" :aria-invalid="hasError" :aria-describedby="errorId" />
             <div v-if="hasError" class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -22,7 +22,7 @@
             enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0"
             leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
             leave-to-class="opacity-0 -translate-y-1">
-            <p v-if="hasError" class="mt-2 text-sm text-red-600" :id="errorId">{{ errorMessage }}</p>
+            <p v-if="hasError" class="mt-2 text-sm text-red-600 dark:text-red-400" :id="errorId">{{ errorMessage }}</p>
         </Transition>
     </div>
 </template>

@@ -99,7 +99,7 @@
     <div v-if="!importPreview">
         <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
             <div
-                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-4">Klant</div>
                 <div class="col-span-3">Adres</div>
                 <div class="col-span-2">Telefoon</div>
@@ -136,32 +136,32 @@
                     </div>
                     <div class="col-span-1 hidden lg:flex items-center justify-center">
                         <span v-if="customer.open_tickets_count > 0"
-                            class="inline-flex items-center justify-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset min-w-[1.75rem]">
+                            class="inline-flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30 ring-inset min-w-[1.75rem]">
                             {{ customer.open_tickets_count }}
                         </span>
                         <span v-else class="text-gray-300 text-xs">—</span>
                     </div>
                     <div class="col-span-1 hidden lg:flex items-center justify-center">
                         <span v-if="customer.pending_tickets_count > 0"
-                            class="inline-flex items-center justify-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset min-w-[1.75rem]">
+                            class="inline-flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 ring-inset min-w-[1.75rem]">
                             {{ customer.pending_tickets_count }}
                         </span>
                         <span v-else class="text-gray-300 text-xs">—</span>
                     </div>
                     <div class="col-span-1 hidden lg:flex items-center justify-center">
                         <span v-if="customer.closed_tickets_count > 0"
-                            class="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
+                            class="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-slate-400 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
                             {{ customer.closed_tickets_count }}
                         </span>
                         <span v-else class="text-gray-300 text-xs">—</span>
                     </div>
                     <div class="col-span-2 lg:hidden flex flex-col gap-1 items-end justify-center">
                         <span v-if="customer.open_tickets_count > 0"
-                            class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20 ring-inset">
+                            class="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30 ring-inset">
                             {{ customer.open_tickets_count }} open
                         </span>
                         <span v-else-if="customer.pending_tickets_count > 0"
-                            class="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset">
+                            class="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 ring-inset">
                             {{ customer.pending_tickets_count }} lopend
                         </span>
                         <span v-else class="text-xs text-gray-300">—</span>

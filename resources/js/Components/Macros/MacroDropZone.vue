@@ -3,7 +3,7 @@
         <div class="h-3 w-0.5 bg-slate-300 dark:bg-slate-600" />
         <DropdownMenu placement="bottom" width-class="w-56" title="Blok toevoegen" :button-class="[
             'flex size-8 items-center justify-center rounded-full border-2 border-dashed text-sm font-bold transition-colors md:size-6',
-            active ? 'border-lavoro-blue bg-lavoro-blue text-white' : 'border-slate-300 bg-white text-slate-400 hover:border-lavoro-blue hover:text-lavoro-blue dark:border-slate-600 dark:bg-slate-900',
+            active ? 'border-lavoro-blue bg-lavoro-blue text-white' : 'border-slate-300 bg-white text-slate-400 hover:border-lavoro-blue hover:text-lavoro-blue dark:hover:text-blue-400 dark:border-slate-600 dark:bg-slate-900',
         ].join(' ')">
             <template #button>+</template>
             <MenuItem v-for="(block, type) in BLOCKS" :key="type" v-slot="{ active: highlighted }">

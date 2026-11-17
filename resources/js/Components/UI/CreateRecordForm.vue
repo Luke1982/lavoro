@@ -1,7 +1,7 @@
 <template>
     <div v-auto-animate>
         <div v-if="!open && !externalTrigger" @click="open = true"
-            class="border border-green-900 text-green-900 bg-green-100 text-sm p-2 rounded-md cursor-pointer inline-flex items-center">
+            class="border border-green-900 text-green-900 dark:text-green-200 bg-green-100 dark:bg-green-900/30 text-sm p-2 rounded-md cursor-pointer inline-flex items-center">
             <PlusCircleIcon class="h-5 w-5 mr-1" />
             {{ addButtonLabel }}
         </div>
@@ -26,7 +26,7 @@
                     <textarea v-model="form[field.key]" :rows="field.rows || 3"
                         class="mt-2 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm p-2"
                         :placeholder="field.placeholder || ''"></textarea>
-                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm">{{ form.errors[field.key] }}</p>
+                    <p v-if="form.errors[field.key]" class="text-red-600 dark:text-red-400 text-sm">{{ form.errors[field.key] }}</p>
                 </div>
 
                 <div v-else-if="field.type === 'combobox'" :class="['col-span-1', field.class]">
@@ -39,7 +39,7 @@
                         :hasExternalSearching="field.hasExternalSearching === true"
                         :searching="field.searching === true"
                         @change="field.onSearch?.($event)" />
-                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm">{{ form.errors[field.key] }}</p>
+                    <p v-if="form.errors[field.key]" class="text-red-600 dark:text-red-400 text-sm">{{ form.errors[field.key] }}</p>
                 </div>
 
                 <div v-else-if="field.type === 'boolean'" :class="['col-span-1 flex flex-col', field.class]">
@@ -48,7 +48,7 @@
                     <div class="mt-2 h-9 flex items-center">
                         <SwitchComponent v-model="form[field.key]" />
                     </div>
-                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
+                    <p v-if="form.errors[field.key]" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.errors[field.key] }}</p>
                 </div>
 
                 <div v-else-if="field.type === 'iconpicker'" :class="['col-span-1 flex flex-col', field.class]">
@@ -56,13 +56,13 @@
                     <div class="mt-2">
                         <LucideIconPicker v-model="form[field.key]" />
                     </div>
-                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
+                    <p v-if="form.errors[field.key]" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.errors[field.key] }}</p>
                 </div>
 
                 <div v-else-if="field.type === 'file'" :class="['col-span-1 flex flex-col', field.class]">
-                    <label class="block text-sm font-medium leading-6 text-gray-900">{{ field.label }}</label>
+                    <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-100">{{ field.label }}</label>
                     <input type="file" class="mt-2 text-sm" @change="e => form[field.key] = e.target.files[0]" />
-                    <p v-if="form.errors[field.key]" class="text-red-600 text-sm mt-1">{{ form.errors[field.key] }}</p>
+                    <p v-if="form.errors[field.key]" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.errors[field.key] }}</p>
                 </div>
             </template>
 
@@ -194,7 +194,7 @@ watchEffect(() => {
 
 const columnsClass = computed(() => {
     const count = props.fields?.length || 0
-    const base = ['grid', 'gap-y-4', 'gap-x-6', 'my-4', 'rounded-md', 'p-6', 'ring-gray-300', 'ring', 'relative', 'items-start', 'pb-14', 'bg-white', 'grid-cols-1', 'dark:bg-slate-900', 'dark:ring-slate-800']
+    const base = ['grid', 'gap-y-4', 'gap-x-6', 'my-4', 'rounded-md', 'p-6', 'ring-gray-300 dark:ring-slate-600', 'ring', 'relative', 'items-start', 'pb-14', 'bg-white dark:bg-slate-900', 'grid-cols-1', 'dark:bg-slate-900', 'dark:ring-slate-800']
     let cols = 1
     if (count === 1) cols = 1
     else if (count === 2) cols = 2

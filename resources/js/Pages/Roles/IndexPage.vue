@@ -11,7 +11,7 @@
         <BoxComponent padding="px-0 py-0">
             <div v-if="localRoles.length">
                 <div
-                    class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray">
+                    class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                     <div class="col-span-3">Rol</div>
                     <div class="col-span-4">Gebruikers</div>
                     <div class="col-span-5">Permissies</div>
@@ -47,7 +47,7 @@
                                     <template v-for="group in groupedPermissions(role.permission_ids)"
                                         :key="group.resource">
                                         <span class="flex flex-col gap-1">
-                                            <span class="text-xs font-bold text-gray-600">{{ group.resource }}</span>
+                                            <span class="text-xs font-bold text-gray-600 dark:text-slate-400">{{ group.resource }}</span>
                                             <span class="flex flex-wrap gap-1">
                                                 <BadgeComponent v-for="perm in group.permissions" :key="perm.id"
                                                     color="green" :has-dot="false">

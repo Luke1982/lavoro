@@ -3,7 +3,7 @@
 
         <p v-if="billing.demo">
             <strong>Wordt niet gefactureerd</strong>
-            <span class="text-slate-500">
+            <span class="text-slate-500 dark:text-slate-400">
                 &mdash; de demo wordt elke nacht opnieuw opgebouwd, en elke factuur kost een
                 nummer uit de doorlopende reeks.
             </span>
@@ -11,40 +11,40 @@
         <p v-else-if="billing.next">
             Volgende factuur, vanaf <strong>{{ nlDate(billing.next_on) }}</strong>:
         </p>
-        <p v-else-if="!tenant.subscription_started_on" class="text-slate-500">
+        <p v-else-if="!tenant.subscription_started_on" class="text-slate-500 dark:text-slate-400">
             Geen ingangsdatum: deze klant wordt niet gefactureerd.
         </p>
-        <p v-else class="text-slate-500">Er staat geen factuur meer gepland.</p>
+        <p v-else class="text-slate-500 dark:text-slate-400">Er staat geen factuur meer gepland.</p>
 
-        <p v-if="!billing.demo && tenant.auto_invoicing === false" class="mt-1 text-sm font-semibold text-amber-700">
+        <p v-if="!billing.demo && tenant.auto_invoicing === false" class="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
             Automatisch factureren staat uit: de factuur maak je zelf aan bij Facturen bekijken.
         </p>
 
         <table v-if="billing.next || billing.pending.length" class="mt-2 w-full text-sm">
             <tbody>
                 <tr v-for="(line, index) in billing.next?.lines ?? []" :key="index"
-                    class="border-t border-slate-200 align-top">
+                    class="border-t border-slate-200 dark:border-slate-700 align-top">
                     <td class="py-1.5">{{ line.description }}</td>
                     <td class="py-1.5 pl-3 text-right whitespace-nowrap">{{ euro(line.amount_cents) }}</td>
                     <td></td>
                 </tr>
                 <tr v-for="charge in billing.pending" :key="`charge-${charge.id}`"
-                    class="border-t border-slate-200 align-top">
+                    class="border-t border-slate-200 dark:border-slate-700 align-top">
                     <td class="py-1.5">{{ charge.description }}</td>
                     <td class="py-1.5 pl-3 text-right whitespace-nowrap">{{ euro(charge.amount_cents) }}</td>
                     <td class="py-1.5 pl-3 text-right">
-                        <button type="button" class="text-red-700 underline" @click="forget(charge)">verwijderen</button>
+                        <button type="button" class="text-red-700 dark:text-red-300 underline" @click="forget(charge)">verwijderen</button>
                     </td>
                 </tr>
                 <template v-if="billing.next">
-                    <tr v-if="billing.next.discount_cents" class="border-t border-slate-200">
+                    <tr v-if="billing.next.discount_cents" class="border-t border-slate-200 dark:border-slate-700">
                         <td class="py-1.5">Jaarkorting</td>
-                        <td class="py-1.5 pl-3 text-right whitespace-nowrap text-red-700">
+                        <td class="py-1.5 pl-3 text-right whitespace-nowrap text-red-700 dark:text-red-300">
                             &minus; {{ euro(billing.next.discount_cents) }}
                         </td>
                         <td></td>
                     </tr>
-                    <tr class="border-t border-slate-300 font-semibold">
+                    <tr class="border-t border-slate-300 dark:border-slate-600 font-semibold">
                         <td class="py-1.5">Totaal excl. btw</td>
                         <td class="py-1.5 pl-3 text-right whitespace-nowrap">{{ euro(billing.next.total_cents) }}</td>
                         <td></td>
@@ -54,7 +54,7 @@
         </table>
 
         <p class="mt-3">
-            <Link :href="`/beheer/${tenant.id}/facturen`" class="text-blue-700 underline">Facturen bekijken</Link>
+            <Link :href="`/beheer/${tenant.id}/facturen`" class="text-blue-700 dark:text-blue-300 underline">Facturen bekijken</Link>
         </p>
     </PanelSection>
 </template>

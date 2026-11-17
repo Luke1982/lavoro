@@ -10,12 +10,12 @@
                 :class="index === 5 ? 'ml-1.5' : ''">
                 {{ day }}
             </div>
-            <div class="scene-original absolute top-6 h-10 rounded border-l-4 border-sky-500 bg-sky-200 shadow-sm"
+            <div class="scene-original absolute top-6 h-10 rounded border-l-4 border-sky-500 bg-sky-200 dark:bg-sky-900/50 shadow-sm"
                 :style="{ left: column(1), width: 'calc(10% - 4px)' }" />
-            <div v-for="(target, index) in targets" :key="target" class="scene-copy absolute top-6 h-10 rounded border-l-4 border-sky-500 bg-sky-100"
+            <div v-for="(target, index) in targets" :key="target" class="scene-copy absolute top-6 h-10 rounded border-l-4 border-sky-500 bg-sky-100 dark:bg-sky-900/30"
                 :style="{ left: column(1), width: 'calc(10% - 4px)', '--distance': distance(target), animationDelay: (index * 0.3) + 's' }" />
         </div>
-        <p class="mt-3 text-center text-xs font-medium text-lavoro-blue">{{ caption }}</p>
+        <p class="mt-3 text-center text-xs font-medium text-lavoro-blue dark:text-blue-400">{{ caption }}</p>
     </div>
 </template>
 

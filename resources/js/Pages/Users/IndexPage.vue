@@ -70,7 +70,7 @@
                         <p class="text-sm text-gray-500 dark:text-slate-400 truncate">{{ u.email }}</p>
                     </div>
                     <button v-if="hasPermission('user.restore')" @click="onRestore(u)"
-                        class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-lavoro-blue hover:bg-blue-50 dark:hover:bg-slate-800">
+                        class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800">
                         Herstellen
                     </button>
                 </div>

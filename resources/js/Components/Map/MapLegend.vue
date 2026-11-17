@@ -1,6 +1,6 @@
 <template>
-    <div class="fixed bottom-8 right-2 z-[999] rounded-lg bg-white/95 px-3 py-2 text-xs text-gray-700 shadow-md ring-1 ring-black/10">
-        <p class="mb-1 font-medium text-gray-900">{{ title }}</p>
+    <div class="fixed bottom-8 right-2 z-[999] rounded-lg bg-white/95 dark:bg-slate-900/95 px-3 py-2 text-xs text-gray-700 dark:text-slate-300 shadow-md ring-1 ring-black/10 dark:ring-white/10">
+        <p class="mb-1 font-medium text-gray-900 dark:text-slate-100">{{ title }}</p>
         <ul class="space-y-1">
             <li v-for="entry in entries" :key="entry.label" class="flex items-center gap-2">
                 <svg viewBox="0 0 28 38" class="h-4 w-3 shrink-0">
@@ -24,7 +24,7 @@
                 {{ badge }}
             </li>
         </ul>
-        <p class="mt-1 text-gray-500">
+        <p class="mt-1 text-gray-500 dark:text-slate-400">
             Het cijfer is het aantal {{ counted }} op dat adres<br>
             of in die groep; in een route het volgnummer.
         </p>

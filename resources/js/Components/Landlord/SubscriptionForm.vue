@@ -6,7 +6,7 @@
                 <div>
                     <label class="mb-1 block font-semibold">Startdatum abonnement</label>
                     <input v-model="form.subscription_started_on" type="date" class="panel-field w-full">
-                    <p v-if="!form.subscription_started_on" class="mt-1 text-sm font-semibold text-amber-700">
+                    <p v-if="!form.subscription_started_on" class="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
                         Zonder ingangsdatum wordt deze klant nooit gefactureerd.
                     </p>
                 </div>
@@ -23,7 +23,7 @@
                 <input v-model="form.auto_invoicing" type="checkbox" class="mt-1">
                 <span>
                     Automatisch factureren
-                    <span class="block text-sm text-slate-500">
+                    <span class="block text-sm text-slate-500 dark:text-slate-400">
                         Elk uur worden de facturen aangemaakt waarvan de periode begonnen is (niet
                         verstuurd). Uit: alleen met de knop bij Facturen bekijken.
                     </span>
@@ -56,7 +56,7 @@
                     <input v-model="form.ai_allowance_euro" type="number" step="0.01" min="0"
                         :placeholder="`${euro(ai.allowance_cents)} (standaard)`"
                         class="panel-field w-full">
-                    <p class="mt-1 text-sm text-slate-500">
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Deze maand verbruikt: {{ euro(ai.spent_cents) }} van {{ euro(ai.allowance_cents) }}.
                         <template v-if="ai.topup_cents > 0">Bijgekocht tegoed: {{ euro(ai.topup_cents) }}.</template>
                         Leeg laten volgt de standaard uit de catalogus.
@@ -64,13 +64,13 @@
                 </div>
             </div>
 
-            <div class="my-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div class="my-4 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
                 <table class="w-full text-sm">
                     <tbody>
                         <tr v-for="(line, index) in subscription.lines" :key="index" class="align-top">
                             <td class="py-1">
                                 {{ line.description }}
-                                <span v-if="line.detail" class="block text-slate-500">{{ line.detail }}</span>
+                                <span v-if="line.detail" class="block text-slate-500 dark:text-slate-400">{{ line.detail }}</span>
                             </td>
                             <td class="py-1 pl-3 text-right whitespace-nowrap"
                                 :class="{ 'text-red-700': line.amount_cents < 0 }">
@@ -79,57 +79,57 @@
                         </tr>
                     </tbody>
                 </table>
-                <div class="mt-2 flex justify-between border-t border-slate-300 pt-2 text-lg font-bold">
+                <div class="mt-2 flex justify-between border-t border-slate-300 dark:border-slate-600 pt-2 text-lg font-bold">
                     <span>Totaal per maand</span>
                     <span>{{ euro(subscription.total_cents) }}</span>
                 </div>
-                <p v-if="form.isDirty" class="mt-1 text-sm text-amber-700">
+                <p v-if="form.isDirty" class="mt-1 text-sm text-amber-700 dark:text-amber-300">
                     Dit is de opbouw zoals hij is opgeslagen; na opslaan klopt hij met wat je hebt ingevuld.
                 </p>
             </div>
 
             <label class="mb-1 block font-semibold">Korting</label>
-            <div class="overflow-hidden rounded-md border border-slate-300">
-                <label class="flex items-center gap-2.5 border-b border-slate-200 px-3 py-2">
+            <div class="overflow-hidden rounded-md border border-slate-300 dark:border-slate-600">
+                <label class="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-700 px-3 py-2">
                     <input v-model="form.discount_type" type="radio" value="none">
                     <span class="w-28 font-semibold">Geen korting</span>
                 </label>
-                <label class="flex items-center gap-2.5 border-b border-slate-200 px-3 py-2">
+                <label class="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-700 px-3 py-2">
                     <input v-model="form.discount_type" type="radio" value="euro">
                     <span class="w-28 font-semibold">Vast bedrag</span>
                     <input v-model="form.discount_euro" type="number" step="0.01" min="0" placeholder="0,00"
-                        class="w-28 rounded border border-slate-300 px-2 py-1">
-                    <span class="text-slate-500">€ per maand</span>
+                        class="w-28 rounded border border-slate-300 dark:border-slate-600 px-2 py-1">
+                    <span class="text-slate-500 dark:text-slate-400">€ per maand</span>
                 </label>
                 <label class="flex items-center gap-2.5 px-3 py-2">
                     <input v-model="form.discount_type" type="radio" value="percent">
                     <span class="w-28 font-semibold">Percentage</span>
                     <input v-model="form.discount_percent" type="number" min="0" max="100" placeholder="0"
-                        class="w-28 rounded border border-slate-300 px-2 py-1">
-                    <span class="text-slate-500">%</span>
+                        class="w-28 rounded border border-slate-300 dark:border-slate-600 px-2 py-1">
+                    <span class="text-slate-500 dark:text-slate-400">%</span>
                 </label>
             </div>
 
             <label for="ends-on" class="mb-1 mt-4 block font-semibold">
                 Opgezegd per
-                <span class="font-normal text-slate-500">(leeg = loopt door)</span>
+                <span class="font-normal text-slate-500 dark:text-slate-400">(leeg = loopt door)</span>
             </label>
             <input id="ends-on" v-model="form.subscription_ends_on" type="date" class="panel-field w-full">
-            <p v-if="form.errors.subscription_ends_on" class="mt-1 text-sm font-semibold text-red-700">
+            <p v-if="form.errors.subscription_ends_on" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">
                 {{ form.errors.subscription_ends_on }}
             </p>
-            <p class="mt-1 text-sm text-slate-500">
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 De laatste dag waarop het abonnement loopt. Er wordt tot en met die dag gerekend;
                 is de maand al gefactureerd, dan komt het te veel betaalde als tegoed terug.
             </p>
 
             <label for="package-price" class="mb-1 mt-4 block font-semibold">
                 Vaste pakketprijs (€)
-                <span class="font-normal text-slate-500">(leeg = prijs uit de catalogus)</span>
+                <span class="font-normal text-slate-500 dark:text-slate-400">(leeg = prijs uit de catalogus)</span>
             </label>
             <input id="package-price" v-model="form.price_override_euro" type="number" step="0.01" min="0"
                 class="panel-field w-full">
-            <p class="mt-1 text-sm text-slate-500">
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Geldt voor het pakket met alle plekken en opslag, hoeveel het er ook zijn. Alleen
                 modules komen erbovenop; daarvoor spreek je hierboven een eigen prijs af.
             </p>
@@ -145,16 +145,16 @@
             </div>
 
             <label class="mb-1 mt-4 block font-semibold">Betaling</label>
-            <div class="overflow-hidden rounded-md border border-slate-300">
-                <label class="flex items-center gap-2.5 border-b border-slate-200 px-3 py-2">
+            <div class="overflow-hidden rounded-md border border-slate-300 dark:border-slate-600">
+                <label class="flex items-center gap-2.5 border-b border-slate-200 dark:border-slate-700 px-3 py-2">
                     <input v-model="form.payment_method" type="radio" value="transfer">
                     <span class="w-28 font-semibold">Overboeking</span>
-                    <span class="text-slate-500">de klant maakt zelf over</span>
+                    <span class="text-slate-500 dark:text-slate-400">de klant maakt zelf over</span>
                 </label>
                 <label class="flex items-center gap-2.5 px-3 py-2">
                     <input v-model="form.payment_method" type="radio" value="direct_debit">
                     <span class="w-28 font-semibold">Incasso</span>
-                    <span class="text-slate-500">automatisch afschrijven met machtiging</span>
+                    <span class="text-slate-500 dark:text-slate-400">automatisch afschrijven met machtiging</span>
                 </label>
             </div>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">
@@ -163,24 +163,24 @@
                 <input v-model="form.mandate_reference" type="text" maxlength="35" placeholder="Machtigingskenmerk" class="panel-field">
                 <input v-model="form.mandate_signed_on" type="date" class="panel-field">
             </div>
-            <p v-if="form.errors.iban" class="mt-1 font-semibold text-red-700">{{ form.errors.iban }}</p>
+            <p v-if="form.errors.iban" class="mt-1 font-semibold text-red-700 dark:text-red-300">{{ form.errors.iban }}</p>
 
             <label class="mb-1 mt-4 block font-semibold">Modules</label>
-            <p class="mb-1 text-sm text-slate-500">
+            <p class="mb-1 text-sm text-slate-500 dark:text-slate-400">
                 Het veld achter een module is een eigen prijsafspraak; leeg is de normale prijs.
             </p>
             <div v-for="module in modules" :key="module.key" class="flex items-center gap-2 py-1">
                 <label class="flex flex-1 items-center gap-2">
                     <input v-model="form.modules" type="checkbox" :value="module.key">
                     {{ module.name }}
-                    <span v-if="module.price_cents" class="text-slate-500">{{ euro(module.price_cents) }}</span>
+                    <span v-if="module.price_cents" class="text-slate-500 dark:text-slate-400">{{ euro(module.price_cents) }}</span>
                 </label>
 
                 <input v-if="form.modules.includes(module.key)" v-model="form.module_prices[module.key]"
                     type="number" step="0.01" min="0" :placeholder="euroInput(module.price_cents)"
                     :aria-label="`Eigen prijs voor ${module.name}`" class="panel-field-narrow w-24">
             </div>
-            <p v-if="form.errors.module_prices" class="mt-1 text-sm font-semibold text-red-700">
+            <p v-if="form.errors.module_prices" class="mt-1 text-sm font-semibold text-red-700 dark:text-red-300">
                 {{ form.errors.module_prices }}
             </p>
 
@@ -189,7 +189,7 @@
                     class="panel-button">
                     {{ form.processing ? 'Bezig…' : 'Opslaan' }}
                 </button>
-                <Link href="/beheer" class="text-blue-700 underline">annuleren</Link>
+                <Link href="/beheer" class="text-blue-700 dark:text-blue-300 underline">annuleren</Link>
             </p>
         </form>
     </PanelSection>

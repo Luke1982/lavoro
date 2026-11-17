@@ -1,35 +1,35 @@
 <template>
-    <div class="min-h-screen bg-slate-100 py-8 px-4">
+    <div class="min-h-screen bg-slate-100 dark:bg-slate-800 py-8 px-4">
         <div class="mx-auto w-full max-w-2xl">
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden">
-                <header class="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
+            <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
+                <header class="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
                     <img v-if="company?.logo_url" :src="company.logo_url" :alt="company.name" class="h-9 w-auto" />
-                    <span v-else class="text-lg font-bold text-slate-800">{{ company?.name || 'Service' }}</span>
+                    <span v-else class="text-lg font-bold text-slate-800 dark:text-slate-200">{{ company?.name || 'Service' }}</span>
                 </header>
 
                 <div class="px-6 py-6">
-                    <h1 class="text-xl font-bold text-slate-900">Aanvullende informatie</h1>
-                    <p class="mt-1 text-sm text-slate-500">
+                    <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">Aanvullende informatie</h1>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Over uw storingsmelding bij {{ machine }}<span v-if="serial">, serienummer {{
                             serial }}</span>.
                     </p>
 
-                    <div v-if="closed" class="mt-6 rounded-xl bg-amber-50 px-4 py-4 text-sm text-amber-800">
+                    <div v-if="closed" class="mt-6 rounded-xl bg-amber-50 dark:bg-amber-900/20 px-4 py-4 text-sm text-amber-800 dark:text-amber-200">
                         Deze storing is inmiddels afgehandeld, daarom kunt u hier niets meer aanleveren.
                         Neem gerust contact met ons op als er nog iets speelt.
                     </div>
 
                     <template v-else>
-                        <div v-if="flashSuccess" class="mt-6 rounded-xl bg-green-50 px-4 py-4 text-sm text-green-800">
+                        <div v-if="flashSuccess" class="mt-6 rounded-xl bg-green-50 dark:bg-green-900/20 px-4 py-4 text-sm text-green-800 dark:text-green-200">
                             {{ flashSuccess }}
                         </div>
 
-                        <section v-if="requested.length" class="mt-6 rounded-xl bg-slate-50 px-4 py-4">
-                            <p class="text-sm font-semibold text-slate-700">Wij ontvangen graag:</p>
+                        <section v-if="requested.length" class="mt-6 rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-4">
+                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Wij ontvangen graag:</p>
                             <ul class="mt-2 space-y-1">
                                 <li v-for="item in requested" :key="item"
-                                    class="flex items-start gap-2 text-sm text-slate-600">
-                                    <CheckIcon class="mt-0.5 size-4 flex-none text-green-600" />
+                                    class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <CheckIcon class="mt-0.5 size-4 flex-none text-green-600 dark:text-green-400" />
                                     <span>{{ item }}</span>
                                 </li>
                             </ul>
@@ -43,7 +43,7 @@
                                     @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false"
                                     @drop.prevent="onDrop">
                                     <ArrowUpTrayIcon class="size-7 text-slate-400" />
-                                    <span class="text-sm font-semibold text-slate-700">
+                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Sleep bestanden hierheen of tik om te kiezen
                                     </span>
                                     <span class="text-xs text-slate-400">
@@ -55,32 +55,32 @@
 
                                 <ul v-if="chosen.length" class="mt-3 space-y-2">
                                     <li v-for="(file, index) in chosen" :key="file.name + index"
-                                        class="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+                                        class="flex items-center gap-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
                                         <PaperClipIcon class="size-4 flex-none text-slate-400" />
-                                        <span class="min-w-0 flex-1 truncate text-sm text-slate-700">{{ file.name
+                                        <span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">{{ file.name
                                             }}</span>
                                         <span class="flex-none text-xs text-slate-400">{{ readableSize(file.size)
                                             }}</span>
-                                        <button type="button" class="flex-none text-slate-400 hover:text-red-600"
+                                        <button type="button" class="flex-none text-slate-400 hover:text-red-600 dark:hover:text-red-400"
                                             :aria-label="`${file.name} verwijderen`" @click="remove(index)">
                                             <XMarkIcon class="size-4" />
                                         </button>
                                     </li>
                                 </ul>
 
-                                <p v-for="message in fileErrors" :key="message" class="mt-2 text-sm text-red-600">
+                                <p v-for="message in fileErrors" :key="message" class="mt-2 text-sm text-red-600 dark:text-red-400">
                                     {{ message }}
                                 </p>
                             </div>
 
                             <div>
-                                <label for="note" class="mb-1 block text-sm font-medium text-slate-700">
+                                <label for="note" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
                                     Toelichting <span class="font-normal text-slate-400">(optioneel)</span>
                                 </label>
                                 <textarea id="note" v-model="form.note" rows="4" :maxlength="limits.note_max"
                                     placeholder="Wanneer begon het probleem? Wat merkt u precies?"
-                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500" />
-                                <p v-if="form.errors.note" class="mt-1 text-sm text-red-600">{{ form.errors.note }}</p>
+                                    class="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500" />
+                                <p v-if="form.errors.note" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.note }}</p>
                             </div>
 
                             <button type="submit" :disabled="form.processing || nothingToSend"
@@ -93,12 +93,12 @@
                             </p>
                         </form>
 
-                        <section v-if="uploaded.length" class="mt-8 border-t border-slate-100 pt-5">
-                            <p class="text-sm font-semibold text-slate-700">Al door u verstuurd</p>
+                        <section v-if="uploaded.length" class="mt-8 border-t border-slate-100 dark:border-slate-800 pt-5">
+                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-300">Al door u verstuurd</p>
                             <ul class="mt-2 space-y-1">
                                 <li v-for="(item, index) in uploaded" :key="item.name + index"
-                                    class="flex items-center gap-2 text-sm text-slate-500">
-                                    <CheckCircleIcon class="size-4 flex-none text-green-600" />
+                                    class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                    <CheckCircleIcon class="size-4 flex-none text-green-600 dark:text-green-400" />
                                     <span class="min-w-0 flex-1 truncate">{{ item.name }}</span>
                                     <span class="flex-none text-xs text-slate-400">{{ shortDate(item.at) }}</span>
                                 </li>

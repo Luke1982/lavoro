@@ -25,11 +25,11 @@
                         </div>
                         <div class="flex flex-col gap-2">
                             <button type="button" @click="edit(company)"
-                                class="p-2 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100">
+                                class="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/30">
                                 <PencilSquareIcon class="w-4 h-4" />
                             </button>
                             <button type="button" @click="deleteCompany(company)"
-                                class="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                class="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100 dark:hover:bg-red-900/30">
                                 <TrashIcon class="w-4 h-4" />
                             </button>
                         </div>
@@ -89,12 +89,12 @@
                     </td>
                     <td class="px-4 py-2 text-right text-xs space-x-2">
                         <button type="button" @click="edit(company)"
-                            class="inline-flex items-center justify-center rounded-md p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition">
+                            class="inline-flex items-center justify-center rounded-md p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-700 dark:hover:text-indigo-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition">
                             <PencilSquareIcon class="w-4 h-4" />
                             <span class="sr-only">Bewerk</span>
                         </button>
                         <button type="button" @click="deleteCompany(company)"
-                            class="inline-flex items-center justify-center rounded-md p-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition">
+                            class="inline-flex items-center justify-center rounded-md p-2 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 dark:hover:text-red-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition">
                             <TrashIcon class="w-4 h-4" />
                             <span class="sr-only">Verwijder</span>
                         </button>

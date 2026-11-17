@@ -43,7 +43,7 @@
                 <div v-else-if="error" class="flex h-48 flex-col items-center justify-center gap-3 text-sm">
                     <p class="text-gray-500 dark:text-slate-400">{{ error }}</p>
                     <button v-if="url" type="button" @click="download"
-                        class="font-medium text-lavoro-blue hover:underline cursor-pointer">
+                        class="font-medium text-lavoro-blue dark:text-blue-400 hover:underline cursor-pointer">
                         Probeer te downloaden
                     </button>
                 </div>

@@ -8,7 +8,7 @@
         <MenuItem v-for="macro in macros" :key="macro.id" v-slot="{ active }">
             <button type="button" @click="start(macro)" :class="['block w-full px-3 py-2 text-left text-sm', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                 <span class="block font-medium text-gray-800 dark:text-slate-100">{{ macro.title }}</span>
-                <span v-if="macro.description" class="block truncate text-xs text-gray-500">{{ macro.description }}</span>
+                <span v-if="macro.description" class="block truncate text-xs text-gray-500 dark:text-slate-400">{{ macro.description }}</span>
             </button>
         </MenuItem>
     </DropdownMenu>
@@ -46,12 +46,12 @@
                     <option v-for="location in locations" :key="location.id" :value="location.id">{{ location.title }}</option>
                 </select>
             </div>
-            <p v-for="message in errorMessages" :key="message" class="text-xs text-red-600">{{ message }}</p>
+            <p v-for="message in errorMessages" :key="message" class="text-xs text-red-600 dark:text-red-400">{{ message }}</p>
         </div>
         <template #footer>
             <div class="flex justify-between gap-3">
                 <button type="button" :disabled="position === 0" @click="position--"
-                    class="text-sm text-gray-500 hover:text-gray-700 disabled:invisible">Vorige</button>
+                    class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 disabled:invisible">Vorige</button>
                 <button v-if="!isLast" type="button" :disabled="!answered" @click="next"
                     class="rounded-md bg-lavoro-blue px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                     Volgende

@@ -83,7 +83,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p v-if="quantityError(row.line)" class="-mt-2 text-xs text-red-600">
+                        <p v-if="quantityError(row.line)" class="-mt-2 text-xs text-red-600 dark:text-red-400">
                             {{ quantityError(row.line) }}
                         </p>
 

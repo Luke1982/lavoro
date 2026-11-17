@@ -61,7 +61,7 @@
                                 class="flex items-center gap-3 px-3 py-2 cursor-pointer border-b border-gray-200 dark:border-slate-700 last:border-b-0"
                                 :class="form.seat_type === option.value ? 'bg-blue-50 dark:bg-slate-700/50' : ''">
                                 <input type="radio" v-model="form.seat_type" :value="option.value"
-                                    class="text-indigo-600 focus:ring-indigo-600" />
+                                    class="text-indigo-600 dark:text-indigo-400 focus:ring-indigo-600" />
                                 <span class="text-sm text-gray-900 dark:text-white">{{ option.label }}</span>
                                 <span v-if="option.limit !== null" class="text-xs ml-auto"
                                     :class="option.full ? 'text-red-600' : 'text-gray-500 dark:text-slate-400'">
@@ -69,22 +69,22 @@
                                 </span>
                             </label>
                         </div>
-                        <div v-if="form.errors.seat_type" class="text-xs text-red-600 mt-1">{{ form.errors.seat_type }}</div>
+                        <div v-if="form.errors.seat_type" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ form.errors.seat_type }}</div>
                     </div>
                     <div v-if="canAssignRoles">
                         <label class="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Rollen</label>
                         <ComboBox v-model="form.role_ids" :options="allRoles" multiple />
-                        <div v-if="form.errors.role_ids" class="text-xs text-red-600 mt-1">{{ form.errors.role_ids }}
+                        <div v-if="form.errors.role_ids" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ form.errors.role_ids }}
                         </div>
                     </div>
                     <div v-if="isAdmin">
                         <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                             <input v-model="form.plannable" type="checkbox"
-                                class="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-600 bg-white dark:bg-slate-800" />
+                                class="h-4 w-4 rounded border-gray-300 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-600 bg-white dark:bg-slate-800" />
                             <span class="text-xs font-medium text-gray-700 dark:text-slate-300">Inplanbaar (zichtbaar als
                                 rij in de planner)</span>
                         </label>
-                        <div v-if="form.errors.plannable" class="text-xs text-red-600 mt-1">{{ form.errors.plannable }}
+                        <div v-if="form.errors.plannable" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ form.errors.plannable }}
                         </div>
                     </div>
                 </div>

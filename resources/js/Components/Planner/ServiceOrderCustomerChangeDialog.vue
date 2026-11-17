@@ -28,7 +28,7 @@
                                 <div class="sm:flex sm:items-start">
                                     <div
                                         class="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40 sm:mx-0 sm:size-10">
-                                        <AlertTriangle class="size-6 text-amber-600" aria-hidden="true" />
+                                        <AlertTriangle class="size-6 text-amber-600 dark:text-amber-400" aria-hidden="true" />
                                     </div>
                                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                                         <DialogTitle as="h3"

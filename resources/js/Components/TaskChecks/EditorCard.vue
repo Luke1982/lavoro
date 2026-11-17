@@ -15,7 +15,7 @@
             <span v-if="!renaming" class="min-w-0 flex-1 truncate text-sm font-semibold">{{ title }}</span>
             <input v-else ref="renameInput" v-model="draft" type="text" @click.stop @keydown.enter.prevent="saveRename"
                 @keydown.esc.prevent="renaming = false" @blur="saveRename"
-                class="min-w-0 flex-1 rounded border-0 px-1.5 py-0.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 dark:bg-slate-900 dark:text-white" />
+                class="min-w-0 flex-1 rounded border-0 px-1.5 py-0.5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 focus:ring-2 focus:ring-indigo-600 dark:bg-slate-900 dark:text-white" />
             <div v-if="editable" @click.stop>
                 <DropdownMenu placement="bottom-end" width-class="w-44" title="Meer"
                     button-class="rounded p-0.5 text-current opacity-60 hover:opacity-100">

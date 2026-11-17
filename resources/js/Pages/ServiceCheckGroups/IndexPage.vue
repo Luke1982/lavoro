@@ -10,7 +10,7 @@
                     <ComboBox :options="productTypesForComboBox" v-model="productTypeToShow"
                         placeholder="Selecteer producttype" class="w-full" />
                     <button type="button" @click="resetFilter"
-                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600"
+                        class="h-9 w-9 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-slate-400"
                         v-tooltip="'Reset filter op producttype'">
                         <XCircleIcon class="h-5 w-5" />
                     </button>

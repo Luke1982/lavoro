@@ -47,7 +47,7 @@
                                     :readonly="!canUpdate">
                                     <template #display>
                                         <Link v-if="project.customer" :href="`/customers/${project.customer.id}`"
-                                            class="text-lavoro-blue hover:underline">
+                                            class="text-lavoro-blue dark:text-blue-400 hover:underline">
                                             {{ project.customer.name }}
                                         </Link>
                                         <span v-else class="text-gray-400">Selecteer klant</span>
@@ -364,7 +364,7 @@
                     <textarea v-model="newMilestoneForm.description" rows="4"
                         class="block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-gray-600 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-sm p-2"
                         placeholder="Optioneel"></textarea>
-                    <p v-if="newMilestoneForm.errors.description" class="text-red-600 text-sm mt-1">
+                    <p v-if="newMilestoneForm.errors.description" class="text-red-600 dark:text-red-400 text-sm mt-1">
                         {{ newMilestoneForm.errors.description }}
                     </p>
                 </div>
