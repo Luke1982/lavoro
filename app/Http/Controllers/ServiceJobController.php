@@ -85,6 +85,7 @@ class ServiceJobController extends Controller
             'checkInstances.remarks.user',
             'asset.product.brand',
             'asset.customer',
+            'asset.linkedLocation',
             'serviceOrder',
             'parentJob.asset.product.brand',
             'parentJob.asset.product.productType',
@@ -414,7 +415,18 @@ class ServiceJobController extends Controller
 
         $asset = $servicejob->asset;
         $product = $asset?->product;
-        $customer = $asset?->customer;
+        $customer = $asset?->resolvedCustomer();
+        $location = $asset?->resolvedLinkedLocation();
+        $address_source = $location ?? $customer;
+        $address = trim(collect([
+            $address_source?->address,
+            trim(($address_source?->postal_code ?? '') . ' ' . ($address_source?->city ?? '')),
+        ])->filter()->implode(', '));
+        $new_expiry_date = null;
+        if ($servicejob->completed_on && $asset?->next_service_date
+            && $servicejob->getDaysToAdvanceNextServiceDate($servicejob->days_temporary_approval) !== null) {
+            $new_expiry_date = Carbon::parse($asset->next_service_date)->format('d-m-Y');
+        }
         $pt_name = trim((string) ($product?->productType?->name ?? 'installatie'));
         $pt_name_lower = Str::lower($pt_name);
 
@@ -458,6 +470,9 @@ class ServiceJobController extends Controller
             'asset' => $asset,
             'product' => $product,
             'customer' => $customer,
+            'location' => $location,
+            'address' => $address,
+            'newExpiryDate' => $new_expiry_date,
             'ptName' => $pt_name,
             'ptNameLower' => $pt_name_lower,
             'groups' => $raw_groups,

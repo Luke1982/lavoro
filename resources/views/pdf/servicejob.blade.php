@@ -129,9 +129,12 @@
             <td style="width:30%">{{ $customer?->phone ?? '—' }}</td>
         </tr>
         <tr>
-            <th style="width:20%">Adres</th>
+            <th style="width:20%">{{ $location ? 'Locatie' : 'Adres' }}</th>
             <td style="width:30%">
-                {{ trim(($customer?->address ?? '') . ' ' . ($customer?->postal_code ?? '') . ' ' . ($customer?->city ?? '')) }}
+                @if ($location?->title)
+                    {{ $location->title }}<br>
+                @endif
+                {{ $address !== '' ? $address : '—' }}
             </td>
             <th style="width:20%">Datum keuring</th>
             <td style="width:30%">{{ optional($serviceJob->created_at)->format('d-m-Y') }}</td>
@@ -147,6 +150,12 @@
             <td style="width:30%">{{ $product?->brand?->name ?? '—' }}</td>
             <th style="width:20%">Model / Serienummer</th>
             <td style="width:30%">{{ trim(($product?->model ?? '') . ' / ' . ($asset?->serial_number ?? '')) }}</td>
+        </tr>
+        <tr>
+            <th style="width:20%">Nieuwe verloopdatum</th>
+            <td style="width:30%">{{ $newExpiryDate ?? '—' }}</td>
+            <th style="width:20%">&nbsp;</th>
+            <td style="width:30%">&nbsp;</td>
         </tr>
     </table>
 

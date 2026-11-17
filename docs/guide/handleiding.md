@@ -275,7 +275,7 @@ Keurpunten zijn er in soorten: één keuze uit meerdere, meerdere keuzes, ja/nee
 
 Mist een keuring keurpunten die later aan het producttype zijn toegevoegd, dan is er een knop om de ontbrekende punten alsnog toe te voegen.
 
-Elke keuring heeft een eigen PDF-rapport dat je kunt genereren en naar de klant kunt mailen (los, of gebundeld met de werkbon-PDF).
+Elke keuring heeft een eigen PDF-rapport dat je kunt genereren en naar de klant kunt mailen (los, of gebundeld met de werkbon-PDF). Bovenaan het rapport staat het adres van de locatie waar de machine staat (heeft de machine geen locatie, dan het adres van de klant), en — zodra de keuring is afgerond met een goedkeuring of tijdelijke goedkeuring — de **nieuwe verloopdatum** van de machine.
 
 ### Aankomende keuringen
 
