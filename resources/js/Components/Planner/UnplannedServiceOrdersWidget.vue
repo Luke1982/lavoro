@@ -16,7 +16,7 @@
 
             <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
                 <div v-for="so in visibleServiceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
-                    @dragend="onDragEnd" @contextmenu="onContextMenu($event, so)" :data-so-id="so.id" data-tour="planner.unplanned.card"
+                    @contextmenu="onContextMenu($event, so)" :data-so-id="so.id" data-tour="planner.unplanned.card"
                     class="group cursor-grab active:cursor-grabbing select-none p-3 transition"
                     :class="so.id === highlightId ? 'rounded-md ring-2 ring-inset ring-emerald-500 bg-emerald-50/60 dark:bg-emerald-900/15' : ''"
                     :title="`Sleep naar de planning om in te plannen — werkbon #${so.id}`">
@@ -115,6 +115,7 @@ import {
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { formatWbNumber, nlDate, taskInstanceTitle } from '@/Utilities/Utilities'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
+import { startFlyingDragImage } from '@/Utilities/flyingDragImage'
 import { canDeleteServiceOrder, canReadServiceOrders } from '@/Utilities/serviceOrders'
 import { useExpandableFilter } from '@/Composables/useExpandableFilter'
 
@@ -216,10 +217,6 @@ function onContextMenu(e, so) {
 
 function onDragStart(e, so) {
     setServiceOrderDragData(e, so)
-    e.currentTarget.classList.add('opacity-40')
-}
-
-function onDragEnd(e) {
-    e.currentTarget.classList.remove('opacity-40')
+    startFlyingDragImage(e)
 }
 </script>

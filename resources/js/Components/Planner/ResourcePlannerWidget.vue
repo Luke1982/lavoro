@@ -361,7 +361,7 @@
                                                 :style="{ maxWidth: '100%' }">
                                                 <div v-for="so in track.serviceOrders" :key="'pso-' + so.id"
                                                     draggable="true" @dragstart="onProjectServiceOrderDragStart($event, so)"
-                                                    @dragend="onProjectServiceOrderDragEnd" :data-so-card-id="so.id"
+                                                    :data-so-card-id="so.id"
                                                     data-tour="planner.project.order"
                                                     :style="{ height: SO_CARD_H + 'px', width: SO_CARD_W + 'px' }"
                                                     class="group cursor-grab active:cursor-grabbing select-none flex items-center gap-1.5 rounded-md border dark:bg-slate-800 px-2 shadow-sm transition"
@@ -570,6 +570,7 @@ import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIc
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { useTray, canPaste, isTrayDrag, readTrayDrag, endTrayDrag, pasteFromTray } from '@/Composables/useTray.js'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
+import { startFlyingDragImage } from '@/Utilities/flyingDragImage'
 import dayjs from '@/Utilities/dayjs'
 import { usePlannerEvents } from '@/Composables/usePlannerEvents'
 import { usePlannerDayRoutes } from '@/Composables/usePlannerDayRoutes'
@@ -2204,11 +2205,7 @@ function updateExternalDropGhost(clientX, clientY) {
 
 function onProjectServiceOrderDragStart(e, so) {
     setServiceOrderDragData(e, so)
-    e.currentTarget.classList.add('opacity-40')
-}
-
-function onProjectServiceOrderDragEnd(e) {
-    e.currentTarget.classList.remove('opacity-40')
+    startFlyingDragImage(e)
 }
 
 /**
