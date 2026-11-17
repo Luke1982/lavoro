@@ -3,7 +3,7 @@
         :class="{ 'border-1 rounded-lavoro-sm border-gray-200/70': needsBox }">
         <div class="relative">
             <ListboxButton
-                class="w-full flex items-center gap-3 rounded-lg bg-white dark:bg-slate-900 dark:bg-lavoro-darkdark:ring-white/10 px-3 py-2.5 text-left focus:outline-none">
+                class="w-full flex items-center gap-3 rounded-lg bg-white dark:bg-lavoro-dark dark:ring-white/10 px-3 py-2.5 text-left focus:outline-none">
                 <template v-if="model">
                     <img v-if="model.thumbnail_url" :src="model.thumbnail_url" :alt="model.name"
                         class="size-12 rounded-md object-contain bg-gray-50 dark:bg-slate-800/50 shrink-0" />
