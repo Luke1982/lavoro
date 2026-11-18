@@ -6,12 +6,15 @@
             <span class="text-slate-800 dark:text-slate-200 font-bold text-sm">Ticket voor s/n #{{
                 ticket.asset.serial_number }}</span>
         </div>
-        <AssistantButton />
+        <div class="flex items-center gap-2">
+            <TourButton tour="storing" />
+            <AssistantButton />
+        </div>
     </div>
 
     <TwoThirdsOneThird>
         <template #main>
-            <BoxComponent class="mb-4">
+            <BoxComponent class="mb-4" data-tour="ticket.header">
                 <div class="flex items-start justify-between gap-3 sm:gap-4">
                     <div class="flex items-center gap-4 min-w-0">
                         <!-- Tile colour tracks the status, so the ticket's state reads from
@@ -34,7 +37,7 @@
                     -->
                     <div class="flex items-center gap-2 flex-none">
                         <button v-if="hasPermission('ticket.request_customer_info')" type="button"
-                            @click="infoRequestOpen = true"
+                            data-tour="ticket.info.button" @click="infoRequestOpen = true"
                             class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-lavoro-blue hover:opacity-90 rounded-md transition-opacity cursor-pointer">
                             <EnvelopeIcon class="size-4" />
                             Informatie opvragen
@@ -50,14 +53,14 @@
 
                         <!-- Het pictogram zegt wat de klik doet: een belletje erbij als je nog
                              niet volgt, een doorgestreept belletje om te stoppen. -->
-                        <button type="button" @click="toggleFollow" :disabled="followBusy"
+                        <button type="button" data-tour="ticket.follow.button" @click="toggleFollow" :disabled="followBusy"
                             :title="followLabel" :aria-pressed="!!subscriptionId"
                             class="hidden sm:inline-flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-green text-slate-900 shadow-sm hover:brightness-95 transition cursor-pointer disabled:opacity-50">
                             <component :is="followIcon" class="size-5" :stroke-width="2.25" />
                         </button>
 
                         <DropdownMenu placement="bottom-end" width-class="w-60" :button-class="moreButtonClass"
-                            title="Meer acties">
+                            title="Meer acties" data-tour="ticket.more">
                             <template #button>
                                 <EllipsisHorizontalIcon class="size-5" />
                             </template>
@@ -132,7 +135,7 @@
                 <!-- Each row carries the field's own icon tile, matching the treatment on
                      the customer and contact show pages. -->
                 <div class="divide-y divide-gray-100 dark:divide-slate-700/60">
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.machine">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -169,7 +172,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.subject">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -183,7 +186,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.description">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -197,7 +200,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.code">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -212,7 +215,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.status">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -233,7 +236,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-12 py-3 gap-3 items-center">
+                    <div class="grid grid-cols-12 py-3 gap-3 items-center" data-tour="ticket.priority">
                         <div class="col-span-12 sm:col-span-4 flex items-center gap-3 min-w-0">
                             <div
                                 class="flex-none flex items-center justify-center size-9 rounded-lavoro-sm bg-lavoro-blue/10">
@@ -290,7 +293,7 @@
                     :custom-fields="customFields" :can-edit="hasPermission('customfield.update')" class="mt-4" />
             </BoxComponent>
 
-            <BoxComponent v-if="ticket.service_order" class="mt-4">
+            <BoxComponent v-if="ticket.service_order" class="mt-4" data-tour="ticket.serviceorder">
                 <SectionHeader :icon="ClipboardDocumentListIcon" title="Gekoppelde werkbon"
                     subtitle="De werkbon waarop deze storing wordt opgelost." chapter="serviceorders" />
                 <div class="flex items-center justify-between mb-3">
@@ -323,33 +326,33 @@
                 </div>
             </BoxComponent>
 
-            <BoxComponent v-if="eventWidgetEvents.length" class="mt-4">
+            <BoxComponent v-if="eventWidgetEvents.length" class="mt-4" data-tour="ticket.events">
                 <SectionHeader :icon="CalendarDaysIcon" title="Afspraken"
                     subtitle="Wanneer we voor deze storing bij de klant zijn." chapter="events" />
                 <EventsWidget :service-order-id="ticket.service_order_id" :events="eventWidgetEvents"
                     :user-roles="userRoles" :leading-color="defaultLeadingColor" />
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="ticket.remarks">
                 <RemarksComponent :remarkable-type="'App\\Models\\Ticket'" :remarkable-id="ticket.id"
                     :comments="ticket.remarks" />
             </BoxComponent>
         </template>
 
         <template #sidebar>
-            <BoxComponent class="mt-6 sm:mt-0">
+            <BoxComponent class="mt-6 sm:mt-0" data-tour="ticket.images">
                 <ImageUploadComponent title="Afbeeldingen van de storing" :existing="ticket.images" :imageable-id="ticket.id"
                     imageable-type="\App\Models\Ticket" />
             </BoxComponent>
 
-            <BoxComponent class="mt-6">
+            <BoxComponent class="mt-6" data-tour="ticket.timeline">
                 <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                     subtitle="Alles wat er op dit ticket gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="ticket.activities ?? []" />
             </BoxComponent>
 
             <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"
-                documentable-type="\App\Models\Ticket" class="mt-6" />
+                documentable-type="\App\Models\Ticket" class="mt-6" data-tour="ticket.documents" />
         </template>
     </TwoThirdsOneThird>
 
@@ -393,8 +396,10 @@ import { MenuItem } from '@headlessui/vue';
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { BellOff, BellPlus, Siren, TimelineIcon } from '@lucide/vue';
-import { useTrayRecord } from '@/Composables/useTray.js';
+import { useTray, useTrayRecord } from '@/Composables/useTray.js';
 import TrayPlaceButton from '@/Components/Tray/TrayPlaceButton.vue';
+import TourButton from '@/Components/Tour/TourButton.vue';
+import { useTour, findSpot } from '@/Composables/useTour';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
@@ -564,4 +569,38 @@ const deleteTicket = () => {
         router.delete(`/tickets/${props.ticket.id}`);
     }
 };
+
+const { state: tray } = useTray();
+
+/** A button beside the title, or the menu behind the three dots on a screen too narrow for it. */
+const buttonOrMenu = (button) => () => findSpot(button) ?? findSpot('ticket.more');
+
+/**
+ * The storing rondleiding opens the window for asking the customer, and shows
+ * where this storing goes onto the bakje: the button at the top of the page
+ * where there is room for it, else the bakje itself, opened.
+ */
+useTour('storing', {
+    openInfoRequest: () => {
+        if (infoRequestOpen.value) {
+            return null;
+        }
+        infoRequestOpen.value = true;
+
+        return () => { infoRequestOpen.value = false; };
+    },
+    showTrayPlace: () => {
+        if (findSpot('tray.place') || tray.open) {
+            return null;
+        }
+        tray.open = true;
+
+        return () => { tray.open = false; };
+    },
+}, {
+    spots: {
+        'ticket.info': buttonOrMenu('ticket.info.button'),
+        'ticket.follow': buttonOrMenu('ticket.follow.button'),
+    },
+});
 </script>

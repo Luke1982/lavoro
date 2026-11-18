@@ -1,5 +1,5 @@
 <template>
-    <button v-if="currentRecord" type="button" :disabled="currentRecord.onTray"
+    <button v-if="currentRecord" type="button" :disabled="currentRecord.onTray" data-tour="tray.place"
         @click="placeCurrentOnTray($event.currentTarget)"
         class="group hidden items-center gap-1.5 rounded-md bg-sidebar-bg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-default disabled:opacity-60 lg:inline-flex">
         <InboxIcon class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />

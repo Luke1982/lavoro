@@ -15,12 +15,12 @@
             en tik daarna op die plek.
         </p>
 
-        <button v-if="current && !current.onTray" type="button" @click="placeCurrentOnTray($event.currentTarget)"
+        <button v-if="current && !current.onTray" type="button" data-tour="tray.place" @click="placeCurrentOnTray($event.currentTarget)"
             class="group flex min-h-11 items-center gap-2.5 rounded-2xl border border-dashed border-sidebar-border px-3 py-2 text-left text-sm font-semibold text-white transition hover:border-sidebar-indicator hover:bg-sidebar-hover active:scale-[0.98]">
             <PlusIcon class="size-5 flex-none text-sidebar-indicator transition-transform duration-300 group-hover:rotate-90" aria-hidden="true" />
             Deze {{ current.one }} op het bakje leggen
         </button>
-        <p v-else-if="current" class="px-1 text-xs text-slate-400">Deze {{ current.one }} ligt al op je bakje.</p>
+        <p v-else-if="current" class="px-1 text-xs text-slate-400" data-tour="tray.place">Deze {{ current.one }} ligt al op je bakje.</p>
 
         <p v-if="!state.items.length" class="py-4 text-center text-sm text-slate-400">Er ligt niets op je bakje.</p>
 

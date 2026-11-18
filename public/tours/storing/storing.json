@@ -1,0 +1,40 @@
+{
+    "tour": "storing",
+    "chapter": "storing",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "storing.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan staan het onderwerp en de status van de storing, met wanneer hij is aangemaakt en door wie.",
+            "hash": "28449a5a748a1cc4cd4d4e0c5b3a86e7e8deec6b",
+            "start": 0,
+            "end": 5.062
+        },
+        {
+            "text": "Hier zie je aan welke machine de storing is, bij welke klant en op welke locatie. Wat blauw is, kun je aanklikken.",
+            "hash": "cdcce6d69d83cad2ba3b13512eb144bed9efb84e",
+            "start": 6.062,
+            "end": 12.564
+        },
+        {
+            "text": "Klik op het onderwerp, de omschrijving of de storingscode om die aan te passen. Klik ernaast, of op het diskette-icoon, om te bewaren.",
+            "hash": "5ec5d5c7d9c3c472e4d5fb583a419889de229ace",
+            "start": 13.564,
+            "end": 20.715
+        },
+        {
+            "text": "De status volgt de planning. Komt er een afspraak op de werkbon, dan gaat de storing vanzelf naar in behandeling. Verdwijnt de laatste afspraak, dan gaat hij terug naar open.",
+            "hash": "526be794b48f484b38014902077a6e68448a7e89",
+            "start": 21.715,
+            "end": 30.678
+        },
+        {
+            "text": "De prioriteit kies je met één klik: laag, normaal of hoog. Op de kaart van de storingen zie je die terug als kleur.",
+            "hash": "e8e08c55d1fd1264d49e129e85b51f3730f584f1",
+            "start": 31.678,
+            "end": 38.04
+        }
+    ]
+}

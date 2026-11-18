@@ -1,0 +1,46 @@
+{
+    "tour": "storing",
+    "chapter": "dossier",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "dossier.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Staat de storing op een werkbon, dan zie je die hier, met de fase en de monteur.",
+            "hash": "18cac40ea5c79ea79dac96343c21734ae42b2d01",
+            "start": 0,
+            "end": 4.969
+        },
+        {
+            "text": "Onder afspraken zie je wanneer er iemand voor deze storing langskomt, wie er gaat en waar.",
+            "hash": "75fa7b1c0648cbc5ec57100edad80b033bb541a6",
+            "start": 5.969,
+            "end": 11.17
+        },
+        {
+            "text": "Onder opmerkingen schrijf je aantekeningen bij de storing. Wat de klant er via de aanleverpagina bij schrijft, komt hier ook.",
+            "hash": "f8c96a7354aa4d6c61f0dcf2b83434a1647ee90e",
+            "start": 12.17,
+            "end": 18.904
+        },
+        {
+            "text": "Hier zet je foto's van de storing. Foto's die de klant aanlevert, komen er vanzelf bij.",
+            "hash": "994bd51b899fc2e6b17924e522f26fd4bd84c808",
+            "start": 19.904,
+            "end": 24.734
+        },
+        {
+            "text": "In de tijdlijn staat alles wat er met deze storing gebeurd is: wie wat veranderde, en wanneer.",
+            "hash": "305317fb51da05a976bf91b01eeec2a28503a94a",
+            "start": 25.734,
+            "end": 31.167
+        },
+        {
+            "text": "Bij documenten zet je bestanden bij de storing. Video's en documenten van de klant komen hier vanzelf.",
+            "hash": "c3d87f729c394f8160a118ee0abe01043999dc61",
+            "start": 32.167,
+            "end": 37.647
+        }
+    ]
+}

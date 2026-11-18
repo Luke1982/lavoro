@@ -1,0 +1,28 @@
+{
+    "tour": "storing",
+    "chapter": "volgen",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "volgen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Volg je deze storing, dan krijg je een melding als de status of prioriteit verandert, of als de klant iets aanlevert.",
+            "hash": "6481e6a6a2bce8b157293abe6bc8a0b118baecb7",
+            "start": 0,
+            "end": 6.13
+        },
+        {
+            "text": "Hiermee leg je de storing op het bakje. Daarna plak je hem ergens anders: in de planner, op een werkbon, bij een machine of bij een project.",
+            "hash": "efda9fd2ad65a6b1a567e7e8e9609280f6a44dc0",
+            "start": 7.13,
+            "end": 14.932
+        },
+        {
+            "text": "Hoe je een storing vanaf het bakje inplant, laat de rondleiding door de planner zien.",
+            "hash": "21f20558efdf76ff620011510e6a5a82f94c8412",
+            "start": 15.932,
+            "end": 20.715
+        }
+    ]
+}

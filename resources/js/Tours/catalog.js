@@ -3,6 +3,7 @@ import kaart from './storyboards/kaart.json'
 import machines from './storyboards/machines.json'
 import planner from './storyboards/planner.json'
 import rooster from './storyboards/rooster.json'
+import storing from './storyboards/storing.json'
 import storingen from './storyboards/storingen.json'
 
 /**
@@ -10,7 +11,7 @@ import storingen from './storyboards/storingen.json'
  * read the same files: the assistant offers chapters from them and the audio
  * command speaks their lines, and neither may drift from what the screen plays.
  */
-export const TOURS = Object.fromEntries([planner, rooster, machines, activiteiten, storingen, kaart].map((tour) => [tour.id, tour]))
+export const TOURS = Object.fromEntries([planner, rooster, machines, activiteiten, storingen, storing, kaart].map((tour) => [tour.id, tour]))
 
 export function tourById(id) {
     return TOURS[id] ?? null

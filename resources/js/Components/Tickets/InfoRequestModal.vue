@@ -6,13 +6,15 @@
         </div>
 
         <div v-else class="space-y-4">
-            <TextInput v-model="form.to" label="Aan" type="email" :hasError="!!errors.to"
-                :errorMessage="errors.to || ''" />
+            <div class="space-y-4" data-tour="info.address">
+                <TextInput v-model="form.to" label="Aan" type="email" :hasError="!!errors.to"
+                    :errorMessage="errors.to || ''" />
 
-            <TextInput v-model="form.subject" label="Onderwerp" type="text" :hasError="!!errors.subject"
-                :errorMessage="errors.subject || ''" />
+                <TextInput v-model="form.subject" label="Onderwerp" type="text" :hasError="!!errors.subject"
+                    :errorMessage="errors.subject || ''" />
+            </div>
 
-            <div>
+            <div data-tour="info.options">
                 <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Wij vragen de klant om
                 </label>
@@ -30,7 +32,7 @@
                 <p v-if="errors.requested" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.requested }}</p>
             </div>
 
-            <div>
+            <div data-tour="info.body">
                 <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Bericht</label>
                 <TipTapEditor v-model="form.body" :hasError="!!errors.body" />
                 <p v-if="errors.body" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ errors.body }}</p>
@@ -46,7 +48,7 @@
                     class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                     Annuleren
                 </button>
-                <button type="button" @click="send" :disabled="sending || loading || !form.requested.length"
+                <button type="button" data-tour="info.send" @click="send" :disabled="sending || loading || !form.requested.length"
                     class="rounded-lg bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                     {{ sending ? 'Versturen…' : 'Versturen' }}
                 </button>
@@ -64,6 +66,7 @@ import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 import { syncRequestedList } from '@/Components/Tickets/infoRequestBody'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     open: { type: Boolean, required: true },
@@ -149,7 +152,23 @@ async function send() {
     }
 }
 
+let loaded = Promise.resolve()
+
+/** The storing rondleiding ticks one more thing to ask for, so its line shows up in the letter. */
+useTour('storing', {
+    chooseRequested: async () => {
+        await loaded
+        const option = options.value.find((candidate) => !isSelected(candidate.key))
+        if (!option) return null
+        toggle(option.key)
+
+        return () => {
+            if (isSelected(option.key)) toggle(option.key)
+        }
+    },
+})
+
 watch(() => props.open, (opened) => {
-    if (opened) load()
+    if (opened) loaded = load()
 }, { immediate: true })
 </script>
