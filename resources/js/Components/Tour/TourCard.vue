@@ -31,11 +31,16 @@
         <template v-else-if="tourState.phase === 'interlude' && tourState.interlude">
             <div class="p-5">
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-lavoro-blue dark:text-blue-400">
-                    Volgende hoofdstuk · {{ tourState.interlude.chapterIndex + 1 }} van {{ run.chapters.length }}
+                    {{ tourState.interlude.afterClick ? 'De rondleiding gaat hier verder' : 'Volgende hoofdstuk' }}
+                    · {{ tourState.interlude.chapterIndex + 1 }} van {{ run.chapters.length }}
                 </p>
                 <p class="mt-1 text-lg font-semibold">{{ tourState.interlude.chapter.title }}</p>
                 <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">{{ tourState.interlude.chapter.summary }}</p>
-                <div class="mt-4 h-1 overflow-hidden rounded-full bg-gray-100 dark:bg-slate-800">
+                <p v-if="tourState.interlude.afterClick && !tourState.muted" class="mt-3 flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+                    <SpeakerWaveIcon class="size-4 shrink-0 text-lavoro-blue dark:text-blue-400" />
+                    Klik op Begin, dan hoor je de uitleg ook.
+                </p>
+                <div v-if="!tourState.interlude.afterClick" class="mt-4 h-1 overflow-hidden rounded-full bg-gray-100 dark:bg-slate-800">
                     <div class="tour-interlude-bar h-full rounded-full bg-lavoro-blue"
                         :style="{ animationDuration: tourState.interlude.duration + 'ms', animationPlayState: tourState.paused ? 'paused' : 'running' }" />
                 </div>
@@ -44,8 +49,8 @@
                         <XMarkIcon class="size-5" />
                     </button>
                     <div class="flex gap-2">
-                        <button type="button" class="tour-secondary" @click="skipChapter">Overslaan</button>
-                        <button type="button" class="tour-primary" @click="nextStep">Begin</button>
+                        <button v-if="!tourState.interlude.afterClick" type="button" class="tour-secondary" @click="skipChapter">Overslaan</button>
+                        <button type="button" class="tour-primary" @click="beginChapter">Begin</button>
                     </div>
                 </div>
             </div>
@@ -133,7 +138,7 @@ import {
     SpeakerWaveIcon, SpeakerXMarkIcon, XMarkIcon, SparklesIcon, CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 import {
-    tourState, nextStep, previousStep, skipChapter, stopTour,
+    tourState, nextStep, previousStep, skipChapter, beginChapter, stopTour,
     togglePause, toggleMute, followCallToAction, closeFinished, openPicker,
 } from '@/Tours/engine'
 

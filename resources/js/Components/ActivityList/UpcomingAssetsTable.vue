@@ -1,7 +1,7 @@
 <template>
     <BoxComponent padding="p-0">
-        <div role="table" aria-label="Machines die gepland moeten worden">
-            <div role="row"
+        <div role="table" aria-label="Machines die gepland moeten worden" data-tour="activities.table">
+            <div role="row" data-tour="activities.table.header"
                 :class="[COLUMNS, 'hidden lg:grid items-center gap-x-4 px-4 py-3 rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800 text-sm font-bold text-gray-700 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700']">
                 <span role="columnheader" class="col-span-2"><span class="sr-only">Selecteer</span></span>
                 <SortableColumnHeader v-for="column in SORTABLE_COLUMNS" :key="column.key" :column="column.key"
@@ -15,7 +15,7 @@
             <div v-for="row in table.rows.data" :key="row.id" role="row"
                 :class="[COLUMNS, 'flex items-start gap-3 lg:grid lg:items-center lg:gap-x-4 px-4 py-3 text-sm border-b border-gray-100 dark:border-slate-700/60 transition-colors', isSelected(row) ? 'bg-lavoro-lightblue/60 dark:bg-sky-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60']">
                 <label role="cell" class="flex self-stretch items-center cursor-pointer">
-                    <input type="checkbox" :checked="isSelected(row)" @change="toggle(row)"
+                    <input type="checkbox" :checked="isSelected(row)" data-tour="activities.check" @change="toggle(row)"
                         :aria-label="`Selecteer ${row.machine} ${row.serial_number}`"
                         class="cursor-pointer size-4 accent-lavoro-blue" />
                 </label>
@@ -60,7 +60,7 @@
                         class="truncate text-gray-700 dark:text-slate-200 hover:underline">
                         {{ row.customer }}
                     </Link>
-                    <span v-if="othersOf(row).length" v-tooltip="othersLabel(row)"
+                    <span v-if="othersOf(row).length" v-tooltip="othersLabel(row)" data-tour="activities.table.others"
                         class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-slate-800 dark:text-slate-300">
                         +{{ othersOf(row).length }}
                     </span>

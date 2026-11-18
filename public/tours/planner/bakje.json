@@ -13,22 +13,22 @@
             "end": 10.867
         },
         {
-            "text": "Sleep hem van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt een afspraak, met de standaardduur.",
-            "hash": "a816885f3113fbe942cd2a8db7e25cd27dcfc1d3",
+            "text": "Sleep het van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt dan een afspraak, met de standaardduur.",
+            "hash": "3c2a520a6bdccc93aedfa990706f350d59d6a3be",
             "start": 11.867,
-            "end": 19.715
+            "end": 20.226
         },
         {
             "text": "Dan kies je op welke werkbon de storing moet komen. Maak direct een nieuwe bon aan, of kies een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
             "hash": "5e320cd54538b14c5611c00a55988c6b1f999279",
-            "start": 20.715,
-            "end": 30.653
+            "start": 21.226,
+            "end": 31.164
         },
         {
-            "text": "Gaat een stapel niet helemaal dezelfde kant op, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing gewoon op het bakje liggen.",
-            "hash": "f452effabc6513aec7cf67b60c1dcd89994d73c3",
-            "start": 31.653,
-            "end": 40.338
+            "text": "Moeten de storingen op een stapel niet allemaal naar dezelfde werkbon, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing op het bakje liggen.",
+            "hash": "8db8b3bd5cb9d50b3e27fc7ef8be814e54fb1ff6",
+            "start": 32.164,
+            "end": 42.474
         }
     ]
 }

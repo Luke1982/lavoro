@@ -4,11 +4,12 @@
         <GeocodingStatusOverlay :status="geocodingStatus" :geocoded-count="geocodedCount"
             :total-to-geocode="totalToGeocode" :progress="progress" :failed-geocodes="failedGeocodes"
             :total="items.length" />
-        <MapLegend title="Hoogste prioriteit op het adres" :entries="LEGEND" counted="storingen"
+        <MapLegend data-tour="map.legend" title="Hoogste prioriteit op het adres" :entries="LEGEND" counted="storingen"
             :badge="seesContracts ? 'Machine onder onderhoudscontract' : null" />
         <RoutePlannerPanel v-if="routePlanner" ref="planner" :map="map" :config="routePlanner"
             :marker-badge="onContract" @chosen="keepApart" />
         <CloseMapWindow />
+        <MapWindowTour :map="map" :items="items" :planner="planner" :pin-in-view="pinInView" />
     </div>
 </template>
 
@@ -16,6 +17,7 @@
 import { ref } from 'vue';
 import EmptyLayout from '@/Layouts/EmptyLayout.vue';
 import CloseMapWindow from '@/Components/Map/CloseMapWindow.vue';
+import MapWindowTour from '@/Components/Map/MapWindowTour.vue';
 import MapLegend from '@/Components/Map/MapLegend.vue';
 import RoutePlannerPanel from '@/Components/Map/RoutePlannerPanel.vue';
 import TicketMapPopup from '@/Components/TicketMapPopup.vue';
@@ -46,7 +48,7 @@ const markerColor = (item) => (PRIORITIES.find(({ key }) => item.tickets.some(
 
 const onContract = (item) => item.on_contract;
 
-const { map, keepApart, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
+const { map, keepApart, pinInView, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
     items,
     markerColor,
     markerNumber: (item) => item.tickets.length,

@@ -1,13 +1,16 @@
+import activiteiten from './storyboards/activiteiten.json'
+import kaart from './storyboards/kaart.json'
 import machines from './storyboards/machines.json'
 import planner from './storyboards/planner.json'
 import rooster from './storyboards/rooster.json'
+import storingen from './storyboards/storingen.json'
 
 /**
  * Every rondleiding there is. The storyboards are plain JSON so the server can
  * read the same files: the assistant offers chapters from them and the audio
  * command speaks their lines, and neither may drift from what the screen plays.
  */
-export const TOURS = Object.fromEntries([planner, rooster, machines].map((tour) => [tour.id, tour]))
+export const TOURS = Object.fromEntries([planner, rooster, machines, activiteiten, storingen, kaart].map((tour) => [tour.id, tour]))
 
 export function tourById(id) {
     return TOURS[id] ?? null
@@ -16,9 +19,12 @@ export function tourById(id) {
 /**
  * Whether somebody meets what a chapter or a step asks for. `has` answers for one
  * permission name, so the screen can hand in the same check it uses everywhere.
+ * `props` are what the page offers, for what is there only where the company set
+ * it up, such as a route planner that needs a routing server.
  */
-export function meets(requires, { has, modules = [], device }) {
+export function meets(requires, { has, modules = [], device, props = {} }) {
     if (!requires) return true
+    if ((requires.props ?? []).some((name) => !props[name])) return false
     if (requires.device && requires.device !== device) return false
     if ((requires.permissions ?? []).some((name) => !has(name))) return false
     if (requires.anyPermissions?.length && !requires.anyPermissions.some((name) => has(name))) return false

@@ -7,40 +7,40 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Met voeg machine toe open je het formulier. Hetzelfde formulier vind je ook bij een klant, een locatie en een product. Daar is al ingevuld wat die pagina weet.",
-            "hash": "258f3f4338523013de373977a3a2e5a3590e8a46",
+            "text": "Met voeg machine toe open je het formulier. Je vindt het ook bij een klant, een locatie en een product. Wat daar al bekend is, staat dan al ingevuld.",
+            "hash": "0e71197adda753b87f38b841075747ee33443222",
             "start": 0,
-            "end": 9.195
+            "end": 8.313
         },
         {
-            "text": "Kies eerst het product, het merk en model uit de catalogus. Staat het er niet in, dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk.",
-            "hash": "3d55b40f40d6dde24100a74775c3c975e5959298",
-            "start": 10.195,
-            "end": 19.204
+            "text": "Kies eerst het product: merk en model uit de catalogus. Staat het er nog niet in, dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk.",
+            "hash": "f03ee405916fece8eccd8e6eed9fc5e4fcc8d763",
+            "start": 9.313,
+            "end": 18.508
         },
         {
-            "text": "Dan de klant. Ook een nieuwe klant maak je hier meteen aan: typ de naam, en kies nieuwe klant. Zodra er een klant is, kies je ook de locatie.",
-            "hash": "6ee73cfaaaaf5c73a6d2ded866c864279178ef25",
-            "start": 20.204,
-            "end": 28.239
+            "text": "Kies dan de klant. Staat die er nog niet in, typ dan de naam en kies nieuwe klant. Daarna kies je de locatie.",
+            "hash": "dc374f7990b24d243cdf7a010b05e5d4125ff5a7",
+            "start": 19.508,
+            "end": 26.102
         },
         {
-            "text": "Typ het serienummer, of scan het typeplaatje met de camera. Lavoro leest de nummers op de foto, en jij tikt het goede aan.",
-            "hash": "25b733ca3ae6bab66b80f8760a626ea3287fb675",
-            "start": 29.239,
-            "end": 36.53
+            "text": "Typ het serienummer in, of scan het typeplaatje met de camera. Lavoro leest de nummers op de foto, en jij tikt het juiste aan.",
+            "hash": "28b0b0b6aa6d7031febe507224eb676752406d86",
+            "start": 27.102,
+            "end": 34.44
         },
         {
-            "text": "In gebruikname staat op vandaag. De volgende keuring vult Lavoro zelf in: vandaag, plus hoe lang een keuring van dit product geldig is. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
-            "hash": "c0e83b79c92ddfaee9ed8bab9cd6d272e53b64f8",
-            "start": 37.53,
-            "end": 49.232
+            "text": "In gebruikname staat op vandaag. De volgende keuring rekent Lavoro zelf uit, aan de hand van hoe lang een keuring van dit product geldig is. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
+            "hash": "852040a207e704bf0c4d0e503f83c11557d59c34",
+            "start": 35.44,
+            "end": 46.585
         },
         {
-            "text": "Actief staat aan. Met toevoegen staat de machine in de lijst, met de vaste onderdelen van het product er al in.",
-            "hash": "f8829980a270d815142c62359e6adb97db80ea3a",
-            "start": 50.232,
-            "end": 56.177
+            "text": "Actief staat standaard aan. Klik op toevoegen, en de machine staat in de lijst, met de vaste onderdelen van het product erbij.",
+            "hash": "20fcd83b4a5075daadeda91dabded4994a429d3c",
+            "start": 47.585,
+            "end": 53.762
         }
     ]
 }

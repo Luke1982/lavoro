@@ -24,6 +24,8 @@ const ACTION_TIMEOUT = 4000
 const PAUSE_BETWEEN_STEPS = 1100
 const INTERLUDE = 1800
 const MUTED_KEY = 'lavoro_tour_muted'
+/** The mark in an address that starts a rondleiding there: see addressStartingTour. */
+const ADDRESS_MARK = 'rondleiding'
 
 const actionRegistry = new Map()
 const spotRegistry = new Map()
@@ -80,6 +82,11 @@ function register(registry, key, owner, fn) {
     registry.set(key, [...(registry.get(key) ?? []), { owner, fn }])
 }
 
+/** An action as offered by the component that came last, when more than one offers it. */
+function actionFor(tourId, name) {
+    return actionRegistry.get(tourId + ':' + name)?.at(-1)?.fn ?? null
+}
+
 function unregister(registry, owner) {
     for (const [key, entries] of registry) {
         const kept = entries.filter((entry) => entry.owner !== owner)
@@ -96,10 +103,13 @@ export function prefersReducedMotion() {
 }
 
 export function audience() {
+    const props = usePage().props ?? {}
+
     return {
         has: hasPermission,
-        modules: usePage().props?.tenant?.modules ?? [],
+        modules: props.tenant?.modules ?? [],
         device: isDesktop() ? 'desktop' : 'phone',
+        props,
     }
 }
 
@@ -338,8 +348,7 @@ async function syncActions(tourId, desired) {
     }
     for (const name of desired) {
         if (undoStack.some((entry) => entry.key === name)) continue
-        const entries = actionRegistry.get(tourId + ':' + name)
-        const action = entries?.[entries.length - 1]?.fn
+        const action = actionFor(tourId, name)
         if (!action) {
             console.warn('[rondleiding] Actie "' + name + '" is op deze pagina niet aangemeld')
             continue
@@ -414,9 +423,31 @@ function isOnPage(tourId) {
     return (pageCounts.get(tourId) ?? 0) > 0
 }
 
+/**
+ * A window opened to go on with a rondleiding, such as the map from a list,
+ * says which in its address. The mark comes out again at once, so reloading
+ * the window does not start the rondleiding a second time. Inertia takes it
+ * out, or its next visit would put the old address back.
+ */
+function askedInAddress(tourId) {
+    const address = new URL(window.location.href)
+    if (address.searchParams.get(ADDRESS_MARK) !== tourId) return false
+    address.searchParams.delete(ADDRESS_MARK)
+    router.replace({ url: address.pathname + address.search, preserveState: true, preserveScroll: true })
+
+    return true
+}
+
 async function pageReady(tourId) {
+    const asked = askedInAddress(tourId)
     const progress = await loadProgress(tourId)
     if (!isOnPage(tourId)) return
+    if (asked) {
+        await settle()
+        startChapters(tourId, availableChapters(tourId).map((chapter) => chapter.id), { afterClick: true })
+
+        return
+    }
     if (pending?.tourId === tourId) {
         const request = pending
         pending = null
@@ -486,7 +517,13 @@ export function startFromPicker() {
 
 /* ── Running ───────────────────────────────────────────────────────────── */
 
-export async function startChapters(tourId, chapterIds) {
+/**
+ * `afterClick` waits with the first chapter until somebody presses Begin. A
+ * browser keeps a window silent until it has been clicked in, so a rondleiding
+ * that goes on in a window of its own, such as the map opened from a list,
+ * would otherwise start without its voice.
+ */
+export async function startChapters(tourId, chapterIds, { afterClick = false } = {}) {
     const chapters = availableChapters(tourId).filter((chapter) => chapterIds.includes(chapter.id))
     if (!chapters.length) {
         const page = usePage()
@@ -499,7 +536,9 @@ export async function startChapters(tourId, chapterIds) {
     tourState.shown = null
     tourState.finished = null
     tourState.paused = false
-    await goTo(0, 0, 1)
+    if (!afterClick) return goTo(0, 0, 1)
+    tourState.phase = 'interlude'
+    tourState.interlude = { chapterIndex: 0, chapter: chapters[0], afterClick: true }
 }
 
 async function goTo(chapterIndex, stepIndex, direction) {
@@ -621,7 +660,7 @@ export function currentStep() {
 export async function nextStep() {
     const run = tourState.run
     if (!run) return
-    if (tourState.phase === 'interlude') return goTo(run.chapterIndex + 1, 0, 1)
+    if (tourState.phase === 'interlude') return goTo(tourState.interlude.chapterIndex, 0, 1)
     const chapter = currentChapter()
     if (run.stepIndex < chapter.steps.length - 1) return goTo(run.chapterIndex, run.stepIndex + 1, 1)
     markSeen(run.tourId, chapter)
@@ -633,7 +672,8 @@ export async function nextStep() {
 export async function previousStep() {
     const run = tourState.run
     if (!run) return
-    if (tourState.phase === 'interlude') return goTo(run.chapterIndex, currentChapter().steps.length - 1, -1)
+    const chapter = currentChapter()
+    if (tourState.phase === 'interlude') return chapter && goTo(run.chapterIndex, chapter.steps.length - 1, -1)
     if (run.stepIndex > 0) return goTo(run.chapterIndex, run.stepIndex - 1, -1)
     if (run.chapterIndex > 0) {
         const previous = run.chapters[run.chapterIndex - 1]
@@ -645,10 +685,17 @@ export async function previousStep() {
 export async function skipChapter() {
     const run = tourState.run
     if (!run) return
-    if (tourState.phase === 'interlude') return goTo(run.chapterIndex + 1, 0, 1)
-    if (run.chapterIndex < run.chapters.length - 1) return interlude(run.chapterIndex + 1)
+    const next = (tourState.phase === 'interlude' ? tourState.interlude.chapterIndex : run.chapterIndex) + 1
+    if (next < run.chapters.length) return interlude(next)
 
     return finish()
+}
+
+/** The Begin button between chapters: a click, so the voice may start in a window nobody clicked in yet. */
+export function beginChapter() {
+    narrator.unlock()
+
+    return nextStep()
 }
 
 async function interlude(chapterIndex) {
@@ -723,15 +770,29 @@ export function toggleMute() {
 
 /**
  * A step that sends somebody elsewhere: this chapter counts as seen, the page is
- * put back, and the next rondleiding starts once its page is open.
+ * put back, and the next rondleiding starts once its page is open. `action`
+ * instead of `href` hands that to the page, such as opening the map in a window
+ * of its own, which the page marks with `addressStartingTour`. It runs first,
+ * while the click still counts as the person's own: a browser opens a window
+ * for a click, not for a rondleiding.
  */
 export async function followCallToAction(cta) {
     const run = tourState.run
+    if (cta.action && run) actionFor(run.tourId, cta.action)?.()
     if (run) markSeen(run.tourId, currentChapter())
     narrator.unlock()
     await stopTour()
+    if (cta.action) return
     if (cta.tour) pending = { tourId: cta.tour, chapterId: cta.chapter ?? null }
     router.visit(cta.href)
+}
+
+/** An address that starts this rondleiding once its page opens. */
+export function addressStartingTour(address, tourId) {
+    const url = new URL(address, window.location.origin)
+    url.searchParams.set(ADDRESS_MARK, tourId)
+
+    return url.pathname + url.search
 }
 
 export function nudgeCard() {

@@ -1,7 +1,7 @@
 {
     "id": "planner",
     "title": "Rondleiding door de planner",
-    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en je kunt er altijd eentje overslaan.",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
     "page": "/planner",
     "autoStart": true,
     "requires": {
@@ -72,7 +72,7 @@
                     "spot": "planner.navigation",
                     "title": "Vandaag, vorige en volgende",
                     "text": "**Vandaag** brengt je terug naar nu. De pijltjes gaan een week terug of vooruit, of een dag in de dagweergave.",
-                    "say": "Met Vandaag ben je meteen terug bij nu. De pijltjes gaan een week terug of vooruit, of een dag als je de dag bekijkt.",
+                    "say": "Met Vandaag spring je terug naar vandaag. Met de pijltjes ga je een week terug of vooruit, of een dag als je de dag bekijkt.",
                     "marks": [
                         {
                             "spot": "planner.today",
@@ -145,7 +145,7 @@
                     "placement": "left",
                     "title": "Alleen voor jou",
                     "text": "De **slotgrootte** (hoe fijn het raster is) en het **begin en eind van de dag** onthoudt de planner in deze browser, voor jou alleen.",
-                    "say": "Hoe fijn het raster is, en hoe laat je dag begint en eindigt, onthoudt de planner alleen voor jou, in deze browser.",
+                    "say": "De grootte van het raster, en hoe laat je dag begint en eindigt, onthoudt de planner alleen voor jou, in deze browser.",
                     "marks": [
                         {
                             "spot": "planner.settings.slot",
@@ -196,7 +196,7 @@
                     "placement": "left",
                     "title": "Wat nog ingepland moet worden",
                     "text": "Rechts staan de werkbonnen in een inplanbare fase die nog geen afspraak hebben, de nieuwste bovenaan.",
-                    "say": "Rechts staan de werkbonnen die nog op een plek in de planning wachten.",
+                    "say": "Rechts staan de werkbonnen die nog ingepland moeten worden.",
                     "marks": [
                         {
                             "spot": "planner.unplanned.card",
@@ -220,7 +220,7 @@
                     "spot": "planner.cell",
                     "title": "Slepen naar een monteur",
                     "text": "Sleep een werkbon naar de rij van een monteur en laat los op het tijdstip waarop het werk begint. De afspraak krijgt de standaardduur.",
-                    "say": "Pak een werkbon op en laat hem los in de rij van een monteur, op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
+                    "say": "Sleep een werkbon naar de rij van een monteur, en laat hem los op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
                     "aid": {
                         "type": "ghost",
                         "from": "planner.unplanned.card",
@@ -234,7 +234,7 @@
                     "placement": "left",
                     "title": "Rechtermuisknop",
                     "text": "Klik met de rechtermuisknop op een werkbon om hem te **openen** of te **verwijderen**. Verwijderen vraagt eerst om een bevestiging, en wat je niet mag staat er niet in.",
-                    "say": "Met de rechtermuisknop open je een werkbon, of verwijder je hem. Verwijderen vraagt altijd eerst of je het zeker weet.",
+                    "say": "Met de rechtermuisknop open of verwijder je een werkbon. Bij verwijderen vraagt de planner eerst of je het zeker weet.",
                     "aid": {
                         "type": "picture",
                         "scene": "order-menu",
@@ -246,7 +246,7 @@
                     "placement": "left",
                     "title": "Contractwerkbonnen",
                     "text": "Werkbonnen uit een onderhoudscontract staan standaard verborgen. Deze schakelaar zet ze erbij, met een paars label **Contract**. De stand wordt onthouden.",
-                    "say": "Werkbonnen uit een onderhoudscontract zie je standaard niet, anders overstemmen ze de rest. Met deze schakelaar zet je ze erbij.",
+                    "say": "Werkbonnen uit een onderhoudscontract staan standaard niet in de lijst, omdat het er vaak veel zijn. Met deze schakelaar zet je ze erbij.",
                     "aid": {
                         "type": "pointer",
                         "to": "planner.unplanned.contract",
@@ -306,7 +306,7 @@
                     "spot": "planner.cell",
                     "title": "Naar de dag van een monteur",
                     "text": "Sleep een storing of machine van het bakje naar de rij van een monteur en laat los op het tijdstip waarop het werk begint. De afspraak krijgt de standaardduur.",
-                    "say": "Sleep hem van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt een afspraak, met de standaardduur.",
+                    "say": "Sleep het van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt dan een afspraak, met de standaardduur.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-drop",
@@ -325,7 +325,7 @@
                 {
                     "title": "Een gemengde stapel",
                     "text": "Gaan de storingen van een stapel niet allemaal dezelfde kant op, omdat ze bij verschillende klanten horen of er al een op een werkbon staat, dan kies je **per storing**: de werkbon waar hij op staat, een nieuwe of open werkbon, of **Niet inplannen**. Wat je niet inplant, blijft op het bakje liggen.",
-                    "say": "Gaat een stapel niet helemaal dezelfde kant op, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing gewoon op het bakje liggen.",
+                    "say": "Moeten de storingen op een stapel niet allemaal naar dezelfde werkbon, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing op het bakje liggen.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-choice",
@@ -368,7 +368,7 @@
                     "spot": "planner.gap",
                     "title": "Groen is vrij",
                     "text": "Elk groen vak is een open plek, met de lengte erbij. Afspraken en onbeschikbaarheid tellen niet als vrij.",
-                    "say": "Elk groen vak is een gat waar nog werk in past. De lengte staat er meteen bij."
+                    "say": "Elk groen vak is vrije tijd waar nog werk in past. Hoe lang, staat er meteen bij."
                 },
                 {
                     "spot": "planner.gaps.minutes",
@@ -428,7 +428,7 @@
                     "action": "openNewAppointment",
                     "title": "Begin en eind",
                     "text": "Bovenaan staan de datum en de tijden.",
-                    "say": "Dan opent dit scherm. Bovenaan de dag en de tijden.",
+                    "say": "Dan opent dit scherm. Bovenaan staan de dag en de tijden.",
                     "marks": [
                         {
                             "spot": "planner.appointment",
@@ -490,7 +490,7 @@
                     "action": "openNewAppointment",
                     "title": "Locatie",
                     "text": "De locatie volgt de werkbon of de klant. Kies een andere locatie van de klant, of typ zelf een adres.",
-                    "say": "De locatie volgt vanzelf de werkbon of de klant. Je kiest ook een andere locatie, of typt zelf een adres.",
+                    "say": "De locatie neemt hij vanzelf over van de werkbon of de klant. Je kunt ook een andere locatie kiezen, of zelf een adres typen.",
                     "marks": [
                         {
                             "spot": "planner.appointment.location",
@@ -519,7 +519,7 @@
                     "action": "openNewAppointment",
                     "title": "Monteurs",
                     "text": "Eén of meer monteurs, elk met een eigen pauze, eventueel **afwijkende tijden** en een planrol.",
-                    "say": "Hier staan de monteurs. Ieder krijgt een eigen pauze, en als het nodig is eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan kleurt die planrol de afspraak.",
+                    "say": "Hier staan de monteurs. Ieder heeft een eigen pauze, en zo nodig eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan bepaalt die planrol de kleur van de afspraak.",
                     "marks": [
                         {
                             "spot": "planner.appointment.technician",
@@ -609,7 +609,7 @@
                     "skipIfMissing": true,
                     "title": "Dubbel geboekt",
                     "text": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is **rood gestreept**, met erop hoe lang de overlap duurt. De afspraken wijken waar het kan terug naar hun eigen stuk. Afspraken met precies dezelfde tijden komen onder elkaar in de rij; is de rij daar te laag voor, dan staat er een **rood driehoekje**: er liggen afspraken onder elkaar.",
-                    "say": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is rood gestreept. Erop staat hoe lang de overlap duurt.",
+                    "say": "Overlappen twee afspraken van dezelfde monteur, dan wordt het dubbele stuk rood gestreept. Erop staat hoe lang de overlap duurt.",
                     "marks": [
                         {
                             "spot": "planner.overlap.label",
@@ -658,7 +658,7 @@
                     "spot": "planner.event",
                     "title": "Naar morgen",
                     "text": "**Naar morgen** zet een kopie op de volgende dag, op dezelfde tijd.",
-                    "say": "Naar morgen zet hem een dag later neer, op dezelfde tijd.",
+                    "say": "Met naar morgen zet je hem een dag later neer, op dezelfde tijd.",
                     "aid": {
                         "type": "picture",
                         "scene": "copy-week",
@@ -670,7 +670,7 @@
                     "spot": "planner.event",
                     "title": "Rest van de week",
                     "text": "**Rest van de week** zet een kopie op elke werkdag die er die week nog komt.",
-                    "say": "Rest van de week vult elke werkdag die er nog komt.",
+                    "say": "Met rest van de week komt hij op elke werkdag die deze week nog over is.",
                     "aid": {
                         "type": "picture",
                         "scene": "copy-week",
@@ -682,7 +682,7 @@
                     "spot": "planner.event",
                     "title": "Naar volgende week",
                     "text": "**Naar volgende week** zet hem precies een week later, op dezelfde dag en tijd.",
-                    "say": "Naar volgende week zet hem precies een week later.",
+                    "say": "Met naar volgende week zet je hem precies een week later.",
                     "aid": {
                         "type": "picture",
                         "scene": "copy-week",
@@ -727,7 +727,7 @@
                     },
                     "title": "Je eigen rij",
                     "text": "Op een afspraak in je eigen rij staan twee knopjes: de **klok** voor tijden en handtekening, het **kruisje** om je eigen deel te annuleren. In de rij van een collega staan ze nooit.",
-                    "say": "Op een afspraak in je eigen rij staan twee knopjes. De klok voor je tijden en de handtekening, en het kruisje om je eigen deel te annuleren.",
+                    "say": "Op een afspraak in je eigen rij staan twee knopjes: de klok voor je tijden en de handtekening, en het kruisje om je deel te annuleren.",
                     "fallback": {
                         "type": "picture",
                         "scene": "execution-buttons"
@@ -781,7 +781,7 @@
                     },
                     "title": "Namens een ander",
                     "text": "Mag je tijden voor anderen invullen, dan staat er in de rij van een collega op de afspraak een knopje met een **pennetje**. Het opent hetzelfde scherm als je eigen klok, met bovenin **Namens** en de naam, en met de tijden die voor die collega gepland waren. Is zijn deel al afgerond, dan staat het knopje er niet meer.",
-                    "say": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als je eigen.",
+                    "say": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net zoals je dat voor jezelf doet.",
                     "fallback": {
                         "type": "picture",
                         "scene": "execution-buttons",
@@ -952,12 +952,12 @@
                     "spot": "planner.unavailable",
                     "title": "Niet beschikbaar",
                     "text": "Een gestreept blok betekent dat een monteur er niet is: een vrije dag of een vast vrij moment uit het rooster, met het label erin.",
-                    "say": "Een gestreept blok in de planning betekent dat een monteur er niet is. Een vrije dag, of een vast vrij moment uit zijn rooster."
+                    "say": "Een gestreept blok betekent dat een monteur er dan niet is: een vrije dag, of een vast vrij moment uit zijn rooster."
                 },
                 {
                     "title": "Vaste vrije momenten",
                     "text": "De blokken komen uit het **rooster** op de pagina van de gebruiker: een weekdag, wekelijks of om de week, de hele dag of een dagdeel, met een label.",
-                    "say": "Die blokken komen uit het rooster van de gebruiker. Een vast vrij moment is een weekdag, elke week of om de week, de hele dag of een deel ervan.",
+                    "say": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment is een weekdag, elke week of om de week, een hele dag of een deel ervan.",
                     "aid": {
                         "type": "picture",
                         "scene": "roster",
@@ -967,7 +967,7 @@
                 {
                     "title": "Losse vrije dagen",
                     "text": "Daaronder staan losse vrije dagen: één datum, of een periode zoals een vakantie.",
-                    "say": "Daaronder komen de losse vrije dagen. Eén datum, of een hele periode, zoals een vakantie.",
+                    "say": "Daaronder staan de losse vrije dagen: één datum, of een hele periode, zoals een vakantie.",
                     "aid": {
                         "type": "picture",
                         "scene": "roster",
@@ -1144,7 +1144,7 @@
                     },
                     "title": "Banen naast elkaar",
                     "text": "Bij **Alle monteurs** wissel je naar banen naast elkaar.",
-                    "say": "Bij alle monteurs wissel je met deze knop naar banen naast elkaar.",
+                    "say": "Kijk je naar alle monteurs, dan zet je ze met deze knop als banen naast elkaar.",
                     "marks": [
                         {
                             "spot": "planner.phone.technician",

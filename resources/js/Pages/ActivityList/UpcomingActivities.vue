@@ -4,9 +4,11 @@
         search-placeholder="Zoek op klantnaam, merk, model of serienummer" :search-other-params="searchOtherParams"
         local-storage-key="upcomingActivitiesSearch" input-id="upcomingActivitiesSearchInput">
         <template #actions>
-            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-end">
-                <SelectMenuComponent v-model="form.days" :icon="daysIcon" :spin="loading" :options="daysOptions" />
-                <button type="button" @click="openMap"
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 items-end sm:items-stretch">
+                <TourButton tour="activiteiten" data-tour="activities.tour" />
+                <SelectMenuComponent v-model="form.days" :icon="daysIcon" :spin="loading" :options="daysOptions"
+                    data-tour="activities.days" />
+                <button type="button" data-tour="activities.map" @click="openMap()"
                     class="rounded-lavoro-sm bg-lavoro-blue text-white pl-3 pr-2 sm:px-5 py-3 cursor-pointer text-sm flex items-center">
                     <MapIcon class="size-5 inline-block mr-2" />
                     <span class="hidden sm:inline">Kaart</span>
@@ -15,15 +17,16 @@
         </template>
     </IndexHeaderComponent>
     <div class="mb-4 flex flex-wrap items-start gap-2">
-        <UpcomingAssetsFilters v-if="view === 'table'" :options="table.filters" :query="table.query" />
+        <UpcomingAssetsFilters v-if="view === 'table'" :options="table.filters" :query="table.query"
+            data-tour="activities.filters" />
         <div class="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-            <div v-if="contractAssets.choosable || contractAssets.forced"
+            <div v-if="contractAssets.choosable || contractAssets.forced" data-tour="activities.contracts"
                 class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
                 <span>Contractmachines</span>
                 <SwitchComponent v-model="showContractAssets" :disabled="contractAssets.forced"
                     :title="contractSwitchTitle" />
             </div>
-            <SegmentedToggle v-model="chosenView" :options="viewOptions" />
+            <SegmentedToggle v-model="chosenView" :options="viewOptions" data-tour="activities.views" />
         </div>
     </div>
     <UpcomingAssetsTable v-if="view === 'table'" :table="table" v-model:selected-assets="form.selectedAssets"
@@ -50,8 +53,8 @@
         </div>
     </div>
     <div v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder" class="h-40" aria-hidden="true"></div>
-    <div class="fixed right-4 bottom-4 z-30">
-        <div v-auto-animate class="flex flex-col gap-2">
+    <div class="fixed right-4 z-30" :style="{ bottom: `${floor + 16}px` }">
+        <div v-auto-animate class="flex flex-col gap-2" data-tour="activities.workorder">
             <p v-if="form.errors.assets"
                 class="rounded-md bg-red-50 p-2 text-sm text-red-700 shadow-lg ring-1 ring-red-600/20 dark:ring-red-500/30 dark:bg-red-950 dark:text-red-300">
                 {{ form.errors.assets }}
@@ -160,6 +163,9 @@
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue';
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
+import TourButton from '@/Components/Tour/TourButton.vue';
+import { useTour, addressStartingTour } from '@/Composables/useTour';
+import { useBottomBars } from '@/Composables/useBottomBars.js';
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
 import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon, LayoutListIcon, TableIcon } from '@lucide/vue';
@@ -533,13 +539,59 @@ onBeforeUnmount(() => {
     window.removeEventListener('message', onMapMessage);
 });
 
+/** The werkbon buttons stand above whatever bar lies along the bottom. */
+const { floor } = useBottomBars();
+
 /** The map shows what the page shows: the same window, and the contract machines left out or not. */
-const openMap = () => {
+const mapAddress = () => {
     const query = new URLSearchParams({ days: form.days });
     if (params.value.contracts) {
         query.set('contracts', params.value.contracts);
     }
-    window.open(`/upcomingactivities/map?${query}`, 'customerMap', 'width=1200,height=800');
+    return `/upcomingactivities/map?${query}`;
 };
 
+const openMap = (address = mapAddress()) => window.open(address, 'customerMap', 'width=1200,height=800');
+
+/**
+ * The rondleiding of this page ticks the first machine on the screen, in
+ * either view, so the buttons that make a werkbon of a selection show.
+ */
+const firstMachine = () => {
+    if (view === 'table') {
+        const row = table.rows.data[0];
+        return row ? { id: row.id, customer_id: row.customer_id } : null;
+    }
+    const main = [...expiredAssets, ...upcomingAssets].find((candidate) => candidate.customer?.upcoming_assets?.length);
+    return main ? { id: main.customer.upcoming_assets[0].id, customer_id: main.customer.id } : null;
+};
+
+useTour('activiteiten', {
+    showTable: () => {
+        if (view === 'table') {
+            return null;
+        }
+        const previous = chosenView.value;
+        chosenView.value = 'table';
+
+        return () => { chosenView.value = previous; };
+    },
+    openMapWithTour: () => {
+        openMap(addressStartingTour(mapAddress(), 'kaart'));
+    },
+    selectFirstMachine: () => {
+        const machine = firstMachine();
+        if (!machine || form.selectedAssets.some((asset) => asset.id === machine.id)) {
+            return null;
+        }
+        const previous = [...form.selectedAssets];
+        form.selectedAssets = [...previous, machine];
+
+        return () => { form.selectedAssets = previous; };
+    },
+}, {
+    spots: {
+        'activities.checked': () => document.querySelector('[data-tour="activities.check"]:checked'),
+    },
+});
 </script>

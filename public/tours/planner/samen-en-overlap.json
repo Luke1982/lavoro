@@ -13,16 +13,16 @@
             "end": 14.211
         },
         {
-            "text": "Lopen twee afspraken van één monteur over elkaar heen, dan wordt het stuk dat dubbel is rood gestreept. Erop staat hoe lang de overlap duurt.",
-            "hash": "a0175a3ce13d8539bb27e56abbe4b51938326441",
+            "text": "Overlappen twee afspraken van dezelfde monteur, dan wordt het dubbele stuk rood gestreept. Erop staat hoe lang de overlap duurt.",
+            "hash": "ab0538bcfd31275c5b240853ebf9bfd7a65df8c9",
             "start": 15.211,
-            "end": 22.734
+            "end": 21.991
         },
         {
             "text": "Klik je op het gestreepte stuk, dan vraagt de planner welke van de afspraken je wilt openen.",
             "hash": "3f7e3988fe949020b3af38b50234ff9e77946c49",
-            "start": 23.734,
-            "end": 28.796
+            "start": 22.991,
+            "end": 28.053
         }
     ]
 }

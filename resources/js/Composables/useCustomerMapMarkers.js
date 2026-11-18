@@ -183,9 +183,24 @@ export function useCustomerMapMarkers({
         }
     });
 
+    /** The pin nearest the middle of the map that stands on its own, not folded into a group; null when there is none. */
+    const pinInView = () => {
+        if (!map.value) {
+            return null;
+        }
+        const center = map.value.getCenter();
+        const bounds = map.value.getBounds();
+        const distance = (marker) => center.distanceTo(marker.getLatLng());
+
+        return [...markers.values()]
+            .filter((marker) => map.value.hasLayer(marker) && bounds.contains(marker.getLatLng()))
+            .sort((a, b) => distance(a) - distance(b))[0] ?? null;
+    };
+
     return {
         map,
         keepApart,
+        pinInView,
         geocodingStatus,
         geocodedCount,
         totalToGeocode,

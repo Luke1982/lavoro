@@ -4,10 +4,11 @@
         <GeocodingStatusOverlay :status="geocodingStatus" :geocoded-count="geocodedCount"
             :total-to-geocode="totalToGeocode" :progress="progress" :failed-geocodes="failedGeocodes"
             :total="items.length" />
-        <MapLegend title="Eerstvolgende keuring" :entries="LEGEND" counted="machines" />
+        <MapLegend data-tour="map.legend" title="Eerstvolgende keuring" :entries="LEGEND" counted="machines" />
         <RoutePlannerPanel v-if="routePlanner" ref="planner" :map="map" :config="routePlanner"
             @chosen="keepApart" />
         <CloseMapWindow />
+        <MapWindowTour :map="map" :items="items" :planner="planner" :pin-in-view="pinInView" />
     </div>
 </template>
 
@@ -15,6 +16,7 @@
 import { ref } from 'vue';
 import EmptyLayout from '@/Layouts/EmptyLayout.vue';
 import CloseMapWindow from '@/Components/Map/CloseMapWindow.vue';
+import MapWindowTour from '@/Components/Map/MapWindowTour.vue';
 import MapLegend from '@/Components/Map/MapLegend.vue';
 import RoutePlannerPanel from '@/Components/Map/RoutePlannerPanel.vue';
 import MapPopup from '@/Components/MapPopup.vue';
@@ -72,7 +74,7 @@ const scrollToCustomer = (item) => {
     }, 50);
 };
 
-const { map, keepApart, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
+const { map, keepApart, pinInView, geocodingStatus, geocodedCount, totalToGeocode, failedGeocodes, progress } = useCustomerMapMarkers({
     items,
     markerColor: (item) => dueOf(item).color,
     markerNumber: (item) => item.assets.length,

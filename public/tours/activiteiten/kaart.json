@@ -1,0 +1,16 @@
+{
+    "tour": "activiteiten",
+    "chapter": "kaart",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "kaart.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met de knop kaart zie je alle klanten uit de lijst op een kaart, zodat je ziet waar het werk zit. Klik op open de kaart, en de rondleiding gaat daar verder.",
+            "hash": "d244bb73532025415f953018bf2089e2ff5cc829",
+            "start": 0,
+            "end": 8.173
+        }
+    ]
+}

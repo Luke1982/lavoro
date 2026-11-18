@@ -1,0 +1,117 @@
+{
+    "id": "activiteiten",
+    "title": "Rondleiding door de aankomende keuringen",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
+    "page": "/upcomingactivities",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "activitylist.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De lijst",
+            "summary": "Hoe ver vooruit, zoeken, per klant of als tabel, sorteren en filteren, en contractmachines.",
+            "steps": [
+                {
+                    "spot": "activities.days",
+                    "title": "Hoe ver vooruit",
+                    "text": "Kies hoe ver je vooruit kijkt: **60, 90, 180 of 365 dagen**. Je ziet alle machines waarvan de keuring al verlopen is of in die periode verloopt, met hun storingen. Daar maak je hier werkbonnen voor.",
+                    "say": "Hier kies je hoe ver je vooruit kijkt. Je ziet alle machines waarvan de keuring al verlopen is, of in die periode verloopt."
+                },
+                {
+                    "spot": "list.search",
+                    "title": "Zoeken",
+                    "text": "Zoek op **klant**, **merk**, **model** of **serienummer**.",
+                    "say": "Zoek op klant, merk, model of serienummer."
+                },
+                {
+                    "spot": "activities.views",
+                    "title": "Per klant of als tabel",
+                    "text": "**Per klant** staan de machines van één klant bij elkaar, per locatie, met hun storingen eronder. In de **tabel** heeft elke machine een eigen regel. Je laatste keuze blijft bewaard.",
+                    "say": "Hier wissel je tussen een overzicht per klant en een tabel. Je laatste keuze blijft bewaard."
+                },
+                {
+                    "spot": "activities.table",
+                    "action": "showTable",
+                    "title": "De tabel",
+                    "text": "In de **tabel** heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren: op serienummer, machine, klant, locatie of keuringsdatum. Een **+3** achter een klantnaam betekent dat er nog drie machines van die klant in de lijst staan. Een onderdeel heeft ook een eigen regel, met de machine waar het in zit.",
+                    "say": "In de tabel heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
+                    "marks": [
+                        {
+                            "spot": "activities.table.header",
+                            "when": "kolomkop"
+                        },
+                        {
+                            "spot": "activities.table.others",
+                            "when": "plusje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "activities.filters",
+                    "title": "Filters in de tabel",
+                    "text": "In de tabel filter je op klant, type, status, storingen en planning. **Planning** staat standaard op *Niet gepland*. Een machine telt als gepland zodra hij op een werkbon staat met een afspraak in de toekomst.",
+                    "say": "In de tabel filter je op klant, type, status, storingen en planning. Planning staat standaard op niet gepland.",
+                    "action": "showTable"
+                },
+                {
+                    "spot": "activities.contracts",
+                    "skipIfMissing": true,
+                    "title": "Contractmachines",
+                    "text": "Machines met een lopend onderhoudscontract krijgen hun werkbon van het contract zelf. Met **Contractmachines** haal je ze uit de lijst en van de kaart. Je browser onthoudt de stand.",
+                    "say": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze."
+                }
+            ]
+        },
+        {
+            "id": "werkbon",
+            "version": 1,
+            "title": "Een werkbon maken",
+            "summary": "Machines en storingen aanvinken en er een werkbon van maken, of hem meteen inplannen.",
+            "requires": {
+                "permissions": [
+                    "serviceorder.create"
+                ]
+            },
+            "actions": [
+                "selectFirstMachine"
+            ],
+            "steps": [
+                {
+                    "spot": "activities.checked",
+                    "title": "Aanvinken",
+                    "text": "Vink de machines aan die je wilt laten keuren, en de storingen die je meteen wilt meenemen. In de tabel stelt Lavoro voor wat er nog meer mee kan: de storingen van die machine en andere machines van dezelfde klant.",
+                    "say": "Vink de machines aan die je wilt laten keuren, en de storingen die je meteen wilt meenemen."
+                },
+                {
+                    "spot": "activities.workorder",
+                    "title": "Werkbon maken",
+                    "text": "Rechtsonder maak je er een werkbon van: **blijf hier**, **open die** meteen, of **plan deze in**. Een werkbon is altijd voor één klant. Vink je iets van twee klanten aan, dan kleurt de knop rood.",
+                    "say": "Rechtsonder maak je er een werkbon van. Je kunt hier blijven, de werkbon openen, of hem meteen inplannen. Een werkbon is altijd voor één klant."
+                }
+            ]
+        },
+        {
+            "id": "kaart",
+            "version": 1,
+            "title": "De kaart",
+            "summary": "Alle klanten uit de lijst op een kaart, in een eigen venster.",
+            "steps": [
+                {
+                    "spot": "activities.map",
+                    "title": "Kaart",
+                    "text": "**Kaart** zet alle klanten uit de lijst op een kaart, in een apart venster. Je ziet in één oogopslag waar het werk zit en hoe dringend het is. Met **Open de kaart** gaat de rondleiding daar verder.",
+                    "say": "Met de knop kaart zie je alle klanten uit de lijst op een kaart, zodat je ziet waar het werk zit. Klik op open de kaart, en de rondleiding gaat daar verder.",
+                    "cta": {
+                        "label": "Open de kaart",
+                        "action": "openMapWithTour"
+                    }
+                }
+            ]
+        }
+    ]
+}

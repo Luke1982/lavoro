@@ -7,52 +7,52 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Staat het product er nog niet in? Typ dan het model, hier de PX-12 Hybride. Onderaan de lijst verschijnt nieuw product.",
-            "hash": "165140ad10d2a24e8801f70f6cb591ea07f99d2c",
+            "text": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de PX-12 Hybride. Onderaan de lijst verschijnt nieuw product.",
+            "hash": "6a578c0278fbb8555b089f9cd17b2863576ea3b0",
             "start": 0,
-            "end": 6.78
+            "end": 7.245
         },
         {
-            "text": "Kies je die, dan opent het productformulier, boven op het machineformulier. Het model dat je typte, staat er al in.",
-            "hash": "7b015dba791d20d98e0c2e63ebf0a17ebfbfd622",
-            "start": 7.78,
-            "end": 14.468
+            "text": "Klik daarop, en het productformulier opent over het machineformulier heen. Het model dat je typte, staat er al in.",
+            "hash": "2249ef82e69b4391458556a4d47fc2dea071d645",
+            "start": 8.245,
+            "end": 15.118
         },
         {
-            "text": "Kies het producttype, het soort apparaat. Ontbreekt het, dan maak je het hier op dezelfde manier aan.",
-            "hash": "81d29352dac704a1d0945759bd34246362d46cda",
-            "start": 15.468,
-            "end": 20.947
+            "text": "Kies het producttype, het soort apparaat. Staat het er niet bij, dan maak je het op dezelfde manier aan.",
+            "hash": "ec3d88e1e69df8bcfd19014ac7703089a9b3ee3b",
+            "start": 16.118,
+            "end": 21.969
         },
         {
-            "text": "Het merk Polarix bestaat ook nog niet. Typ het in, en kies nieuw merk.",
-            "hash": "661d03a4734391379d74c0ca8dfc66f2bc63ca1e",
-            "start": 21.947,
-            "end": 25.988
+            "text": "Ook het merk Polarix bestaat nog niet. Typ het in, en kies nieuw merk.",
+            "hash": "dc794ff250e630338cd2d3c1f484f7fb8d41d1b7",
+            "start": 22.969,
+            "end": 26.824
         },
         {
-            "text": "Het merk wordt meteen aangemaakt, en staat gekozen. Je hoeft het productformulier er niet voor uit.",
-            "hash": "e7a1718f24dba032279586e697251104a3bcbf66",
-            "start": 26.988,
-            "end": 32.282
+            "text": "Het merk wordt meteen aangemaakt en ingevuld. Je hoeft het productformulier er niet voor te verlaten.",
+            "hash": "1d996384536b7951ff40525f10991f9358d16a5d",
+            "start": 27.824,
+            "end": 33.118
         },
         {
-            "text": "Een bundel groepeert andere producten. Zet registreerbaar uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro er geen serienummer bij.",
-            "hash": "54c8e895abae91ee36e7c68c78e68ebd80e6900f",
-            "start": 33.282,
-            "end": 42.338
+            "text": "Een bundel is een set van andere producten. Zet registreerbaar uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro geen serienummer.",
+            "hash": "fc3cd8b9308c09d570f2780edcc867d5e80d8368",
+            "start": 34.118,
+            "end": 43.081
         },
         {
-            "text": "Met product aanmaken sla je het product op.",
-            "hash": "90b20381c5ec90f208ae3123a98dbc577d0bc9fb",
-            "start": 43.338,
-            "end": 45.753
+            "text": "Klik op product aanmaken om het product op te slaan.",
+            "hash": "4464edeb3f6b6a18fde3b1fa13409750543c4de8",
+            "start": 44.081,
+            "end": 47.099
         },
         {
-            "text": "Daarna sta je terug in het machineformulier, met het nieuwe product al gekozen. Vul de rest in, en klik op toevoegen.",
-            "hash": "a6b91a39285544356acb62682523d56049242e1a",
-            "start": 46.753,
-            "end": 53.301
+            "text": "Je bent dan terug in het machineformulier, met het nieuwe product al ingevuld. Vul de rest in, en klik op toevoegen.",
+            "hash": "7dda1346ad74bcb236241c96ba4317972c59e53f",
+            "start": 48.099,
+            "end": 54.787
         }
     ]
 }

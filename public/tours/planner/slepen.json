@@ -7,40 +7,40 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Rechts staan de werkbonnen die nog op een plek in de planning wachten.",
-            "hash": "11b9a0a14121e00cf8df5eeecaab3fbfae22fa7f",
+            "text": "Rechts staan de werkbonnen die nog ingepland moeten worden.",
+            "hash": "d6bd41ba841f87e5d6ce7cfc3a413a7354bdfb92",
             "start": 0,
-            "end": 3.762
+            "end": 3.158
         },
         {
             "text": "Bovenaan de lijst zoek je op nummer, klant, plaats of omschrijving.",
             "hash": "93f81b171396e34efb02bc519cbcfab032f9d350",
-            "start": 4.762,
-            "end": 8.848
+            "start": 4.158,
+            "end": 8.245
         },
         {
-            "text": "Pak een werkbon op en laat hem los in de rij van een monteur, op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
-            "hash": "7143bbbaf4086e605f70d291a1b7b450c891e6d3",
-            "start": 9.848,
-            "end": 18.161
+            "text": "Sleep een werkbon naar de rij van een monteur, en laat hem los op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
+            "hash": "52db6720915cd10d6a85006e815e0358af0e7f63",
+            "start": 9.245,
+            "end": 17.464
         },
         {
-            "text": "Met de rechtermuisknop open je een werkbon, of verwijder je hem. Verwijderen vraagt altijd eerst of je het zeker weet.",
-            "hash": "1ad3ab2bf9f433482aa12dadad36dbe999ff5335",
-            "start": 19.161,
-            "end": 26.127
+            "text": "Met de rechtermuisknop open of verwijder je een werkbon. Bij verwijderen vraagt de planner eerst of je het zeker weet.",
+            "hash": "3838e1786b7d7edab8e25f1800aafe1f993336f5",
+            "start": 18.464,
+            "end": 24.734
         },
         {
-            "text": "Werkbonnen uit een onderhoudscontract zie je standaard niet, anders overstemmen ze de rest. Met deze schakelaar zet je ze erbij.",
-            "hash": "f6bb677f54de2c1347beddfd5d6e2bfb635d8d19",
-            "start": 27.127,
-            "end": 33.907
+            "text": "Werkbonnen uit een onderhoudscontract staan standaard niet in de lijst, omdat het er vaak veel zijn. Met deze schakelaar zet je ze erbij.",
+            "hash": "59312e163ef36ef0e36397e63cf1735f09ab69e6",
+            "start": 25.734,
+            "end": 33.304
         },
         {
             "text": "Hoort een werkbon bij een lopend project, dan hangt hij onder de balk van dat project. Ook die sleep je zo naar een monteur.",
             "hash": "832eb9667bf60634e407f87f5c356b4611fea51d",
-            "start": 34.907,
-            "end": 41.92
+            "start": 34.304,
+            "end": 41.316
         }
     ]
 }

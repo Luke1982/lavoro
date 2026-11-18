@@ -1,6 +1,6 @@
 <template>
     <div ref="panel" class="fixed top-3 left-14 z-[1000] w-96 max-w-[calc(100vw-4.5rem)]">
-        <button type="button" :aria-pressed="active"
+        <button type="button" :aria-pressed="active" data-tour="route.toggle"
             class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-md ring-1 ring-black/10 dark:ring-white/10"
             :class="active ? 'bg-blue-700 text-white hover:bg-blue-800' : 'bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50'"
             @click="toggleActive">
@@ -8,10 +8,10 @@
             Route plannen
         </button>
 
-        <div v-if="active"
+        <div v-if="active" data-tour="route.planner"
             class="mt-2 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-lg bg-white dark:bg-slate-900 p-3 text-sm shadow-lg ring-1 ring-black/10 dark:ring-white/10">
             <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Werkdag</h3>
-            <div class="mt-1 flex items-center gap-2 text-gray-700 dark:text-slate-300">
+            <div class="mt-1 flex items-center gap-2 text-gray-700 dark:text-slate-300" data-tour="route.workday">
                 <input v-model="workdayStart" type="time" aria-label="Begin van de werkdag"
                     class="rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1" @input="invalidate" />
                 tot
@@ -21,7 +21,7 @@
             <label for="route-start" class="mt-3 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                 Begin en einde
             </label>
-            <select id="route-start" v-model="startChoice"
+            <select id="route-start" v-model="startChoice" data-tour="route.start"
                 class="mt-1 w-full rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1 text-gray-800 dark:text-slate-200" @change="chooseStart">
                 <option value="company" :disabled="!config.start">
                     {{ config.start ? 'Bedrijf' : 'Bedrijf (geen adres ingevuld)' }}
@@ -42,7 +42,8 @@
                 <h3 class="mt-4 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">
                     {{ section.title }} ({{ section.stops.length }})
                 </h3>
-                <ol class="divide-y divide-gray-100 dark:divide-slate-800">
+                <ol class="divide-y divide-gray-100 dark:divide-slate-800"
+                    :data-tour="section.id === 'route' ? 'route.stops' : 'route.left-over'">
                     <RouteStopRow v-for="stop in section.stops" :key="stop.key" :stop="stop"
                         @remove="toggleStop(stop.item)" @minutes="(minutes) => changeStop(stop.key, { minutes })"
                         @urgent="changeStop(stop.key, { urgent: !stop.urgent })"
@@ -55,23 +56,26 @@
 
             <p v-if="error" class="mt-2 rounded bg-red-50 dark:bg-red-900/20 p-2 text-red-700 dark:text-red-300">{{ error }}</p>
 
-            <button v-if="!result" type="button" :disabled="!canCalculate"
+            <button v-if="!result" type="button" :disabled="!canCalculate" data-tour="route.calculate"
                 class="mt-3 w-full rounded-md bg-blue-700 px-3 py-2 font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="calculate">
                 {{ busy ? 'Route berekenen…' : 'Route berekenen' }}
             </button>
 
             <div v-else-if="result.order.length" class="mt-3 border-t border-gray-200 dark:border-slate-700 pt-3">
+                <p v-if="isExample" class="mb-2 rounded bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-800 dark:text-amber-200">
+                    Voorbeeld uit de rondleiding, niet echt berekend.
+                </p>
                 <div class="flex items-start justify-between gap-2">
-                    <div>
+                    <div data-tour="route.result">
                         <p class="font-medium text-gray-900 dark:text-slate-100">Terug om {{ clock(result.finish) }}</p>
                         <p class="text-xs text-gray-500 dark:text-slate-400">
                             {{ formatMeters(result.distance) }} · {{ formatSeconds(result.duration) }} rijden ·
                             {{ formatSeconds(timeOnSite) }} op locatie, zonder files.
                         </p>
                     </div>
-                    <button v-if="result.order.length > 1" type="button" :aria-pressed="reversed"
-                        :disabled="busy || assigning" title="Dezelfde adressen in omgekeerde volgorde, met hetzelfde begin en einde"
+                    <button v-if="result.order.length > 1" type="button" :aria-pressed="reversed" data-tour="route.reverse"
+                        :disabled="busy || assigning || isExample" title="Dezelfde adressen in omgekeerde volgorde, met hetzelfde begin en einde"
                         class="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-50"
                         :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50'"
                         @click="reverse">
@@ -79,7 +83,7 @@
                         {{ busy ? 'Andersom…' : 'Andersom' }}
                     </button>
                 </div>
-                <a v-for="(link, index) in googleLinks" :key="link" :href="link" target="_blank" rel="noopener"
+                <a v-for="(link, index) in googleLinks" :key="link" :href="link" target="_blank" rel="noopener" data-tour="route.google"
                     class="mt-2 flex items-center justify-center gap-2 rounded-md bg-white dark:bg-slate-900 px-3 py-2 font-medium text-gray-800 dark:text-slate-200 ring-1 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50">
                     <ArrowTopRightOnSquareIcon class="h-4 w-4" />
                     {{ googleLinks.length > 1 ? `Deel ${index + 1} openen in Google Maps` : 'Openen in Google Maps' }}
@@ -88,7 +92,7 @@
                     Google Maps neemt hoogstens tien adressen per keer, dus de route staat in delen klaar.
                 </p>
 
-                <form v-if="assignable.length" class="mt-3 border-t border-gray-200 dark:border-slate-700 pt-3" @submit.prevent="assign">
+                <form v-if="assignable.length" data-tour="route.assign" class="mt-3 border-t border-gray-200 dark:border-slate-700 pt-3" @submit.prevent="assign">
                     <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">In planning zetten</h3>
                     <div class="mt-1 flex items-center gap-2">
                         <select v-model="assignee" aria-label="Monteur"
@@ -101,7 +105,7 @@
                         <input v-model="assignDate" type="date" aria-label="Dag"
                             class="rounded-md border border-gray-300 dark:border-slate-600 px-2 py-1 text-gray-800 dark:text-slate-200" />
                     </div>
-                    <button type="submit" :disabled="assigning || busy"
+                    <button type="submit" :disabled="assigning || busy || isExample"
                         class="mt-2 w-full rounded-md bg-white dark:bg-slate-900 px-3 py-2 font-medium text-gray-800 dark:text-slate-200 ring-1 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50 disabled:cursor-not-allowed disabled:opacity-50">
                         {{ assigning ? 'In planning zetten…' : 'In planning zetten' }}
                     </button>
@@ -127,6 +131,8 @@ import { formatAddress, formatLocalDateAsISO } from '@/Utilities/Utilities';
 import dayjs from '@/Utilities/dayjs';
 import { formatDurationLabel, formatTimeLabel, minutesFromTimeString } from '@/Utilities/plannerOverlaps';
 import { plannerWorkday } from '@/Utilities/plannerDayView';
+import { useTour } from '@/Composables/useTour';
+import { exampleRoute } from '@/Tours/mapExamples';
 
 /**
  * Picks addresses on a map and asks the server for a working day along them:
@@ -172,6 +178,8 @@ const companyPoint = ref(props.config.start?.lat != null
     ? { lat: props.config.start.lat, lon: props.config.start.lon }
     : null);
 const calculated = ref(null);
+/** A route the rondleiding made up to show, which is never driven the other way or put in a day. */
+const isExample = ref(false);
 const turned = ref(null);
 const reversed = ref(false);
 /** The route as shown: as calculated, or the same stops the other way round. */
@@ -355,6 +363,7 @@ const showRoute = (path) => {
 const invalidate = () => {
     revision++;
     calculated.value = null;
+    isExample.value = false;
     turned.value = null;
     reversed.value = false;
     error.value = null;
@@ -368,12 +377,14 @@ const choose = (chosen) => {
     invalidate();
 };
 
+const isChosen = (item) => stops.value.some((stop) => stop.key === markerKey(item));
+
 const toggleStop = (item) => {
     if (!active.value) {
         return;
     }
     const key = markerKey(item);
-    choose(stops.value.some((stop) => stop.key === key)
+    choose(isChosen(item)
         ? stops.value.filter((stop) => stop.key !== key)
         : [...stops.value, { key, item, minutes: props.config.visit_minutes, urgent: false, before: null }]);
 };
@@ -493,6 +504,9 @@ const reverse = async () => {
 };
 
 const assign = async () => {
+    if (isExample.value) {
+        return;
+    }
     const asked = revision;
     const route = {
         user_id: assignee.value,
@@ -541,5 +555,35 @@ onBeforeUnmount(() => {
     overlay.remove();
 });
 
-defineExpose({ toggleStop });
+/**
+ * The map rondleiding switches the planner on to show it, and shows a worked-out
+ * route without asking the routing server: one made up along the chosen stops,
+ * from the company or else the first stop, marked as an example on the screen.
+ */
+useTour('kaart', {
+    openRoutePlanner: () => {
+        if (active.value) {
+            return null;
+        }
+        toggleActive();
+
+        return () => {
+            if (active.value) {
+                toggleActive();
+            }
+        };
+    },
+    showExampleRoute: () => {
+        if (!stops.value.length || result.value) {
+            return null;
+        }
+        calculated.value = exampleRoute(stops.value, companyPoint.value ?? stops.value[0].item);
+        isExample.value = true;
+        showRoute(calculated.value.path);
+
+        return invalidate;
+    },
+});
+
+defineExpose({ toggleStop, isChosen });
 </script>

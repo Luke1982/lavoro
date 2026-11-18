@@ -1,0 +1,34 @@
+{
+    "tour": "kaart",
+    "chapter": "spelden",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "spelden.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Elke speld is een adres. Het getal geeft aan hoeveel er daar te doen is, en de kleur hoe dringend het is.",
+            "hash": "3fb5878e5d6defadbdcd4289049e0a47da9fa2d7",
+            "start": 0,
+            "end": 6.037
+        },
+        {
+            "text": "Rechtsonder in de legenda staat wat elke kleur betekent.",
+            "hash": "9f1da929ebe736655be41c2de5ecf502700bbac6",
+            "start": 7.037,
+            "end": 10.102
+        },
+        {
+            "text": "Klik op een speld, en je ziet precies wat er op dat adres staat.",
+            "hash": "bbdb2115b49b2049c204a042a825d75be66bc905",
+            "start": 11.102,
+            "end": 14.864
+        },
+        {
+            "text": "Zoom je uit, dan worden spelden die dicht bij elkaar liggen samengevoegd tot een rondje. Het getal is het totaal. Klik erop om in te zoomen.",
+            "hash": "c9238538992b5268c00341c98e840a3efcba44ff",
+            "start": 15.864,
+            "end": 23.852
+        }
+    ]
+}

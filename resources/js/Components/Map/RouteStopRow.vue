@@ -19,19 +19,19 @@
             </button>
         </div>
         <div class="mt-1 ml-8 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 dark:text-slate-400">
-            <label class="flex items-center gap-1" title="Tijd op locatie, in minuten">
+            <label class="flex items-center gap-1" title="Tijd op locatie, in minuten" data-tour="route.stop.minutes">
                 <input type="number" :value="stop.minutes" min="0" step="15" aria-label="Tijd op locatie, in minuten"
                     class="w-14 rounded-md border border-gray-300 dark:border-slate-600 px-1.5 py-0.5 text-right"
                     @change="emit('minutes', $event.target.value === '' ? null : Number($event.target.value))" />
                 min
             </label>
-            <label class="flex items-center gap-1" title="Uiterlijk om deze tijd hier beginnen; leeg is de hele dag">
+            <label class="flex items-center gap-1" title="Uiterlijk om deze tijd hier beginnen; leeg is de hele dag" data-tour="route.stop.before">
                 vóór
                 <input type="time" :value="stop.before ?? ''" aria-label="Uiterlijk beginnen om"
                     class="rounded-md border border-gray-300 dark:border-slate-600 px-1 py-0.5"
                     @change="emit('before', $event.target.value || null)" />
             </label>
-            <button type="button" :aria-pressed="stop.urgent"
+            <button type="button" :aria-pressed="stop.urgent" data-tour="route.stop.urgent"
                 title="Past niet alles in de dag, dan valt eerst een gewoon adres af"
                 class="rounded-md px-2 py-0.5 font-medium ring-1"
                 :class="stop.urgent ? 'bg-red-600 text-white ring-red-600' : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50'"

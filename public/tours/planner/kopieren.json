@@ -13,28 +13,28 @@
             "end": 4.876
         },
         {
-            "text": "Naar morgen zet hem een dag later neer, op dezelfde tijd.",
-            "hash": "170c1ce7628e8e7a5a23fc6fd01da5de096443d9",
+            "text": "Met naar morgen zet je hem een dag later neer, op dezelfde tijd.",
+            "hash": "06bb1a053f4c07a88ed374fa2b9e4344407fbcf8",
             "start": 5.876,
-            "end": 9.034
+            "end": 9.452
         },
         {
-            "text": "Rest van de week vult elke werkdag die er nog komt.",
-            "hash": "814d311582d9220a1249a71254081329ad00b935",
-            "start": 10.034,
-            "end": 13.053
+            "text": "Met rest van de week komt hij op elke werkdag die deze week nog over is.",
+            "hash": "80eb766b3bcece0a51390ada1a02c3e4fa20cccf",
+            "start": 10.452,
+            "end": 14.957
         },
         {
-            "text": "Naar volgende week zet hem precies een week later.",
-            "hash": "b0f6f6945bf4cf956b6aff53e5d70efb3074006f",
-            "start": 14.053,
-            "end": 17.071
+            "text": "Met naar volgende week zet je hem precies een week later.",
+            "hash": "fa8e6171198812983f58d5c0e1f67573607b747e",
+            "start": 15.957,
+            "end": 18.929
         },
         {
             "text": "Of kies zelf een datum, tot een jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
             "hash": "db36640eba42033d0325d863bf511b7b0da02933",
-            "start": 18.071,
-            "end": 25.316
+            "start": 19.929,
+            "end": 27.174
         }
     ]
 }

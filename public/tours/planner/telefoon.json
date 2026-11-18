@@ -25,28 +25,28 @@
             "end": 14.725
         },
         {
-            "text": "Bij alle monteurs wissel je met deze knop naar banen naast elkaar.",
-            "hash": "82de069338eb9ccfe054b7c96becc59ccaf0f82d",
+            "text": "Kijk je naar alle monteurs, dan zet je ze met deze knop als banen naast elkaar.",
+            "hash": "ca9597629b1a336c6dc7bc03fab5597df85d5c07",
             "start": 15.725,
-            "end": 19.393
+            "end": 20.043
         },
         {
             "text": "Met de groene plusknop maak je een nieuwe afspraak.",
             "hash": "63098bbcb387fb9fe744d2ea97f0972af8ffaccc",
-            "start": 20.393,
-            "end": 23.273
+            "start": 21.043,
+            "end": 23.923
         },
         {
             "text": "Tik op een afspraak om hem te openen.",
             "hash": "e33e4c186a35fb443c292d48bd8462f8537b6893",
-            "start": 24.273,
-            "end": 26.687
+            "start": 24.923,
+            "end": 27.338
         },
         {
             "text": "Onderaan dat scherm staat de knop om de afspraak te verwijderen. Die vraagt altijd eerst of je het zeker weet.",
             "hash": "60578dd38c5607800e93c6ae44552a24d300e4d2",
-            "start": 27.687,
-            "end": 33.678
+            "start": 28.338,
+            "end": 34.328
         }
     ]
 }

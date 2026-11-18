@@ -29,22 +29,22 @@ class OfferTourTool implements Tool
     public function description(): string
     {
         return 'Zet onder je antwoord een knop die een rondleiding op het scherm start: geanimeerde uitleg met '
-            . 'gesproken tekst. Gebruik dit bij hoe-vragen over de planner, het rooster of machines, of als iemand om '
+            . 'gesproken tekst. Gebruik dit bij hoe-vragen over een scherm met een rondleiding, of als iemand om '
             . 'uitleg of een rondleiding vraagt. Met chapter één hoofdstuk, zonder de hele rondleiding.';
     }
 
     public function inputSchema(): array
     {
         $catalog = app(TourCatalog::class);
-        $chapters = collect($catalog->ids())->flatMap(fn (string $tour) => $catalog->chapterIds($tour))->unique()->values()->all();
+        $chapters = collect($catalog->offeredIds())->flatMap(fn (string $tour) => $catalog->chapterIds($tour))->unique()->values()->all();
 
         return [
             'type' => 'object',
             'properties' => [
                 'tour' => [
                     'type' => 'string',
-                    'enum' => $catalog->ids(),
-                    'description' => 'planner, rooster (vrije dagen) of machines (ook nieuw product of merk).',
+                    'enum' => $catalog->offeredIds(),
+                    'description' => 'activiteiten: aankomende keuringen.',
                 ],
                 'chapter' => [
                     'type' => 'string',
@@ -83,10 +83,10 @@ class OfferTourTool implements Tool
     {
         $catalog = app(TourCatalog::class);
         $tour_id = (string) $call->stringArgument('tour');
-        $tour = $catalog->tour($tour_id);
+        $tour = in_array($tour_id, $catalog->offeredIds(), true) ? $catalog->tour($tour_id) : null;
 
         if ($tour === null) {
-            return ToolResult::failed('Rondleiding "' . $tour_id . '" bestaat niet. Er zijn: ' . implode(', ', $catalog->ids()) . '.');
+            return ToolResult::failed('Rondleiding "' . $tour_id . '" bestaat niet. Er zijn: ' . implode(', ', $catalog->offeredIds()) . '.');
         }
 
         $chapters = $catalog->chaptersFor($call->user, $tour_id);

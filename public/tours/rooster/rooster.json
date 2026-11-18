@@ -7,34 +7,34 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Dit is het rooster. Alles wat je hier invult, ligt als blok over de planner.",
-            "hash": "b2262024930c32d06afe576ac038698283c09c9e",
+            "text": "Dit is je rooster. Alles wat je hier invult, zie je als blok in de planner.",
+            "hash": "69757678ab634d7510c40185d9dcc34aea4b70d6",
             "start": 0,
-            "end": 4.458
+            "end": 4.272
         },
         {
-            "text": "Een vast vrij moment kies je per weekdag. Elke week, of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
-            "hash": "66985a821862434c148d4958a6c0cf304637ece3",
-            "start": 5.458,
-            "end": 12.146
+            "text": "Een vast vrij moment stel je in per weekdag: elke week of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
+            "hash": "7b4e3d573696e2f84efd239afea6e304c8d1ef5c",
+            "start": 5.272,
+            "end": 12.842
         },
         {
-            "text": "Kies je om de week, geef dan ook de eerste keer op. Vanaf die dag telt de planner zelf door.",
-            "hash": "22b0fe3e0cf5ab49990fafdc00f11743be09c56b",
-            "start": 13.146,
-            "end": 17.836
+            "text": "Kies je om de week, vul dan ook de eerste keer in. Vanaf die dag rekent de planner zelf verder.",
+            "hash": "ce9166dd25501fd8211ac931321dd7d810dbecc9",
+            "start": 13.842,
+            "end": 18.997
         },
         {
-            "text": "Losse vrije dagen zet je hieronder. Eén datum, of een periode van tot, met een label zoals vakantie.",
-            "hash": "6049c360f78b89d062dbd6de6e88ecb486caef93",
-            "start": 18.836,
-            "end": 25.245
+            "text": "Losse vrije dagen vul je hieronder in: één datum, of een periode, met een label zoals vakantie.",
+            "hash": "cc79edcd3f7391a1dd29df666e369e61aab41340",
+            "start": 19.997,
+            "end": 25.848
         },
         {
             "text": "Sla op, en het blok staat meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
             "hash": "fa9d94e9c41cbfe8c8f2ba4ec840f4c221dc1639",
-            "start": 26.245,
-            "end": 31.585
+            "start": 26.848,
+            "end": 32.189
         }
     ]
 }

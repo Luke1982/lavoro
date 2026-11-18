@@ -1,7 +1,7 @@
 {
     "id": "rooster",
     "title": "Rondleiding door het rooster",
-    "intro": "Hoe je vaste vrije momenten en losse vrije dagen invult, zodat de planner ermee rekening houdt.",
+    "intro": "Hoe je vaste vrije momenten en losse vrije dagen invult, zodat de planner er rekening mee houdt.",
     "page": "/me/edit",
     "autoStart": false,
     "chapters": [
@@ -9,50 +9,89 @@
             "id": "rooster",
             "version": 1,
             "title": "Je rooster",
-            "summary": "Vaste vrije momenten, om de week, losse vrije dagen en hoe je ze weer weghaalt.",
-            "requires": { "anyPermissions": ["roster.manage_all", "roster.manage_own"] },
+            "summary": "Vaste vrije momenten, om de week, losse vrije dagen, en hoe je ze weer weghaalt.",
+            "requires": {
+                "anyPermissions": [
+                    "roster.manage_all",
+                    "roster.manage_own"
+                ]
+            },
             "steps": [
                 {
                     "spot": "roster.section",
                     "title": "Het rooster",
-                    "text": "Wat je hier invult ligt als gestreept blok over de planner, en telt mee als er gezocht wordt naar een monteur die tijd heeft.",
-                    "say": "Dit is het rooster. Alles wat je hier invult, ligt als blok over de planner."
+                    "text": "Wat je hier invult, zie je als gestreept blok in de planner. Het telt ook mee als er een monteur gezocht wordt die tijd heeft.",
+                    "say": "Dit is je rooster. Alles wat je hier invult, zie je als blok in de planner."
                 },
                 {
                     "spot": "roster.recurring.form",
                     "action": "openRecurringForm",
                     "title": "Vaste vrije momenten",
-                    "text": "Kies een weekdag, **Wekelijks** of **Om de week**, en van hoe laat tot hoe laat: een hele dag of een dagdeel. Een label zoals *papadag* komt in het blok te staan.",
-                    "say": "Een vast vrij moment kies je per weekdag. Elke week, of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
+                    "text": "Kies een weekdag, **Wekelijks** of **Om de week**, en de tijden: een hele dag of een dagdeel. Een label zoals *papadag* komt in het blok te staan.",
+                    "say": "Een vast vrij moment stel je in per weekdag: elke week of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
                     "marks": [
-                        { "spot": "roster.recurring.day", "when": "weekdag" },
-                        { "spot": "roster.recurring.repeat", "when": "Elke week" },
-                        { "spot": "roster.recurring.times", "when": "tijden" },
-                        { "spot": "roster.recurring.label", "when": "label" }
+                        {
+                            "spot": "roster.recurring.day",
+                            "when": "weekdag"
+                        },
+                        {
+                            "spot": "roster.recurring.repeat",
+                            "when": "Elke week"
+                        },
+                        {
+                            "spot": "roster.recurring.times",
+                            "when": "tijden"
+                        },
+                        {
+                            "spot": "roster.recurring.label",
+                            "when": "label"
+                        }
                     ]
                 },
                 {
                     "spot": "roster.recurring.form",
-                    "action": ["openRecurringForm", "chooseBiweekly"],
+                    "action": [
+                        "openRecurringForm",
+                        "chooseBiweekly"
+                    ],
                     "title": "Om de week",
-                    "text": "Kies je **Om de week**, dan geef je ook de eerste keer op. Vanaf die datum telt de planner zelf door.",
-                    "say": "Kies je om de week, geef dan ook de eerste keer op. Vanaf die dag telt de planner zelf door.",
+                    "text": "Kies je **Om de week**, vul dan ook de eerste keer in. Vanaf die datum rekent de planner zelf verder.",
+                    "say": "Kies je om de week, vul dan ook de eerste keer in. Vanaf die dag rekent de planner zelf verder.",
                     "marks": [
-                        { "spot": "roster.recurring.repeat", "when": "om de week" },
-                        { "spot": "roster.recurring.first", "when": "eerste keer" }
+                        {
+                            "spot": "roster.recurring.repeat",
+                            "when": "om de week"
+                        },
+                        {
+                            "spot": "roster.recurring.first",
+                            "when": "eerste keer"
+                        }
                     ]
                 },
                 {
                     "spot": "roster.holidays.form",
                     "action": "openHolidayForm",
                     "title": "Vrije dagen",
-                    "text": "Eén datum, of een periode met **Van** en **Tot**. Een label zoals *Vakantie* komt in het blok te staan.",
-                    "say": "Losse vrije dagen zet je hieronder. Eén datum, of een periode van tot, met een label zoals vakantie.",
-                    "aid": { "type": "typing", "to": "roster.holidays.label", "text": "Vakantie" },
+                    "text": "Vul één datum in, of een periode met **Van** en **Tot**. Een label zoals *Vakantie* komt in het blok te staan.",
+                    "say": "Losse vrije dagen vul je hieronder in: één datum, of een periode, met een label zoals vakantie.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "roster.holidays.label",
+                        "text": "Vakantie"
+                    },
                     "marks": [
-                        { "spot": "roster.holidays.from", "when": "Eén datum" },
-                        { "spot": "roster.holidays.period", "when": "periode" },
-                        { "spot": "roster.holidays.label", "when": "label" }
+                        {
+                            "spot": "roster.holidays.from",
+                            "when": "één datum"
+                        },
+                        {
+                            "spot": "roster.holidays.period",
+                            "when": "periode"
+                        },
+                        {
+                            "spot": "roster.holidays.label",
+                            "when": "label"
+                        }
                     ]
                 },
                 {
@@ -62,8 +101,14 @@
                     "text": "Na **Opslaan** staat het blok meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
                     "say": "Sla op, en het blok staat meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
                     "marks": [
-                        { "spot": "roster.save", "when": "Sla op" },
-                        { "spot": "roster.remove", "when": "kruisje" }
+                        {
+                            "spot": "roster.save",
+                            "when": "Sla op"
+                        },
+                        {
+                            "spot": "roster.remove",
+                            "when": "kruisje"
+                        }
                     ]
                 }
             ]

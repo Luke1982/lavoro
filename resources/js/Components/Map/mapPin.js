@@ -38,7 +38,7 @@ export const pinIcon = ({ color, number = null, badge = false, chosen = false })
         : '<circle cx="14" cy="13.8" r="4" class="fill-white"/>';
 
     return L.divIcon({
-        className: 'custom-marker',
+        className: chosen ? 'custom-marker map-pin map-pin-chosen' : 'custom-marker map-pin',
         html: `<div class="relative drop-shadow" style="width:${width}px;height:${height}px">`
             + '<svg viewBox="0 0 28 38" class="absolute inset-0 h-full w-full" style="z-index:0">'
             + `<path d="${PIN_PATH}" class="${outline}" style="fill:${color}" stroke-width="2"/>${head}</svg>`
@@ -80,7 +80,7 @@ export const ringBackground = (colors, order) => {
  * up with the pins around it instead of hiding under them.
  */
 export const clusterIcon = ({ colors, order, number, badge = false }) => L.divIcon({
-    className: 'custom-marker',
+    className: 'custom-marker map-cluster',
     html: '<div class="relative flex items-center justify-center rounded-full border-2 border-white drop-shadow"'
         + ` style="width:${CLUSTER.size}px;height:${CLUSTER.size}px;background:${ringBackground(colors, order)}">`
         + '<span class="flex items-center justify-center rounded-full bg-white text-[11px] font-bold text-gray-900"'

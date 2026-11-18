@@ -1,0 +1,16 @@
+{
+    "tour": "storingen",
+    "chapter": "kaart",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "kaart.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met de knop kaart zie je alle openstaande storingen op een kaart, per adres, zodat je ziet waar het dringend is. Klik op open de kaart, en de rondleiding gaat daar verder.",
+            "hash": "6b8615334bd27303b395358cc76853355a3c61d9",
+            "start": 0,
+            "end": 10.403
+        }
+    ]
+}

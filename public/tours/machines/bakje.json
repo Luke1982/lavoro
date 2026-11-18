@@ -7,28 +7,28 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Bovenaan de pagina van een machine staat de knop op het bakje. Zo leg je hem klaar, om hem op een andere pagina weer op te pakken.",
-            "hash": "2a403388ba1af2d9acc77d80cebd56a74aa79c19",
+            "text": "Bovenaan de pagina van een machine staat de knop op het bakje. Zo leg je de machine klaar om hem op een andere pagina te gebruiken.",
+            "hash": "6f268e5cc81dc52f158c62627ba223838df175b3",
             "start": 0,
-            "end": 6.734
+            "end": 7.012
         },
         {
-            "text": "Sleep hem naar de planner, een werkbon, een andere machine, een klant of locatie, een contract, of een project. Tijdens het slepen lichten die plekken op, en zeggen ze wat er gebeurt.",
-            "hash": "5c9510cd5f51dbf249dc6002cac51a4c0ebd2b9e",
-            "start": 7.734,
-            "end": 18.229
+            "text": "Sleep hem naar de planner, een werkbon, een andere machine, een klant of locatie, een contract of een project. Tijdens het slepen lichten die plekken op, met erbij wat er gaat gebeuren.",
+            "hash": "078592edf237884c95fd01e17418909885d7a19e",
+            "start": 8.012,
+            "end": 19.39
         },
         {
-            "text": "Inplannen, verhuizen, en een nieuwe werkbon vragen eerst wat je wilt. De rest gaat meteen, en draai je terug met ongedaan maken.",
-            "hash": "b4a5560e65c7493509770c91e1f82db12b95656a",
-            "start": 19.229,
-            "end": 26.056
+            "text": "Inplannen, verhuizen en een nieuwe werkbon maken vragen eerst wat je wilt. De rest gebeurt meteen, en kun je in de melding nog terugdraaien.",
+            "hash": "fba4753dcb72d3ffff0f5d313e54871eed669703",
+            "start": 20.39,
+            "end": 28.192
         },
         {
-            "text": "Slepen hoeft niet. Kies in het bakje plakken, en tik daarna op de plek waar hij heen moet. Zo werkt het ook op je telefoon.",
-            "hash": "8f50e76cff98f49b21d6397f39f680b1989fff82",
-            "start": 27.056,
-            "end": 33.697
+            "text": "Slepen hoeft niet. Kies in het bakje plakken, en tik daarna op de plek waar de machine heen moet. Dat werkt ook op je telefoon.",
+            "hash": "c7aee8f29719175552076527b555d23a7cc25955",
+            "start": 29.192,
+            "end": 35.508
         }
     ]
 }

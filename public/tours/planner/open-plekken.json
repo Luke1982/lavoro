@@ -13,22 +13,22 @@
             "end": 5.712
         },
         {
-            "text": "Elk groen vak is een gat waar nog werk in past. De lengte staat er meteen bij.",
-            "hash": "6f63cbe47f68e5acdc97f24aceb65a19846a52b1",
+            "text": "Elk groen vak is vrije tijd waar nog werk in past. Hoe lang, staat er meteen bij.",
+            "hash": "07576891a322c5afec99473341c14e9ac5b07e84",
             "start": 6.712,
-            "end": 11.263
+            "end": 11.356
         },
         {
             "text": "Hier geef je aan hoe groot een open plek minstens moet zijn. Laat je het leeg, dan geldt de standaardduur van een afspraak.",
             "hash": "983b95866dc40e79764e59ae355cbf1f93e86f76",
-            "start": 12.263,
-            "end": 19.043
+            "start": 12.356,
+            "end": 19.136
         },
         {
             "text": "Op een werkbon die ingepland kan worden staat de knop Inplannen. Die brengt je hierheen. De werkbon licht op, en de open plekken waar hij in past ook.",
             "hash": "a57e156f381d63eef5abd5add1d02fd231c25d1e",
-            "start": 20.043,
-            "end": 28.31
+            "start": 20.136,
+            "end": 28.403
         }
     ]
 }

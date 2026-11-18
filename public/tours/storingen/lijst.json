@@ -1,0 +1,40 @@
+{
+    "tour": "storingen",
+    "chapter": "lijst",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "lijst.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan zie je hoeveel storingen er open zijn, in behandeling, wachtend op de klant, en gesloten.",
+            "hash": "908ad388866be49ea0697c2fb3f35f20ea09622d",
+            "start": 0,
+            "end": 5.898
+        },
+        {
+            "text": "Zoek op onderwerp, product, type, serienummer of klant.",
+            "hash": "ae6479615e229cdcb6f2feeea529facb2769dd9a",
+            "start": 6.898,
+            "end": 10.288
+        },
+        {
+            "text": "Onder filters filter je op status, prioriteit, storingscode, of op wie de storing heeft gesloten. Je browser onthoudt je keuze.",
+            "hash": "826a0685840ef24060e86bd3546fbcfa58b685ec",
+            "start": 11.288,
+            "end": 18.393
+        },
+        {
+            "text": "Per storing zie je het onderwerp, de machine, de klant met het adres, de prioriteit en de status. De prioriteit kun je hier direct wijzigen.",
+            "hash": "be816f979405961d765919e772e4fce5be0edd38",
+            "start": 19.393,
+            "end": 28.635
+        },
+        {
+            "text": "Per storing zie je het onderwerp, de status en de prioriteit. Met het oogje open je de storing.",
+            "hash": "aa308be7dc4dd8197129817f516d01f2b1b8a290",
+            "start": 29.635,
+            "end": 35.718
+        }
+    ]
+}

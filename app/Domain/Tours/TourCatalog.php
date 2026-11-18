@@ -47,6 +47,18 @@ class TourCatalog
         return $this->tours()[$id] ?? null;
     }
 
+    /**
+     * The rondleidingen the assistant may offer. One that lives in a window of
+     * its own, such as the map, says `"assistant": false`: started from a chat
+     * it would open in the main window instead.
+     *
+     * @return array<int, string>
+     */
+    public function offeredIds(): array
+    {
+        return array_keys(array_filter($this->tours(), fn (array $tour) => $tour['assistant'] ?? true));
+    }
+
     /** @return array<int, string> */
     public function chapterIds(string $tour): array
     {

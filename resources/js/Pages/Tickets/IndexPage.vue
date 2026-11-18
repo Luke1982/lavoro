@@ -2,7 +2,7 @@
     <div
         class="bg-white dark:bg-slate-900 rounded-md border border-gray-200 dark:border-slate-800/60 shadow-sm dark:shadow-none mb-4 overflow-hidden">
         <h2 class="sr-only">Ticket statistieken</h2>
-        <div
+        <div data-tour="tickets.counts"
             class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 divide-y divide-gray-100 md:divide-y-0 md:divide-x md:divide-gray-100 dark:md:divide-slate-800 dark:divide-slate-700/60">
             <div class="p-6">
                 <StatCard label="Open" :value="openCount" :baseline="avgCount" :delta="openPctVsAvg" type="open" />
@@ -22,11 +22,12 @@
         </div>
     </div>
 
-    <IndexHeaderComponent title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
+    <IndexHeaderComponent ref="header" title="Storingen" subtitle="Overzicht van alle storingen" search-url="/tickets"
         search-placeholder="Onderwerp, product, type, serienummer of klant" :paginator="false"
         :search-other-params="computedOtherParams" :has-active-filters="hasActiveFilters">
         <template #actions>
-            <button type="button" @click="openMap"
+            <TourButton tour="storingen" data-tour="tickets.tour" />
+            <button type="button" data-tour="tickets.map" @click="openMap()"
                 class="rounded-lavoro-sm bg-lavoro-blue text-white pl-3 pr-2 sm:px-5 py-3 cursor-pointer text-sm flex items-center">
                 <MapIcon class="size-5 inline-block mr-2" />
                 <span class="hidden sm:inline">Kaart</span>
@@ -83,10 +84,10 @@
                 </div>
             </div>
             <div v-auto-animate>
-            <div v-for="ticket in tickets.data" :key="ticket.id" role="row"
+            <div v-for="ticket in tickets.data" :key="ticket.id" role="row" data-tour="tickets.row"
                 class="flex items-center text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                 <div class="w-10 flex-none flex items-center justify-center self-stretch">
-                    <AnimatedCheckbox
+                    <AnimatedCheckbox data-cell="check"
                         :model-value="selectedIds.includes(ticket.id)"
                         @update:model-value="toggleSelectTicket(ticket.id)"
                     />
@@ -150,7 +151,7 @@
                     </a>
                     <span v-else class="text-slate-400">&mdash;</span>
                 </div>
-                <div class="col-span-2 items-center hidden lg:flex pr-2">
+                <div class="col-span-2 items-center hidden lg:flex pr-2" data-cell="priority">
                     <EditableTextField type="combobox" v-model="ticket.priority" :options="priorityRowOptions"
                         :readonly="!hasPermission('ticket.alter_priority')" :decoration="false" class="w-full"
                         @update:modelValue="value => updatePriority(ticket, value)">
@@ -232,12 +233,12 @@
     </DrawerComponent>
 
     <SelectionBar :count="selectedIds.length" noun="storingen" @clear="selectedIds = []">
-        <button type="button" @click="putSelectionOnTray($event)"
+        <button type="button" data-tour="tickets.tray" @click="putSelectionOnTray($event)"
             class="group inline-flex items-center gap-2 rounded-md bg-sidebar-bg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 active:scale-95">
             <InboxIcon class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
             Op het bakje
         </button>
-        <button type="button" @click="openBulkEditDrawer"
+        <button type="button" data-tour="tickets.bulk" @click="openBulkEditDrawer"
             class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
             Bewerken
         </button>
@@ -259,6 +260,8 @@ import StatCard from '@/Components/UI/StatCard.vue'
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour, addressStartingTour } from '@/Composables/useTour'
 import { EyeIcon, AlertCircleIcon, MapIcon, InboxIcon } from '@lucide/vue'
 import { placeOnTray } from '@/Composables/useTray.js'
 import { formatAddress, hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
@@ -436,8 +439,37 @@ function addressSource(ticket) {
 }
 
 
-function openMap() {
-    const params = new URLSearchParams(computedOtherParams.value)
-    window.open(`/tickets/map?${params.toString()}`, 'ticketsMap', 'width=1200,height=800')
+const mapAddress = () => `/tickets/map?${new URLSearchParams(computedOtherParams.value)}`
+
+function openMap(address = mapAddress()) {
+    window.open(address, 'ticketsMap', 'width=1200,height=800')
 }
+
+const header = ref(null)
+const firstRow = () => document.querySelector('[data-tour="tickets.row"]')
+
+/**
+ * The faults rondleiding opens the filters, points at the first storing and its
+ * cells, and ticks it so the bar along the bottom shows what can be done with a
+ * selection.
+ */
+useTour('storingen', {
+    openMapWithTour: () => {
+        openMap(addressStartingTour(mapAddress(), 'kaart'))
+    },
+    openFilters: () => header.value?.openFilters() ?? null,
+    selectFirstTicket: () => {
+        const first = props.tickets.data[0]
+        if (!first || selectedIds.value.includes(first.id)) return null
+        const previous = [...selectedIds.value]
+        selectedIds.value = [...previous, first.id]
+
+        return () => { selectedIds.value = previous }
+    },
+}, {
+    spots: {
+        'tickets.check': () => firstRow()?.querySelector('[data-cell=check]') ?? null,
+        'tickets.priority': () => firstRow()?.querySelector('[data-cell=priority]') ?? null,
+    },
+})
 </script>

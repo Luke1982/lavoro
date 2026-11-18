@@ -7,34 +7,34 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Een gestreept blok in de planning betekent dat een monteur er niet is. Een vrije dag, of een vast vrij moment uit zijn rooster.",
-            "hash": "060c0e9884c0e484614d286a9ce2679cdc042ce6",
+            "text": "Een gestreept blok betekent dat een monteur er dan niet is: een vrije dag, of een vast vrij moment uit zijn rooster.",
+            "hash": "ff3e51da74d0fcba7f2dcfb44538575bffead73f",
             "start": 0,
-            "end": 7.384
+            "end": 6.78
         },
         {
-            "text": "Die blokken komen uit het rooster van de gebruiker. Een vast vrij moment is een weekdag, elke week of om de week, de hele dag of een deel ervan.",
-            "hash": "8807179afbbd38cc9a5e2ad47a70d87aa8c1afd8",
-            "start": 8.384,
-            "end": 16.697
+            "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment is een weekdag, elke week of om de week, een hele dag of een deel ervan.",
+            "hash": "c9ed48bf22625b6c78433e7ed24812948cb67481",
+            "start": 7.78,
+            "end": 15.907
         },
         {
-            "text": "Daaronder komen de losse vrije dagen. Eén datum, of een hele periode, zoals een vakantie.",
-            "hash": "ab690fcf256cd0a8e740bc3793975c62d8d8a2d7",
-            "start": 17.697,
-            "end": 23.269
+            "text": "Daaronder staan de losse vrije dagen: één datum, of een hele periode, zoals een vakantie.",
+            "hash": "11f03e2af8fb38612afb6395a8ae47ff67046e26",
+            "start": 16.907,
+            "end": 22.434
         },
         {
             "text": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
             "hash": "a8ab48ffd7b852213a3fd14a8ea11053f6c47d37",
-            "start": 24.269,
-            "end": 31.746
+            "start": 23.434,
+            "end": 30.91
         },
         {
             "text": "Wil je je eigen rooster invullen? Klik dan op naar mijn rooster. Daar gaat de rondleiding verder.",
             "hash": "e0c3f8f5c0165fc60e873ac835b02729ac568488",
-            "start": 32.746,
-            "end": 37.53
+            "start": 31.91,
+            "end": 36.694
         }
     ]
 }

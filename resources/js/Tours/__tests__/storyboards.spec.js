@@ -238,10 +238,14 @@ describe('rondleidingen', () => {
         expect(spoken).toEqual([])
     })
 
-    it('sends a call to action only to a rondleiding and chapter that exist', () => {
+    it('sends a call to action only to a rondleiding and chapter that exist, or an action the page offers', () => {
         const broken = []
-        everyStep(({ step, where }) => {
+        everyStep(({ tour, step, where }) => {
             if (!step.cta) return
+            if (step.cta.action) {
+                if (!actions.has(tour.id + ':' + step.cta.action)) broken.push(where)
+                return
+            }
             const target = TOURS[step.cta.tour]
             if (!target || (step.cta.chapter && !target.chapters.some((chapter) => chapter.id === step.cta.chapter))) {
                 broken.push(where)

@@ -13,58 +13,58 @@
             "end": 6.362
         },
         {
-            "text": "Dan opent dit scherm. Bovenaan de dag en de tijden.",
-            "hash": "95b1726bfacaba7c2ad58bf05df4a12475be7fd9",
+            "text": "Dan opent dit scherm. Bovenaan staan de dag en de tijden.",
+            "hash": "eea1be7e6b17daee82ab3351b1e21992a99388e3",
             "start": 7.362,
-            "end": 10.613
+            "end": 10.66
         },
         {
             "text": "Kies de soort afspraak. Die geeft de afspraak zijn kleur, tenzij de planner op de kleur van de monteurrol staat.",
             "hash": "7bc1c98015a31a329f177f196b4b6f4f22fdab6c",
-            "start": 11.613,
-            "end": 17.557
+            "start": 11.66,
+            "end": 17.604
         },
         {
             "text": "Kies daarna de klant.",
             "hash": "6f75629d7d3686926c4e53b276840f46879a9d4e",
-            "start": 18.557,
-            "end": 19.811
+            "start": 18.604,
+            "end": 19.858
         },
         {
             "text": "Koppel een werkbon van die klant, laat er meteen een nieuwe werkbon bij maken, of geef aan dat er geen werkbon nodig is.",
             "hash": "55203b8b81dd82682006c90dc2d7764803eb3f18",
-            "start": 20.811,
-            "end": 27.731
+            "start": 20.858,
+            "end": 27.777
         },
         {
-            "text": "De locatie volgt vanzelf de werkbon of de klant. Je kiest ook een andere locatie, of typt zelf een adres.",
-            "hash": "4db759468fe360acd483c4dc43a91109a3be5529",
-            "start": 28.731,
-            "end": 34.722
+            "text": "De locatie neemt hij vanzelf over van de werkbon of de klant. Je kunt ook een andere locatie kiezen, of zelf een adres typen.",
+            "hash": "7d5946b103a8c92befda815a4b7e2534808dc832",
+            "start": 28.777,
+            "end": 36.254
         },
         {
-            "text": "Hier staan de monteurs. Ieder krijgt een eigen pauze, en als het nodig is eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan kleurt die planrol de afspraak.",
-            "hash": "ef9e763492b8cacab1a76f5fa1a687718a27edc9",
-            "start": 35.722,
-            "end": 45.938
+            "text": "Hier staan de monteurs. Ieder heeft een eigen pauze, en zo nodig eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan bepaalt die planrol de kleur van de afspraak.",
+            "hash": "cd05abd743d770576ddb920f5984d51736a3fae3",
+            "start": 37.254,
+            "end": 47.471
         },
         {
             "text": "Weet je het nog niet zeker, vink dan voorlopig aan. In de planner staat er dan een waarschuwing bij.",
             "hash": "420400e56440e09023788f9ae5fc6fc2c9fd7645",
-            "start": 46.938,
-            "end": 51.815
+            "start": 48.471,
+            "end": 53.347
         },
         {
             "text": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
             "hash": "ef86e620e01ecc457f94f253da6196b0a5986d7c",
-            "start": 52.815,
-            "end": 60.802
+            "start": 54.347,
+            "end": 62.335
         },
         {
             "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
             "hash": "6254e75085ebe0686bb6769f976f7090042a401a",
-            "start": 61.802,
-            "end": 68.35
+            "start": 63.335,
+            "end": 69.883
         }
     ]
 }

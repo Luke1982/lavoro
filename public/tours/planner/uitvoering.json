@@ -7,34 +7,34 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok voor je tijden en de handtekening, en het kruisje om je eigen deel te annuleren.",
-            "hash": "21fcbb390882cbb7f4b1926b26f753e133621a1d",
+            "text": "Op een afspraak in je eigen rij staan twee knopjes: de klok voor je tijden en de handtekening, en het kruisje om je deel te annuleren.",
+            "hash": "f41bcf25818d31b5735d4a4e42cc9d9149ac57bd",
             "start": 0,
-            "end": 7.848
+            "end": 7.384
         },
         {
             "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging, vul je reistijd in, en laat de klant tekenen.",
             "hash": "da5727b31c3ca54823d4e90141b5a7b58cf41424",
-            "start": 8.848,
-            "end": 16.511
+            "start": 8.384,
+            "end": 16.047
         },
         {
             "text": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
             "hash": "7b30017e6cd7131a6273bc7dca774038d60cbf89",
-            "start": 17.511,
-            "end": 21.969
+            "start": 17.047,
+            "end": 21.505
         },
         {
-            "text": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als je eigen.",
-            "hash": "cfd657abb01671eab897862fcae045259e4f99fd",
-            "start": 22.969,
-            "end": 31.746
+            "text": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net zoals je dat voor jezelf doet.",
+            "hash": "89cc287fc7eb2890cdd3831c866ea569585c010e",
+            "start": 22.505,
+            "end": 32.768
         },
         {
             "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij, of trek je een annulering in. Dat geldt alleen voor de monteur in die rij.",
             "hash": "8ccfc2645ab47d6fc168dfaf3b9eb4e77c4d82fc",
-            "start": 32.746,
-            "end": 39.666
+            "start": 33.768,
+            "end": 40.688
         }
     ]
 }

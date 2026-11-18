@@ -38,7 +38,7 @@
             </div>
             <div v-for="asset in group.assets" :key="asset.id" class="grid grid-cols-12 mb-7">
             <div class="flex col-span-1">
-                <input type="checkbox" :id="`assetcheckbox-${asset.id}`" :checked="isAssetSelected(asset.id)"
+                <input type="checkbox" :id="`assetcheckbox-${asset.id}`" :checked="isAssetSelected(asset.id)" data-tour="activities.check"
                     @change="toggleAssetSelection({ id: asset.id, customer_id: mainAsset.customer.id })"
                     class="cursor-pointer size-4 accent-lavoro-blue dark:accent-lavoro-blue">
                 <div
