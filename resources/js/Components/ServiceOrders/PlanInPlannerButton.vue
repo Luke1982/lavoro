@@ -7,7 +7,7 @@
             Inplannen
         </span>
         <span v-else-if="variant === 'circle'" v-tooltip="'Inplannen in de planning'"
-            class="border-1 border-lavoro-darkergray rounded-full p-2 flex text-lavoro-darkerblue">
+            class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex text-lavoro-darkerblue">
             <CalendarDaysIcon class="h-5 w-5" />
         </span>
         <CalendarDaysIcon v-else v-tooltip="'Inplannen in de planning'"

@@ -1,6 +1,6 @@
 <template>
     <Listbox as="div" :model-value="model" @update:model-value="onSelect"
-        :class="{ 'border-1 rounded-lavoro-sm border-gray-200/70': needsBox }">
+        :class="{ 'border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70': needsBox }">
         <div class="relative">
             <ListboxButton
                 class="w-full flex items-center gap-3 rounded-lg bg-white dark:bg-lavoro-dark dark:ring-white/10 px-3 py-2.5 text-left focus:outline-none">

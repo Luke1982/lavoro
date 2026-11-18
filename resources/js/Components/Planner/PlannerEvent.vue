@@ -13,7 +13,7 @@
             <div class="px-3 py-2 flex flex-col h-full w-fit max-w-full justify-between overflow-hidden sticky left-64"
                 :class="isCompact ? 'justify-start py-1' : ''">
                 <div class="text-xs font-semibold leading-tight truncate flex items-center gap-1"
-                    :class="isCancelled ? 'line-through text-gray-500' : ''">
+                    :class="isCancelled ? 'line-through text-gray-500 dark:text-slate-400' : ''">
                     <ExclamationTriangleIcon v-if="event.is_preliminary" class="size-3 shrink-0 text-amber-500" />
                     <ArrowsRightLeftIcon v-if="isSourceWithDivergingCompanions" class="size-3 shrink-0 text-lavoro-blue dark:text-blue-400"
                         v-tooltip="'Uitvoerende met afwijkende tijden'" />

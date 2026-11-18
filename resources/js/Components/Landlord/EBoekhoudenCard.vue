@@ -33,7 +33,7 @@
             <ul v-if="rows.length" class="mt-3 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden rounded-md border border-slate-300 dark:border-slate-600">
                 <li v-for="relation in rows" :key="relation.code">
                     <button type="button" class="flex w-full items-baseline gap-3 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        :class="{ 'bg-blue-50': isLinked(relation) }" @click="toggle(relation)">
+                        :class="{ 'bg-blue-50 dark:bg-blue-900/20': isLinked(relation) }" @click="toggle(relation)">
                         <span class="font-mono text-sm">{{ relation.code }}</span>
                         <span class="flex-1">
                             {{ relation.name }}

@@ -6,7 +6,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="internalStages.length">
             <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-1"></div>
                 <div class="col-span-1">Volgorde</div>
                 <div class="col-span-3">Naam</div>
@@ -20,7 +20,7 @@
             </div>
             <draggable v-model="internalStages" handle=".draghandle" :animation="200" @change="onReorder">
                 <div v-for="stage in internalStages" :key="stage.id" role="row"
-                    class="p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                    class="p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                     <!-- Mobile layout -->
                     <div class="md:hidden">
                         <div class="flex items-center gap-2">
@@ -31,7 +31,7 @@
                                 <EditableTextField type="input" :decoration="false" :model-value="stage.name"
                                     @update="(val) => saveStage(stage.id, { name: val })" />
                             </div>
-                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex shrink-0">
+                            <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex shrink-0">
                                 <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
                                     v-tooltip="'Verwijder deze fase'" />
                             </div>
@@ -107,7 +107,7 @@
                                 @update:modelValue="(v) => saveStage(stage.id, { is_incomplete_state: v })" />
                         </div>
                         <div class="col-span-1 flex justify-end">
-                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
+                            <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex">
                                 <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteStage(stage.id)"
                                     v-tooltip="'Verwijder deze fase'" />
                             </div>

@@ -10,7 +10,7 @@
                 <span class="block truncate text-xs text-gray-500 dark:text-slate-400">{{ stop.item.city }}</span>
             </span>
             <span v-if="stop.arrival" class="whitespace-nowrap text-xs" title="Aankomst, zonder files"
-                :class="stop.late ? 'font-medium text-red-700' : 'text-gray-500'">
+                :class="stop.late ? 'font-medium text-red-700 dark:text-red-300' : 'text-gray-500 dark:text-slate-400'">
                 {{ stop.arrival }}
             </span>
             <button type="button" title="Uit de route halen" aria-label="Uit de route halen"
@@ -34,12 +34,12 @@
             <button type="button" :aria-pressed="stop.urgent"
                 title="Past niet alles in de dag, dan valt eerst een gewoon adres af"
                 class="rounded-md px-2 py-0.5 font-medium ring-1"
-                :class="stop.urgent ? 'bg-red-600 text-white ring-red-600' : 'bg-white text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50'"
+                :class="stop.urgent ? 'bg-red-600 text-white ring-red-600' : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50'"
                 @click="emit('urgent')">
                 Spoed
             </button>
         </div>
-        <p v-if="stop.reason" class="mt-1 ml-8 text-xs" :class="stop.urgent || stop.late ? 'font-medium text-red-700' : 'text-gray-600'">
+        <p v-if="stop.reason" class="mt-1 ml-8 text-xs" :class="stop.urgent || stop.late ? 'font-medium text-red-700 dark:text-red-300' : 'text-gray-600 dark:text-slate-400'">
             {{ stop.reason }}
         </p>
     </li>

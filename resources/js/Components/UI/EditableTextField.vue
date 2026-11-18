@@ -1,6 +1,6 @@
 <template>
     <div ref="rootRef"
-        :class="[closedPadding, { 'group': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70': decoration && bordered }]"
+        :class="[closedPadding, { 'group': !editing, 'pb-2': editing || decoration, 'relative w-full': true, 'cursor-pointer': !disabled && !readonly, 'border-b-1 border-b-gray-200/70 dark:border-b-slate-700/70': decoration && bordered }]"
         @click="onWrapperClick" v-auto-animate>
         <h3 v-if="label || $slots['label-suffix']" class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">{{ label }}
             <slot name="label-suffix" />
@@ -18,7 +18,7 @@
                 class="flex-grow min-w-0" :type="htmlInputType" :placeholder="placeholder" :hasError="Boolean(error)"
                 :errorMessage="error" />
             <textarea v-else-if="type === 'textarea'" v-model="local"
-                :class="['flex-grow p-2 border rounded-l-md', error ? 'border-red-500' : 'border-gray-300']"
+                :class="['flex-grow p-2 border rounded-l-md', error ? 'border-red-500' : 'border-gray-300 dark:border-slate-600']"
                 rows="8"></textarea>
             <ComboBox v-else-if="type === 'combobox'" :modelValue="local" :options="options" :multiple="multiple"
                 :initialId="local" :hasError="Boolean(error)" :errorMessage="error" :emptyMessage="emptyMessage"

@@ -26,7 +26,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="maintenanceContracts.data?.length">
             <div
-                class="hidden md:grid md:grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:grid md:grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-3">Klant</div>
                 <div class="col-span-2">Contract</div>
                 <div class="col-span-2">Periode</div>
@@ -35,7 +35,7 @@
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <div v-for="contract in maintenanceContracts.data" :key="contract.id"
-                class="relative md:grid md:grid-cols-12 p-4 pr-14 md:pr-4 text-sm border-b-lavoro-gray-150 border-b-2 md:items-center">
+                class="relative md:grid md:grid-cols-12 p-4 pr-14 md:pr-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 md:items-center">
                 <div class="flex flex-col py-1 md:py-0 md:col-span-3">
                     <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Klant</span>
                     <Link :href="`/maintenancecontracts/${contract.id}`" class="text-gray-900 dark:text-slate-100 hover:underline">
@@ -75,7 +75,7 @@
                     </EditableTextField>
                 </div>
                 <div class="absolute right-4 top-4 md:static md:col-span-1 md:flex md:justify-end">
-                    <div v-if="hasPermission('maintenancecontract.delete')" class="border-1 border-lavoro-darkergray rounded-full p-2">
+                    <div v-if="hasPermission('maintenancecontract.delete')" class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2">
                         <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteContract(contract.id)" />
                     </div>
                 </div>

@@ -62,7 +62,7 @@
                 <li v-for="tab in shownTabs" :key="tab.id" class="flex-1">
                     <!-- De grote knop steekt boven de kaart uit, met zijn naam eronder. -->
                     <button v-if="tab.variant === 'fab'" type="button" :aria-expanded="creating"
-                        :class="[TAB_CLASS, 'text-lavoro-blue']" @click="creating = !creating">
+                        :class="[TAB_CLASS, 'text-lavoro-blue dark:text-blue-400']" @click="creating = !creating">
                         <span ref="fabEls"
                             class="-mt-8 flex size-14 items-center justify-center rounded-full bg-lavoro-blue text-white shadow-lg transition-transform duration-200"
                             :class="creating ? 'rotate-45' : ''">
@@ -79,7 +79,7 @@
                     <component v-else :is="tab.href ? Link : 'button'" :href="tab.href"
                         :type="tab.href ? null : 'button'" :aria-expanded="tab.href ? null : tab.active"
                         :data-tray-dock="tab.action === 'tray' ? '' : null"
-                        :class="[TAB_CLASS, tab.active ? 'text-lavoro-blue' : 'text-sidebar-muted']"
+                        :class="[TAB_CLASS, tab.active ? 'text-lavoro-blue dark:text-blue-400' : 'text-sidebar-muted']"
                         @click="tab.action && act(tab.action)">
                         <span class="relative flex">
                             <component :is="navIcon(tab.icon)" class="size-6" />

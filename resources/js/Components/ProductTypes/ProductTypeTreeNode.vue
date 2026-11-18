@@ -12,7 +12,7 @@
             :style="{ left: archX + 'px', width: '20px' }" />
 
         <!-- ROW -->
-        <div class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+        <div class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
             <div class="col-span-6 flex items-center">
                 <div v-if="indentPx" :style="{ width: indentPx + 'px' }" class="shrink-0" />
                 <EditableTextField :model-value="type.name" :decoration="false"
@@ -36,12 +36,12 @@
                 </span>
             </div>
             <div class="col-span-1 flex items-center justify-end gap-1.5">
-                <div v-if="type.products_count === 0" class="border-1 border-lavoro-darkergray rounded-full p-1.5"
+                <div v-if="type.products_count === 0" class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-1.5"
                     v-tooltip="'Verwijderen'">
                     <TrashIcon class="h-4 w-4 cursor-pointer text-red-500" @click="onDelete(type)" />
                 </div>
                 <button v-if="canCreate" type="button" @click="onToggleAdding(type.id)"
-                    :class="isAdding ? 'text-gray-400 hover:text-gray-600' : 'text-lavoro-blue hover:text-lavoro-darkerblue'"
+                    :class="isAdding ? 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-400' : 'text-lavoro-blue dark:text-blue-400 hover:text-lavoro-darkerblue'"
                     class="font-bold text-lg leading-none w-5 text-center"
                     :title="isAdding ? 'Annuleren' : 'Subtype toevoegen'">
                     {{ isAdding ? '×' : '+' }}
@@ -60,7 +60,7 @@
         <div v-if="isAdding" class="relative bg-white dark:bg-slate-900">
             <div class="absolute top-0 h-[31px] border-l-2 border-b-2 border-lavoro-blue dark:border-lavoro-blue rounded-bl-lg pointer-events-none"
                 :style="{ left: spineX + 'px', width: '20px' }" />
-            <div class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+            <div class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 items-center">
                 <div class="col-span-11 flex items-center gap-3">
                     <div :style="{ width: (indentPx + 32) + 'px' }" class="shrink-0" />
                     <input :value="childNames[type.id] ?? ''"

@@ -49,7 +49,7 @@
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div
-            class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+            class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
             <div class="col-span-3">Machine</div>
             <div class="col-span-2">Serienummer</div>
             <div class="col-span-1">In dienst</div>
@@ -61,7 +61,7 @@
         </div>
         <div v-auto-animate>
             <div v-for="asset in filteredAssets" :key="asset.id" role="row"
-                class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
+                class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
                 <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
                     <img class="size-10 flex-none rounded-full bg-gray-50 dark:bg-slate-800/50 object-cover"
                         :src="asset.product.images.length > 0 ? imageFileUrl(asset.product.images[0]) : '/img/placeholder.png'"
@@ -92,7 +92,7 @@
                     <CalendarDateRangeIcon v-if="asset.next_service_date" class="size-4 text-gray-400 flex-none"
                         aria-hidden="true" />
                     <span
-                        :class="asset.next_service_date && new Date(asset.next_service_date) < new Date() ? 'text-red-600 font-medium' : 'text-gray-500 dark:text-gray-400'">
+                        :class="asset.next_service_date && new Date(asset.next_service_date) < new Date() ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'">
                         {{ asset.next_service_date ? nlDate(asset.next_service_date) : '—' }}
                     </span>
                 </div>

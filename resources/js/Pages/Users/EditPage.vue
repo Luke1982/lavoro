@@ -64,7 +64,7 @@
                                     class="text-indigo-600 dark:text-indigo-400 focus:ring-indigo-600" />
                                 <span class="text-sm text-gray-900 dark:text-white">{{ option.label }}</span>
                                 <span v-if="option.limit !== null" class="text-xs ml-auto"
-                                    :class="option.full ? 'text-red-600' : 'text-gray-500 dark:text-slate-400'">
+                                    :class="option.full ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-slate-400'">
                                     {{ option.used }} van {{ option.limit }} bezet
                                 </span>
                             </label>

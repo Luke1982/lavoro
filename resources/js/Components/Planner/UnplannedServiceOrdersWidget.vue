@@ -10,11 +10,11 @@
                 <label data-tour="planner.unplanned.search" class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                     <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
                     <input v-model="searchQuery" type="text" placeholder="Zoeken op nummer, klant, plaats of omschrijving..."
-                        class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
+                        class="flex-1 min-w-0 text-xs bg-transparent focus:outline-none" />
                 </label>
             </div>
 
-            <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150" v-auto-animate>
+            <div ref="listEl" class="flex flex-col divide-y divide-lavoro-gray-150 dark:divide-slate-800" v-auto-animate>
                 <div v-for="so in visibleServiceOrders" :key="so.id" draggable="true" @dragstart="onDragStart($event, so)"
                     @contextmenu="onContextMenu($event, so)" :data-so-id="so.id" data-tour="planner.unplanned.card"
                     class="group cursor-grab active:cursor-grabbing select-none p-3 transition"

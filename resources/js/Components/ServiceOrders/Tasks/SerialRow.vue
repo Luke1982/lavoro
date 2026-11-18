@@ -4,7 +4,7 @@
             <span class="text-xs text-gray-400 w-5 shrink-0 text-right">{{ number }}.</span>
             <input :value="modelValue" type="text" :placeholder="`Serienummer ${number}`" :disabled="readonly"
                 @input="$emit('update:modelValue', $event.target.value)"
-                :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', error ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
+                :class="['flex-1 min-w-0 rounded-md border-0 py-1.5 px-3 text-sm ring-1 ring-inset focus:ring-2 focus:ring-inset focus:outline-none bg-white dark:bg-slate-900 text-gray-900 dark:text-white placeholder:text-gray-400', error ? 'ring-red-300 dark:ring-red-700 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-indigo-600']" />
             <ScanSerialButton v-if="!readonly" @picked="$emit('update:modelValue', $event)" />
             <button v-if="dirty && !readonly" type="button" :disabled="submitting" @click="$emit('save')"
                 v-tooltip="'Serienummer opslaan'"

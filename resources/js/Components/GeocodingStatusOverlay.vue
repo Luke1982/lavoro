@@ -31,7 +31,7 @@
             </div>
             <transition name="fade-height">
                 <div v-if="showFailedList" class="mt-2 pt-2 border-t"
-                    :class="status === 'failed' ? 'border-red-300' : 'border-gray-300'">
+                    :class="status === 'failed' ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-slate-600'">
                     <ul class="list-disc list-inside text-sm max-h-60 overflow-y-auto">
                         <li v-for="item in failedGeocodes" :key="item.id">{{ item.name }}</li>
                     </ul>

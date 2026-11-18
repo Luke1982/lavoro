@@ -9,11 +9,11 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="innerBrands.length">
             <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-12">Naam</div>
             </div>
             <div v-for="brand in innerBrands" :key="brand.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                 <div class="col-span-12 flex items-center">
                     <EditableTextField :model-value="brand.name" :decoration="false"
                         @update="(val) => router.patch(`/brands/${brand.id}`, { name: val }, { preserveScroll: true, preserveState: true })">

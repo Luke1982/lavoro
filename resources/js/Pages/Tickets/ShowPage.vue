@@ -145,26 +145,26 @@
                             <span>{{ ticket.asset.product.brand.name }}</span>
                             <component :is="hasPermission('product.read') ? Link : 'span'"
                                 :href="`/products/${ticket.asset.product.id}`"
-                                :class="hasPermission('product.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''">
+                                :class="hasPermission('product.read') ? 'text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline' : ''">
                                 {{ ticket.asset.product.model }}
                             </component>
                             <span>({{ ticket.asset.product.product_type.name }})</span>
                             <component :is="hasPermission('asset.read') ? Link : 'span'"
                                 :href="`/assets/${ticket.asset.id}`"
-                                :class="hasPermission('asset.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''">
+                                :class="hasPermission('asset.read') ? 'text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline' : ''">
                                 {{ ticket.asset.serial_number }}
                             </component>
                             <span class="text-slate-400">bij</span>
                             <component v-if="ticket.asset.customer" :is="hasPermission('customer.read') ? Link : 'span'"
                                 :href="`/customers/${ticket.asset.customer.id}`"
-                                :class="hasPermission('customer.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''">
+                                :class="hasPermission('customer.read') ? 'text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline' : ''">
                                 {{ ticket.asset.customer.name }}
                             </component>
                             <span v-else class="text-slate-400">onbekend</span>
                             <span v-if="ticket.asset.linked_location">(<component
                                     :is="hasPermission('location.read') ? Link : 'span'"
                                     :href="`/locations/${ticket.asset.linked_location.id}`"
-                                    :class="hasPermission('location.read') ? 'text-lavoro-blue hover:opacity-80 underline' : ''"
+                                    :class="hasPermission('location.read') ? 'text-lavoro-blue dark:text-blue-400 hover:opacity-80 underline' : ''"
                                 >{{ ticket.asset.linked_location.title }}</component>)</span>
                         </div>
                     </div>
@@ -249,12 +249,12 @@
                                 <div
                                     class="relative flex w-full max-w-md rounded-lavoro-sm border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
                                     <span v-if="priorityIndex >= 0" aria-hidden="true"
-                                        class="absolute inset-y-1 left-1 rounded-lavoro-sm bg-slate-900 dark:bg-slate-100 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                                        class="absolute inset-y-1 left-1 rounded-lavoro-sm bg-slate-900 dark:bg-lavoro-blue transition-transform duration-300 ease-out motion-reduce:transition-none"
                                         :style="prioritySliderStyle" />
                                     <label v-for="prio in priorities" :key="prio.id" :aria-label="prio.name" :class="[
                                         'relative z-10 flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lavoro-sm px-3 py-2 text-sm font-medium transition-colors duration-300',
                                         prio.id === form.priority
-                                            ? 'text-white dark:text-slate-900'
+                                            ? 'text-white'
                                             : 'text-gray-600 dark:text-slate-300'
                                     ]">
                                         <input type="radio" name="priority" :value="prio.id" v-model="form.priority"

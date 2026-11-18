@@ -582,7 +582,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Onderwerp</label>
                 <input v-model="newTicketForm.subject" type="text" placeholder="Omschrijf het probleem kort..."
-                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.subject ? 'ring-red-300 dark:ring-red-700 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']" />
                 <p v-if="newTicketForm.errors.subject" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ newTicketForm.errors.subject
                     }}
                 </p>
@@ -594,7 +594,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Omschrijving</label>
                 <textarea v-model="newTicketForm.description" rows="4" placeholder="Beschrijf het probleem in detail..."
-                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
+                    :class="['w-full rounded-md border-0 py-1.5 px-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset sm:text-sm sm:leading-6 bg-white dark:bg-slate-900', newTicketForm.errors.description ? 'ring-red-300 dark:ring-red-700 focus:ring-red-500' : 'ring-gray-300 dark:ring-slate-500 focus:ring-lavoro-blue', 'focus:ring-2 focus:ring-inset focus:outline-none']"></textarea>
                 <p v-if="newTicketForm.errors.description" class="mt-1 text-sm text-red-600 dark:text-red-400">{{
                     newTicketForm.errors.description }}</p>
             </div>

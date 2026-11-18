@@ -2,7 +2,7 @@
     <div v-if="groupedItems.length" class="border-1 border-gray-200/70 dark:border-slate-700/70 rounded-lavoro-sm">
         <!-- Header -->
         <div
-            class="hidden lg:flex items-center gap-3 py-3 border-b border-gray-200/70 dark:border-slate-700/60 text-xs font-semibold text-gray-400 uppercase bg-gray-50/60">
+            class="hidden lg:flex items-center gap-3 py-3 border-b border-gray-200/70 dark:border-slate-700/60 text-xs font-semibold text-gray-400 uppercase bg-gray-50/60 dark:bg-slate-800/40">
             <div class="flex-1 pl-12">Keuring</div>
             <div class="w-66 shrink-0">Huidige verloopdatum</div>
         </div>

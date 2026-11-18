@@ -11,13 +11,13 @@
         <BoxComponent padding="px-0 py-0">
             <div v-if="localRoles.length">
                 <div
-                    class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                    class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                     <div class="col-span-3">Rol</div>
                     <div class="col-span-4">Gebruikers</div>
                     <div class="col-span-5">Permissies</div>
                 </div>
                 <div v-for="role in localRoles" :key="role.id"
-                    class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-start">
+                    class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 items-start">
                     <div class="col-span-3 pr-4">
                         <EditableTextField v-model="role.name" :decoration="false"
                             @update="(val) => patchRole(role.id, { name: val })" />

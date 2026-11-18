@@ -6,7 +6,7 @@
                 <span class="truncate text-[11px] font-medium dark:text-slate-200">{{ row.name }}</span>
             </div>
             <div class="relative h-14 flex-1 rounded-md border-l-4 border-sky-500 bg-sky-100 dark:bg-sky-900/30 px-2 py-1.5 text-[11px] leading-tight shadow-sm">
-                <div class="font-semibold" :class="row.cancelled ? 'text-gray-500 line-through' : ''">Onderhoud</div>
+                <div class="font-semibold" :class="row.cancelled ? 'text-gray-500 dark:text-slate-400 line-through' : ''">Onderhoud</div>
                 <div class="text-gray-600 dark:text-slate-400">Bakker Installatie</div>
                 <div class="text-gray-600 dark:text-slate-400">09:00 – 11:00</div>
                 <div class="absolute right-1.5 top-1.5 flex items-center gap-1">

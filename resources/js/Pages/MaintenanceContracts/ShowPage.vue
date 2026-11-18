@@ -37,7 +37,7 @@
                         <template #display>
                             <component :is="hasPermission('customer.read') ? Link : 'span'"
                                 :href="`/customers/${selectedCustomer.id}`"
-                                :class="{ 'underline text-lavoro-blue': hasPermission('customer.read') }">
+                                :class="{ 'underline text-lavoro-blue dark:text-blue-400': hasPermission('customer.read') }">
                                 {{ selectedCustomer.name }}
                             </component>
                         </template>

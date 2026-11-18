@@ -1,11 +1,11 @@
 <template>
     <BoxComponent extra-classes="flex flex-col" padding="flex-1 min-h-0 overflow-y-auto" data-tour="planner.groups">
-        <div class="flex flex-col divide-y divide-lavoro-gray-150">
+        <div class="flex flex-col divide-y divide-lavoro-gray-150 dark:divide-slate-800">
 
             <!-- ── GROEPEN ─────────────────────────────────── -->
             <div class="flex flex-col">
                 <div class="flex items-center justify-between px-3 pt-2 pb-2">
-                    <span class="text-xs font-medium text-lavoro-dark">Groepen</span>
+                    <span class="text-xs font-medium text-lavoro-dark dark:text-slate-100">Groepen</span>
                     <button class="flex items-center gap-1 text-xs text-lavoro-blue dark:text-blue-400 hover:underline" data-tour="planner.groups.add"
                         @click="startNewGroup">
                         <PlusIcon class="size-3" />
@@ -31,7 +31,7 @@
                         v-for="group in planGroups"
                         :key="group.id"
                         class="flex items-center gap-2 px-3 py-1.5 select-none"
-                        :class="dropTargetGroupId === group.id ? 'bg-lavoro-lightblue' : ''"
+                        :class="dropTargetGroupId === group.id ? 'bg-lavoro-lightblue dark:bg-blue-900/30' : ''"
                         draggable="true"
                         @dragstart="onGroupDragStart($event, group)"
                         @dragend="dropTargetGroupId = undefined"
@@ -61,7 +61,7 @@
                             @keydown.enter="confirmEditName(group)"
                             @keydown.escape="editingGroupId = null" />
                         <span v-else data-tour="planner.groups.group-name"
-                            class="flex-1 text-xs font-medium text-lavoro-dark truncate cursor-pointer hover:text-lavoro-blue dark:hover:text-blue-400"
+                            class="flex-1 text-xs font-medium text-lavoro-dark dark:text-slate-100 truncate cursor-pointer hover:text-lavoro-blue dark:hover:text-blue-400"
                             @click="startEditName(group)">{{ group.name }}</span>
 
                         <span class="text-[10px] text-gray-400 shrink-0">{{ usersInGroup(group.id).length }}</span>
@@ -80,20 +80,20 @@
             <!-- ── MONTEURS ────────────────────────────────── -->
             <div class="flex flex-col" data-tour="planner.groups.technicians">
                 <div class="px-3 pt-2 pb-1">
-                    <span class="text-xs font-medium text-lavoro-dark">Monteurs</span>
+                    <span class="text-xs font-medium text-lavoro-dark dark:text-slate-100">Monteurs</span>
                 </div>
 
                 <div v-if="allUsers.length" class="px-3 pb-2">
                     <label class="flex items-center gap-1.5 border border-gray-300 dark:border-slate-700 rounded px-2 py-1 focus-within:border-lavoro-blue">
                         <MagnifyingGlassIcon class="size-3.5 text-gray-400 shrink-0" />
                         <input v-model="userSearchQuery" type="text" placeholder="Zoeken op naam..."
-                            class="flex-1 min-w-0 text-xs dark:bg-slate-800 focus:outline-none" />
+                            class="flex-1 min-w-0 text-xs bg-transparent focus:outline-none" />
                     </label>
                 </div>
 
                 <div class="flex flex-col" v-auto-animate>
                     <div v-for="user in visibleUsers" :key="user.id" data-tour="planner.groups.technician"
-                        class="flex items-center gap-2 px-3 py-1.5 border-t border-t-lavoro-gray-150">
+                        class="flex items-center gap-2 px-3 py-1.5 border-t border-t-lavoro-gray-150 dark:border-t-slate-800">
 
                         <!-- Avatar -->
                         <div class="h-6 w-6 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold ring-1 ring-gray-300 dark:ring-slate-700 shrink-0 overflow-hidden">
@@ -102,7 +102,7 @@
                         </div>
 
                         <!-- Name -->
-                        <span class="flex-1 text-xs truncate text-lavoro-dark min-w-0">{{ user.name }}</span>
+                        <span class="flex-1 text-xs truncate text-lavoro-dark dark:text-slate-100 min-w-0">{{ user.name }}</span>
 
                         <!-- Group toggles (plannable only) -->
                         <div v-if="user.plannable && planGroups.length" class="flex items-center gap-0.5 shrink-0">

@@ -39,7 +39,7 @@
                             <div>
                                 <label for="files"
                                     class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors"
-                                    :class="dragging ? 'border-blue-400 bg-blue-50' : 'border-slate-300 hover:border-slate-400'"
+                                    :class="dragging ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-300 dark:border-slate-600 hover:border-slate-400'"
                                     @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false"
                                     @drop.prevent="onDrop">
                                     <ArrowUpTrayIcon class="size-7 text-slate-400" />

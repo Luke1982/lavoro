@@ -321,7 +321,7 @@
                     <div class="flex-1 relative" :style="{ minWidth: gridMinWidth + 'px' }" ref="bodyRef">
                             <!-- All-day project band -->
                             <div v-if="showProjects && allDayLaneHeight"
-                                class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 transition-[height] duration-200 ease-in-out"
+                                class="relative border-b border-gray-200 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/40 transition-[height] duration-200 ease-in-out"
                                 :style="{ height: allDayLaneHeight + 'px', minWidth: gridMinWidth + 'px' }">
                                 <!-- Full project stack; scrolls with the grid (labels/hanging-SOs stay sticky to the left edge). -->
                                 <div class="relative"

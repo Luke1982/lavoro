@@ -2,7 +2,7 @@
     <div ref="panel" class="fixed top-3 left-14 z-[1000] w-96 max-w-[calc(100vw-4.5rem)]">
         <button type="button" :aria-pressed="active"
             class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-md ring-1 ring-black/10 dark:ring-white/10"
-            :class="active ? 'bg-blue-700 text-white hover:bg-blue-800' : 'bg-white text-gray-800 dark:text-slate-200 hover:bg-gray-50'"
+            :class="active ? 'bg-blue-700 text-white hover:bg-blue-800' : 'bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800/50'"
             @click="toggleActive">
             <MapIcon class="h-5 w-5" />
             Route plannen
@@ -73,7 +73,7 @@
                     <button v-if="result.order.length > 1" type="button" :aria-pressed="reversed"
                         :disabled="busy || assigning" title="Dezelfde adressen in omgekeerde volgorde, met hetzelfde begin en einde"
                         class="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-50"
-                        :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50'"
+                        :class="reversed ? 'bg-blue-700 text-white ring-blue-700 hover:bg-blue-800' : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-300 ring-gray-300 dark:ring-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/50'"
                         @click="reverse">
                         <ArrowsRightLeftIcon class="h-4 w-4" />
                         {{ busy ? 'Andersom…' : 'Andersom' }}

@@ -37,7 +37,7 @@
         <div v-if="materials.length > 0 || freeformMaterials.length > 0"
             class="border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70">
             <!-- Column headers (hidden on mobile) -->
-            <div class="hidden md:grid text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 pt-3 pb-4 dark:border-slate-700 mb-1"
+            <div class="hidden md:grid text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 dark:bg-slate-800/40 pt-3 pb-4 dark:border-slate-700 mb-1"
                 :class="showFinancial ? 'grid-cols-12' : 'grid-cols-12'">
                 <div :class="(showFinancial && showUnforseen) ? 'col-span-4' : 'col-span-5'" class="pl-17">Materiaal
                 </div>
@@ -196,7 +196,7 @@
 
         <!-- Footer -->
         <div
-            class="flex flex-col sm:flex-row items-center justify-between mt-3 font-semibold rounded-lavoro-sm bg-gray-100/50 py-5 px-3 text-xs text-gray-500 dark:text-slate-400">
+            class="flex flex-col sm:flex-row items-center justify-between mt-3 font-semibold rounded-lavoro-sm bg-gray-100/50 dark:bg-slate-800/40 py-5 px-3 text-xs text-gray-500 dark:text-slate-400">
             <span v-if="showUnforseen" class="mb-2 sm:mb-0">
                 {{ totalMaterialsCount }} materialen,
                 {{ forseenCount }} voorzien en

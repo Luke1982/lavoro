@@ -82,14 +82,14 @@
                             </button>
                             <button v-if="mayShare()" @click.stop="toggleShared(image)"
                                 class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
-                                :class="image.is_shared ? 'text-lavoro-blue' : 'text-gray-700'"
+                                :class="image.is_shared ? 'text-lavoro-blue dark:text-blue-400' : 'text-gray-700 dark:text-slate-300'"
                                 :title="image.is_shared ? 'Niet meer delen met de werkbonnen' : 'Delen met de werkbonnen van dit project'">
                                 <ShareIconSolid v-if="image.is_shared" class="size-4" />
                                 <ShareIcon v-else class="size-4" />
                             </button>
                             <button v-if="mayUpdate()" @click.stop="setMain(image.id, image.pivot?.main)"
                                 class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
-                                :class="image.pivot?.main ? 'text-yellow-500' : 'text-gray-700'"
+                                :class="image.pivot?.main ? 'text-yellow-500' : 'text-gray-700 dark:text-slate-300'"
                                 :title="image.pivot?.main ? 'Dit is de hoofdafbeelding' : 'Instellen als hoofdafbeelding'">
                                 <StarIconSolid v-if="image.pivot?.main" class="size-4" />
                                 <StarIcon v-else class="size-4" />

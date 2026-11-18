@@ -47,6 +47,24 @@
     color-scheme: light dark;
 }
 
+/*
+ * Tailwind 4 tekent een rand zonder kleur in de tekstkleur. In het lichte thema
+ * valt dat weg, want die tekst is donkergrijs; in het donkere is de tekst wit en
+ * werd elke kale border, divide-y en <hr> een felle witte streep. Een eigen
+ * randkleur in het sjabloon gaat hier altijd voor.
+ */
+@layer base {
+    @media (prefers-color-scheme: dark) {
+        *,
+        ::after,
+        ::before,
+        ::backdrop,
+        ::file-selector-button {
+            border-color: var(--color-slate-700);
+        }
+    }
+}
+
 @utility bg-svg {
     position: relative;
     isolation: isolate;

@@ -76,7 +76,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProducts.length">
             <div
-                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
@@ -91,7 +91,7 @@
             </div>
             <div v-auto-animate>
                 <div v-for="product in displayProducts" :key="product.id" role="row"
-                    class="flex items-start sm:items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                    class="flex items-start sm:items-center text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                     <div class="w-10 flex-none flex items-start sm:items-center justify-center self-stretch pt-4">
                         <AnimatedCheckbox :model-value="selectedIds.includes(product.id)"
                             @update:model-value="toggleSelectProduct(product.id)" />
@@ -99,7 +99,7 @@
                     <div class="flex-1 grid grid-cols-12 p-4">
                         <div class="col-span-10 sm:col-span-4 flex items-start sm:items-center gap-4">
                             <Link :href="`/products/${product.id}`"
-                                class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 flex items-center justify-center flex-none">
+                                class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray dark:border-slate-800 border-1 flex items-center justify-center flex-none">
                                 <img :src="product.main_image?.[0] ? imageFileUrl(product.main_image[0]) : '/img/placeholder.png'"
                                     alt="">
                             </Link>
@@ -181,7 +181,7 @@
                             </EditableTextField>
                         </div>
                         <div class="col-span-2 sm:col-span-1 items-start sm:items-center flex justify-end">
-                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
+                            <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex flex-col sm:flex-row">
                                 <div class="pb-2 sm:pb-0">
                                     <Link :href="`/products/${product.id}`" class="text-sm text-lavoro-darkerblue">
                                         <EyeIcon class="h-5 w-5" />

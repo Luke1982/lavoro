@@ -10,7 +10,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProjects.length">
             <div
-                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-4">Titel</div>
                 <div class="col-span-2">Klant</div>
                 <div class="col-span-2">Projectleider</div>
@@ -19,7 +19,7 @@
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <div v-for="project in displayProjects" :key="project.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 items-center">
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 items-center">
                 <div class="col-span-10 lg:col-span-4 flex flex-col">
                     <Link :href="`/projects/${project.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
                         {{ project.title }}
@@ -49,7 +49,7 @@
                     {{ project.end_date ? formatDate(project.end_date) : '–' }}
                 </div>
                 <div class="col-span-2 lg:col-span-1 flex items-center justify-end">
-                    <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex flex-col sm:flex-row">
+                    <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex flex-col sm:flex-row">
                         <Link :href="`/projects/${project.id}`" class="text-sm text-lavoro-darkerblue">
                             <EyeIcon class="h-5 w-5" />
                         </Link>

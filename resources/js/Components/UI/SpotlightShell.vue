@@ -23,7 +23,7 @@
                         <slot name="before" />
 
                         <div class="flex items-start gap-3 px-4 py-[0.9375rem]"
-                            :class="dividerAboveInput && 'border-t border-slate-100'">
+                            :class="dividerAboveInput && 'border-t border-slate-100 dark:border-slate-800'">
                             <div class="flex h-[1.625rem] shrink-0 items-center">
                                 <slot name="icon" />
                             </div>

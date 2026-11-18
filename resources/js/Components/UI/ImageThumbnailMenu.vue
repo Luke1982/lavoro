@@ -22,7 +22,7 @@
                         </MenuItem>
                         <MenuItem v-if="canShare" v-slot="{ active }">
                             <button @click="$emit('share')" :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 cursor-pointer']">
-                                <ShareIcon class="size-4 flex-shrink-0" :class="image.is_shared ? 'text-lavoro-blue' : ''" />
+                                <ShareIcon class="size-4 flex-shrink-0" :class="image.is_shared ? 'text-lavoro-blue dark:text-blue-400' : ''" />
                                 {{ image.is_shared ? 'Niet meer delen' : 'Delen met werkbonnen' }}
                             </button>
                         </MenuItem>

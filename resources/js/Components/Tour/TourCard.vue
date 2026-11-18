@@ -77,7 +77,7 @@
 
                 <p class="mt-3 flex gap-2 rounded-xl bg-gray-50 px-3 py-2 text-[13px] leading-snug dark:bg-slate-800/70" aria-hidden="true">
                     <component :is="tourState.muted ? SpeakerXMarkIcon : SpeakerWaveIcon"
-                        class="mt-0.5 size-4 shrink-0" :class="speaking ? 'text-lavoro-blue tour-speaking' : 'text-gray-400'" />
+                        class="mt-0.5 size-4 shrink-0" :class="speaking ? 'text-lavoro-blue dark:text-blue-400 tour-speaking' : 'text-gray-400'" />
                     <span>
                         <span v-for="(word, index) in words" :key="index"
                             class="transition-colors duration-150"

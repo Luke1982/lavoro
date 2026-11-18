@@ -42,7 +42,7 @@
                     @change="toggleAssetSelection({ id: asset.id, customer_id: mainAsset.customer.id })"
                     class="cursor-pointer size-4 accent-lavoro-blue dark:accent-lavoro-blue">
                 <div
-                    class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray border-1 items-center justify-center ml-2 hidden sm:flex">
+                    class="w-20 h-20 p-1 rounded-sm border-lavoro-lightgray dark:border-slate-800 border-1 items-center justify-center ml-2 hidden sm:flex">
                     <img :src="asset.product.main_image?.[0] ? imageFileUrl(asset.product.main_image[0]) : '/img/placeholder.png'"
                         alt="">
                 </div>

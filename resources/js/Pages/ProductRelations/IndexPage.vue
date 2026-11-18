@@ -10,12 +10,12 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="innerRelations.length">
             <div
-                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-11">Naam</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
             <div v-for="relation in innerRelations" :key="relation.id" role="row"
-                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2">
+                class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                 <div class="col-span-11 flex items-center">
                     <EditableTextField :model-value="relation.name" :decoration="false"
                         :readonly="!hasPermission('productrelation.update')"
@@ -25,7 +25,7 @@
                 </div>
                 <div class="col-span-1 flex items-center justify-end">
                     <div v-if="hasPermission('productrelation.delete')"
-                        class="border-1 border-lavoro-darkergray rounded-full p-2">
+                        class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2">
                         <TrashIcon class="h-5 w-5 cursor-pointer text-red-500"
                             @click="deleteRelation(relation.id)" />
                     </div>

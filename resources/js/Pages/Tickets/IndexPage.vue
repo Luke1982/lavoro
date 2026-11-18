@@ -63,7 +63,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="tickets.data.length">
             <div
-                class="hidden lg:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden lg:flex items-center font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox
                         :model-value="allCurrentPageSelected"
@@ -84,7 +84,7 @@
             </div>
             <div v-auto-animate>
             <div v-for="ticket in tickets.data" :key="ticket.id" role="row"
-                class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                class="flex items-center text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                 <div class="w-10 flex-none flex items-center justify-center self-stretch">
                     <AnimatedCheckbox
                         :model-value="selectedIds.includes(ticket.id)"
@@ -168,7 +168,7 @@
                     </span>
                 </div>
                 <div class="col-span-[3] lg:col-span-1 flex items-center justify-end">
-                    <div class="border-1 border-lavoro-darkergray rounded-full p-2">
+                    <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2">
                         <Link :href="`/tickets/${ticket.id}`" class="text-sm text-lavoro-darkerblue">
                             <EyeIcon class="h-5 w-5" />
                         </Link>

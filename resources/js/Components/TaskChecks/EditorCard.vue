@@ -30,7 +30,7 @@
                     </MenuItem>
                     <MenuItem v-slot="{ active }">
                         <button type="button" @click="$emit('delete')"
-                            :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                            :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                             <TrashIcon class="size-4" /> Verwijderen
                         </button>
                     </MenuItem>

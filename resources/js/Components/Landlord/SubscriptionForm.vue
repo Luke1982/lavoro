@@ -73,7 +73,7 @@
                                 <span v-if="line.detail" class="block text-slate-500 dark:text-slate-400">{{ line.detail }}</span>
                             </td>
                             <td class="py-1 pl-3 text-right whitespace-nowrap"
-                                :class="{ 'text-red-700': line.amount_cents < 0 }">
+                                :class="{ 'text-red-700 dark:text-red-300': line.amount_cents < 0 }">
                                 {{ euro(line.amount_cents) }}
                             </td>
                         </tr>

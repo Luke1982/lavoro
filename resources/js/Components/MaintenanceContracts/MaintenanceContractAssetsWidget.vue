@@ -34,7 +34,7 @@
         </div>
 
         <div v-if="assets.length > 0" class="border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70">
-            <div class="hidden md:grid grid-cols-12 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 pt-3 pb-4 dark:border-slate-700 mb-1">
+            <div class="hidden md:grid grid-cols-12 text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-400 border-b border-gray-200/70 bg-gray-50/60 dark:bg-slate-800/40 pt-3 pb-4 dark:border-slate-700 mb-1">
                 <div class="col-span-5 pl-4">Machine</div>
                 <div class="col-span-5">Frequentie</div>
                 <div class="col-span-2 text-right pr-2">Acties</div>

@@ -25,15 +25,15 @@
                     <button v-for="hit in group.hits" :key="hit.href + hit.title" type="button"
                         :ref="(el) => (row_elements[hit.index] = el)"
                         class="relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors"
-                        :class="isActive(hit) ? 'bg-lavoro-green' : 'hover:bg-slate-50'"
+                        :class="isActive(hit) ? 'bg-lavoro-green' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'"
                         @mouseenter="activeIndex = hit.index" @click="go(hit)">
                         <component :is="hit.icon" v-if="hit.icon" class="size-4 shrink-0"
-                            :class="isActive(hit) ? 'text-slate-900' : 'text-slate-400'" />
+                            :class="isActive(hit) ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'" />
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm text-slate-900 dark:text-slate-100">{{ hit.title }}</span>
                             <!-- Muted grey vanishes on solid lavorogreen; on the selected row it goes dark. -->
                             <span v-if="hit.subtitle" class="block truncate text-xs"
-                                :class="isActive(hit) ? 'text-slate-700' : 'text-slate-400'">{{ hit.subtitle }}</span>
+                                :class="isActive(hit) ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400'">{{ hit.subtitle }}</span>
                             <!--
                                 The searcher guarantees the order, so the first
                                 label can be emphasised as the stage without the

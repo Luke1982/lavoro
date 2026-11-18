@@ -50,7 +50,7 @@
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="serviceOrders.data.length">
             <div
-                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden md:flex items-center font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="w-10 flex-none flex items-center justify-center">
                     <AnimatedCheckbox :model-value="allCurrentPageSelected" @update:model-value="toggleSelectAll" />
                 </div>
@@ -67,7 +67,7 @@
             </div>
             <div v-auto-animate>
                 <div v-for="so in serviceOrders.data" :key="so.id" role="row"
-                    class="flex items-center text-sm border-b-lavoro-gray-150 border-b-2">
+                    class="flex items-center text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                     <div class="w-10 flex-none flex items-center justify-center self-stretch">
                         <AnimatedCheckbox :model-value="selectedIds.includes(so.id)"
                             @update:model-value="toggleSelectServiceOrder(so.id)" />
@@ -152,14 +152,14 @@
                         </div>
                         <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2">
                             <PlanInPlannerButton :serviceorder="so" variant="circle" />
-                            <div class="border-1 border-lavoro-darkergray rounded-full p-2 flex">
+                            <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex">
                                 <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
                                     <EyeIcon class="h-5 w-5" />
                                 </Link>
                             </div>
                             <div
                                 v-if="hasPermission('serviceorder.delete') && !so.sent_to_administration"
-                                class="border-1 border-lavoro-darkergray rounded-full p-2 flex cursor-pointer text-red-500 hover:text-red-700 dark:hover:text-red-300"
+                                class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex cursor-pointer text-red-500 hover:text-red-700 dark:hover:text-red-300"
                                 @click="deleteServiceOrder(so.id)">
                                 <TrashIcon class="h-5 w-5" />
                             </div>
@@ -182,7 +182,7 @@
 
     <DrawerComponent v-model="bulkEditOpen" title="Werkbonnen bewerken"
         :subtitle="`${selectedIds.length} werkbonnen geselecteerd`">
-        <div class="divide-y divide-gray-100 dark:divide-slate-700">
+        <div class="divide-y divide-gray-100 dark:divide-slate-800">
             <div class="px-4 sm:px-6 py-4">
                 <p
                     class="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/40 rounded-md px-3 py-2 border-l-2 border-gray-200 dark:border-slate-600">

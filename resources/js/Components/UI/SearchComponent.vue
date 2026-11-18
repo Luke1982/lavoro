@@ -5,7 +5,7 @@
             <TextInput :id="inputId" v-model="internalValue" :placeholder="placeholder" :disabled="inAction"
                 :ring="false" :iconLeft="inAction ? LoaderCircle : Search" :iconLeftProps="{
                     class: (inAction ? 'animate-spin ' : '') + 'h-5 w-5 text-gray-400'
-                }" class="w-full bg-white rounded-md pr-20 py-1" type="search" />
+                }" class="w-full bg-white dark:bg-slate-900 rounded-md pr-20 py-1" type="search" />
             <div
                 class="rounded-sm absolute bg-gray-100 dark:bg-slate-800 right-2 inset-y-2 text-xs p-1 w-12 text-gray-500 dark:text-slate-400 text-center flex items-center justify-center pointer-events-none">
                 <SquareChevronUpIcon class="inline h-4 w-4 mr-1" />K

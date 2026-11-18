@@ -307,7 +307,7 @@
 
         <template v-if="chapter === CHAT">
             <div v-if="pending_images.length || pending_files.length || attachment_error"
-                class="space-y-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 px-3 py-2">
+                class="space-y-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-3 py-2">
                 <div v-if="pending_images.length || pending_files.length" class="flex flex-wrap items-center gap-1.5">
                     <button v-for="(image, imageIndex) in pending_images" :key="'i' + imageIndex" type="button"
                         class="size-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-2 hover:ring-red-400"

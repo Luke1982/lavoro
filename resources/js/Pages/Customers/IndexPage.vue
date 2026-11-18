@@ -99,7 +99,7 @@
     <div v-if="!importPreview">
         <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
             <div
-                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
+                class="hidden lg:grid grid-cols-12 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <div class="col-span-4">Klant</div>
                 <div class="col-span-3">Adres</div>
                 <div class="col-span-2">Telefoon</div>
@@ -109,7 +109,7 @@
             </div>
             <div v-auto-animate>
                 <div v-for="customer in customers.data" :key="customer.id" role="row"
-                    class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
+                    class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
                     <div class="col-span-10 lg:col-span-4 flex items-center gap-3">
                         <span
                             class="size-10 flex-none rounded-full bg-gray-200 dark:bg-slate-700 ring-1 ring-gray-300 dark:ring-slate-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-slate-200 select-none">
