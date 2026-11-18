@@ -97,20 +97,17 @@
                 <div ref="listScrollEl" class="h-full overflow-y-auto" @touchstart.passive="onListTouchStart"
                     @touchmove.passive="onListTouchMove" @touchend.passive="onListTouchEnd"
                     @touchcancel.passive="onListTouchEnd">
-                    <div v-if="!eventsLoading && groupedByDay.length === 0 && !showsGaps"
-                        class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
-                        Geen afspraken deze week
-                    </div>
-
-                    <div v-else class="pb-24">
+                    <div class="pb-24">
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div data-tour="planner.phone.day"
-                            class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">
+                            class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
+                            :class="group.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'">
                             <span>
                                 {{ dayLabel(group.dayIso) }}
                                 <span v-if="showsGaps" class="font-normal normal-case">{{ dayjs(group.dayIso).format('D MMM')
                                     }}</span>
+                                <span v-if="group.holiday" class="ml-1 normal-case" :class="HOLIDAY_LABEL">{{ group.holiday }}</span>
                             </span>
                             <DayRouteLinks v-if="shownRoute(group.dayIso)" :route="shownRoute(group.dayIso)"
                                 @remove="removeRoute" />
@@ -189,6 +186,11 @@
                             </div>
                         </div>
                         </template>
+
+                        <div v-if="!eventsLoading && !showsGaps && timelineEvents.length === 0"
+                            class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">
+                            Geen afspraken deze week
+                        </div>
                     </div>
                 </div>
                 <WeekFlipIndicator :pull="listPull" :armed="listPullArmed" :progress="listPullProgress" />
@@ -248,6 +250,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import dayjs from '@/Utilities/dayjs'
 import { hasPermission, initials, nlDayName, formatLocalDateAsISO } from '@/Utilities/Utilities'
+import { HOLIDAY_BAND, HOLIDAY_LABEL, plannerDays, publicHolidayOn } from '@/Utilities/publicHolidays'
 import {
     UNAVAILABLE_PATTERN,
     completionStatusFor,
@@ -314,13 +317,7 @@ function startOfWeek(date) {
 
 const weekStart = ref(startOfWeek(new Date()))
 
-const weekDays = computed(() => {
-    const start = dayjs(weekStart.value)
-    return Array.from({ length: 7 }, (_, i) => {
-        const d = start.add(i, 'day')
-        return { date: d.toDate(), iso: d.format('YYYY-MM-DD') }
-    })
-})
+const weekDays = computed(() => plannerDays(weekStart.value, 7))
 
 const weekTitle = computed(() => {
     const first = weekDays.value[0].date
@@ -531,18 +528,27 @@ function shownRoute(dayIso) {
     return selectedUserId.value === null ? null : routeFor(selectedUserId.value, dayIso)
 }
 
+function dayGroup(dayIso, items = []) {
+    return { dayIso, holiday: publicHolidayOn(dayIso), items }
+}
+
+/** A day is listed when it holds something: an item, a route or a public holiday. */
+function holdsSomething(group) {
+    return group.items.length > 0 || !!shownRoute(group.dayIso) || !!group.holiday
+}
+
 const groupedByDay = computed(() => {
     if (!showsGaps.value) {
         const groups = []
         for (const ev of timelineEvents.value) {
             const dayIso = formatLocalDateAsISO(ev.start)
-            if (groups.at(-1)?.dayIso !== dayIso) groups.push({ dayIso, items: [] })
+            if (groups.at(-1)?.dayIso !== dayIso) groups.push(dayGroup(dayIso))
             groups.at(-1).items.push(eventItem(ev, dayIso))
         }
-        const routeOnly = weekDays.value
-            .filter(day => shownRoute(day.iso) && !groups.some(group => group.dayIso === day.iso))
-            .map(day => ({ dayIso: day.iso, items: [] }))
-        return [...groups, ...routeOnly].sort((a, b) => a.dayIso.localeCompare(b.dayIso))
+        const eventless = weekDays.value
+            .filter(day => !groups.some(group => group.dayIso === day.iso))
+            .map(day => dayGroup(day.iso))
+        return [...groups, ...eventless.filter(holdsSomething)].sort((a, b) => a.dayIso.localeCompare(b.dayIso))
     }
 
     return weekDays.value
@@ -554,9 +560,9 @@ const groupedByDay = computed(() => {
                     durationMin: segment.endMin - segment.startMin,
                 })),
             ]
-            return { dayIso: day.iso, items: items.sort((a, b) => a.startMin - b.startMin) }
+            return dayGroup(day.iso, items.sort((a, b) => a.startMin - b.startMin))
         })
-        .filter(group => group.items.length > 0 || shownRoute(group.dayIso))
+        .filter(holdsSomething)
 })
 
 function dayLabel(dayIso) {

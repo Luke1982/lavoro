@@ -22,12 +22,14 @@
             <template v-for="day in weekDays" :key="day.iso">
                 <!-- Day header: the band scrolls with the lanes, the label stays pinned -->
                 <div
-                    class="sticky z-20 border-b border-gray-200 dark:border-slate-700 bg-gray-50/95 dark:bg-slate-800/95 backdrop-blur-sm"
+                    class="sticky z-20 border-b border-gray-200 dark:border-slate-700 backdrop-blur-sm"
+                    :class="day.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'"
                     :style="{ top: HEADER_HEIGHT + 'px' }">
                     <span
                         class="sticky left-0 inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
                         {{ nlDayName(day.iso) }}
                         <span class="font-normal normal-case">{{ dayjs(day.iso).format('D MMM') }}</span>
+                        <span v-if="day.holiday" class="ml-1 normal-case" :class="HOLIDAY_LABEL">{{ day.holiday }}</span>
                     </span>
                 </div>
 
@@ -46,6 +48,7 @@
 
                     <div v-for="user in plannableUsers" :key="'lane-' + day.iso + '-' + user.id"
                         class="relative shrink-0 border-l border-b border-gray-100 dark:border-slate-800"
+                        :class="day.holiday ? HOLIDAY_TINT : ''"
                         :style="{ width: LANE_WIDTH + 'px', height: dayHeightFor(day.iso) + 'px' }">
                         <!-- Hour grid lines -->
                         <div class="absolute inset-0 pointer-events-none">
@@ -115,6 +118,7 @@
 import { computed, ref } from 'vue'
 import dayjs from '@/Utilities/dayjs'
 import { initials, nlDayName, formatWbNumber } from '@/Utilities/Utilities'
+import { HOLIDAY_BAND, HOLIDAY_LABEL, HOLIDAY_TINT } from '@/Utilities/publicHolidays'
 import { UNAVAILABLE_PATTERN, formatDurationLabel } from '@/Utilities/plannerOverlaps'
 import { daySegmentsFor, eventMinutesFor, eventsOnDay } from '@/Composables/usePlannerGaps'
 import { usePullToFlip } from '@/Composables/usePullToFlip'

@@ -217,7 +217,9 @@
                         <div class="grid border-b border-gray-200 dark:border-slate-800"
                             :style="{ gridTemplateColumns: dayGridTemplate, minWidth: gridMinWidth + 'px', height: dayHeaderHeight + 'px' }">
                             <div v-for="day in weekDays" :key="'dh-' + day.iso"
-                                class="px-3 flex flex-col items-center justify-center border-l border-gray-200 dark:border-slate-800 first:border-l-0">
+                                class="px-3 flex flex-col items-center justify-center border-l border-gray-200 dark:border-slate-800 first:border-l-0"
+                                :class="day.holiday ? HOLIDAY_BAND : ''"
+                                :title="day.holiday ? `${day.holiday} · week ${weekNumber(day.date)}` : null">
                                 <div class="flex items-center text-sm font-semibold">
                                     <span class="uppercase">{{ dayLabel(day.date) }}</span>
                                     <span v-if="isToday(day.date)"
@@ -225,7 +227,11 @@
                                         {{ String(day.date.getDate()).padStart(2, '0') }}
                                     </span>
                                 </div>
-                                <span class="text-[10px] font-normal text-gray-400 dark:text-slate-500">
+                                <span v-if="day.holiday" class="max-w-full truncate text-[10px] font-semibold"
+                                    :class="HOLIDAY_LABEL">
+                                    {{ day.holiday }}
+                                </span>
+                                <span v-else class="text-[10px] font-normal text-gray-400 dark:text-slate-500">
                                     Week {{ weekNumber(day.date) }}
                                 </span>
                             </div>
@@ -330,7 +336,8 @@
                                     <div class="absolute inset-0 grid pointer-events-none"
                                         :style="{ gridTemplateColumns: dayGridTemplate }">
                                         <div v-for="day in weekDays" :key="'adg-' + day.iso"
-                                            class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0" />
+                                            class="border-l border-gray-100 dark:border-slate-800/60 first:border-l-0"
+                                            :class="day.holiday ? HOLIDAY_TINT : ''" />
                                     </div>
 
                                     <template v-for="track in visibleTracks" :key="'track-' + track.id">
@@ -400,6 +407,7 @@
 
                                 <div v-for="day in weekDays" :key="'cell-' + user.id + '-' + day.iso"
                                     class="relative border-l border-b border-gray-200 dark:border-slate-800 first:border-l-0"
+                                    :class="day.holiday ? HOLIDAY_TINT : ''"
                                     :data-user-id="user.id" :data-day-iso="day.iso"
                                     @pointerdown="onCellPointerDown($event, user, day)"
                                     @dragover.prevent="onDragOver($event, user, day)"
@@ -602,6 +610,7 @@ import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
 import { DAY_END_STORAGE_KEY, DAY_START_STORAGE_KEY } from '@/Utilities/plannerDayView'
+import { HOLIDAY_BAND, HOLIDAY_LABEL, HOLIDAY_TINT, plannerDays } from '@/Utilities/publicHolidays'
 
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
@@ -1094,14 +1103,7 @@ function toggleAllRows() {
         : new Set(visibleUsers.value.map(u => u.id))
 }
 
-const weekDays = computed(() => {
-    const count = plannerView.value === 'day' ? 1 : 7
-    const start = dayjs(weekStart.value)
-    return Array.from({ length: count }, (_, i) => {
-        const d = start.add(i, 'day')
-        return { date: d.toDate(), iso: d.format('YYYY-MM-DD') }
-    })
-})
+const weekDays = computed(() => plannerDays(weekStart.value, plannerView.value === 'day' ? 1 : 7))
 
 const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
     'juli', 'augustus', 'september', 'oktober', 'november', 'december']
