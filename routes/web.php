@@ -9,6 +9,7 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\CatalogImportController;
 use App\Http\Controllers\ComboSearchController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
+use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\InternalAnnouncementController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
@@ -303,6 +305,17 @@ Route::group(
             MaterialSupplierController::class,
             'destroy',
         ])->name('materials.suppliers.destroy');
+        Route::prefix('{kind}/imports')->whereIn('kind', ['materials', 'products'])->group(function () {
+            Route::post('', [CatalogImportController::class, 'store'])->name('imports.store');
+            Route::get('{catalog_import}', [CatalogImportController::class, 'show'])->name('imports.show');
+            Route::post('{catalog_import}/mapping', [CatalogImportController::class, 'map'])->name('imports.map');
+            Route::post('{catalog_import}/confirm', [CatalogImportController::class, 'confirm'])->name('imports.confirm');
+            Route::delete('{catalog_import}', [CatalogImportController::class, 'destroy'])->name('imports.destroy');
+        });
+        Route::post('import-mappings', [ImportMappingController::class, 'store'])
+            ->name('import-mappings.store');
+        Route::delete('import-mappings/{import_mapping}', [ImportMappingController::class, 'destroy'])
+            ->name('import-mappings.destroy');
         Route::resource('materialcategories', MaterialCategoryController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('materialusageunits', MaterialUsageUnitController::class)

@@ -84,6 +84,7 @@ class ProductController extends Controller
                 'onlyBrand' => $onlyBrand,
                 'onlyAttributeValues' => $onlyAttributeValues,
                 'perPage' => $this->perPage($request),
+                'canImport' => $request->user()->can('import', Product::class),
             ]
         );
     }

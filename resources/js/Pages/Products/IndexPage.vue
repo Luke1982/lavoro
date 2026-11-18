@@ -5,6 +5,7 @@
         :has-active-filters="activeFilters.length > 0" @add="openNewProductDrawer"
         :can-add="hasPermission('product.create')">
         <template #actions>
+            <ImportUploadButton v-if="canImport" kind="products" />
             <AssistantButton />
         </template>
         <template #filters>
@@ -309,6 +310,7 @@ import { ref, computed, reactive, watch, onMounted } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
+import ImportUploadButton from '@/Components/Imports/ImportUploadButton.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { XCircleIcon } from '@heroicons/vue/24/outline'
@@ -324,12 +326,13 @@ import ProductFormFields from '@/Components/Products/ProductFormFields.vue'
 import { useProductForm } from '@/Composables/useProductForm'
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
-const { products, brands, productTypes, productAttributes, perPage } = defineProps({
+const { products, brands, productTypes, productAttributes, perPage, canImport } = defineProps({
     products: { type: Object, required: true },
     brands: { type: Array, default: () => [] },
     productTypes: { type: Array, default: () => [] },
     productAttributes: { type: Array, default: () => [] },
     perPage: { type: Number, default: 20 },
+    canImport: { type: Boolean, default: false },
 })
 
 const showProductDrawer = ref(false)

@@ -15,6 +15,21 @@ class ProductPolicy
         return $user->isAdmin() || $user->hasPermission('product.create');
     }
 
+    /**
+     * Reading a spreadsheet into the products. It makes new products and
+     * changes existing ones, so it takes both rights.
+     */
+    public function import(User $user): bool
+    {
+        return $user->hasPermission('product.create') && $user->hasPermission('product.update');
+    }
+
+    /** The purchase and retail price. Asked of the class: the answer is the same for every product. */
+    public function viewPrices(User $user): bool
+    {
+        return $user->hasPermission('product.view_prices');
+    }
+
     public function view(User $user, Product $product): bool
     {
         if ($user->hasPermission('product.read')) {

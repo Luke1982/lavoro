@@ -2,6 +2,9 @@
     <IndexHeaderComponent title="Materialen" subtitle="Zoek binnen materialen" search-url="/materials"
         search-label="Zoek binnen materialen" search-placeholder="Zoek op naam, code of categorie"
         add-label="Voeg materiaal toe" :paginator="false" @add="() => materialFormRef?.show()">
+        <template v-if="canImport" #actions>
+            <ImportUploadButton kind="materials" />
+        </template>
         <template #filters>
             <div>
                 <button v-if="snelStartConnected" @click="importMaterials" :disabled="importingMaterials"
@@ -129,6 +132,7 @@ import { router, useForm, Link } from '@inertiajs/vue3'
 import { computed, reactive, ref } from 'vue'
 import CreateRecordForm from '@/Components/UI/CreateRecordForm.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
+import ImportUploadButton from '@/Components/Imports/ImportUploadButton.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
@@ -142,12 +146,13 @@ const importingMaterials = ref(false)
 const importMaterialsForm = useForm({})
 const boolEdits = reactive({})
 
-const { materials, categories, usageUnits, snelStartConnected } = defineProps({
+const { materials, categories, usageUnits, snelStartConnected, canImport } = defineProps({
     materials: { type: Object, required: true },
     categories: { type: Array, default: () => [] },
     usageUnits: { type: Array, default: () => [] },
     search: { type: String, default: '' },
     snelStartConnected: { type: Boolean, default: false },
+    canImport: { type: Boolean, default: false },
 })
 
 const innerMaterials = computed(() => materials?.data || [])

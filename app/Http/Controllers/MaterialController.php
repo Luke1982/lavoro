@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Materials\CreateMaterialAction;
 use App\Http\Requests\MaterialReadRequest;
 use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
@@ -42,6 +43,7 @@ class MaterialController extends Controller
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
             'search' => $search,
             'snelStartConnected' => SnelStartClient::isConfigured(),
+            'canImport' => $request->user()->can('import', Material::class),
         ]);
     }
 
@@ -56,21 +58,9 @@ class MaterialController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(MaterialStoreRequest $request)
+    public function store(MaterialStoreRequest $request, CreateMaterialAction $create_material)
     {
-        $material = Material::create(array_merge([
-            'description' => null,
-            'code' => null,
-            'vendor_code' => null,
-            'price' => 0,
-            'cost_price' => null,
-            'divisable' => false,
-            'is_active' => true,
-            'is_service' => false,
-            'stock' => 0,
-            'min_stock' => 0,
-            'max_stock' => 0,
-        ], $request->validated()));
+        $material = $create_material->execute($request->validated());
 
         if ($request->wantsJson()) {
             return response()->json($material->load(['category', 'usageUnit']));

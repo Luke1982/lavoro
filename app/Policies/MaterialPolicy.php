@@ -11,6 +11,15 @@ class MaterialPolicy
         return $user->hasPermission('material.create');
     }
 
+    /**
+     * Reading a spreadsheet into the materials. It makes new materials and
+     * changes existing ones, so it takes both rights.
+     */
+    public function import(User $user): bool
+    {
+        return $user->hasPermission('material.create') && $user->hasPermission('material.update');
+    }
+
     /** The cost price. Asked of the class: the answer is the same for every material. */
     public function seeFinancials(User $user): bool
     {
