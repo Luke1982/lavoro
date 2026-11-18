@@ -1,16 +1,16 @@
 <template>
-    <div class="divide-y divide-gray-200 dark:divide-slate-700">
-        <Field label="Producttype">
+    <div class="divide-y divide-gray-200 dark:divide-slate-700" data-tour="products.new">
+        <Field label="Producttype" data-tour="products.new.type">
             <ComboBox v-model="form.product_type_id" :options="productTypeOptions" placeholder="Selecteer producttype"
                 :create-label="canCreateProductType ? 'Nieuw producttype' : ''" @create="createProductType"
                 :has-error="Boolean(form.errors.product_type_id)" :error-message="form.errors.product_type_id" />
         </Field>
-        <Field label="Merk">
+        <Field ref="brandField" label="Merk" data-tour="products.new.brand">
             <ComboBox v-model="form.brand_id" :options="brandOptions" placeholder="Selecteer merk"
                 :create-label="canCreateBrand ? 'Nieuw merk' : ''" @create="createBrand"
                 :has-error="Boolean(form.errors.brand_id)" :error-message="form.errors.brand_id" />
         </Field>
-        <Field label="Model">
+        <Field label="Model" data-tour="products.new.model">
             <TextInput v-model="form.model" :has-error="Boolean(form.errors.model)"
                 :error-message="form.errors.model" />
         </Field>
@@ -39,7 +39,7 @@
             <CurrencyInput v-model="form.purchase_price" placeholder="Optioneel"
                 :has-error="Boolean(form.errors.purchase_price)" :error-message="form.errors.purchase_price" />
         </Field>
-        <Field>
+        <Field data-tour="products.new.bundle">
             <template #label>
                 <span class="flex">
                     Bundel
@@ -49,7 +49,7 @@
             </template>
             <SwitchComponent v-model="form.bundle" />
         </Field>
-        <Field v-if="!form.bundle">
+        <Field v-if="!form.bundle" data-tour="products.new.registable">
             <template #label>
                 <span class="flex">
                     Registreerbaar
@@ -78,6 +78,9 @@ import Field from '@/Components/UI/DrawerField.vue'
 import FieldError from '@/Components/UI/DrawerFieldError.vue'
 import { hasPermission } from '@/Utilities/Utilities'
 import { createRecord } from '@/Utilities/createRecord'
+import { useTour } from '@/Composables/useTour'
+import { typeInto } from '@/Tours/typing'
+import { NEW_PRODUCT, pretendPicked } from '@/Tours/examples'
 
 /**
  * The fields of a new product, wherever one is made. A brand or type that is
@@ -123,4 +126,16 @@ async function createAndSelect(url, options, field, name) {
 
 const createProductType = name => createAndSelect('/producttypes', productTypeOptions, 'product_type_id', name)
 const createBrand = name => createAndSelect('/brands', brandOptions, 'brand_id', name)
+
+/**
+ * The machines rondleiding types a brand nobody sells into the brand picker, so
+ * the "Nieuw merk" row shows; then shows it chosen, as making it would leave
+ * it, without making anything.
+ */
+const brandField = ref(null)
+
+useTour('machines', {
+    typeNewBrand: () => canCreateBrand ? typeInto(brandField.value?.$el.querySelector('input'), NEW_PRODUCT.brand) : null,
+    pretendNewBrand: () => pretendPicked(brandOptions, form.value, 'brand_id', { name: NEW_PRODUCT.brand }),
+})
 </script>

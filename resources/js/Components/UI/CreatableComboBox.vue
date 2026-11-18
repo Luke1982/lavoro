@@ -40,4 +40,17 @@ function select(option) {
     emit('created', option)
     selected.value = option.id
 }
+
+/**
+ * For a rondleiding: opens the form as if `text` had been typed and "Nieuw …"
+ * picked, and says how to close it again.
+ */
+function create(text) {
+    if (!canCreate || creating.value) return null
+    startCreating(text)
+
+    return () => { creating.value = false }
+}
+
+defineExpose({ create })
 </script>

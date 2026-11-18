@@ -2,32 +2,33 @@
     "tour": "planner",
     "chapter": "open-plekken",
     "version": 1,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "open-plekken.mp3",
+    "gap": 1,
     "steps": [
         {
             "text": "Zoek je ruimte voor een klus? Zet deze schakelaar aan, en alle vrije tijd in de planning licht groen op.",
-            "hash": "09e61d7ba6fdb78b82a9d386fdf45f6edaf41d2c",
+            "hash": "1183c323cbe7010365d1a30f9ba850c17d808c2a",
             "start": 0,
-            "end": 6.548
+            "end": 5.712
         },
         {
             "text": "Elk groen vak is een gat waar nog werk in past. De lengte staat er meteen bij.",
-            "hash": "abc443dfc6e777b84aee154c9aed1fb4b3b2679a",
-            "start": 6.848,
-            "end": 11.91
+            "hash": "6f63cbe47f68e5acdc97f24aceb65a19846a52b1",
+            "start": 6.712,
+            "end": 11.263
         },
         {
             "text": "Hier geef je aan hoe groot een open plek minstens moet zijn. Laat je het leeg, dan geldt de standaardduur van een afspraak.",
-            "hash": "bb6f041c60ccb0c218e7e792cab55eabc099481c",
-            "start": 12.21,
-            "end": 19.455
+            "hash": "983b95866dc40e79764e59ae355cbf1f93e86f76",
+            "start": 12.263,
+            "end": 19.043
         },
         {
             "text": "Op een werkbon die ingepland kan worden staat de knop Inplannen. Die brengt je hierheen. De werkbon licht op, en de open plekken waar hij in past ook.",
-            "hash": "778ac8bb45e0896d3cd91691593494b251a5ef5b",
-            "start": 19.755,
-            "end": 29.646
+            "hash": "a57e156f381d63eef5abd5add1d02fd231c25d1e",
+            "start": 20.043,
+            "end": 28.31
         }
     ]
 }

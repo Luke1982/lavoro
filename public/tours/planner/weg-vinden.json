@@ -2,62 +2,63 @@
     "tour": "planner",
     "chapter": "weg-vinden",
     "version": 1,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "weg-vinden.mp3",
+    "gap": 1,
     "steps": [
         {
             "text": "Dit is de planner. Elke monteur heeft een eigen rij, en de tijd loopt van links naar rechts.",
-            "hash": "b07a9050b5842536c096022b6869e534c0ee93e3",
+            "hash": "6cfd6b5145bc231b4e1ee6a9fe125ac6f9b6162c",
             "start": 0,
-            "end": 5.526
+            "end": 4.737
         },
         {
             "text": "Links zie je per monteur hoeveel uur er al gepland staat. Met het pijltje klap je een rij in, of alle rijen tegelijk.",
-            "hash": "001707db07ab34e10166d6e0ebe914544407df29",
-            "start": 5.826,
-            "end": 13.071
+            "hash": "ad0f92ba78133c50c49c4e363f07d9a026a94789",
+            "start": 5.737,
+            "end": 12.285
         },
         {
-            "text": "Hier wissel je tussen week en dag. Kijk: in de dagweergave krijgt elk uur meer ruimte.",
-            "hash": "88ffab42ec516b0ac0270948e017aaed25350f17",
-            "start": 13.371,
-            "end": 18.897
+            "text": "Hier wissel je tussen week en dag. In de dagweergave zie je meer details, in de weekweergave heb je meer overzicht.",
+            "hash": "ce8b6f442269617e3d190b67e89ecfec079ce0ce",
+            "start": 13.285,
+            "end": 19.554
         },
         {
             "text": "Met Vandaag ben je meteen terug bij nu. De pijltjes gaan een week terug of vooruit, of een dag als je de dag bekijkt.",
-            "hash": "a8e07dce3426895e86c98623729ed99f123c8888",
-            "start": 19.197,
-            "end": 26.117
+            "hash": "bdd98149656a21602c73dc69021c99b6fd68d66f",
+            "start": 20.554,
+            "end": 27.706
         },
         {
-            "text": "Met het kalendertje spring je naar elke datum. Klik een dag, en de planner gaat naar de week van die dag.",
-            "hash": "64354ae8da6ae1c39c9aa76e44d77ceb72cbdfa5",
-            "start": 26.417,
-            "end": 32.5
+            "text": "Met het kalendertje spring je naar elke datum. Kies een dag, en de planner gaat naar de week van die dag.",
+            "hash": "04b61e35d1553d849ca01ed299fe06a8e1e11320",
+            "start": 28.706,
+            "end": 33.861
         },
         {
             "text": "Zoek je een afspraak? Typ een klant, een plaats of een omschrijving, en kies hem uit de lijst. De planner springt erheen en laat hem even oplichten.",
-            "hash": "9dd30727a0c9a1e3245528349920f0358aadf11d",
-            "start": 32.8,
-            "end": 41.763
+            "hash": "a30ce521599ce8f2718dd6376e794614c1f27b65",
+            "start": 34.861,
+            "end": 42.523
         },
         {
-            "text": "Onder de drie puntjes staan de instellingen. Exporteren, de standaardduur van een nieuwe afspraak, en welke kleur leidend is: die van de soort afspraak, of die van de rol van de monteur. Die gelden voor iedereen.",
-            "hash": "081f827b6554f0d727adde67b83c26fc54be898e",
-            "start": 42.063,
-            "end": 55.159
+            "text": "Onder de drie puntjes staan de instellingen. Exporteren, de standaardduur van een nieuwe afspraak, en welke kleur leidend is: die van de soort afspraak, of die van de rol van de monteur. Dit geldt voor iedereen.",
+            "hash": "58116839851182649ab9343c619a38d60f518858",
+            "start": 43.523,
+            "end": 54.669
         },
         {
             "text": "Hoe fijn het raster is, en hoe laat je dag begint en eindigt, onthoudt de planner alleen voor jou, in deze browser.",
-            "hash": "4b6f74823b3809e84030fdbfa0f96c6f9aa06ba8",
-            "start": 55.459,
-            "end": 62.843
+            "hash": "f3ca2c36d74c3e60c13c17a0383ab69935e3ec37",
+            "start": 55.669,
+            "end": 61.938
         },
         {
             "text": "Met deze knop start je de rondleiding opnieuw, wanneer je maar wilt. Je kunt het de assistent ook gewoon vragen.",
-            "hash": "4a1bcbdc450a2925d0996e497832398997cb8252",
-            "start": 63.143,
-            "end": 69.738
+            "hash": "d5244887c4621d5d599b09ed05d6790fe8568e7e",
+            "start": 62.938,
+            "end": 69.161
         }
     ]
 }

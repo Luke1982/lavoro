@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { TOURS } from '@/Tours/catalog'
+import { NEW_PRODUCT } from '@/Tours/examples'
 
 /**
  * Guards the one promise the rondleidingen rest on: a storyboard only names
@@ -247,5 +248,16 @@ describe('rondleidingen', () => {
             }
         })
         expect(broken).toEqual([])
+    })
+
+    it('says the made-up names a step types, so the voice and the screen agree', () => {
+        const typed = { typeNewProduct: NEW_PRODUCT.model, typeNewBrand: NEW_PRODUCT.brand }
+        const silent = []
+        everyStep(({ step, where }) => {
+            for (const action of [step.action ?? []].flat()) {
+                if (typed[action] && !step.say.includes(typed[action])) silent.push(where + ': zegt "' + typed[action] + '" niet')
+            }
+        })
+        expect(silent).toEqual([])
     })
 })

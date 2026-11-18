@@ -56,8 +56,14 @@ return [
     /* Per hoofdstuk één geluidsbestand en een klein bestand met de tijden per stap. */
     'output' => public_path('tours'),
 
-    /* Stilte na elke stap in het samengevoegde bestand, zodat een stap nooit het begin van de volgende laat horen. */
-    'gap_seconds' => 0.3,
+    /*
+     * Stilte na elke stap in het samengevoegde bestand, zodat een stap nooit het
+     * begin van de volgende laat horen. Ruim: wat al naar de luidspreker onderweg
+     * is, klinkt na het stoppen nog na, op een bluetooth-koptelefoon een paar
+     * tienden van een seconde. Niemand hoort deze stilte, want elke stap stopt
+     * vlak na zijn laatste woord.
+     */
+    'gap_seconds' => 1.0,
 
     'ffmpeg' => env('FFMPEG_BINARY', '/usr/bin/ffmpeg'),
     'ffprobe' => env('FFPROBE_BINARY', '/usr/bin/ffprobe'),

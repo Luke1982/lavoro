@@ -1,20 +1,22 @@
 <template>
-    <IndexHeaderComponent title="Machines" subtitle="Zoek en filter machines"
+    <IndexHeaderComponent ref="header" title="Machines" subtitle="Zoek en filter machines"
         search-placeholder="Zoek op serienummer, merk, model, soort of klant" search-url="/assets" :paginator="assets"
         :add-label="canCreate ? 'Voeg machine toe' : ''" @add="() => canCreate && (addAssetDrawerOpen = true)"
-        :has-active-filters="activeFilters.length > 0">
+        :search-other-params="filterParams" :has-active-filters="activeFilters.length > 0">
+        <template #actions>
+            <TourButton tour="machines" data-tour="machines.tour" />
+        </template>
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-4 w-full">
-                <div class="flex-1">
+                <div class="flex-1" data-tour="machines.filter.status">
                     <label class="block text-sm font-medium mb-2">Filter op status</label>
-                    <ComboBox :options="statusOptions" v-model="selectedStatus" placeholder="Laat alleen status zien"
-                        class="w-full" @update:modelValue="val => { updateLocalStorageStatus(val) }" />
+                    <ComboBox :options="FILTERS.status.options" v-model="chosen.status" placeholder="Laat alleen status zien"
+                        class="w-full" />
                 </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-medium mb-2">Filter op tickets</label>
-                    <ComboBox :options="ticketFilterOptions" v-model="selectedTicketFilter"
-                        placeholder="Filter op tickets" class="w-full"
-                        @update:modelValue="val => localStorage.setItem('selectedAssetTicketFilter', val)" />
+                <div class="flex-1" data-tour="machines.filter.tickets">
+                    <label class="block text-sm font-medium mb-2">Filter op storingen</label>
+                    <ComboBox :options="FILTERS.tickets.options" v-model="chosen.tickets"
+                        placeholder="Filter op storingen" class="w-full" />
                 </div>
                 <div class="hidden sm:flex items-end justify-end text-lavoro-blue dark:text-blue-400 font-semibold text-sm cursor-pointer pb-0.5"
                     @click="clearAllFilters">
@@ -59,8 +61,8 @@
             <div class="col-span-1 text-center">Lopend</div>
             <div class="col-span-1 text-center">Gesloten</div>
         </div>
-        <div v-auto-animate>
-            <div v-for="asset in filteredAssets" :key="asset.id" role="row"
+        <div ref="rows" v-auto-animate>
+            <div v-for="asset in assets.data" :key="asset.id" role="row"
                 class="relative grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-300">
                 <div class="col-span-10 lg:col-span-3 flex items-center gap-3">
                     <img class="size-10 flex-none rounded-full bg-gray-50 dark:bg-slate-800/50 object-cover"
@@ -82,13 +84,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-span-2 hidden lg:flex items-center text-gray-600 dark:text-gray-300">
+                <div class="col-span-2 hidden lg:flex items-center text-gray-600 dark:text-gray-300" data-cell="serial">
                     {{ asset.serial_number || '—' }}
                 </div>
                 <div class="col-span-1 hidden lg:flex items-center text-gray-500 dark:text-gray-400 text-xs">
                     {{ asset.date_in_service ? nlDate(asset.date_in_service) : '—' }}
                 </div>
-                <div class="col-span-2 hidden lg:flex items-center gap-1 text-xs">
+                <div class="col-span-2 hidden lg:flex items-center gap-1 text-xs" data-cell="next-service">
                     <CalendarDateRangeIcon v-if="asset.next_service_date" class="size-4 text-gray-400 flex-none"
                         aria-hidden="true" />
                     <span
@@ -103,21 +105,21 @@
                         class="inline-flex items-center rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-300 ring-1 ring-red-600/10 dark:ring-red-500/30 ring-inset">{{
                             asset.status }}</span>
                 </div>
-                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <div class="col-span-1 hidden lg:flex items-center justify-center" data-cell="tickets">
                     <span v-if="asset.open_tickets_count > 0"
                         class="inline-flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20 dark:ring-blue-500/30 ring-inset min-w-[1.75rem]">
                         {{ asset.open_tickets_count }}
                     </span>
                     <span v-else class="text-gray-300 text-xs">—</span>
                 </div>
-                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <div class="col-span-1 hidden lg:flex items-center justify-center" data-cell="tickets">
                     <span v-if="asset.pending_tickets_count > 0"
                         class="inline-flex items-center justify-center rounded-full bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20 dark:ring-amber-500/30 ring-inset min-w-[1.75rem]">
                         {{ asset.pending_tickets_count }}
                     </span>
                     <span v-else class="text-gray-300 text-xs">—</span>
                 </div>
-                <div class="col-span-1 hidden lg:flex items-center justify-center">
+                <div class="col-span-1 hidden lg:flex items-center justify-center" data-cell="tickets">
                     <span v-if="asset.closed_tickets_count > 0"
                         class="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-gray-600 dark:text-slate-400 ring-1 ring-gray-400/20 ring-inset min-w-[1.75rem]">
                         {{ asset.closed_tickets_count }}
@@ -146,7 +148,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { CalendarDateRangeIcon } from '@heroicons/vue/24/outline';
 import { RotateCcwIcon } from '@lucide/vue';
@@ -159,6 +161,8 @@ import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
+import TourButton from '@/Components/Tour/TourButton.vue';
+import { useTour } from '@/Composables/useTour';
 
 const addAssetDrawerOpen = ref(false)
 
@@ -173,71 +177,107 @@ const props = defineProps({
     customersUseAjax: { type: Boolean, default: false },
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     perPage: { type: Number, default: 20 },
+    /** The filters the server applied, over all machines: `status` and `tickets`. */
+    filters: { type: Object, default: () => ({}) },
 });
 
-const selectedStatus = ref(Number(localStorage.getItem('selectedAssetStatus')) || 1);
-const selectedTicketFilter = ref(Number(localStorage.getItem('selectedAssetTicketFilter')) || 1);
+const ALL = 'all';
 
-const filteredAssets = computed(() => {
-    return props.assets.data.filter(asset => {
-        if (selectedStatus.value === 2 && asset.status !== 'Actief') return false;
-        if (selectedStatus.value === 3 && asset.status !== 'Niet actief') return false;
+/**
+ * What each filter offers, and what its chip says while it is in use. The
+ * server applies them over all machines, not only the page on the screen.
+ */
+const FILTERS = {
+    status: {
+        chip: 'Status',
+        options: [
+            { id: ALL, name: 'Alle statussen' },
+            { id: 'Actief', name: 'Actief' },
+            { id: 'Niet actief', name: 'Niet actief' },
+        ],
+    },
+    tickets: {
+        chip: 'Storingen',
+        options: [
+            { id: ALL, name: 'Alle machines' },
+            { id: 'any', name: 'Met storingen' },
+            { id: 'open', name: 'Met open storingen' },
+            { id: 'pending', name: 'Met lopende storingen' },
+        ],
+    },
+};
 
-        const total = asset.open_tickets_count + asset.pending_tickets_count + asset.closed_tickets_count;
-        if (selectedTicketFilter.value === 2 && total === 0) return false;
-        if (selectedTicketFilter.value === 3 && asset.open_tickets_count === 0) return false;
-        if (selectedTicketFilter.value === 4 && asset.pending_tickets_count === 0) return false;
+const perFilter = value => Object.fromEntries(Object.keys(FILTERS).map(key => [key, value(key)]));
 
-        return true;
-    });
-});
+const chosen = reactive(perFilter(key => props.filters[key] ?? ALL));
 
-const statusOptions = [
-    { id: 1, name: 'Alle statussen' },
-    { id: 2, name: 'Actief' },
-    { id: 3, name: 'Niet actief' },
-];
+/** Sent along with every search; a change in them searches again by itself. */
+const filterParams = computed(() => perFilter(key => (chosen[key] === ALL ? '' : chosen[key])));
 
-const ticketFilterOptions = [
-    { id: 1, name: 'Alle machines' },
-    { id: 2, name: 'Heeft tickets' },
-    { id: 3, name: 'Heeft open tickets' },
-    { id: 4, name: 'Heeft lopende tickets' },
-];
-
-const activeFilters = computed(() => {
-    const filters = []
-    if (selectedStatus.value !== 1) {
-        const match = statusOptions.find(o => o.id === selectedStatus.value)
-        if (match) filters.push({
-            key: 'status',
-            label: 'Status',
-            value: match.name,
-            clear: () => { selectedStatus.value = 1; localStorage.setItem('selectedAssetStatus', 1) },
-        })
-    }
-    if (selectedTicketFilter.value !== 1) {
-        const match = ticketFilterOptions.find(o => o.id === selectedTicketFilter.value)
-        if (match) filters.push({
-            key: 'tickets',
-            label: 'Tickets',
-            value: match.name,
-            clear: () => { selectedTicketFilter.value = 1; localStorage.setItem('selectedAssetTicketFilter', 1) },
-        })
-    }
-    return filters
-})
-
-function updateLocalStorageStatus(val) {
-    localStorage.setItem('selectedAssetStatus', val);
-}
+const activeFilters = computed(() => Object.entries(FILTERS)
+    .filter(([key]) => chosen[key] !== ALL)
+    .map(([key, filter]) => ({
+        key,
+        label: filter.chip,
+        value: filter.options.find(option => option.id === chosen[key])?.name,
+        clear: () => { chosen[key] = ALL },
+    })));
 
 function clearAllFilters() {
-    selectedStatus.value = 1;
-    selectedTicketFilter.value = 1;
-    localStorage.setItem('selectedAssetStatus', 1);
-    localStorage.setItem('selectedAssetTicketFilter', 1);
+    Object.assign(chosen, perFilter(() => ALL));
 }
 
+/** This browser remembers them, and brings them back on a visit that has none of its own. */
+const storageKey = key => 'assetFilter_' + key;
+
+function remember(key, value) {
+    try {
+        localStorage.setItem(storageKey(key), value);
+    } catch {
+        /* a browser that keeps nothing simply starts without filters */
+    }
+}
+
+function recall(key) {
+    try {
+        const value = localStorage.getItem(storageKey(key));
+        return FILTERS[key].options.some(option => option.id === value) ? value : ALL;
+    } catch {
+        return ALL;
+    }
+}
+
+watch(chosen, () => Object.entries(chosen).forEach(([key, value]) => remember(key, value)));
+
+onMounted(() => {
+    if (Object.keys(props.filters).length) return;
+    Object.assign(chosen, perFilter(recall));
+});
+
 const canCreate = computed(() => hasPermission('asset.create'))
+
+/**
+ * The machines rondleiding opens the filters and the new-machine drawer here,
+ * and points at the first machine in the list and the cells of that row.
+ */
+const header = ref(null);
+const rows = ref(null);
+const firstRow = () => rows.value?.querySelector('[role=row]') ?? null;
+
+useTour('machines', {
+    openFilters: () => header.value?.openFilters() ?? null,
+    openNewMachine: () => {
+        if (!canCreate.value || addAssetDrawerOpen.value) return null;
+        addAssetDrawerOpen.value = true;
+
+        return () => { addAssetDrawerOpen.value = false };
+    },
+}, {
+    spots: {
+        'machines.row': firstRow,
+        'machines.row.serial': () => firstRow()?.querySelector('[data-cell=serial]') ?? null,
+        'machines.row.next-service': () => firstRow()?.querySelector('[data-cell=next-service]') ?? null,
+        'machines.row.tickets': () => [...(firstRow()?.querySelectorAll('[data-cell=tickets]') ?? [])],
+    },
+});
 </script>

@@ -50,8 +50,8 @@
                     "spot": "planner.views",
                     "action": "showDayView",
                     "title": "Week of dag",
-                    "text": "Wissel tussen de **week** en de **dag**. In de dagweergave krijgt elk uur meer ruimte.",
-                    "say": "Hier wissel je tussen week en dag. Kijk: in de dagweergave krijgt elk uur meer ruimte.",
+                    "text": "Wissel tussen de **week** en de **dag**. De dag laat meer details zien, de week geeft meer overzicht.",
+                    "say": "Hier wissel je tussen week en dag. In de dagweergave zie je meer details, in de weekweergave heb je meer overzicht.",
                     "aid": {
                         "type": "pointer",
                         "to": "planner.views",
@@ -88,8 +88,8 @@
                     "spot": "planner.calendar.panel",
                     "action": "openCalendar",
                     "title": "Springen naar een datum",
-                    "text": "Het kalendertje toont een maand. Klik een dag en de planner springt erheen, in de weekweergave naar de week van die dag.",
-                    "say": "Met het kalendertje spring je naar elke datum. Klik een dag, en de planner gaat naar de week van die dag.",
+                    "text": "Het kalendertje toont een maand. Kies een dag en de planner springt erheen, in de weekweergave naar de week van die dag.",
+                    "say": "Met het kalendertje spring je naar elke datum. Kies een dag, en de planner gaat naar de week van die dag.",
                     "aid": {
                         "type": "pointer",
                         "to": "planner.calendar.panel",
@@ -119,7 +119,7 @@
                     "placement": "left",
                     "title": "Instellingen",
                     "text": "Onder de drie puntjes: **Exporteren** naar Excel, de **standaardduur** van een nieuwe afspraak en de **leidende kleur**: krijgt een afspraak de kleur van zijn afspraaktype, of die van de planrol van de monteur? Die laatste twee gelden voor iedereen; wat je niet mag wijzigen, staat er niet.",
-                    "say": "Onder de drie puntjes staan de instellingen. Exporteren, de standaardduur van een nieuwe afspraak, en welke kleur leidend is: die van de soort afspraak, of die van de rol van de monteur. Die gelden voor iedereen.",
+                    "say": "Onder de drie puntjes staan de instellingen. Exporteren, de standaardduur van een nieuwe afspraak, en welke kleur leidend is: die van de soort afspraak, of die van de rol van de monteur. Dit geldt voor iedereen.",
                     "marks": [
                         {
                             "spot": "planner.settings",
@@ -296,7 +296,7 @@
                 {
                     "title": "Het bakje",
                     "text": "Op de lijst met storingen, en bij een machine, staat de knop **Op het bakje**. Wat je erop legt, staat rechtsonder klaar, op elke pagina.",
-                    "say": "Het bakje is een plek om iets even neer te leggen. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
+                    "say": "Het bakje is een plek om iets even neer te leggen voor later. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-place"
@@ -316,7 +316,7 @@
                 {
                     "title": "Op welke werkbon?",
                     "text": "Dan kies je: een **nieuwe werkbon** voor de klant, of een **open werkbon** van die klant. Staat een storing al op een werkbon, dan wordt die werkbon ingepland. Een machine krijgt een keuring op de werkbon.",
-                    "say": "Dan kies je op welke werkbon het komt. Een nieuwe werkbon voor de klant, of een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
+                    "say": "Dan kies je op welke werkbon de storing moet komen. Maak direct een nieuwe bon aan, of kies een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-choice"
@@ -416,7 +416,7 @@
                     "spot": "planner.cell",
                     "title": "Een nieuwe afspraak",
                     "text": "Klik op een lege plek, of trek een vak over de tijd die je wilt. Het afspraakscherm gaat open.",
-                    "say": "Een afspraak maken is klikken op een lege plek, of een vak trekken over de tijd die je wilt.",
+                    "say": "Een afspraak maken doe je door te klikken op een lege plek, of door een vak te trekken over de tijd die je wilt.",
                     "aid": {
                         "type": "pointer",
                         "to": "planner.cell",
@@ -976,8 +976,8 @@
                 },
                 {
                     "title": "Toch plannen?",
-                    "text": "Over een blok heen plannen kan alleen als de beheerder dat onder Instellingen toestaat. Dan vraagt de planner eerst om een bevestiging.",
-                    "say": "Plannen over een blok heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
+                    "text": "Over een blokkade heen plannen kan alleen als de beheerder dat onder Instellingen toestaat. Dan vraagt de planner eerst om een bevestiging.",
+                    "say": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
                     "aid": {
                         "type": "picture",
                         "scene": "override"

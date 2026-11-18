@@ -2,50 +2,51 @@
     "tour": "planner",
     "chapter": "telefoon",
     "version": 1,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "telefoon.mp3",
+    "gap": 1,
     "steps": [
         {
             "text": "Op je telefoon zie je de week als een lijst, dag voor dag.",
-            "hash": "9a010b15f23b177a20ae32a73520fc4654350778",
+            "hash": "67d533d1a4398e0a9cb75cfeeca2bb73017207ef",
             "start": 0,
-            "end": 3.344
+            "end": 3.39
         },
         {
             "text": "Naar een andere week? Tik op de pijltjes, of veeg de lijst opzij.",
-            "hash": "af74150176d7c0eaf72495dbb0eb2f50d1620719",
-            "start": 3.644,
-            "end": 7.777
+            "hash": "a13cfe9a9fd602494159a64c2158d2af12f3e536",
+            "start": 4.39,
+            "end": 7.827
         },
         {
             "text": "Mag je de hele planning zien, dan kies je hier een monteur, of alle monteurs. Je telefoon onthoudt wat je koos.",
-            "hash": "890774aa61575f2090ae6c560464fe2766f15b32",
-            "start": 8.077,
-            "end": 15.229
+            "hash": "c9a141405c87a672a5b7f82651efb694300bf4b2",
+            "start": 8.827,
+            "end": 14.725
         },
         {
             "text": "Bij alle monteurs wissel je met deze knop naar banen naast elkaar.",
-            "hash": "4071e41317b710f61feeecf116ed85a5aa6530cc",
-            "start": 15.529,
-            "end": 19.615
+            "hash": "82de069338eb9ccfe054b7c96becc59ccaf0f82d",
+            "start": 15.725,
+            "end": 19.393
         },
         {
             "text": "Met de groene plusknop maak je een nieuwe afspraak.",
-            "hash": "ee58dc4664795320ef774b4b19c1717dc93f7dab",
-            "start": 19.915,
-            "end": 22.934
+            "hash": "63098bbcb387fb9fe744d2ea97f0972af8ffaccc",
+            "start": 20.393,
+            "end": 23.273
         },
         {
             "text": "Tik op een afspraak om hem te openen.",
-            "hash": "95aeabfa6908d4390b5328f9f98263af8bb403d6",
-            "start": 23.234,
-            "end": 25.649
+            "hash": "e33e4c186a35fb443c292d48bd8462f8537b6893",
+            "start": 24.273,
+            "end": 26.687
         },
         {
             "text": "Onderaan dat scherm staat de knop om de afspraak te verwijderen. Die vraagt altijd eerst of je het zeker weet.",
-            "hash": "74743cafa877aaab57b2c328583338c8e9bd6237",
-            "start": 25.949,
-            "end": 32.775
+            "hash": "60578dd38c5607800e93c6ae44552a24d300e4d2",
+            "start": 27.687,
+            "end": 33.678
         }
     ]
 }

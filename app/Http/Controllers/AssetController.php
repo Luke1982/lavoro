@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Assets\AttachChildAssetAction;
+use App\Enums\TicketStatusses;
 use App\Http\Requests\AssetAttachChildRequest;
 use App\Http\Requests\AssetChildStoreRequest;
 use App\Http\Requests\AssetDestroyRequest;
@@ -32,18 +33,16 @@ class AssetController extends Controller
     use ReadsPerPage;
 
     /**
-     * Display a listing of the resource.
-     */
-    /**
-     * List assets with optional search filter.
+     * List assets, searched and filtered over all of them: on status, and on
+     * whether they have storingen, open ones or ones being worked on.
      *
      * @return Response
      */
     public function index(AssetReadRequest $request)
     {
-
         $validated = $request->validated();
         $search = isset($validated['search']) ? (string) $validated['search'] : '';
+        $filters = array_filter($request->safe()->only(['status', 'tickets']));
 
         $query = Asset::with([
             'product.brand',
@@ -51,9 +50,9 @@ class AssetController extends Controller
             'product.productType',
             'customer',
         ])->withCount([
-            'tickets as open_tickets_count' => fn ($q) => $q->where('status', 'Open'),
-            'tickets as pending_tickets_count' => fn ($q) => $q->where('status', 'In behandeling'),
-            'tickets as closed_tickets_count' => fn ($q) => $q->where('status', 'Gesloten'),
+            'tickets as open_tickets_count' => fn ($q) => $q->where('status', TicketStatusses::open->value),
+            'tickets as pending_tickets_count' => fn ($q) => $q->where('status', TicketStatusses::in_behandeling->value),
+            'tickets as closed_tickets_count' => fn ($q) => $q->where('status', TicketStatusses::gesloten->value),
         ]);
 
         if ($search !== '') {
@@ -74,10 +73,22 @@ class AssetController extends Controller
             });
         }
 
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['tickets'])) {
+            $query->whereHas('tickets', fn ($tickets) => match ($filters['tickets']) {
+                'any' => $tickets,
+                'open' => $tickets->where('status', TicketStatusses::open->value),
+                'pending' => $tickets->where('status', TicketStatusses::in_behandeling->value),
+            });
+        }
+
         $assets = $query
             ->orderBy('next_service_date', 'ASC')
             ->paginate($this->perPage($request))
-            ->appends(['search' => $search]);
+            ->appends(['search' => $search, ...$filters]);
 
         $this->attachOwningCustomers($assets->getCollection());
 
@@ -86,6 +97,7 @@ class AssetController extends Controller
         return inertia('Assets/IndexPage', [
             'assets' => $assets,
             'initialSearch' => $search,
+            'filters' => (object) $filters,
             'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),

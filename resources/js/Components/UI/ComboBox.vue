@@ -51,7 +51,7 @@
                             </li>
                         </ComboboxOption>
                         <ComboboxOption v-if="showCreate" :value="createOption" as="template" v-slot="{ active }">
-                            <li data-combobox-create
+                            <li data-combobox-create data-tour="combo.create"
                                 :class="['relative flex cursor-default select-none items-center gap-2 py-2 pl-3 pr-9', filteredOptions.length > 0 && 'border-t border-gray-100 dark:border-slate-700', active ? 'bg-indigo-600 text-white dark:bg-indigo-500' : 'text-indigo-600 dark:text-indigo-400']">
                                 <PlusIcon class="h-4 w-4 flex-none" aria-hidden="true" />
                                 <span class="truncate">{{ createLabel }} ‘{{ createOption.name }}’</span>

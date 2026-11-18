@@ -24,6 +24,7 @@ import SceneRoute from '@/Components/Tour/Scenes/SceneRoute.vue'
 import SceneTrayPlace from '@/Components/Tour/Scenes/SceneTrayPlace.vue'
 import SceneTrayDrop from '@/Components/Tour/Scenes/SceneTrayDrop.vue'
 import SceneTrayChoice from '@/Components/Tour/Scenes/SceneTrayChoice.vue'
+import SceneTrayPlaces from '@/Components/Tour/Scenes/SceneTrayPlaces.vue'
 
 /**
  * A small animated picture of a screen or menu that is not on the page right
@@ -45,6 +46,7 @@ const SCENES = {
     'tray-place': SceneTrayPlace,
     'tray-drop': SceneTrayDrop,
     'tray-choice': SceneTrayChoice,
+    'tray-places': SceneTrayPlaces,
 }
 
 const props = defineProps({

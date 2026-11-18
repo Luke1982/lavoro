@@ -2,68 +2,69 @@
     "tour": "planner",
     "chapter": "afspraak",
     "version": 1,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "afspraak.mp3",
+    "gap": 1,
     "steps": [
         {
-            "text": "Een afspraak maken is klikken op een lege plek, of een vak trekken over de tijd die je wilt.",
-            "hash": "6549445b609f658337b6cf2566991627e590f1ec",
+            "text": "Een afspraak maken doe je door te klikken op een lege plek, of door een vak te trekken over de tijd die je wilt.",
+            "hash": "9c56c8d8adc50454ed271dac76df5f63095c98aa",
             "start": 0,
-            "end": 5.48
+            "end": 6.362
         },
         {
             "text": "Dan opent dit scherm. Bovenaan de dag en de tijden.",
-            "hash": "e98a6cd98f2d53edf103d6193ec405e958d62ed8",
-            "start": 5.78,
-            "end": 9.263
+            "hash": "95b1726bfacaba7c2ad58bf05df4a12475be7fd9",
+            "start": 7.362,
+            "end": 10.613
         },
         {
             "text": "Kies de soort afspraak. Die geeft de afspraak zijn kleur, tenzij de planner op de kleur van de monteurrol staat.",
-            "hash": "96ae225ff384890f968193efddbba044e1f6596e",
-            "start": 9.563,
-            "end": 16.25
+            "hash": "7bc1c98015a31a329f177f196b4b6f4f22fdab6c",
+            "start": 11.613,
+            "end": 17.557
         },
         {
             "text": "Kies daarna de klant.",
-            "hash": "bfefe04aa978fbf4d19075ecb4acb090adc8cafe",
-            "start": 16.55,
-            "end": 18.129
+            "hash": "6f75629d7d3686926c4e53b276840f46879a9d4e",
+            "start": 18.557,
+            "end": 19.811
         },
         {
             "text": "Koppel een werkbon van die klant, laat er meteen een nieuwe werkbon bij maken, of geef aan dat er geen werkbon nodig is.",
-            "hash": "96363e35341fe69ef5438df2aa104ab13826d1ba",
-            "start": 18.429,
-            "end": 26.138
+            "hash": "55203b8b81dd82682006c90dc2d7764803eb3f18",
+            "start": 20.811,
+            "end": 27.731
         },
         {
             "text": "De locatie volgt vanzelf de werkbon of de klant. Je kiest ook een andere locatie, of typt zelf een adres.",
-            "hash": "7650ae80bfb09eeaaeaff5333ddbe086fe2d9328",
-            "start": 26.438,
-            "end": 33.683
+            "hash": "4db759468fe360acd483c4dc43a91109a3be5529",
+            "start": 28.731,
+            "end": 34.722
         },
         {
             "text": "Hier staan de monteurs. Ieder krijgt een eigen pauze, en als het nodig is eigen tijden en een planrol. Staat de planner op de kleur van de monteurrol, dan kleurt die planrol de afspraak.",
-            "hash": "bd1a564822dd153079eecb03a2c12bbb1931cffd",
-            "start": 33.983,
-            "end": 45.268
+            "hash": "ef9e763492b8cacab1a76f5fa1a687718a27edc9",
+            "start": 35.722,
+            "end": 45.938
         },
         {
             "text": "Weet je het nog niet zeker, vink dan voorlopig aan. In de planner staat er dan een waarschuwing bij.",
-            "hash": "1b3a4bfa9821aefe611377dc595fc157c5fddf30",
-            "start": 45.568,
-            "end": 51.559
+            "hash": "420400e56440e09023788f9ae5fc6fc2c9fd7645",
+            "start": 46.938,
+            "end": 51.815
         },
         {
             "text": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
-            "hash": "7de1fc8860b11f1017c0af761e0c0005565bc7b3",
-            "start": 51.859,
-            "end": 60.078
+            "hash": "ef86e620e01ecc457f94f253da6196b0a5986d7c",
+            "start": 52.815,
+            "end": 60.802
         },
         {
             "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
-            "hash": "21cc0147aeeaefbbba2a9a7d985fe74e6f79b2c5",
-            "start": 60.378,
-            "end": 68.366
+            "hash": "6254e75085ebe0686bb6769f976f7090042a401a",
+            "start": 61.802,
+            "end": 68.35
         }
     ]
 }

@@ -29,7 +29,7 @@ class OfferTourTool implements Tool
     public function description(): string
     {
         return 'Zet onder je antwoord een knop die een rondleiding op het scherm start: geanimeerde uitleg met '
-            . 'gesproken tekst. Gebruik dit bij hoe-vragen over de planner of het rooster, of als iemand om '
+            . 'gesproken tekst. Gebruik dit bij hoe-vragen over de planner, het rooster of machines, of als iemand om '
             . 'uitleg of een rondleiding vraagt. Met chapter één hoofdstuk, zonder de hele rondleiding.';
     }
 
@@ -44,7 +44,7 @@ class OfferTourTool implements Tool
                 'tour' => [
                     'type' => 'string',
                     'enum' => $catalog->ids(),
-                    'description' => 'planner, of rooster (vrije dagen en vaste vrije momenten).',
+                    'description' => 'planner, rooster (vrije dagen) of machines (ook nieuw product of merk).',
                 ],
                 'chapter' => [
                     'type' => 'string',

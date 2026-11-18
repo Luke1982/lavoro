@@ -1,0 +1,58 @@
+{
+    "tour": "machines",
+    "chapter": "nieuw-product",
+    "version": 1,
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "audio": "nieuw-product.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Staat het product er nog niet in? Typ dan het model, hier de PX-12 Hybride. Onderaan de lijst verschijnt nieuw product.",
+            "hash": "165140ad10d2a24e8801f70f6cb591ea07f99d2c",
+            "start": 0,
+            "end": 6.78
+        },
+        {
+            "text": "Kies je die, dan opent het productformulier, boven op het machineformulier. Het model dat je typte, staat er al in.",
+            "hash": "7b015dba791d20d98e0c2e63ebf0a17ebfbfd622",
+            "start": 7.78,
+            "end": 14.468
+        },
+        {
+            "text": "Kies het producttype, het soort apparaat. Ontbreekt het, dan maak je het hier op dezelfde manier aan.",
+            "hash": "81d29352dac704a1d0945759bd34246362d46cda",
+            "start": 15.468,
+            "end": 20.947
+        },
+        {
+            "text": "Het merk Polarix bestaat ook nog niet. Typ het in, en kies nieuw merk.",
+            "hash": "661d03a4734391379d74c0ca8dfc66f2bc63ca1e",
+            "start": 21.947,
+            "end": 25.988
+        },
+        {
+            "text": "Het merk wordt meteen aangemaakt, en staat gekozen. Je hoeft het productformulier er niet voor uit.",
+            "hash": "e7a1718f24dba032279586e697251104a3bcbf66",
+            "start": 26.988,
+            "end": 32.282
+        },
+        {
+            "text": "Een bundel groepeert andere producten. Zet registreerbaar uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro er geen serienummer bij.",
+            "hash": "54c8e895abae91ee36e7c68c78e68ebd80e6900f",
+            "start": 33.282,
+            "end": 42.338
+        },
+        {
+            "text": "Met product aanmaken sla je het product op.",
+            "hash": "90b20381c5ec90f208ae3123a98dbc577d0bc9fb",
+            "start": 43.338,
+            "end": 45.753
+        },
+        {
+            "text": "Daarna sta je terug in het machineformulier, met het nieuwe product al gekozen. Vul de rest in, en klik op toevoegen.",
+            "hash": "a6b91a39285544356acb62682523d56049242e1a",
+            "start": 46.753,
+            "end": 53.301
+        }
+    ]
+}

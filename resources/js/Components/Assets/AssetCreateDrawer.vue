@@ -2,14 +2,14 @@
     <DrawerComponent v-if="canCreate" v-model="open" title="Nieuwe machine toevoegen"
         subtitle="Vul onderstaande velden in om een nieuwe machine toe te voegen.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <Field label="Product">
+            <Field ref="productField" label="Product" data-tour="machines.new.product">
                 <p v-if="product" :class="fixedValueClass">{{ product.name }}</p>
-                <ProductPicker v-else v-model="form.product_id" :options="productOptions"
+                <ProductPicker v-else ref="productPicker" v-model="form.product_id" :options="productOptions"
                     :has-external-searching="productsUseAjax" :searching="productSearching"
                     :has-error="Boolean(form.errors.product_id)" :error-message="form.errors.product_id"
                     @change="searchProducts" @created="option => productOptions.unshift(option)" />
             </Field>
-            <Field label="Klant">
+            <Field label="Klant" data-tour="machines.new.customer">
                 <p v-if="customer" :class="fixedValueClass">{{ customer.name }}</p>
                 <CustomerPicker v-else v-model="form.customer_id" :options="customerOptions"
                     :has-external-searching="customersUseAjax" :searching="customerSearching"
@@ -26,27 +26,29 @@
                         :error-message="form.errors.location_id" />
                 </Field>
             </Transition>
-            <Field label="Serienummer">
+            <Field label="Serienummer" data-tour="machines.new.serial">
                 <div class="flex items-start gap-2">
                     <TextInput v-model="form.serial_number" class="flex-1" :placeholder="serialPlaceholder"
                         :disabled="!needsSerial" :has-error="Boolean(form.errors.serial_number)"
                         :error-message="form.errors.serial_number" />
-                    <ScanSerialButton :disabled="!needsSerial" class="mt-0.5" @picked="form.serial_number = $event" />
+                    <span class="mt-0.5" data-tour="machines.new.scan">
+                        <ScanSerialButton :disabled="!needsSerial" @picked="form.serial_number = $event" />
+                    </span>
                 </div>
             </Field>
             <Transition v-bind="fadeUp">
                 <BundlePartsFields v-model="form.child_assets" :product-id="form.product_id"
                     :bundle-parts="bundlePartsByProduct" :errors="form.errors" class="px-4 sm:px-6 py-4" />
             </Transition>
-            <Field label="In gebruikname">
+            <Field label="In gebruikname" data-tour="machines.new.in-service">
                 <TextInput v-model="form.date_in_service" type="date" :has-error="Boolean(form.errors.date_in_service)"
                     :error-message="form.errors.date_in_service" />
             </Field>
-            <Field label="Volgende keuring">
+            <Field label="Volgende keuring" data-tour="machines.new.next-service">
                 <TextInput v-model="form.next_service_date" type="date"
                     :has-error="Boolean(form.errors.next_service_date)" :error-message="form.errors.next_service_date" />
             </Field>
-            <Field label="Actief">
+            <Field label="Actief" data-tour="machines.new.active">
                 <SwitchComponent v-model="form.is_active" />
             </Field>
         </div>
@@ -56,7 +58,7 @@
                     class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                     Annuleren
                 </button>
-                <button type="button" @click="submit" :disabled="form.processing"
+                <button type="button" data-tour="machines.new.submit" @click="submit" :disabled="form.processing"
                     class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Toevoegen
                 </button>
@@ -66,7 +68,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
@@ -81,6 +83,9 @@ import { useComboSearch } from '@/Composables/useComboSearch';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import { hasPermission, todayIso, nextServiceIso } from '@/Utilities/Utilities';
 import { fadeUp } from '@/Utilities/transitions';
+import { useTour } from '@/Composables/useTour';
+import { typeInto } from '@/Tours/typing';
+import { NEW_PRODUCT, pretendPicked } from '@/Tours/examples';
 
 /**
  * The one form for a new machine, wherever it is started. Whatever the page already knows
@@ -176,4 +181,25 @@ function submit() {
         onSuccess: close,
     });
 }
+
+/**
+ * The machines rondleiding follows a product that is not in the catalogue yet:
+ * its model typed into the product picker, so "Nieuw product" shows; the product
+ * form opened from there; and the made-up product chosen afterwards, as saving
+ * it would leave the drawer. Nothing is saved.
+ */
+const productField = ref(null);
+const productPicker = ref(null);
+
+useTour('machines', {
+    typeNewProduct: () => typeInto(productField.value?.$el.querySelector('input'), NEW_PRODUCT.model),
+    openNewProduct: () => productPicker.value?.create(NEW_PRODUCT.model) ?? null,
+    pretendNewProduct: () => props.product
+        ? null
+        : pretendPicked(productOptions, form, 'product_id', {
+            name: NEW_PRODUCT.brand + ' ' + NEW_PRODUCT.model,
+            bundle: false,
+            registable: true,
+        }),
+});
 </script>

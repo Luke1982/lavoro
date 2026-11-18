@@ -2,38 +2,39 @@
     "tour": "planner",
     "chapter": "uitvoering",
     "version": 1,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "uitvoering.mp3",
+    "gap": 1,
     "steps": [
         {
             "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok voor je tijden en de handtekening, en het kruisje om je eigen deel te annuleren.",
-            "hash": "be1c06f062d45587bf1b180e56538a00470da718",
+            "hash": "21fcbb390882cbb7f4b1926b26f753e133621a1d",
             "start": 0,
-            "end": 8.777
+            "end": 7.848
         },
         {
             "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging, vul je reistijd in, en laat de klant tekenen.",
-            "hash": "a23c5a64e36a79c8734d946bfe39f52831bcc33e",
-            "start": 9.077,
-            "end": 17.158
+            "hash": "da5727b31c3ca54823d4e90141b5a7b58cf41424",
+            "start": 8.848,
+            "end": 16.511
         },
         {
             "text": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
-            "hash": "6e221ef82b4f619fea173da84a5cc0c7206d4832",
-            "start": 17.458,
-            "end": 22.566
+            "hash": "7b30017e6cd7131a6273bc7dca774038d60cbf89",
+            "start": 17.511,
+            "end": 21.969
         },
         {
             "text": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als je eigen.",
-            "hash": "a8bf45ed5477bc9533b24ecc182f6b20d9cfc688",
-            "start": 22.866,
-            "end": 32.99
+            "hash": "cfd657abb01671eab897862fcae045259e4f99fd",
+            "start": 22.969,
+            "end": 31.746
         },
         {
             "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij, of trek je een annulering in. Dat geldt alleen voor de monteur in die rij.",
-            "hash": "5ba116603967b26d809b2c587365f30289da471f",
-            "start": 33.29,
-            "end": 41.371
+            "hash": "8ccfc2645ab47d6fc168dfaf3b9eb4e77c4d82fc",
+            "start": 32.746,
+            "end": 39.666
         }
     ]
 }

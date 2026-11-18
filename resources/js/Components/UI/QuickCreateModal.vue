@@ -14,7 +14,7 @@
                     class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                     Annuleren
                 </button>
-                <button type="button" @click="submit" :disabled="saving || loading"
+                <button type="button" data-tour="quickcreate.submit" @click="submit" :disabled="saving || loading"
                     class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     {{ saving ? 'Bezig…' : submitLabel }}
                 </button>

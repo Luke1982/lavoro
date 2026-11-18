@@ -2,32 +2,33 @@
     "tour": "planner",
     "chapter": "bakje",
     "version": 2,
-    "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
+    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
     "audio": "bakje.mp3",
+    "gap": 1,
     "steps": [
         {
-            "text": "Het bakje is een plek om iets even neer te leggen. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
-            "hash": "9add5cb1c0f61eff437f8aca69a79c63b6990b56",
+            "text": "Het bakje is een plek om iets even neer te leggen voor later. Op de storingenlijst, of bij een machine, klik je op de knop Op het bakje. Daarna ligt het rechtsonder klaar, op elke pagina.",
+            "hash": "7a67251fc0f070bae4e140738e8fdd0e12e8ba02",
             "start": 0,
-            "end": 10.913
+            "end": 10.867
         },
         {
             "text": "Sleep hem van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Er komt een afspraak, met de standaardduur.",
-            "hash": "bf0d86bbf14254a9e40ddbf6c3026ac7657afd7c",
-            "start": 11.213,
-            "end": 20.13
+            "hash": "a816885f3113fbe942cd2a8db7e25cd27dcfc1d3",
+            "start": 11.867,
+            "end": 19.715
         },
         {
-            "text": "Dan kies je op welke werkbon het komt. Een nieuwe werkbon voor de klant, of een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
-            "hash": "bbe6e4f69b20fe324affbdf697fa8cb7cb86d517",
-            "start": 20.43,
-            "end": 31.018
+            "text": "Dan kies je op welke werkbon de storing moet komen. Maak direct een nieuwe bon aan, of kies een werkbon die al open staat. Staat de storing al op een werkbon, dan wordt die ingepland.",
+            "hash": "5e320cd54538b14c5611c00a55988c6b1f999279",
+            "start": 20.715,
+            "end": 30.653
         },
         {
             "text": "Gaat een stapel niet helemaal dezelfde kant op, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing gewoon op het bakje liggen.",
-            "hash": "ffd56837a482b8cb994d7a062750901d83fb4f02",
-            "start": 31.318,
-            "end": 40.792
+            "hash": "f452effabc6513aec7cf67b60c1dcd89994d73c3",
+            "start": 31.653,
+            "end": 40.338
         }
     ]
 }

@@ -96,6 +96,7 @@ class TourAudio
             'version' => $chapter['version'],
             'voice' => $this->driver->signature(),
             'audio' => $audio_name,
+            'gap' => $this->gap_seconds,
             'steps' => $cues,
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
 
@@ -103,6 +104,9 @@ class TourAudio
     }
 
     /**
+     * Whether the chapter file was built from these very lines, for this version
+     * of the chapter, with this much silence between them.
+     *
      * @param  array<string, mixed>  $chapter
      * @param  array<int, array{text: string, hash: string, path: string}>  $steps
      */
@@ -116,6 +120,7 @@ class TourAudio
 
         return is_array($cue)
             && ($cue['version'] ?? null) === $chapter['version']
+            && (float) ($cue['gap'] ?? -1) === $this->gap_seconds
             && array_column($cue['steps'] ?? [], 'hash') === array_column($steps, 'hash');
     }
 

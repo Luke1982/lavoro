@@ -2,14 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\AssetStatusses;
 use App\Models\Asset;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Unified read request for Assets (index & show).
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @property-read string|null $search Optional search term
+ *
  * @method array validated() Return validated data
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -28,6 +33,7 @@ class AssetReadRequest extends FormRequest
         if ($asset) {
             return $this->user()->can('view', $asset);
         }
+
         return $this->user()->can('list', Asset::class);
     }
 
@@ -35,6 +41,8 @@ class AssetReadRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::enum(AssetStatusses::class)],
+            'tickets' => ['nullable', Rule::in(['any', 'open', 'pending'])],
         ];
     }
 }
