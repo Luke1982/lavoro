@@ -35,8 +35,8 @@ class AssetsOntoAsset implements UndoablePasteHandler
         $paste->records->each(fn (Asset $child) => app(AttachChildAssetAction::class)->execute($parent, $child));
 
         $message = $paste->records->count() === 1
-            ? AssetKind::title($paste->records->first()) . ' zit nu in ' . AssetKind::title($parent) . '.'
-            : $paste->records->count() . ' machines zitten nu in ' . AssetKind::title($parent) . '.';
+            ? AssetKind::named($paste->records->first()) . ' zit nu in ' . AssetKind::named($parent) . '.'
+            : $paste->records->count() . ' machines zitten nu in ' . AssetKind::named($parent) . '.';
 
         return new PasteResult($message, undo: [
             'parent_asset_id' => $parent->id,
@@ -81,7 +81,7 @@ class AssetsOntoAsset implements UndoablePasteHandler
     private function check(Asset $parent, Asset $child): void
     {
         if ($reason = app(AttachChildAssetAction::class)->refusal($parent, $child)) {
-            throw new Refusal(AssetKind::title($child) . ': ' . lcfirst($reason));
+            throw new Refusal(AssetKind::named($child) . ': ' . lcfirst($reason));
         }
     }
 }

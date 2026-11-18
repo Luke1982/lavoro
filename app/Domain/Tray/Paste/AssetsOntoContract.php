@@ -35,8 +35,9 @@ class AssetsOntoContract implements UndoablePasteHandler
         $assets->each(fn (Asset $asset) => app(AttachContractAssetAction::class)->execute($contract, $asset));
 
         $message = $assets->count() === 1
-            ? AssetKind::title($assets->first()) . ' valt nu onder ' . $contract->display_title . '.'
+            ? AssetKind::named($assets->first()) . ' valt nu onder ' . $contract->display_title . '.'
             : $assets->count() . ' machines vallen nu onder ' . $contract->display_title . '.';
+        $message .= AssetKind::leftAlone($paste->records->diff($assets), 'viel er al onder', 'vielen er al onder');
 
         return new PasteResult($message, undo: [
             'maintenancecontract_id' => $contract->id,
@@ -90,7 +91,7 @@ class AssetsOntoContract implements UndoablePasteHandler
 
         $assets->each(function (Asset $asset) use ($contract) {
             if ((int) $asset->customer_id !== (int) $contract->customer_id) {
-                throw new Refusal(AssetKind::title($asset) . ' hoort niet bij de klant van dit contract.');
+                throw new Refusal(AssetKind::named($asset) . ' hoort niet bij de klant van dit contract.');
             }
         });
 

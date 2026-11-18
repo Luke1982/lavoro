@@ -46,7 +46,7 @@ class AssetsOntoProject implements PasteHandler
 
         return new PasteResult(
             'Werkbon ' . $order->number . ' staat nu onder ' . $project->title . '.',
-            created: ['service_order_id' => $order->id],
+            created: ['service_order_ids' => [$order->id]],
         );
     }
 }

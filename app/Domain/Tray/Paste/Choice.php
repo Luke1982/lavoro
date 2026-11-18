@@ -5,7 +5,8 @@ namespace App\Domain\Tray\Paste;
 use JsonSerializable;
 
 /**
- * One way a paste can go, with the words on the button that makes it so.
+ * One way a paste can go, with the words on the button that makes it so. A
+ * choice made per record leaves the button to the question it is part of.
  */
 final class Choice implements JsonSerializable
 {
@@ -13,11 +14,19 @@ final class Choice implements JsonSerializable
         public readonly string $value,
         public readonly string $label,
         public readonly string $description,
-        public readonly string $confirm,
+        public readonly ?string $confirm = null,
     ) {}
 
     /**
-     * @return array<string, string>
+     * @param  array<int, Choice>  $choices
+     */
+    public static function offered(array $choices, mixed $answer): bool
+    {
+        return collect($choices)->contains(fn (Choice $choice) => $choice->value === $answer);
+    }
+
+    /**
+     * @return array<string, ?string>
      */
     public function jsonSerialize(): array
     {

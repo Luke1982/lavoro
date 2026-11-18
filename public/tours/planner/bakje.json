@@ -1,7 +1,7 @@
 {
     "tour": "planner",
     "chapter": "bakje",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2",
     "audio": "bakje.mp3",
     "steps": [
@@ -24,10 +24,10 @@
             "end": 31.018
         },
         {
-            "text": "Vergist? Klik dan op ongedaan maken, in de balk die even verschijnt. En wat je niet inplant, blijft gewoon op het bakje liggen.",
-            "hash": "8801dc591144317a4e5f47ff55c0cccadf5b452e",
+            "text": "Gaat een stapel niet helemaal dezelfde kant op, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing gewoon op het bakje liggen.",
+            "hash": "ffd56837a482b8cb994d7a062750901d83fb4f02",
             "start": 31.318,
-            "end": 39.213
+            "end": 40.792
         }
     ]
 }

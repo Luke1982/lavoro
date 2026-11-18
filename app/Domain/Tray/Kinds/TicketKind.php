@@ -62,6 +62,17 @@ final class TicketKind extends TrayKind
     }
 
     /**
+     * In quotes: a subject is whatever somebody typed, and reads as part of the
+     * sentence without them.
+     *
+     * @param  Ticket  $ticket
+     */
+    public static function named(Model $ticket): string
+    {
+        return '"' . self::title($ticket) . '"';
+    }
+
+    /**
      * The machine it is on.
      *
      * @param  Ticket  $ticket
@@ -86,7 +97,7 @@ final class TicketKind extends TrayKind
     /** @param  Ticket  $ticket */
     protected static function withoutCustomer(Model $ticket): string
     {
-        return '"' . self::title($ticket) . '" hangt niet aan een machine van een klant, '
+        return self::named($ticket) . ' hangt niet aan een machine van een klant, '
             . 'dus er is geen klant om een werkbon voor te maken.';
     }
 

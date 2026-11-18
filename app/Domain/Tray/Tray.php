@@ -82,9 +82,10 @@ class Tray
      *
      * @param  array<int, int>  $item_ids
      * @param  array<string, mixed>  $target
+     * @param  string|array<int, string>|null  $answer  One choice, or one per record id.
      * @return array<string, mixed>
      */
-    public function paste(User $user, array $item_ids, array $target, ?string $answer, bool $remove): array
+    public function paste(User $user, array $item_ids, array $target, string|array|null $answer, bool $remove): array
     {
         $items = $user->trayItems()->whereIn('id', $item_ids)->get();
 
@@ -121,7 +122,8 @@ class Tray
         $result = app(TrayContext::class)->run(fn () => DB::transaction(fn () => $handler->perform($paste)));
 
         if ($remove) {
-            $items->reject->pinned->each->delete();
+            $kept = collect($result->kept);
+            $items->reject(fn (TrayItem $item) => $item->pinned || $kept->contains($item->trayable_id))->each->delete();
         }
 
         return [

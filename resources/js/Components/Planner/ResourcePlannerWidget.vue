@@ -2260,7 +2260,7 @@ function dropFromTray(e, user, day) {
         event_type_id: props.eventTypes[0]?.id,
     }, (data) => {
         fetchEvents()
-        if (data.created?.service_order_id) emit('service-order-planned', data.created.service_order_id)
+        data.created?.service_order_ids?.forEach(id => emit('service-order-planned', id))
     }))
 }
 

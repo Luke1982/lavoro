@@ -60,8 +60,9 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
         });
 
         $message = $tickets->count() === 1
-            ? '"' . TicketKind::title($tickets->first()) . '" staat nu op werkbon ' . $order->number . '.'
+            ? TicketKind::named($tickets->first()) . ' staat nu op werkbon ' . $order->number . '.'
             : $tickets->count() . ' storingen staan nu op werkbon ' . $order->number . '.';
+        $message .= TicketKind::leftAlone($paste->records->diff($tickets), 'stond er al op', 'stonden er al op');
 
         return new PasteResult($message, undo: $moved ? null : [
             'service_order_id' => $order->id,
@@ -112,7 +113,7 @@ class TicketsOntoServiceOrder implements UndoablePasteHandler
             $customer_id = TicketKind::customerId($ticket);
 
             if ($customer_id !== null && $customer_id !== (int) $order->customer_id) {
-                throw new Refusal('"' . TicketKind::title($ticket) . '" hoort bij een andere klant dan werkbon '
+                throw new Refusal(TicketKind::named($ticket) . ' hoort bij een andere klant dan werkbon '
                     . $order->number . '.');
             }
         });

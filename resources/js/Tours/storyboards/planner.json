@@ -283,9 +283,9 @@
         },
         {
             "id": "bakje",
-            "version": 1,
+            "version": 2,
             "title": "Van het bakje naar de planner",
-            "summary": "Storingen en machines op het bakje leggen en ze op de dag van een monteur inplannen.",
+            "summary": "Storingen en machines op het bakje leggen, ze op de dag van een monteur inplannen, en een gemengde stapel per storing.",
             "requires": {
                 "device": "desktop",
                 "permissions": [
@@ -323,13 +323,13 @@
                     }
                 },
                 {
-                    "title": "Vergist?",
-                    "text": "Met **Ongedaan maken** in de balk die even verschijnt draai je het terug. Wat je niet inplant, blijft op het bakje liggen.",
-                    "say": "Vergist? Klik dan op ongedaan maken, in de balk die even verschijnt. En wat je niet inplant, blijft gewoon op het bakje liggen.",
+                    "title": "Een gemengde stapel",
+                    "text": "Gaan de storingen van een stapel niet allemaal dezelfde kant op, omdat ze bij verschillende klanten horen of er al een op een werkbon staat, dan kies je **per storing**: de werkbon waar hij op staat, een nieuwe of open werkbon, of **Niet inplannen**. Wat je niet inplant, blijft op het bakje liggen.",
+                    "say": "Gaat een stapel niet helemaal dezelfde kant op, dan kies je per storing waar hij heen gaat. Kies je niet inplannen, dan blijft die storing gewoon op het bakje liggen.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-choice",
-                        "variant": "undo"
+                        "variant": "mixed"
                     }
                 }
             ]

@@ -13,7 +13,7 @@
             links achter. Op een telefoon staat hij boven de balk onderin, want
             die dekt hem anders af.
         -->
-        <div v-if="can_ask" class="fixed inset-x-0 bottom-[6.5rem] z-40 transition-[padding-left] lg:bottom-0"
+        <div v-if="can_ask" ref="bar" class="fixed inset-x-0 bottom-[6.5rem] z-40 transition-[padding-left] lg:bottom-0"
             :class="collapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-72'">
             <div class="flex items-center justify-between gap-3 bg-slate-800 px-4 py-3 shadow-lg">
                 <div class="flex items-center gap-2 text-white">
@@ -40,6 +40,7 @@ import { ref } from 'vue'
 import { BellAlertIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useWebPush } from '@/Composables/useWebPush.js'
 import { useMenu } from '@/Composables/useMenu.js'
+import { useBottomBar } from '@/Composables/useBottomBars.js'
 
 /**
  * Vraagt om toestemming na een klik, niet vanzelf bij het laden: Safari geeft
@@ -51,6 +52,9 @@ import { useMenu } from '@/Composables/useMenu.js'
  */
 const { can_ask, enable, dismiss } = useWebPush()
 const { collapsed } = useMenu()
+
+const bar = ref(null)
+useBottomBar(bar)
 
 const asking = ref(false)
 

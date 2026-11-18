@@ -1,16 +1,20 @@
 <template>
-    <div class="relative h-[17rem] w-[24rem] bg-gray-50 p-4 text-gray-900 dark:bg-slate-800 dark:text-slate-100">
-        <div v-if="variant !== 'undo'" class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200 dark:bg-slate-900 dark:ring-slate-700">
-            <p class="text-sm font-bold">Storing inplannen</p>
+    <div class="relative h-[19rem] w-[24rem] bg-gray-50 p-4 text-gray-900 dark:bg-slate-800 dark:text-slate-100">
+        <div class="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200 dark:bg-slate-900 dark:ring-slate-700">
+            <p class="text-sm font-bold">{{ scene.title }}</p>
             <p class="text-[11px] text-gray-500 dark:text-slate-400">Bij Bas Visser, dinsdag 09:00</p>
-            <div class="mt-2.5 flex flex-col gap-1.5">
-                <div v-for="(choice, index) in choices" :key="choice.label"
-                    class="flex items-start gap-2 rounded-lg border-2 border-gray-200 px-2.5 py-1.5 dark:border-slate-700"
-                    :class="index === 0 ? 'scene-choice' : ''">
-                    <span class="mt-0.5 size-3 flex-none rounded-full border border-gray-300 dark:border-slate-600" :class="index === 0 ? 'scene-radio' : ''" />
+            <div v-for="group in scene.groups" :key="group.title" class="mt-2 flex flex-col gap-1">
+                <p class="text-[11px] font-bold">
+                    {{ group.title }}
+                    <span v-if="group.subtitle" class="font-normal text-gray-500 dark:text-slate-400">· {{ group.subtitle }}</span>
+                </p>
+                <div v-for="choice in group.choices" :key="choice.label"
+                    class="flex items-start gap-2 rounded-lg border-2 border-gray-200 px-2.5 py-1 dark:border-slate-700"
+                    :class="choice.look && 'scene-' + choice.look">
+                    <span class="scene-radio mt-0.5 size-3 flex-none rounded-full border border-gray-300 dark:border-slate-600" />
                     <span>
                         <span class="block text-[11px] font-semibold">{{ choice.label }}</span>
-                        <span class="block text-[10px] text-gray-500 dark:text-slate-400">{{ choice.description }}</span>
+                        <span v-if="choice.description" class="block text-[10px] text-gray-500 dark:text-slate-400">{{ choice.description }}</span>
                     </span>
                 </div>
             </div>
@@ -18,39 +22,65 @@
                 <span class="scene-confirm rounded-lg bg-lavoro-blue px-3 py-1 text-[11px] font-semibold text-white">Inplannen</span>
             </div>
         </div>
-        <div class="scene-toast absolute inset-x-4 bottom-4 flex items-center gap-2 overflow-hidden rounded-xl bg-sidebar-bg py-1.5 pl-3 pr-1.5 text-[11px] text-white shadow-xl"
-            :class="variant === 'undo' ? 'scene-toast-only' : ''">
-            <span class="flex-1">Ingepland bij Bas Visser</span>
-            <span class="scene-undo rounded-lg bg-sidebar-card px-2 py-1 font-semibold">Ongedaan maken</span>
-            <span class="scene-countdown absolute inset-x-0 bottom-0 h-0.5 origin-left bg-sidebar-indicator" />
+        <div class="scene-toast absolute inset-x-4 bottom-4 rounded-xl bg-sidebar-bg px-3 py-2 text-[11px] text-white shadow-xl">
+            {{ scene.toast }}
         </div>
-        <div v-if="variant === 'undo'" class="absolute inset-x-4 top-4 rounded-xl bg-white p-3 text-[11px] shadow-sm ring-1 ring-gray-200 dark:bg-slate-900 dark:ring-slate-700">
-            <p class="font-semibold">Op het bakje</p>
-            <div class="scene-back mt-1.5 rounded-lg bg-sidebar-card px-2 py-1.5 text-white">
-                <p class="text-[8px] uppercase tracking-wider text-slate-400">Storing</p>
-                <p class="text-[10px] font-semibold">Ketel lekt</p>
-            </div>
-        </div>
-        <svg class="absolute left-0 top-0" :class="variant === 'undo' ? 'scene-cursor-undo' : 'scene-cursor'" width="16" height="19" viewBox="0 0 26 30">
+        <svg class="scene-cursor absolute left-0 top-0" :style="scene.cursor" width="16" height="19" viewBox="0 0 26 30">
             <path d="M2 2 L2 24 L8 18.5 L12.5 28 L16.5 26.2 L12 16.8 L20 16.8 Z" fill="white" stroke="#081020" stroke-width="2" />
         </svg>
     </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 /**
- * De vraag na het loslaten op de planner: een nieuwe werkbon of een open
- * werkbon van de klant, daarna de balk met Ongedaan maken. Als `undo`: alleen
- * die balk, en de storing die terug op het bakje komt.
+ * De vraag na het loslaten op de planner, en de melding daarna. Gewoon: één
+ * vraag voor alles, een nieuwe werkbon of een open werkbon van de klant. Als
+ * `mixed`: een stapel die niet allemaal dezelfde kant op gaat, met een keuze per
+ * storing, waarvan er een op het bakje blijft liggen.
+ *
+ * Een keuze die `picked` is, wordt halverwege aangeklikt; een die `chosen` is,
+ * staat al aan en gaat uit als de cursor een andere in dezelfde groep kiest
+ * (`unpicked`). De cursor gaat naar de plek in --pick en dan naar Inplannen.
  */
-defineProps({
+const props = defineProps({
     variant: { type: String, default: 'default' },
 })
 
-const choices = [
-    { label: 'Nieuwe werkbon', description: 'Voor Fam. Kramer, met deze storing erop.' },
-    { label: 'WB-0014', description: 'Open werkbon van Fam. Kramer.' },
-]
+const SCENES = {
+    default: {
+        title: 'Storing inplannen',
+        groups: [{
+            title: 'Op welke werkbon?',
+            choices: [
+                { label: 'Nieuwe werkbon', description: 'Voor Fam. Kramer, met de storing erop.', look: 'picked' },
+                { label: 'Bij open werkbon WB-0014', description: 'Nog niet ingepland.' },
+            ],
+        }],
+        toast: 'Werkbon WB-0016 ingepland bij Bas Visser, dinsdag 09:00.',
+        cursor: { '--pick-x': '40px', '--pick-y': '104px', '--confirm-y': '200px' },
+    },
+    mixed: {
+        title: '2 storingen inplannen',
+        groups: [
+            {
+                title: 'Ketel lekt',
+                subtitle: 'staat op WB-0014',
+                choices: [{ label: 'Werkbon WB-0014', look: 'chosen' }, { label: 'Niet inplannen' }],
+            },
+            {
+                title: 'Radiator koud',
+                subtitle: 'Fam. Jansen',
+                choices: [{ label: 'Nieuwe werkbon', look: 'unpicked' }, { label: 'Niet inplannen', look: 'picked' }],
+            },
+        ],
+        toast: 'Werkbon WB-0014 ingepland bij Bas Visser. "Radiator koud" blijft op het bakje.',
+        cursor: { '--pick-x': '40px', '--pick-y': '222px', '--confirm-y': '260px' },
+    },
+}
+
+const scene = computed(() => SCENES[props.variant] ?? SCENES.default)
 </script>
 
 <style scoped>
@@ -58,16 +88,29 @@ const choices = [
     animation: cursor 5s ease-in-out infinite;
 }
 
-.scene-cursor-undo {
-    animation: cursor-undo 4s ease-in-out infinite;
+.scene-chosen {
+    border-color: var(--color-lavoro-blue);
 }
 
-.scene-choice {
-    animation: choice 5s infinite;
+.scene-chosen .scene-radio {
+    box-shadow: inset 0 0 0 3px var(--tour-surface);
+    background: var(--color-lavoro-blue);
 }
 
-.scene-radio {
-    animation: radio 5s infinite;
+.scene-picked {
+    animation: pick 5s infinite;
+}
+
+.scene-picked .scene-radio {
+    animation: pick-radio 5s infinite;
+}
+
+.scene-unpicked {
+    animation: unpick 5s infinite;
+}
+
+.scene-unpicked .scene-radio {
+    animation: unpick-radio 5s infinite;
 }
 
 .scene-confirm {
@@ -79,42 +122,30 @@ const choices = [
     animation: toast 5s ease-out infinite;
 }
 
-.scene-toast-only {
-    opacity: 1;
-    animation: none;
-}
-
-.scene-countdown {
-    animation: countdown 5s linear infinite;
-}
-
-.scene-toast-only .scene-countdown {
-    animation: countdown-undo 4s linear infinite;
-}
-
-.scene-toast-only .scene-undo {
-    animation: press-undo 4s infinite;
-}
-
-.scene-back {
-    animation: back 4s infinite;
-}
-
 @keyframes cursor {
-    0% { transform: translate(300px, 230px); }
-    18%, 30% { transform: translate(40px, 96px); }
-    50%, 58% { transform: translate(318px, 186px); }
-    100% { transform: translate(318px, 186px); }
+    0% { transform: translate(300px, 260px); }
+    18%, 30% { transform: translate(var(--pick-x), var(--pick-y)); }
+    50%, 58%, 100% { transform: translate(318px, var(--confirm-y)); }
 }
 
-@keyframes choice {
+@keyframes pick {
     0%, 24% { border-color: var(--tour-line); }
     26%, 100% { border-color: var(--color-lavoro-blue); }
 }
 
-@keyframes radio {
+@keyframes unpick {
+    0%, 24% { border-color: var(--color-lavoro-blue); }
+    26%, 100% { border-color: var(--tour-line); }
+}
+
+@keyframes pick-radio {
     0%, 24% { box-shadow: none; }
     26%, 100% { box-shadow: inset 0 0 0 3px var(--tour-surface); background: var(--color-lavoro-blue); }
+}
+
+@keyframes unpick-radio {
+    0%, 24% { box-shadow: inset 0 0 0 3px var(--tour-surface); background: var(--color-lavoro-blue); }
+    26%, 100% { box-shadow: none; }
 }
 
 @keyframes confirm {
@@ -127,31 +158,5 @@ const choices = [
     0%, 60% { opacity: 0; transform: translateY(10px); }
     66%, 96% { opacity: 1; transform: translateY(0); }
     100% { opacity: 0; transform: translateY(0); }
-}
-
-@keyframes countdown {
-    0%, 64% { transform: scaleX(1); }
-    100% { transform: scaleX(0); }
-}
-
-@keyframes countdown-undo {
-    0% { transform: scaleX(1); }
-    45%, 100% { transform: scaleX(0.55); }
-}
-
-@keyframes cursor-undo {
-    0% { transform: translate(200px, 120px); }
-    30%, 100% { transform: translate(300px, 222px); }
-}
-
-@keyframes press-undo {
-    0%, 32% { transform: scale(1); }
-    36% { transform: scale(0.9); }
-    40%, 100% { transform: scale(1); }
-}
-
-@keyframes back {
-    0%, 38% { opacity: 0; transform: translateY(12px); }
-    48%, 100% { opacity: 1; transform: translateY(0); }
 }
 </style>

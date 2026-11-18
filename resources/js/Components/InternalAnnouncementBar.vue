@@ -12,7 +12,7 @@
             vangt dat doorzichtige stuk de klikken op Uitloggen op. Alleen de
             kaart zelf hoort te reageren, net als bij GlobalNotification.
         -->
-        <div v-if="announcement"
+        <div v-if="announcement" ref="bar"
             class="pointer-events-none fixed inset-x-0 bottom-[6.5rem] z-[10000] transition-[padding-left,transform,opacity] lg:bottom-0"
             :class="collapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-72'" role="region" aria-label="Aankondiging">
             <div
@@ -41,6 +41,7 @@ import { computed, ref } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { Megaphone } from '@lucide/vue'
 import { useMenu } from '@/Composables/useMenu.js'
+import { useBottomBar } from '@/Composables/useBottomBars.js'
 
 /**
  * Toont de ene aankondiging die deze gebruiker nog moet bevestigen. Welke dat is
@@ -53,6 +54,9 @@ import { useMenu } from '@/Composables/useMenu.js'
  */
 const page = usePage()
 const { collapsed } = useMenu()
+
+const bar = ref(null)
+useBottomBar(bar)
 
 const announcement = computed(() => page.props.pendingAnnouncement ?? null)
 const acknowledging = ref(false)

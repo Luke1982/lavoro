@@ -1,8 +1,8 @@
 <template>
     <!-- On a computer: the bakje in the corner, as a button or opened up, with its messages above it. -->
     <Transition v-bind="RISE">
-        <div v-if="state.items.length || state.toast" data-tray-dock
-            class="fixed right-6 bottom-6 z-40 hidden w-[22rem] flex-col items-end gap-3 lg:flex">
+        <div v-if="state.items.length || state.toast" data-tray-dock :style="{ bottom: `${floor + 24}px` }"
+            class="fixed right-6 z-40 hidden w-[22rem] flex-col items-end gap-3 transition-[bottom] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:flex">
             <TrayToast />
 
             <Transition mode="out-in" v-bind="GROW">
@@ -32,7 +32,7 @@
             <div v-if="state.open" class="fixed inset-0 z-40 bg-slate-950/60" @click="state.open = false"></div>
         </Transition>
 
-        <div class="fixed inset-x-3 z-[45] flex flex-col gap-3" :style="{ bottom: `${clearance + 12}px` }">
+        <div class="fixed inset-x-3 z-[45] flex flex-col gap-3" :style="{ bottom: `${floor + 12}px` }">
             <TrayToast v-if="!state.carrying" />
             <Transition v-bind="RISE">
                 <TrayPanel v-if="state.open" class="max-h-[70dvh]" />
@@ -49,7 +49,7 @@ import { onMounted, onBeforeUnmount, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { InboxIcon } from '@lucide/vue'
 import { useTray, loadTray, endTrayDrag } from '@/Composables/useTray.js'
-import { useTabBar } from '@/Composables/useTabBar.js'
+import { useBottomBars } from '@/Composables/useBottomBars.js'
 import { TRAY_COUNT } from '@/Components/Tray/trayLooks.js'
 import TrayCarryBar from '@/Components/Tray/TrayCarryBar.vue'
 import TrayPanel from '@/Components/Tray/TrayPanel.vue'
@@ -57,7 +57,7 @@ import TrayPasteDialog from '@/Components/Tray/TrayPasteDialog.vue'
 import TrayToast from '@/Components/Tray/TrayToast.vue'
 
 const { state } = useTray()
-const { clearance } = useTabBar()
+const { floor } = useBottomBars()
 
 const EASE_OUT = 'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none'
 const EASE_IN = 'ease-in motion-reduce:transition-none'

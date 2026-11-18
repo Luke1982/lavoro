@@ -98,6 +98,28 @@ abstract class TrayKind
         return Str::ucfirst(static::counted($count));
     }
 
+    /** How one of them is named in a sentence. */
+    public static function named(Model $record): string
+    {
+        return static::title($record);
+    }
+
+    /**
+     * Closes a message about the ones a paste left alone: ' "Ketel lekt" stond er
+     * al op.' or ' 2 machines stonden er al op.' Nothing when there are none.
+     *
+     * @param  string  $one  What one of them did: "stond er al op".
+     * @param  string  $many  The same for several: "stonden er al op".
+     */
+    public static function leftAlone(Collection $left, string $one, string $many): string
+    {
+        return match ($left->count()) {
+            0 => '',
+            1 => ' ' . static::named($left->first()) . ' ' . $one . '.',
+            default => ' ' . static::counted($left->count()) . ' ' . $many . '.',
+        };
+    }
+
     /**
      * @param  array<int, int>  $ids
      */

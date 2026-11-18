@@ -9,7 +9,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * A paste off the bakje. Which bakje items, where they were dropped and, after
- * the person has been asked, what they chose.
+ * the person has been asked, what they chose: one choice, or one per record when
+ * the question asked about each on its own.
  *
  * Whether the paste itself is allowed is decided per record by the paste, with
  * the same rights as doing it by hand: the bakje is a quicker way to the same
@@ -34,7 +35,8 @@ class TrayPasteRequest extends FormRequest
             'target.start' => ['exclude_unless:target.type,planner', 'required', 'date_format:Y-m-d H:i'],
             'target.end' => ['exclude_unless:target.type,planner', 'required', 'date_format:Y-m-d H:i', 'after:target.start'],
             'target.event_type_id' => ['exclude_unless:target.type,planner', 'required', 'integer', 'exists:event_types,id'],
-            'answer' => ['nullable', 'string', 'max:50'],
+            'answer' => ['nullable', Rule::when(is_array($this->input('answer')), ['array', 'max:100'], ['string', 'max:50'])],
+            'answer.*' => ['string', 'max:50'],
             'remove' => ['sometimes', 'boolean'],
         ];
     }

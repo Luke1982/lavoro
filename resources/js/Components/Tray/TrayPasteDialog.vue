@@ -12,16 +12,18 @@
                 </li>
             </ul>
 
-            <fieldset class="flex flex-col gap-2.5">
-                <legend v-if="question.legend" class="mb-2.5 text-sm font-bold text-gray-900 dark:text-slate-100">
-                    {{ question.legend }}
+            <fieldset v-for="group in groups" :key="group.key" class="flex flex-col gap-2.5">
+                <legend v-if="group.legend" class="mb-2.5 text-sm font-bold text-gray-900 dark:text-slate-100">
+                    {{ group.legend }}
+                    <span v-if="group.subtitle" class="block font-normal text-gray-500 dark:text-slate-400">{{ group.subtitle }}</span>
                 </legend>
-                <label v-for="choice in question.choices" :key="choice.value"
-                    :class="[chosen === choice.value
+                <label v-for="choice in group.choices" :key="choice.value"
+                    :class="[chosen[group.key] === choice.value
                         ? 'border-lavoro-blue bg-lavoro-lightblue/60 shadow-sm dark:bg-blue-950/40'
                         : 'border-gray-200 bg-white hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600',
-                        'flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 transition duration-200 active:scale-[0.99] motion-reduce:transition-none']">
-                    <input type="radio" name="tray-paste-choice" :value="choice.value" v-model="chosen"
+                        groups.length > 1 ? 'py-2' : 'py-3',
+                        'flex cursor-pointer items-start gap-3 rounded-xl border-2 px-4 transition duration-200 active:scale-[0.99] motion-reduce:transition-none']">
+                    <input type="radio" :name="'tray-paste-' + group.key" :value="choice.value" v-model="chosen[group.key]"
                         class="mt-0.5 size-4 accent-lavoro-blue" />
                     <span class="flex flex-col gap-0.5">
                         <span class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ choice.label }}</span>
@@ -42,7 +44,7 @@
                     class="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:hover:bg-slate-800/50 active:scale-95 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                     Annuleren
                 </button>
-                <button type="button" :disabled="!chosen || state.busy" @click="answerTrayQuestion(chosen, remove)"
+                <button type="button" :disabled="!ready || state.busy" @click="answerTrayQuestion(answer, remove)"
                     class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-lavoro-blue px-4 text-sm font-semibold text-white transition hover:opacity-90 active:scale-95 disabled:opacity-50">
                     <LoaderCircleIcon v-if="state.busy" class="size-4 animate-spin" aria-hidden="true" />
                     <Transition mode="out-in" enter-active-class="transition duration-200 motion-reduce:transition-none"
@@ -69,18 +71,39 @@ const { state } = useTray()
  * the dialog would collapse to nothing halfway through its own exit.
  */
 const question = ref(null)
-const chosen = ref(null)
+const chosen = ref({})
 const remove = ref(true)
+
+/** The key of the one group when a single answer covers everything. */
+const ALL = 'all'
+
+/**
+ * The choices to make: one group for the whole paste, or one per record when
+ * the question asks about each on its own, headed by what that record is.
+ */
+const groups = computed(() => {
+    const value = question.value
+    if (!value) return []
+    return value.parts.length
+        ? value.parts.map(part => ({ key: part.key, legend: part.title, subtitle: part.subtitle, choices: part.choices }))
+        : [{ key: ALL, legend: value.legend, subtitle: null, choices: value.choices }]
+})
 
 watch(() => state.question, (value) => {
     if (!value) return
     question.value = value
-    chosen.value = value.choices[0]?.value ?? null
+    chosen.value = Object.fromEntries(groups.value.map(group => [group.key, group.choices[0]?.value ?? null]))
     remove.value = true
 })
 
-const confirmLabel = computed(() =>
-    question.value?.choices.find(choice => choice.value === chosen.value)?.confirm ?? 'Plakken')
+const ready = computed(() => groups.value.every(group => chosen.value[group.key]))
+
+/** One choice for all of it, or one per record id. */
+const answer = computed(() => question.value?.parts.length ? { ...chosen.value } : chosen.value[ALL])
+
+const confirmLabel = computed(() => question.value?.confirm
+    ?? question.value?.choices.find(choice => choice.value === chosen.value[ALL])?.confirm
+    ?? 'Plakken')
 
 const onOpenChange = (open) => {
     if (!open) dismissTrayQuestion()

@@ -40,11 +40,11 @@ class AssetsOntoPlanner implements PasteHandler
         $gate->authorize('create', Event::class);
         $gate->authorize('create', ServiceJob::class);
 
-        if ($slot->wantsNewOrder()) {
+        if ($paste->answer === PlannerSlot::NEW_ORDER) {
             $gate->authorize('create', ServiceOrder::class);
             $order = app(CreateServiceOrderAction::class)->execute(AssetKind::newServiceOrder($paste->records));
         } else {
-            $order = $slot->chosenOrder();
+            $order = $slot->order($paste->answer);
             app(AddServiceJobsAction::class)->execute($order, $paste->records);
         }
 

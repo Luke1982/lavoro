@@ -4,7 +4,7 @@
         leave-to-class="translate-y-4 opacity-0">
         <div v-if="state.carrying?.by === 'tap'" role="status"
             class="fixed inset-x-3 z-[55] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-sidebar-bg py-2 pr-2 pl-3 text-sm text-sidebar-text shadow-2xl ring-2 ring-sidebar-indicator"
-            :style="{ bottom: `${clearance + 12}px` }">
+            :style="{ bottom: `${floor + 12}px` }">
             <span :class="[look?.tile, 'flex size-9 flex-none items-center justify-center rounded-xl']">
                 <ClipboardPasteIcon class="size-5" aria-hidden="true" />
             </span>
@@ -24,7 +24,7 @@
 import { computed } from 'vue'
 import { ClipboardPasteIcon } from '@lucide/vue'
 import { useTray, putDownTray, trayCounted } from '@/Composables/useTray.js'
-import { useTabBar } from '@/Composables/useTabBar.js'
+import { useBottomBars } from '@/Composables/useBottomBars.js'
 import { trayLook } from '@/Components/Tray/trayLooks.js'
 
 /**
@@ -33,7 +33,7 @@ import { trayLook } from '@/Components/Tray/trayLooks.js'
  * where the thumb already is.
  */
 const { state } = useTray()
-const { clearance } = useTabBar()
+const { floor } = useBottomBars()
 
 const look = computed(() => trayLook(state.carrying?.kind))
 

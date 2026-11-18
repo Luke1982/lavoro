@@ -21,7 +21,7 @@ class TicketsOntoAsset implements PasteHandler
     {
         $asset = DropTarget::asset($paste);
         $tickets = $this->toMove($paste, $asset);
-        $machine = AssetKind::title($asset);
+        $machine = AssetKind::named($asset);
 
         return new Question(
             title: TicketKind::heading($tickets->count()) . ' verhangen?',
@@ -50,7 +50,7 @@ class TicketsOntoAsset implements PasteHandler
         });
 
         return new PasteResult(($tickets->count() === 1 ? 'De storing hangt' : 'De storingen hangen')
-            . ' nu aan ' . AssetKind::title($asset) . '.');
+            . ' nu aan ' . AssetKind::named($asset) . '.');
     }
 
     /**
@@ -75,7 +75,7 @@ class TicketsOntoAsset implements PasteHandler
             $order = $ticket->serviceOrder;
 
             if ($order && (int) $order->customer_id !== $customer_id) {
-                throw new Refusal('"' . TicketKind::title($ticket) . '" staat op werkbon ' . $order->number
+                throw new Refusal(TicketKind::named($ticket) . ' staat op werkbon ' . $order->number
                     . ' van een andere klant. Haal hem daar eerst af.');
             }
         });

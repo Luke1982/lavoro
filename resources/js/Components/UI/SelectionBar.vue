@@ -3,7 +3,7 @@
         <Transition enter-active-class="transition ease-out duration-200" enter-from-class="translate-y-full opacity-0"
             enter-to-class="translate-y-0 opacity-100" leave-active-class="transition ease-in duration-150"
             leave-from-class="translate-y-0 opacity-100" leave-to-class="translate-y-full opacity-0">
-            <div v-if="count"
+            <div v-if="count" ref="bar"
                 class="fixed inset-x-3 z-40 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 px-4 py-3 text-gray-800 dark:text-slate-200 shadow-lg lg:right-0 lg:rounded-none lg:border-x-0 lg:border-b-0 lg:px-6 lg:py-4"
                 :class="collapsed ? 'lg:left-[4.5rem]' : 'lg:left-72'" :style="{ bottom: `${bottom}px` }">
                 <div class="flex items-center gap-4 text-sm">
@@ -22,9 +22,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMenu } from '@/Composables/useMenu.js'
 import { useTabBar } from '@/Composables/useTabBar.js'
+import { useBottomBar } from '@/Composables/useBottomBars.js'
 
 /**
  * The bar that comes up when rows in a list are ticked, with what can be done
@@ -46,6 +47,9 @@ const GAP = 12
 
 const { collapsed } = useMenu()
 const { tucked, clearance } = useTabBar()
+
+const bar = ref(null)
+useBottomBar(bar)
 
 const bottom = computed(() => {
     if (clearance.value === 0) return 0

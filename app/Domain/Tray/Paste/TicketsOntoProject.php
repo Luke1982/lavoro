@@ -46,7 +46,7 @@ class TicketsOntoProject implements PasteHandler
 
         return new PasteResult(
             'Werkbon ' . $order->number . ' staat nu onder ' . $project->title . '.',
-            created: ['service_order_id' => $order->id],
+            created: ['service_order_ids' => [$order->id]],
         );
     }
 
@@ -56,7 +56,7 @@ class TicketsOntoProject implements PasteHandler
         $on_order = $paste->records->first(fn (Ticket $ticket) => $ticket->service_order_id !== null);
 
         if ($on_order) {
-            throw new Refusal('"' . TicketKind::title($on_order) . '" staat al op werkbon '
+            throw new Refusal(TicketKind::named($on_order) . ' staat al op werkbon '
                 . $on_order->serviceOrder?->number . '. Haal hem daar eerst af.');
         }
 

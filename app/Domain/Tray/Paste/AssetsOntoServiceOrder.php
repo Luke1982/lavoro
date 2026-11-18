@@ -37,8 +37,9 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
         ['jobs' => $jobs, 'parts' => $parts] = app(AddServiceJobsAction::class)->execute($order, $assets);
 
         $message = $jobs->count() === 1
-            ? AssetKind::title($assets->first()) . ' staat nu op werkbon ' . $order->number . '.'
+            ? AssetKind::named($assets->first()) . ' staat nu op werkbon ' . $order->number . '.'
             : $jobs->count() . ' machines staan nu op werkbon ' . $order->number . '.';
+        $message .= AssetKind::leftAlone($paste->records->diff($assets), 'stond er al op', 'stonden er al op');
 
         return new PasteResult($message, undo: [
             'service_order_id' => $order->id,
@@ -91,7 +92,7 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
 
         $assets->each(function (Asset $asset) use ($order) {
             if (AssetKind::customerId($asset) !== (int) $order->customer_id) {
-                throw new Refusal(AssetKind::title($asset) . ' hoort bij een andere klant dan werkbon '
+                throw new Refusal(AssetKind::named($asset) . ' hoort bij een andere klant dan werkbon '
                     . $order->number . '.');
             }
         });

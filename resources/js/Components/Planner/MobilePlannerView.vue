@@ -196,8 +196,8 @@
         </PlannerLoadingOverlay>
 
         <!-- FAB: create new event -->
-        <button v-if="canCreate" data-tour="planner.phone.add" data-planner-fab
-            class="fixed bottom-24 right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition lg:bottom-6"
+        <button v-if="canCreate" data-tour="planner.phone.add" :style="{ bottom: `${floor + 16}px` }"
+            class="fixed right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
             aria-label="Nieuwe afspraak aanmaken" @click="openCreate">
             <PlusIcon class="size-7 text-gray-900 dark:text-slate-100" />
         </button>
@@ -282,6 +282,7 @@ import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJum
 import { MapIcon, TriangleAlert, Columns3, List } from '@lucide/vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour } from '@/Composables/useTour'
+import { useBottomBars } from '@/Composables/useBottomBars.js'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -383,6 +384,7 @@ onUnmounted(stopPolling)
 watch(weekStart, () => { resetFingerprint(); fetchEvents() })
 
 const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, dayCount)
+const { floor } = useBottomBars()
 
 // ── User switcher ─────────────────────────────────────────────────────────────
 
@@ -741,9 +743,3 @@ useTour('planner', {
 })
 </script>
 
-<style>
-/* A bar along the bottom (the question about notifications, an announcement) sits where the plus button is; lift the button over it. */
-body:has([data-bottom-bar]) [data-planner-fab] {
-    bottom: 11.5rem;
-}
-</style>

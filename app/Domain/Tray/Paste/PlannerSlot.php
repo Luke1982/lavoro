@@ -68,7 +68,7 @@ final class PlannerSlot
      *
      * @return array<int, Choice>
      */
-    private function openOrderChoices(Customer $customer): array
+    public function openOrderChoices(Customer $customer): array
     {
         return ServiceOrder::visibleTo($this->paste->user)
             ->where('customer_id', $customer->id)
@@ -113,41 +113,45 @@ final class PlannerSlot
     }
 
     /**
-     * The werkbon the answer names. Only ever one that was offered: the bakje
+     * The werkbon an answer names. Only ever one that was offered: the bakje
      * checked the answer against the question before it got here.
      */
-    public function chosenOrder(): ServiceOrder
+    public function order(string $answer): ServiceOrder
     {
-        return ServiceOrder::findOrFail((int) Str::after($this->paste->answer, 'serviceorder:'));
+        return ServiceOrder::findOrFail((int) Str::after($answer, 'serviceorder:'));
     }
 
-    public function wantsNewOrder(): bool
-    {
-        return $this->paste->answer === self::NEW_ORDER;
-    }
-
-    /** Plans the werkbon on the spot where it was dropped, through the planner's own action. */
-    public function plan(ServiceOrder $order): PasteResult
+    /**
+     * Plans each werkbon on the spot where it was dropped, through the planner's
+     * own action: "Werkbon 0042 ingepland bij Bas, …" or "Werkbonnen 0042 en
+     * 0043 ingepland bij Bas, …".
+     */
+    public function plan(ServiceOrder ...$orders): PasteResult
     {
         $technician = $this->technician();
 
-        app(CreateAppointmentAction::class)->execute(new NewAppointment(
-            attributes: [
-                'name' => mb_strimwidth($order->description ?: 'Werkbon ' . $order->number, 0, 255, '…'),
-                'description' => $order->description ?? '',
-                'event_type_id' => (int) $this->paste->target['event_type_id'],
-                'status' => 'Gepland',
-                'start' => $this->paste->target['start'],
-                'end' => $this->paste->target['end'],
-            ],
-            eventable_type: '\\' . ServiceOrder::class,
-            eventable_id: $order->id,
-            assignment: new AppointmentAssignment(user_ids: [$technician->id]),
-        ));
+        foreach ($orders as $order) {
+            app(CreateAppointmentAction::class)->execute(new NewAppointment(
+                attributes: [
+                    'name' => mb_strimwidth($order->description ?: 'Werkbon ' . $order->number, 0, 255, '…'),
+                    'description' => $order->description ?? '',
+                    'event_type_id' => (int) $this->paste->target['event_type_id'],
+                    'status' => 'Gepland',
+                    'start' => $this->paste->target['start'],
+                    'end' => $this->paste->target['end'],
+                ],
+                eventable_type: '\\' . ServiceOrder::class,
+                eventable_id: $order->id,
+                assignment: new AppointmentAssignment(user_ids: [$technician->id]),
+            ));
+        }
+
+        $numbers = collect($orders)->pluck('number');
 
         return new PasteResult(
-            'Werkbon ' . $order->number . ' ingepland bij ' . $technician->name . ', ' . $this->when() . '.',
-            created: ['service_order_id' => $order->id],
+            ($numbers->count() === 1 ? 'Werkbon ' : 'Werkbonnen ') . $numbers->join(', ', ' en ')
+                . ' ingepland bij ' . $technician->name . ', ' . $this->when() . '.',
+            created: ['service_order_ids' => collect($orders)->pluck('id')->all()],
         );
     }
 }
