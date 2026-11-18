@@ -72,7 +72,7 @@ class ServiceOrderPolicy
         return $user->hasPermission('serviceorder.reopen');
     }
 
-    public function seeFinancials(User $user, ServiceOrder $serviceOrder): bool
+    public function seeFinancials(User $user, ?ServiceOrder $serviceOrder = null): bool
     {
         return $user->hasPermission('serviceorder.see_financials');
     }

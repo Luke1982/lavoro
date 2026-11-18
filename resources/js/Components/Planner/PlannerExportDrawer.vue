@@ -37,26 +37,21 @@
         </div>
 
         <template #footer>
-            <button type="button" :disabled="!canExport || downloading"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-md bg-lavoro-green px-4 py-2.5 text-sm font-semibold text-gray-900 disabled:opacity-40"
-                @click="exportExcel">
-                <LoaderCircle v-if="downloading" class="size-4 shrink-0 animate-spin" />
-                <FileSpreadsheet v-else class="size-4 shrink-0" />
-                Exporteren
-            </button>
+            <ExcelExportButton class="w-full" url="/planner/export" :disabled="!canExport"
+                :params="{ start: startDate, end: endDate, user_ids: selectedIds }"
+                @downloaded="open = false" />
         </template>
     </DrawerComponent>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import axios from 'axios'
 import dayjs from '@/Utilities/dayjs'
 import { initials } from '@/Utilities/Utilities'
-import { downloadBlob } from '@/Utilities/download.js'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { Check, FileSpreadsheet, LoaderCircle } from '@lucide/vue'
+import { Check } from '@lucide/vue'
+import ExcelExportButton from '@/Components/UI/ExcelExportButton.vue'
 
 const open = defineModel({ type: Boolean, default: false })
 
@@ -67,7 +62,6 @@ const props = defineProps({
 const startDate = ref(dayjs().startOf('isoWeek').format('YYYY-MM-DD'))
 const endDate = ref(dayjs().endOf('isoWeek').format('YYYY-MM-DD'))
 const selectedIds = ref([])
-const downloading = ref(false)
 
 function isSelected(id) {
     return selectedIds.value.includes(id)
@@ -93,20 +87,4 @@ const canExport = computed(() =>
     && !!endDate.value
     && startDate.value <= endDate.value
 )
-
-async function exportExcel() {
-    if (!canExport.value || downloading.value) return
-    downloading.value = true
-    try {
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-        const response = await axios.get('/planner/export', {
-            params: { start: startDate.value, end: endDate.value, user_ids: selectedIds.value, tz },
-            responseType: 'blob',
-        })
-        await downloadBlob(response.data, `planning-export-${startDate.value}-${endDate.value}.xlsx`)
-        open.value = false
-    } finally {
-        downloading.value = false
-    }
-}
 </script>

@@ -112,12 +112,8 @@
                     leave-to-class="transform opacity-0 scale-95">
                     <div v-if="settingsOpen" ref="settingsPanelRef" data-tour="planner.settings.panel" :style="settingsPanelStyle" tabindex="-1"
                         class="w-80 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100 focus:outline-none">
-                        <button v-if="hasPermission('event.export')" data-tour="planner.settings.export"
-                            class="flex items-center justify-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800"
-                            @click="settingsOpen = false; exportDrawerOpen = true">
-                            <ArrowDownTrayIcon class="size-4 shrink-0" />
-                            Exporteren
-                        </button>
+                        <ExcelExportButton v-if="hasPermission('event.export')" data-tour="planner.settings.export"
+                            @click="settingsOpen = false; exportDrawerOpen = true" />
 
                         <div v-if="hasPermission('planner.manage_settings')" data-tour="planner.settings.duration" class="flex flex-col gap-1">
                             <label class="text-xs text-gray-500 dark:text-slate-400">Standaard minuten</label>
@@ -574,7 +570,7 @@ import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour, findSpot } from '@/Composables/useTour'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, ArrowDownTrayIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { initials, formatLocalDateAsISO, formatUtcDatetime, nlDate, nlTime, hasPermission } from '@/Utilities/Utilities'
 import { useTray, canPaste, isTrayDrag, readTrayDrag, endTrayDrag, pasteFromTray } from '@/Composables/useTray.js'
 import { setServiceOrderDragData } from '@/Utilities/plannerDnd'
@@ -598,6 +594,7 @@ import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import PlannerExportDrawer from '@/Components/Planner/PlannerExportDrawer.vue'
+import ExcelExportButton from '@/Components/UI/ExcelExportButton.vue'
 import PlannerDateJump from '@/Components/Planner/PlannerDateJump.vue'
 import { usePopover } from '@/Composables/usePopover'
 import UnavailabilityOverrideDialog from '@/Components/Planner/UnavailabilityOverrideDialog.vue'

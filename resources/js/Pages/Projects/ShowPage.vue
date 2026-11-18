@@ -1,5 +1,6 @@
 <template>
-    <div class="flex items-center justify-end mb-4">
+    <div class="flex items-center justify-end gap-2 mb-4">
+        <ExcelExportButton :url="`/projects/${project.id}/export`" />
         <AssistantButton />
     </div>
     <ChaptersComponent>
@@ -413,6 +414,7 @@
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import { ref, reactive, watch, computed } from 'vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
+import ExcelExportButton from '@/Components/UI/ExcelExportButton.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import BoxComponent from '@/Components/BoxComponent.vue'

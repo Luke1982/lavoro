@@ -4,29 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EventExportRequest;
 use App\Services\PlannerExportService;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use App\Support\Spreadsheets\XlsxDownload;
 
 class EventExportController extends Controller
 {
     public function __invoke(EventExportRequest $request, PlannerExportService $service)
     {
-        $timezone = $request->validated('tz') ?: config('app.display_timezone');
-
         $spreadsheet = $service->build(
             array_map('intval', $request->validated('user_ids')),
             $request->validated('start'),
             $request->validated('end'),
-            $timezone,
+            $request->validated('tz') ?: config('app.display_timezone'),
         );
-
-        $writer = new Xlsx($spreadsheet);
 
         $filename = 'planning-export-' . $request->validated('start') . '-' . $request->validated('end') . '.xlsx';
 
-        return response()->streamDownload(function () use ($writer) {
-            $writer->save('php://output');
-        }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
+        return XlsxDownload::response($spreadsheet, $filename);
     }
 }

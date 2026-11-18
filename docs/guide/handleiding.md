@@ -457,6 +457,20 @@ De werkbonnen staan er als kaartjes: nummer en aanmaakdatum, klant met de locati
 
 Wie het recht op projectfinanciën heeft ziet ook het tabblad Administratie met financiële notities (met vastgelegd wie ze het laatst bijwerkte). Wijzigingen in die notities komen niet in de tijdlijn: alleen de laatste bewerker en het tijdstip worden bewaard. Zonder dat recht zijn de notities nergens te zien, ook niet via de assistent.
 
+**Exporteren naar Excel.** De knop **Exporteren** rechtsboven op de projectpagina downloadt de nacalculatie van het project. Iedereen die het project mag zien kan hem gebruiken. Het bestand heeft deze tabbladen:
+
+- **Overzicht**: de projectgegevens en de totalen. Het aantal werkbonnen (open, afgesloten, gefactureerd) en afspraken (afgerond, gepland, geannuleerd). De geplande en gewerkte uren, en hoeveel er meer of minder gewerkt is dan gepland, alleen geteld over de afspraken waarop de monteur begin en eind heeft ingevuld. De uren die nog niet geregistreerd zijn, de reistijd en de pauze. Het aantal regels materiaal, en voor wie bedragen mag zien de verkoopwaarde van materialen en diensten, met wat daarvan onvoorzien was. Daarnaast de mijlpalen (behaald, te laat, over datum), de taken, de storingen en de keuringen per uitkomst.
+- **Uren per monteur**: per monteur het aantal afspraken, de geplande en gewerkte uren, het verschil, de reistijd en de pauze, met een totaalregel.
+- **Werkbonnen**: per werkbon de fase, de datums, de monteurs, de uren, de bedragen, de taken, de storingen en keuringen, het inkoopordernummer, het factuurnummer en of hij gefactureerd is.
+- **Afspraken**: elke afspraak per monteur met dezelfde kolommen als de planner-export: geplande en werkelijke tijden, uren, reistijd, pauze en status.
+- **Materialen**: elke regel van de werkbonnen en hun taken, met het soort (materiaal, dienst of vrije regel), het aantal, de prijs en of hij onvoorzien was.
+- **Mijlpalen**, **Taken**, **Storingen** en **Keuringen**: elk als een lijst.
+- **Financiële notities**: het rekenblad van het tabblad Administratie. Sommen blijven werken.
+
+Geannuleerde afspraken tellen niet mee in de uren. De prijzen komen uit de materialenlijst zoals die nu is: een werkbonregel bewaart geen eigen prijs, dus heb je een prijs aangepast nadat het werk gedaan is, dan rekent de export met de nieuwe prijs. Vrije regels hebben geen prijs en staan wel in de lijst, maar niet in de totalen.
+
+Het bestand laat zien wat je op de werkbonnen zelf ook ziet. Mag je niet alle werkbonnen lezen, zoals een monteur, dan staan alleen je eigen werkbonnen erin, met hun afspraken, uren en materialen. Taken die bij een rol horen die je niet hebt, staan er niet in; de materialen van zo'n taak tellen wel mee, alleen zonder de naam van de taak. Bedragen (verkoopwaarde, onvoorzien in euro's) en de financiële opmerkingen staan er alleen in voor wie de financiële gegevens van werkbonnen mag zien. Kostprijs en marge vragen daarnaast het recht om de kostprijs van materialen te zien. Het tabblad Financiële notities krijg je alleen met het recht op projectfinanciën. Zonder die rechten ontbreken die kolommen en tabbladen helemaal.
+
 ## Documenten, foto's en opmerkingen
 
 Aan vrijwel elk record (werkbon, storing, project, klant, machine, product…) kunnen bijlagen hangen:

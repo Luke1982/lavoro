@@ -51,6 +51,7 @@ use App\Http\Controllers\ProductRelationController;
 use App\Http\Controllers\ProductSupplierController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RemarkController;
@@ -506,6 +507,8 @@ Route::group(
         Route::resource('projects', ProjectController::class);
         Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
             ->name('projects.timeline');
+        Route::get('projects/{project}/export', ProjectExportController::class)
+            ->name('projects.export');
         Route::resource('projectmilestones', ProjectMilestoneController::class)
             ->only(['store', 'update', 'destroy']);
         Route::get('upcomingactivities', [ActivityListController::class, 'getUpcomingActivities'])

@@ -3,44 +3,30 @@
 namespace App\Services;
 
 use App\Models\Event;
-use App\Models\EventUserExecution;
 use App\Models\User;
+use App\Support\Spreadsheets\AppointmentHours;
+use App\Support\Spreadsheets\SheetWriter;
 use Illuminate\Support\Carbon;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class PlannerExportService
 {
-    public function __construct(private EventLocationResolver $location_resolver) {}
-
-    private const HEADERS = [
+    private const COLUMNS = [
         'Afspraak',
         'Werkbon',
         'Klant',
         'Locatie',
         'Project',
-        'Geplande start',
-        'Geplande eind',
-        'Geplande uren (excl. pauze)',
-        'Werkelijke start',
-        'Werkelijke eind',
-        'Werkelijke uren (excl. pauze)',
-        'Reistijd (uren)',
-        'Geplande pauze (uren)',
-        'Werkelijke pauze (uren)',
-        'Status',
+        ...AppointmentHours::COLUMNS,
     ];
 
-    private const DATETIME_FORMAT = 'yyyy-mm-dd hh:mm';
+    public function __construct(private EventLocationResolver $location_resolver) {}
 
     public function build(array $user_ids, string $start, string $end, string $timezone): Spreadsheet
     {
-        $tz = $timezone;
-
-        $range_start = Carbon::parse($start . ' 00:00:00', $tz)->utc();
-        $range_end = Carbon::parse($end . ' 23:59:59', $tz)->utc();
+        $range_start = Carbon::parse($start . ' 00:00:00', $timezone)->utc();
+        $range_end = Carbon::parse($end . ' 23:59:59', $timezone)->utc();
 
         $users = User::whereIn('id', $user_ids)->orderBy('name')->get();
 
@@ -63,92 +49,35 @@ class PlannerExportService
         $used_titles = [];
 
         foreach ($users as $index => $user) {
-            $sheet = new Worksheet($spreadsheet, $this->sheetTitle($user->name, $index, $used_titles));
-            $spreadsheet->addSheet($sheet);
+            $title = $this->sheetTitle($user->name, $index, $used_titles);
+            $sheet = $spreadsheet->addSheet(new Worksheet($spreadsheet, $title));
 
-            $last_column = Coordinate::stringFromColumnIndex(count(self::HEADERS));
-
-            $sheet->fromArray([self::HEADERS], null, 'A1');
-            $sheet->getStyle('A1:' . $last_column . '1')->getFont()->setBold(true);
-
-            $row = 2;
+            $rows = [];
             foreach ($events as $event) {
                 $member = $event->executingUsers->firstWhere('id', $user->id);
-                if (!$member) {
-                    continue;
+                if ($member) {
+                    $rows[] = $this->row($event, $member, $timezone);
                 }
-
-                $this->writeRow($sheet, $row, $event, $user, $member, $tz);
-                $row++;
             }
 
-            foreach (range('A', $last_column) as $column) {
-                $sheet->getColumnDimension($column)->setAutoSize(true);
-            }
+            (new SheetWriter($sheet, $timezone))->table(self::COLUMNS, $rows);
         }
 
         return $spreadsheet;
     }
 
-    private function writeRow(Worksheet $sheet, int $row, Event $event, User $user, User $member, string $tz): void
+    private function row(Event $event, User $member, string $timezone): array
     {
         $service_order = $event->serviceOrders->first();
-        $project = $service_order?->project;
-        $customer = $service_order?->customer;
-        $execution = $event->executions->firstWhere('user_id', $user->id) ?? new EventUserExecution;
-        $planned_break_minutes = (int) ($member->pivot->breaktime ?? 0);
 
-        $sheet->setCellValue('A' . $row, $event->name ?: $event->eventType?->name);
-        $sheet->setCellValue('B' . $row, $service_order?->number);
-        $sheet->setCellValue('C' . $row, $customer?->name);
-        $sheet->setCellValue('D' . $row, $this->location_resolver->resolve($event));
-        $sheet->setCellValue('E' . $row, $project?->title);
-
-        [$planned_start, $planned_end] = $event->plannedTimesFor($member, $tz);
-        $this->writeDateTime($sheet, 'F' . $row, $planned_start, $tz);
-        $this->writeDateTime($sheet, 'G' . $row, $planned_end, $tz);
-        $sheet->setCellValue('H' . $row, $this->hours($planned_start, $planned_end, $planned_break_minutes));
-        $this->writeDateTime($sheet, 'I' . $row, $execution->actual_start, $tz);
-        $this->writeDateTime($sheet, 'J' . $row, $execution->actual_end, $tz);
-        $sheet->setCellValue('K' . $row, $execution->hoursWorked($planned_break_minutes));
-        $sheet->setCellValue('L' . $row, $this->asHours((int) $execution->travel_time_minutes));
-        $sheet->setCellValue('M' . $row, $this->asHours($planned_break_minutes));
-        $sheet->setCellValue('N' . $row, $this->asHours($execution->actual_breaktime_minutes));
-        $sheet->setCellValue('O' . $row, $execution->completion_status ?? 'Gepland');
-    }
-
-    private function asHours(?int $minutes): ?float
-    {
-        return $minutes === null ? null : round($minutes / 60, 2);
-    }
-
-    private function hours(?Carbon $start, ?Carbon $end, int $breaktime_minutes): ?float
-    {
-        if (!$start || !$end) {
-            return null;
-        }
-
-        return round($start->floatDiffInHours($end) - ($breaktime_minutes / 60), 2);
-    }
-
-    private function writeDateTime(Worksheet $sheet, string $cell, ?Carbon $value, string $tz): void
-    {
-        if (!$value) {
-            return;
-        }
-
-        $local = $value->copy()->setTimezone($tz);
-        $serial = ExcelDate::formattedPHPToExcel(
-            $local->year,
-            $local->month,
-            $local->day,
-            $local->hour,
-            $local->minute,
-            $local->second,
-        );
-
-        $sheet->setCellValue($cell, $serial);
-        $sheet->getStyle($cell)->getNumberFormat()->setFormatCode(self::DATETIME_FORMAT);
+        return [
+            'Afspraak' => $event->name ?: $event->eventType?->name,
+            'Werkbon' => $service_order?->number,
+            'Klant' => $service_order?->customer?->name,
+            'Locatie' => $this->location_resolver->resolve($event),
+            'Project' => $service_order?->project?->title,
+            ...AppointmentHours::for($event, $member, $timezone)->row(),
+        ];
     }
 
     private function sheetTitle(string $name, int $index, array &$used_titles): string
