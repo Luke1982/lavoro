@@ -6,7 +6,6 @@ use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
 use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
-use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
@@ -99,18 +98,7 @@ class ServiceOrderController extends Controller
         $query->visibleTo($user);
 
         if (filled($search)) {
-            $like = SearchTerm::like($search);
-
-            $query->where(fn ($q) => $q
-                ->where('description', 'like', $like)
-                ->orWhere('external_purchaseorder_no', 'like', $like)
-                ->orWhere('external_invoice_no', 'like', $like)
-                ->orWhereHas('customer', fn ($cq) => $cq
-                    ->where('name', 'like', $like)
-                    ->orWhere('city', 'like', $like))
-                ->orWhere(fn ($oq) => $oq->locationMatchesText($like))
-                ->orWhereHas('serviceOrderStage', fn ($sq) => $sq->where('name', 'like', $like))
-                ->orWhereHas('events.executingUsers', fn ($uq) => $uq->where('users.name', 'like', $like)));
+            $query->matchesSearch($search);
         }
 
         $closed_stage_id = (int) ServiceOrderStage::where('is_closed_state', true)->value('id');

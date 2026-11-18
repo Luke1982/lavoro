@@ -41,7 +41,10 @@ import { forMatching } from '@/Utilities/Utilities'
  */
 const props = defineProps({
     items: { type: Array, required: true },
-    /** The fields an item can be found by, matched the way every picker matches. */
+    /**
+     * The fields an item can be found by, matched the way every picker matches.
+     * A field is a key on the item, or a function for what sits deeper in it.
+     */
     searchKeys: { type: Array, required: true },
     /** What the items are called, plural: "Toon 10 van 57 locaties". */
     label: { type: String, required: true },
@@ -57,8 +60,12 @@ const perPage = useLocalStorage(props.storageKey, smallestPage)
 /** Picking the chosen size again empties the box, like every ComboBox; the list then keeps to the smallest page. */
 const pageSize = computed(() => perPage.value || smallestPage)
 
+const searchText = (item) => props.searchKeys
+    .map(key => typeof key === 'function' ? key(item) : item[key])
+    .join(' ')
+
 const { searchQuery, filteredItems } = useSearchFilter(() => props.items, (item, query) =>
-    forMatching(props.searchKeys.map(key => item[key]).join(' ')).includes(forMatching(query)))
+    forMatching(searchText(item)).includes(forMatching(query)))
 
 const page = ref(1)
 const pageCount = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / pageSize.value)))

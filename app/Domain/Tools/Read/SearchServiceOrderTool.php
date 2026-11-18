@@ -26,8 +26,8 @@ class SearchServiceOrderTool implements Tool
 
     public function description(): string
     {
-        return 'Zoekt werkbonnen op omschrijving, klant, adres, inkoopordernummer of factuurnummer, '
-            . 'eventueel beperkt tot één klant of alleen open werkbonnen. '
+        return 'Zoekt werkbonnen op nummer, omschrijving, klant, adres, fase, monteur, '
+            . 'inkoopordernummer of factuurnummer, eventueel beperkt tot één klant of alleen open werkbonnen. '
             . 'Gebruik dit voor vragen als "welke werkbonnen staan nog open bij klant X" '
             . 'of "welke werkbonnen lopen er op de Dorpsstraat".';
     }
@@ -39,8 +39,7 @@ class SearchServiceOrderTool implements Tool
             'properties' => [
                 'query' => [
                     'type' => 'string',
-                    'description' => 'Vrije zoektekst in omschrijving, klantnaam, het adres waar '
-                        . 'het werk gebeurt, of de externe nummers.',
+                    'description' => 'Vrije zoektekst, gezocht in al die velden.',
                 ],
                 'ids' => [
                     'type' => 'array',
@@ -108,13 +107,7 @@ class SearchServiceOrderTool implements Tool
         }
 
         if (filled($search)) {
-            $like = $call->likeArgument('query');
-            $query->where(fn ($q) => $q
-                ->where('description', 'like', $like)
-                ->orWhere('external_purchaseorder_no', 'like', $like)
-                ->orWhere('external_invoice_no', 'like', $like)
-                ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', $like))
-                ->orWhere(fn ($oq) => $oq->locationMatchesText($like)));
+            $query->matchesSearch($search);
         }
 
         /**

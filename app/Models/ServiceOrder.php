@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
 use App\Domain\Signals\Signals;
@@ -258,6 +259,37 @@ class ServiceOrder extends Model
             ->whereHas('events', fn ($q) => $q->notCancelled())
             ->whereDoesntHave('events', fn ($q) => $q->notCancelled()->where('end', '>=', now()))
             ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder());
+    }
+
+    /**
+     * Werkbonnen waar de zoekterm ergens in past.
+     *
+     * Het ene rijtje velden voor elke plek die werkbonnen op tekst zoekt: de
+     * werkbonnenlijst, het zoekvenster bovenin en de assistent, en gespiegeld in
+     * SERVICE_ORDER_SEARCH_KEYS voor de lijsten bij een klant of project. Zo
+     * vindt dezelfde term overal dezelfde werkbonnen. Een monteur telt langs
+     * beide wegen die assignedTo() kent: op de werkbon zelf of op een afspraak.
+     *
+     * Neemt de term zoals hij getypt is, niet als patroon: het nummer moet er
+     * nog uit gelezen kunnen worden.
+     */
+    public function scopeMatchesSearch($query, string $term)
+    {
+        $like = SearchTerm::like($term);
+        $id = self::idFromNumber($term);
+
+        return $query->where(fn ($q) => $q
+            ->where('description', 'like', $like)
+            ->orWhere('external_purchaseorder_no', 'like', $like)
+            ->orWhere('external_invoice_no', 'like', $like)
+            ->orWhereHas('customer', fn ($cq) => $cq
+                ->where('name', 'like', $like)
+                ->orWhere('city', 'like', $like))
+            ->orWhere(fn ($lq) => $lq->locationMatchesText($like))
+            ->orWhereHas('serviceOrderStage', fn ($sq) => $sq->where('name', 'like', $like))
+            ->orWhereHas('executingUsers', fn ($uq) => $uq->where('users.name', 'like', $like))
+            ->orWhereHas('events.executingUsers', fn ($uq) => $uq->where('users.name', 'like', $like))
+            ->when($id !== null, fn ($nq) => $nq->orWhere('id', $id)));
     }
 
     /**

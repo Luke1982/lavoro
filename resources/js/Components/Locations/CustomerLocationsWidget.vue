@@ -14,7 +14,7 @@
             </button>
         </div>
 
-        <PagedList v-if="locations.length" v-slot="{ items }" :items="locations" :search-keys="searchKeys"
+        <PagedList v-if="locations.length" v-slot="{ items }" :items="locations" :search-keys="LOCATION_SEARCH_KEYS"
             label="locaties" search-placeholder="Zoek op naam, code of adres..." storage-key="customerLocationsPerPage">
             <div class="border-1 rounded-lavoro-sm border-gray-200/70 dark:border-slate-700/70" v-auto-animate>
                 <div v-for="location in items" :key="location.id"
@@ -119,7 +119,7 @@ import LocationDeleteModal from '@/Components/Locations/LocationDeleteModal.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import OpenStreetMapWidget from '@/Components/OpenStreetMapWidget.vue';
 import PagedList from '@/Components/UI/PagedList.vue';
-import { formatAddress, hasPermission } from '@/Utilities/Utilities';
+import { LOCATION_SEARCH_KEYS, formatAddress, hasPermission } from '@/Utilities/Utilities';
 
 const props = defineProps({
     customerId: { type: Number, required: true },
@@ -128,9 +128,6 @@ const props = defineProps({
 
 const canCreate = hasPermission('location.create');
 const canDelete = hasPermission('location.delete');
-
-/** The columns Location::scopeMatchesText searches, so this list finds what every other location search finds. */
-const searchKeys = ['title', 'location_code', 'address', 'postal_code', 'city', 'country'];
 
 const mapModalOpen = ref(false);
 const mapModalLocation = ref(null);

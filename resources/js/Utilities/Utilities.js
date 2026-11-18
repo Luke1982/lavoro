@@ -470,6 +470,12 @@ export const forMatching = (text) => String(text ?? '')
     .replace(/[^a-z0-9]+/g, '');
 
 /**
+ * The columns Location::scopeMatchesText searches, so a list in the browser
+ * finds what every other location search finds.
+ */
+export const LOCATION_SEARCH_KEYS = ['title', 'location_code', 'address', 'postal_code', 'city', 'country'];
+
+/**
  * The one address format used across the app: "Dorpsstraat 1, 1234AB Utrecht".
  * Mirrors App\Support\AddressFormatter so an address never renders two ways.
  * Takes anything with address/postal_code/city — a location, a customer.

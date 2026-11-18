@@ -1,5 +1,41 @@
 import { router, usePage } from '@inertiajs/vue3'
-import { hasAnyPermission, hasPermission } from '@/Utilities/Utilities'
+import { LOCATION_SEARCH_KEYS, formatWbNumber, hasAnyPermission, hasPermission } from '@/Utilities/Utilities'
+
+/**
+ * Het adres zoals ServiceOrder::scopeLocationMatchesText het doorzoekt: de gekoppelde
+ * locatie, het los getypte uitvoeringsadres, en alleen zonder eigen adres dat van het project.
+ */
+function addressSearchText(serviceorder) {
+    const has_own_address = Boolean(serviceorder.location_id || serviceorder.execution_location)
+    return [
+        ...LOCATION_SEARCH_KEYS.map(key => serviceorder.linked_location?.[key]),
+        serviceorder.execution_location,
+        has_own_address ? null : serviceorder.project?.location,
+    ].join(' ')
+}
+
+function executingUserNames(serviceorder) {
+    return [
+        ...(serviceorder.executing_users || []),
+        ...(serviceorder.events || []).flatMap(event => event.executing_users || []),
+    ].map(user => user.name).join(' ')
+}
+
+/**
+ * Spiegelt ServiceOrder::scopeMatchesSearch, zodat een werkbonlijst in de browser
+ * vindt wat elke andere werkbonzoekopdracht vindt.
+ */
+export const SERVICE_ORDER_SEARCH_KEYS = [
+    'description',
+    'external_purchaseorder_no',
+    'external_invoice_no',
+    serviceorder => serviceorder.customer?.name,
+    serviceorder => serviceorder.customer?.city,
+    addressSearchText,
+    serviceorder => serviceorder.service_order_stage?.name,
+    executingUserNames,
+    serviceorder => formatWbNumber(serviceorder.id),
+]
 
 export function serviceOrderIsPlannable(serviceorder) {
     const stage = serviceorder?.service_order_stage

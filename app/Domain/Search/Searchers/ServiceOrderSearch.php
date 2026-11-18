@@ -4,7 +4,6 @@ namespace App\Domain\Search\Searchers;
 
 use App\Domain\Search\Searchable;
 use App\Domain\Search\SearchHit;
-use App\Domain\Search\SearchTerm;
 use App\Models\ServiceOrder;
 use App\Models\User;
 
@@ -20,17 +19,9 @@ class ServiceOrderSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        $like = SearchTerm::like($term);
-
         return ServiceOrder::query()
             ->visibleTo($user)
-            ->where(fn ($q) => $q
-                ->where('description', 'like', $like)
-                ->orWhere('external_purchaseorder_no', 'like', $like)
-                ->orWhere('external_invoice_no', 'like', $like)
-                ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', $like))
-                ->orWhere(fn ($oq) => $oq->locationMatchesText($like))
-                ->when(ctype_digit($term), fn ($nq) => $nq->orWhere('id', (int) $term)))
+            ->matchesSearch($term)
             ->with([
                 'customer:id,name',
                 'serviceOrderStage:id,name',
