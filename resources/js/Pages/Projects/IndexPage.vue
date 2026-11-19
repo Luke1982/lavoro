@@ -7,14 +7,7 @@
             <TourButton tour="projecten" />
         </template>
         <template #filters>
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <ComboBox v-for="filter in filters" :key="filter.param" :model-value="filter.value"
-                    :options="filter.options" :placeholder="filter.placeholder"
-                    :has-external-searching="filter.param === 'customer' && customersUseAjax"
-                    :searching="filter.param === 'customer' && customersSearching"
-                    @change="q => filter.param === 'customer' && searchCustomers(q)"
-                    @update:model-value="value => pick(filter, value)" />
-            </div>
+            <ListFilters :filters="filters" :query="list" class="grid grid-cols-1 gap-2 sm:grid-cols-3" />
         </template>
     </IndexHeaderComponent>
 
@@ -125,7 +118,7 @@ import { Link, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
-import ComboBox from '@/Components/UI/ComboBox.vue'
+import ListFilters from '@/Components/UI/ListFilters.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
@@ -150,8 +143,6 @@ const props = defineProps({
 })
 
 const RUNNING = 'running'
-const EVERY_STATUS = 'all'
-const CLEAR = '__clear__'
 
 const showCreateDrawer = ref(false)
 const header = ref(null)
@@ -161,43 +152,28 @@ const { visit } = useQueryParams()
 const { options: customerOptions, searching: customersSearching, search: searchCustomers } =
     useComboSearch('customers', props.customers, props.customersUseAjax)
 
-/**
- * The list opens on the projects still running. A filter in use starts its list with
- * the way back to everything; status empties to 'all', said out loud to the server,
- * because an empty status means the running ones.
- */
+/** The list opens on the projects still running, so emptying the status is said out loud as 'all'. */
 const filters = computed(() => [
     {
         param: 'status',
         placeholder: 'Alle statussen',
         everything: 'Alle statussen',
-        emptied: EVERY_STATUS,
-        value: props.list.status === EVERY_STATUS ? null : props.list.status,
+        emptied: 'all',
         options: [
             { id: RUNNING, name: 'Lopende projecten' },
             ...props.statuses.map(status => ({ id: status.name, name: status.name })),
         ],
     },
-    {
-        param: 'manager',
-        placeholder: 'Alle projectleiders',
-        everything: 'Alle projectleiders',
-        emptied: null,
-        value: props.list.manager,
-        options: props.users,
-    },
+    { param: 'manager', placeholder: 'Alle projectleiders', everything: 'Alle projectleiders', options: props.users },
     {
         param: 'customer',
         placeholder: 'Alle klanten',
         everything: 'Alle klanten',
-        emptied: null,
-        value: props.list.customer,
         options: customerOptions.value,
+        search: props.customersUseAjax ? searchCustomers : null,
+        searching: customersSearching.value,
     },
-].map(filter => ({
-    ...filter,
-    options: filter.value === null ? filter.options : [{ id: CLEAR, name: filter.everything }, ...filter.options],
-})))
+])
 
 const hasActiveFilters = computed(() =>
     props.list.status !== RUNNING || props.list.manager !== null || props.list.customer !== null
@@ -212,10 +188,6 @@ const otherParams = computed(() => ({
 }))
 
 const sorting = computed(() => ({ sort: props.list.sort ?? '', direction: props.list.direction }))
-
-function pick(filter, value) {
-    visit({ [filter.param]: value === null || value === CLEAR ? filter.emptied : value })
-}
 
 function sortBy({ sort, direction }) {
     visit({ sort, direction })

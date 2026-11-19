@@ -116,7 +116,7 @@
                 </label>
                 <div class="mt-2">
                     <TicketSelectCard v-for="ticket in offer.tickets" :key="ticket.id" v-model="chosen.tickets"
-                        :ticket="ticket" :customer-id="offer.row.customer_id" />
+                        :ticket="ticket" :customer-id="offer.row.customer_id" :location-id="offer.row.location_id" />
                 </div>
             </section>
             <section v-if="offer.machines.length">
@@ -130,7 +130,7 @@
                     <li v-for="machine in offer.machines" :key="machine.id">
                         <label class="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800">
                             <input v-model="chosen.machines" type="checkbox"
-                                :value="{ id: machine.id, customer_id: offer.row.customer_id }"
+                                :value="selectionFor(offer.row)(machine)"
                                 class="size-4 shrink-0 accent-lavoro-blue" />
                             <span class="min-w-0 flex-1 truncate">
                                 <span class="font-medium text-gray-900 dark:text-slate-100">{{ machine.machine }}</span>
@@ -171,6 +171,7 @@ import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.v
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import SortableColumnHeader from '@/Components/UI/SortableColumnHeader.vue'
 import { useQueryParams } from '@/Composables/useQueryParams'
+import { workPick } from '@/Utilities/workSelection'
 import { nlDate } from '@/Utilities/Utilities'
 
 /**
@@ -213,11 +214,16 @@ const ticketTooltip = row => row.tickets.length === 1
     ? '1 storing wacht nog op een werkbon'
     : `${row.tickets.length} storingen wachten nog op een werkbon`
 
-/** The customer's other machines in the list, wherever in the list they sit. */
-const othersOf = row => (props.table.customerMachines[row.customer_id] ?? []).filter(machine => machine.id !== row.id)
+/**
+ * The customer's other machines in the list at the same address, wherever in the list they
+ * sit: a werkbon is for one address, so those are the ones that can make the same trip.
+ */
+const othersOf = row => (props.table.customerMachines[row.customer_id] ?? [])
+    .filter(machine => machine.id !== row.id && (machine.location_id ?? null) === (row.location_id ?? null))
+const addressOf = row => (row.location ? `op ${row.location}` : 'op het bezoekadres')
 const othersLabel = (row, count = othersOf(row).length) => count === 1
-    ? `Nog 1 machine van ${row.customer} in deze lijst`
-    : `Nog ${count} machines van ${row.customer} in deze lijst`
+    ? `Nog 1 machine van ${row.customer} ${addressOf(row)} in deze lijst`
+    : `Nog ${count} machines van ${row.customer} ${addressOf(row)} in deze lijst`
 const customerWithOthers = (row) => {
     const count = othersOf(row).length
     return count ? `${row.customer} (+${count})` : row.customer
@@ -228,8 +234,8 @@ const offer = ref(null)
 /** What is ticked in the offer, in the shape the selection keeps. */
 const chosen = reactive({ tickets: [], machines: [] })
 
-/** The selection keeps { id, customer_id }; a part counts as the customer its row shows. */
-const selectionFor = row => item => ({ id: item.id, customer_id: row.customer_id })
+/** A part counts as the customer and the address its row shows. */
+const selectionFor = row => item => workPick(item.id, row.customer_id, row.location_id)
 const allChosen = kind => chosen[kind].length === offer.value[kind].length
 const someChosen = kind => chosen[kind].length > 0 && !allChosen(kind)
 const toggleAll = (kind) => {

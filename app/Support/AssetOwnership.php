@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Asset;
+use App\Models\Ticket;
 use Illuminate\Support\Collection;
 
 /**
@@ -64,5 +65,24 @@ class AssetOwnership
         }
 
         return $resolved;
+    }
+
+    /**
+     * Every machine a new werkbon would carry, the ones picked and the ones under the
+     * storingen picked with them, mapped onto the customer and location it resolves to:
+     * null for a machine whose chain leads nowhere. One customer and one place is what a
+     * werkbon is, so this is what both are checked against.
+     *
+     * @param  Collection<int, int>  $asset_ids
+     * @param  Collection<int, int>  $ticket_ids
+     * @return Collection<int, array{customer_id: int, location_id: int|null}|null>
+     */
+    public static function forWork(Collection $asset_ids, Collection $ticket_ids): Collection
+    {
+        $machine_ids = $asset_ids->merge(Ticket::whereIn('id', $ticket_ids)->pluck('asset_id'))->filter()->unique();
+        $machines = Asset::whereIn('id', $machine_ids)->get(['id', 'customer_id', 'parent_asset_id', 'location_id']);
+        $ownership = self::resolve($machines);
+
+        return $machines->mapWithKeys(fn (Asset $machine) => [$machine->id => $ownership[$machine->id] ?? null]);
     }
 }

@@ -1,7 +1,7 @@
 {
     "tour": "activiteiten",
     "chapter": "werkbon",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "werkbon.mp3",
     "gap": 1,
@@ -13,10 +13,16 @@
             "end": 5.511
         },
         {
-            "text": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant.",
-            "hash": "100610dde8eda7eb3b994079ff1d0576c5887e25",
+            "text": "Heeft een klant machines op meer dan één adres? Dan vink je met dit vakje alles op dat ene adres in één keer aan.",
+            "hash": "1eb4642a1a756195bcb840ee8b986db911226d02",
             "start": 6.511,
-            "end": 13.447
+            "end": 13.859
+        },
+        {
+            "text": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant, op één adres.",
+            "hash": "45acff5b70251558135682ab0cd9057b74b71fb1",
+            "start": 14.859,
+            "end": 23.341
         }
     ]
 }

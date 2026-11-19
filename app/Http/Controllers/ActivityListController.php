@@ -145,7 +145,10 @@ class ActivityListController extends Controller
             $main->setRelation('customer', $customer);
 
             $assets = $inner_by_customer->get($customer->id, collect());
-            $assets->each(fn ($a) => $this->attachEarlierPlannedEvents($a));
+            $assets->each(function (Asset $asset) use ($root_of) {
+                $this->attachEarlierPlannedEvents($asset);
+                $asset->setAttribute('resolved_location_id', $root_of($asset)['location_id']);
+            });
 
             $customer->upcoming_asset_days = $days;
             $customer->setRelation('upcomingAssets', $assets->values());

@@ -36,7 +36,7 @@
         <div v-for="mainAsset in expiredAssets" :key="`expiredAsset${mainAsset.id}`"
             :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
             <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
-                v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
+                v-model:selected-tickets="form.selectedTickets" :selection-state="selectionState"
                 :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
                 @select-all="selectAllFor" :is-expired="true" />
         </div>
@@ -47,7 +47,7 @@
         <div v-for="mainAsset in upcomingAssets" :key="`mainAsset${mainAsset.id}`"
             :id="`customer-section-${mainAsset.customer.id}`" class="my-8">
             <CustomerUpcomingActivity :main-asset="mainAsset" v-model:selected-assets="form.selectedAssets"
-                v-model:selected-tickets="form.selectedTickets" :customer-state="customerState"
+                v-model:selected-tickets="form.selectedTickets" :selection-state="selectionState"
                 :get-non-planned-tickets="getNonPlannedTickets" :get-planned-tickets="getPlannedTickets"
                 @select-all="selectAllFor" />
         </div>
@@ -60,21 +60,23 @@
                 {{ form.errors.assets }}
             </p>
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
-                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(false)" v-auto-animate
+                @click="createServiceOrder(false)" v-auto-animate
                 class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span>Maak een werkbon aan en blijf hier</span>
             </button>
             <button v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder"
-                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrder(true)" v-auto-animate
+                :disabled="canCreateWorkOrder !== 'yes'" @click="createServiceOrder(true)" v-auto-animate
                 class="cursor-pointer bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
                 <ClipboardDocumentCheckIcon class="w-6 h-6 inline-block mr-2" />
                 <span v-if="canCreateWorkOrder === 'yes'">Maak een werkbon aan en open die</span>
                 <span v-else-if="canCreateWorkOrder === 'diffCustomers'">Selecteer storingen en keuringen van één
                     klant</span>
+                <span v-else-if="canCreateWorkOrder === 'diffLocations'">Selecteer storingen en keuringen op één
+                    adres</span>
             </button>
             <button v-if="canCreateWorkOrder === 'yes' && canCreateServiceOrder"
-                :disabled="canCreateWorkOrder === 'diffCustomers'" @click="createServiceOrderAndPlan" v-auto-animate
+                @click="createServiceOrderAndPlan" v-auto-animate
                 class="cursor-pointer bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white p-2 rounded-md disabled:bg-red-600 disabled:cursor-not-allowed transition-colors shadow-lg">
                 <CalendarIcon class="w-6 h-6 inline-block mr-2" />
                 <span>Maak werkbon en plan deze in</span>
@@ -172,6 +174,7 @@ import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon, LayoutListIco
 import { useForm, usePage } from '@inertiajs/vue3';
 import { watch, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { hasPermission } from '@/Utilities/Utilities';
+import { EVERY_ADDRESS, countPicked, withPicks, withoutPicks, workPick, workSelectionState } from '@/Utilities/workSelection';
 import { useQueryParams } from '@/Composables/useQueryParams';
 import { useUpcomingContractAssets } from '@/Composables/useUpcomingContractAssets';
 import TextInput from '@/Components/UI/TextInput.vue';
@@ -284,14 +287,8 @@ const contractSwitchTitle = computed(() => {
         : 'Machines onder een onderhoudscontract tonen';
 });
 
-/** A werkbon is for one customer, so a selection spanning two cannot become one. */
-const canCreateWorkOrder = computed(() => {
-    if (form.selectedAssets.length === 0) {
-        return 'no';
-    }
-    const customers = new Set([...form.selectedAssets, ...form.selectedTickets].map(item => item.customer_id));
-    return customers.size > 1 ? 'diffCustomers' : 'yes';
-});
+/** A werkbon is for one customer and one place, so a selection spanning two cannot become one. */
+const canCreateWorkOrder = computed(() => workSelectionState(form.selectedAssets, form.selectedTickets));
 
 watch([() => form.selectedAssets, () => form.selectedTickets], () => form.clearErrors('assets'));
 
@@ -414,81 +411,44 @@ const getPlannedTickets = tickets => {
     return tickets.filter(ticket => ticket.service_order_id !== null);
 };
 
-const selectAllFor = (customerId) => {
-    const upcomingMain = upcomingAssets.find(a => a.customer && a.customer.id === customerId);
-    const expiredMain = expiredAssets.find(a => a.customer && a.customer.id === customerId);
+/**
+ * The picks for one customer: their machines in the list and the storingen of those that
+ * still wait for a werkbon, at one address or, by default, at every address. A customer in
+ * both the expired and the upcoming part of the list is the same customer with the same
+ * machines, so each machine counts once.
+ */
+const picksFor = (customerId, locationId = EVERY_ADDRESS) => {
+    const machines = new Map();
+    [...upcomingAssets, ...expiredAssets]
+        .filter(main => main.customer?.id === customerId)
+        .flatMap(main => main.customer.upcoming_assets ?? [])
+        .filter(asset => locationId === EVERY_ADDRESS || (asset.resolved_location_id ?? null) === locationId)
+        .forEach(asset => machines.set(asset.id, asset));
 
-    if (!upcomingMain && !expiredMain) {
-        form.selectedAssets = form.selectedAssets.filter(a => a.customer_id !== customerId);
-        form.selectedTickets = form.selectedTickets.filter(t => t.customer_id !== customerId);
-        return;
-    }
-
-    const upcomingCustomerAssets = upcomingMain?.customer?.upcoming_assets || [];
-    const expiredCustomerAssets = expiredMain?.customer?.upcoming_assets || [];
-    const assets = [...upcomingCustomerAssets, ...expiredCustomerAssets];
-
-    const assetIds = assets.map(a => a.id);
-
-    const ticketIds = [];
-    assets.forEach(asset => {
-        (asset.pending_tickets || []).forEach(t => { if (t.service_order_id === null) ticketIds.push(t.id); });
-        (asset.open_tickets || []).forEach(t => { if (t.service_order_id === null) ticketIds.push(t.id); });
-    });
-
-    const selectedAssetIds = new Set(form.selectedAssets.filter(a => a.customer_id === customerId).map(a => a.id));
-    const selectedTicketIds = new Set(form.selectedTickets.filter(t => t.customer_id === customerId).map(t => t.id));
-    const allSelectedForCustomer = selectedAssetIds.size === assetIds.length && selectedTicketIds.size === ticketIds.length;
-
-    if (allSelectedForCustomer) {
-        form.selectedAssets = form.selectedAssets.filter(a => a.customer_id !== customerId);
-        form.selectedTickets = form.selectedTickets.filter(t => t.customer_id !== customerId);
-        return;
-    }
-
-    const customerAssets = assets.map(a => ({ id: a.id, customer_id: customerId }));
-    const customerTickets = ticketIds.map(id => ({ id, customer_id: customerId }));
-
-    // Add only those assets and tickets that are not already selected
-    const newSelectedAssets = [...form.selectedAssets];
-    customerAssets.forEach(ca => {
-        if (!newSelectedAssets.some(sa => sa.id === ca.id)) {
-            newSelectedAssets.push(ca);
-        }
-    });
-    form.selectedAssets = newSelectedAssets;
-
-    const newSelectedTickets = [...form.selectedTickets];
-    customerTickets.forEach(ct => {
-        if (!newSelectedTickets.some(st => st.id === ct.id)) {
-            newSelectedTickets.push(ct);
-        }
-    });
-    form.selectedTickets = newSelectedTickets;
+    return {
+        machines: [...machines.values()].map(asset => workPick(asset.id, customerId, asset.resolved_location_id)),
+        tickets: [...machines.values()].flatMap(asset => [...(asset.pending_tickets ?? []), ...(asset.open_tickets ?? [])]
+            .filter(ticket => ticket.service_order_id === null)
+            .map(ticket => workPick(ticket.id, customerId, asset.resolved_location_id))),
+    };
 };
 
-const customerState = (customerId) => {
-    const upcomingMain = upcomingAssets.find(m => m.customer && m.customer.id === customerId);
-    const expiredMain = expiredAssets.find(m => m.customer && m.customer.id === customerId);
+/** How much of a customer, or of one of their addresses, is ticked: for its select-all box. */
+const selectionState = (customerId, locationId = EVERY_ADDRESS) => {
+    const { machines, tickets } = picksFor(customerId, locationId);
+    const total = machines.length + tickets.length;
+    const ticked = countPicked(form.selectedAssets, machines) + countPicked(form.selectedTickets, tickets);
 
-    const upcomingAssetsForCustomer = upcomingMain?.customer?.upcoming_assets ?? [];
-    const expiredAssetsForCustomer = expiredMain?.customer?.upcoming_assets ?? [];
-    const assets = [...upcomingAssetsForCustomer, ...expiredAssetsForCustomer];
+    return { all: total > 0 && ticked === total, some: ticked > 0 && ticked < total };
+};
 
-    const totalAssets = assets.length;
-    let totalTickets = 0;
-    assets.forEach(a => {
-        (a.pending_tickets ?? []).forEach(t => { if (t.service_order_id === null) totalTickets++; });
-        (a.open_tickets ?? []).forEach(t => { if (t.service_order_id === null) totalTickets++; });
-    });
-    const total = totalAssets + totalTickets;
-    if (total === 0) return { all: false, some: false };
+/** Ticks everything of a customer, or of one of their addresses; with all of it ticked already, unticks it. */
+const selectAllFor = (customerId, locationId = EVERY_ADDRESS) => {
+    const { machines, tickets } = picksFor(customerId, locationId);
+    const change = selectionState(customerId, locationId).all ? withoutPicks : withPicks;
 
-    const selA = form.selectedAssets.filter(a => a.customer_id === customerId).length;
-    const selT = form.selectedTickets.filter(t => t.customer_id === customerId).length;
-    const selected = selA + selT;
-
-    return { all: selected === total, some: selected > 0 && selected < total };
+    form.selectedAssets = change(form.selectedAssets, machines);
+    form.selectedTickets = change(form.selectedTickets, tickets);
 };
 
 const scrollToCustomerSection = (id) => {
@@ -560,10 +520,11 @@ const openMap = (address = mapAddress()) => window.open(address, 'customerMap', 
 const firstMachine = () => {
     if (view === 'table') {
         const row = table.rows.data[0];
-        return row ? { id: row.id, customer_id: row.customer_id } : null;
+        return row ? workPick(row.id, row.customer_id, row.location_id) : null;
     }
     const main = [...expiredAssets, ...upcomingAssets].find((candidate) => candidate.customer?.upcoming_assets?.length);
-    return main ? { id: main.customer.upcoming_assets[0].id, customer_id: main.customer.id } : null;
+    const asset = main?.customer.upcoming_assets[0];
+    return asset ? workPick(asset.id, main.customer.id, asset.resolved_location_id) : null;
 };
 
 useTour('activiteiten', {

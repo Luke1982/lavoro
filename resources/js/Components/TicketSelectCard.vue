@@ -2,7 +2,7 @@
     <div class="relative">
         <TicketCard :ticket="ticket" class="mt-1 mb-1" :modes="['simple', 'nodelete']" />
         <input type="checkbox" :id="`ticketcheckbox-${ticket.id}`" v-model="selectedTickets"
-            :value="{ id: ticket.id, customer_id: customerId }"
+            :value="workPick(ticket.id, customerId, locationId)"
             class="absolute top-2 left-2 size-5 cursor-pointer hidden" />
         <label :for="`ticketcheckbox-${ticket.id}`" class="absolute left-0 top-0 w-full h-full cursor-pointer">
             <CheckIcon v-if="selectedTickets.find(t => t.id === ticket.id)"
@@ -16,10 +16,13 @@
 import TicketCard from '@/Components/TicketCard.vue';
 import { CheckIcon } from '@heroicons/vue/24/outline';
 import { computed } from 'vue';
+import { workPick } from '@/Utilities/workSelection';
 
 const props = defineProps({
     ticket: { type: Object, required: true },
     customerId: { type: [Number, String], required: true },
+    /** Where the storing's machine stands; null is the customer's main address. */
+    locationId: { type: Number, default: null },
     modelValue: { type: Array, required: true },
 });
 

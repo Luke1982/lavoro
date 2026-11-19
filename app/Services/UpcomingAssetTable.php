@@ -35,7 +35,7 @@ class UpcomingAssetTable
 
     public const TICKETS = ['with', 'without'];
 
-    private const SUMMARY = ['id', 'machine', 'serial_number', 'next_service_date', 'due'];
+    private const SUMMARY = ['id', 'machine', 'serial_number', 'next_service_date', 'due', 'location_id'];
 
     private const SEARCHABLE = ['serial_number', 'machine', 'product_type', 'customer', 'location'];
 
@@ -120,6 +120,7 @@ class UpcomingAssetTable
                     'product_type' => $asset->product_type,
                     'customer_id' => $customer_id,
                     'customer' => $customers[$customer_id],
+                    'location_id' => $location_id,
                     'location' => $locations[$location_id] ?? null,
                     'next_service_date' => $asset->next_service_date,
                     'due' => $this->dueOf($asset->next_service_date, $due_groups),

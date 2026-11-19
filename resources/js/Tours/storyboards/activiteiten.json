@@ -12,7 +12,7 @@
     "chapters": [
         {
             "id": "lijst",
-            "version": 1,
+            "version": 2,
             "title": "De lijst",
             "summary": "Hoe ver vooruit, zoeken, per klant of als tabel, sorteren en filteren, en contractmachines.",
             "steps": [
@@ -31,15 +31,15 @@
                 {
                     "spot": "activities.views",
                     "title": "Per klant of als tabel",
-                    "text": "**Per klant** staan de machines van één klant bij elkaar, per locatie. Hun storingen staan eronder. In de **tabel** heeft elke machine een eigen regel. Je laatste keuze blijft bewaard.",
+                    "text": "**Per klant** staan de machines van één klant bij elkaar, per adres: elke locatie van de klant, en zijn bezoekadres. Hun storingen staan eronder. In de **tabel** heeft elke machine een eigen regel. Je laatste keuze blijft bewaard.",
                     "say": "Hier wissel je tussen een overzicht per klant en een tabel. Je laatste keuze blijft bewaard."
                 },
                 {
                     "spot": "activities.table",
                     "action": "showTable",
                     "title": "De tabel",
-                    "text": "In de **tabel** heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Dat kan op serienummer, machine, klant, locatie of keuringsdatum. Een **+3** achter een klantnaam betekent dat er nog drie machines van die klant in de lijst staan. Een onderdeel heeft ook een eigen regel, met de machine waar het in zit.",
-                    "say": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
+                    "text": "In de **tabel** heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Dat kan op serienummer, machine, klant, locatie of keuringsdatum. Een **+3** achter een klantnaam betekent dat er nog drie machines van die klant op hetzelfde adres in de lijst staan. Een onderdeel heeft ook een eigen regel, met de machine waar het in zit.",
+                    "say": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer op hetzelfde adres in de lijst staan.",
                     "marks": [
                         {
                             "spot": "activities.table.header",
@@ -69,9 +69,9 @@
         },
         {
             "id": "werkbon",
-            "version": 1,
+            "version": 2,
             "title": "Een werkbon maken",
-            "summary": "Machines en storingen aanvinken en er een werkbon van maken, of hem meteen inplannen.",
+            "summary": "Machines en storingen aanvinken, alles van een klant of van één adres tegelijk, en er een werkbon van maken of hem meteen inplannen.",
             "requires": {
                 "permissions": [
                     "serviceorder.create"
@@ -84,14 +84,21 @@
                 {
                     "spot": "activities.checked",
                     "title": "Aanvinken",
-                    "text": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen. In de tabel stelt Lavoro voor wat er nog meer mee kan: de storingen van die machine en andere machines van dezelfde klant.",
+                    "text": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen. In de tabel stelt Lavoro voor wat er nog meer mee kan: de storingen van die machine en de andere machines van dezelfde klant op hetzelfde adres.",
                     "say": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen."
+                },
+                {
+                    "spot": "activities.address.all",
+                    "skipIfMissing": true,
+                    "title": "Alles op één adres",
+                    "text": "Per klant vink je met het vakje bovenaan **alles van die klant** aan. Heeft een klant machines op meer dan één adres, dan heeft **elk adres een eigen vakje**: dat vinkt alles op dat adres aan, de storingen erbij. Nog eens klikken haalt de vinkjes weer weg.",
+                    "say": "Heeft een klant machines op meer dan één adres? Dan vink je met dit vakje alles op dat ene adres in één keer aan."
                 },
                 {
                     "spot": "activities.workorder",
                     "title": "Werkbon maken",
-                    "text": "Rechtsonder maak je er een werkbon van. Je kiest: **blijf hier**, **open die** meteen of **plan deze in**. Een werkbon is altijd voor één klant. Vink je iets van twee klanten aan? Dan kleurt de knop rood.",
-                    "say": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant."
+                    "text": "Rechtsonder maak je er een werkbon van. Je kiest: **blijf hier**, **open die** meteen of **plan deze in**. Een werkbon is altijd voor **één klant, op één adres**: één locatie van de klant, of zijn bezoekadres. Vink je iets aan van twee klanten of van twee adressen? Dan kleurt de knop rood en zegt hij wat er anders moet. De werkbon krijgt vanzelf de locatie van de machines.",
+                    "say": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant, op één adres."
                 }
             ]
         },

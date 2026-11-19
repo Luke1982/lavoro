@@ -1,7 +1,7 @@
 {
     "tour": "activiteiten",
     "chapter": "lijst",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "lijst.mp3",
     "gap": 1,
@@ -25,22 +25,22 @@
             "end": 16.616
         },
         {
-            "text": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
-            "hash": "5edbccba4a707134375d8159a9d31dd96a5665b5",
+            "text": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer op hetzelfde adres in de lijst staan.",
+            "hash": "d21b73903b5c5749c9536aa00bc0d87b2157147c",
             "start": 17.616,
-            "end": 30.799
+            "end": 31.003
         },
         {
             "text": "In de tabel kun je ook filteren, bijvoorbeeld op klant of op planning. Planning staat standaard op \"niet gepland\".",
             "hash": "4dcd676b0e2a287b7e157b7102bee19a231a522b",
-            "start": 31.799,
-            "end": 37.948
+            "start": 32.003,
+            "end": 38.152
         },
         {
             "text": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze.",
             "hash": "89861d700b6ac46421eafb5a937787453a8ad5c0",
-            "start": 38.948,
-            "end": 44.997
+            "start": 39.152,
+            "end": 45.201
         }
     ]
 }

@@ -2,17 +2,18 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Asset;
 use App\Models\ServiceOrder;
-use App\Models\Ticket;
 use App\Rules\ProjectAcceptsWork;
 use App\Support\AssetOwnership;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class ServiceOrderStoreRequest extends FormRequest
 {
+    private ?Collection $machines = null;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', ServiceOrder::class);
@@ -38,8 +39,15 @@ class ServiceOrderStoreRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                if ($validator->errors()->isEmpty() && !$this->belongsToOneCustomer()) {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                if (!$this->belongsToOneCustomer()) {
                     $validator->errors()->add('assets', 'Machines en storingen op één werkbon horen bij één klant.');
+                } elseif (!$this->standsInOnePlace()) {
+                    $validator->errors()->add('assets', 'Machines en storingen op één werkbon staan op één adres:'
+                        . ' één locatie van de klant, of zijn bezoekadres. Maak per adres een werkbon.');
                 }
             },
         ];
@@ -51,13 +59,23 @@ class ServiceOrderStoreRequest extends FormRequest
      */
     private function belongsToOneCustomer(): bool
     {
-        $asset_ids = $this->collect('assets')
-            ->merge(Ticket::whereIn('id', $this->collect('tickets'))->pluck('asset_id'))
-            ->filter();
-        $assets = Asset::whereIn('id', $asset_ids)->get(['id', 'customer_id', 'parent_asset_id', 'location_id']);
-        $ownership = AssetOwnership::resolve($assets);
         $customer_id = $this->integer('customer_id');
 
-        return $assets->every(fn (Asset $asset) => (int) ($ownership[$asset->id]['customer_id'] ?? 0) === $customer_id);
+        return $this->machines()->every(fn (?array $owner) => (int) ($owner['customer_id'] ?? 0) === $customer_id);
+    }
+
+    /**
+     * And for one place, or the monteur is sent to the wrong address: a part stands where
+     * its owner stands, and the customer's main address counts as a place of its own.
+     */
+    private function standsInOnePlace(): bool
+    {
+        return $this->machines()->pluck('location_id')->unique()->count() <= 1;
+    }
+
+    /** @return Collection<int, array{customer_id: int, location_id: int|null}|null> */
+    private function machines(): Collection
+    {
+        return $this->machines ??= AssetOwnership::forWork($this->collect('assets'), $this->collect('tickets'));
     }
 }
