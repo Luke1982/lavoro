@@ -565,7 +565,10 @@ final class FormulaEvaluator
             return [
                 'kind' => NodeCatalog::MACHINES,
                 'count' => count($value),
-                'labels' => array_slice(array_column($value, 'label'), 0, self::SHOWN_LABELS),
+                'machines' => array_map(
+                    fn (array $machine) => ['name' => $machine['name'] ?? $machine['label'], 'detail' => $machine['detail'] ?? ''],
+                    array_slice($value, 0, self::SHOWN_LABELS)
+                ),
             ];
         }
 

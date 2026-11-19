@@ -168,7 +168,7 @@
                     "spot": "formula.node.count",
                     "action": "stageBasis",
                     "title": "Waarden op de blokken",
-                    "text": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt, en bij elke ingang wat erin gaat. Heeft de voorbeeldklant 8 machines, dan staat er bij **Aantal** een 8, en bij **Prijs per stuk** 8 × €50 = €400. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
+                    "text": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt, en bij elke ingang wat erin gaat. Heeft de voorbeeldklant 8 machines, dan staat er bij **Aantal** een 8, en bij **Prijs per stuk** 8 × €50 = €400. Zo controleer je bij elk blok of het uitrekent wat je bedoelt. Klik op een aantal machines, zoals '8 machines', en je ziet welke het zijn: merk en model, type, serienummer en adres.",
                     "say": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt. Heeft de voorbeeldklant acht machines, dan staat er bij \"aantal\" het getal acht. Bij \"prijs per stuk\" staat dan vierhonderd euro, want acht keer vijftig euro is vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
                     "marks": [
                         {

@@ -9,6 +9,7 @@ use App\Models\MaintenanceContract;
 use App\Models\Product;
 use App\Models\ProductType;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * The machines a price formula is worked out over, in the shape the calculator
@@ -27,15 +28,20 @@ final class PricedMachines
             'product.productAttributeValueables.value',
             'linkedLocation',
         ])->get();
+        $type_paths = ProductType::pathMap();
 
-        return $assets->map(function (Asset $asset) use ($contract) {
+        return $assets->map(function (Asset $asset) use ($contract, $type_paths) {
             [$frequency, $days] = $contract->effectiveFrequency($asset->pivot);
+            $address = $asset->linkedLocation?->title ?? 'Adres van de klant';
+            $type_path = $type_paths[$asset->product?->product_type_id] ?? null;
 
             return [
                 'key' => 'asset-' . $asset->id,
                 'label' => ContractLabels::asset($asset),
+                'name' => self::modelName($asset->product) ?? $type_path ?? 'Machine zonder model',
+                'detail' => self::detail($type_path, $asset->serial_number ? 'serienummer ' . $asset->serial_number : null, $address),
                 'address_key' => $asset->location_id ? 'location-' . $asset->location_id : 'customer',
-                'address_label' => $asset->linkedLocation?->title ?? 'Adres van de klant',
+                'address_label' => $address,
                 'visits_per_year' => self::timesPerYear($frequency, $days),
                 ...self::productFacts($asset->product),
             ];
@@ -52,21 +58,24 @@ final class PricedMachines
             ->whereKey(collect($sample)->pluck('product_id')->filter()->unique())
             ->get()
             ->keyBy('id');
-        $type_names = ProductType::whereKey(collect($sample)->pluck('product_type_id')->filter()->unique())
-            ->pluck('name', 'id');
+        $type_paths = ProductType::pathMap();
 
         $machines = [];
 
         foreach (array_values($sample) as $line_index => $line) {
             $product = isset($line['product_id']) ? $products->get((int) $line['product_id']) : null;
             $type_id = $product?->product_type_id ?? ($line['product_type_id'] ?? null);
+            $type_path = $type_paths[(int) $type_id] ?? null;
             $address = max(1, (int) ($line['address'] ?? 1));
             $facts = $product ? self::productFacts($product) : self::productFacts(null, $type_id);
+            $name = self::modelName($product) ?? ($type_path ? Str::afterLast($type_path, ' → ') : 'Machine zonder type');
 
             for ($i = 1; $i <= (int) ($line['quantity'] ?? 0); $i++) {
                 $machines[] = [
                     'key' => 'sample-' . $line_index . '-' . $i,
-                    'label' => $product?->display_name ?? $type_names->get((int) $type_id) ?? 'Machine',
+                    'label' => $name,
+                    'name' => $name,
+                    'detail' => self::detail($type_path, 'voorbeeldklant, adres ' . $address),
                     'address_key' => 'address-' . $address,
                     'address_label' => 'Adres ' . $address,
                     'visits_per_year' => self::timesPerYear($frequency, $frequency_days),
@@ -76,6 +85,20 @@ final class PricedMachines
         }
 
         return $machines;
+    }
+
+    /** Brand and model, as a person would name the machine: "Daikin FTXM25". */
+    private static function modelName(?Product $product): ?string
+    {
+        $name = trim(($product?->brand?->name ?? '') . ' ' . ($product?->model ?? ''));
+
+        return $name === '' ? null : $name;
+    }
+
+    /** What tells one machine from the next in a list: its type, serial number and address. */
+    private static function detail(?string ...$parts): string
+    {
+        return implode(' · ', array_filter($parts));
     }
 
     /** How often something with this interval happens in a year; nothing set counts as once. */

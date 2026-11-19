@@ -160,6 +160,7 @@ import ContractsOnFormula from '@/Components/PriceFormulas/ContractsOnFormula.vu
 import TourButton from '@/Components/Tour/TourButton.vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { usePriceFormulaTour } from '@/Components/PriceFormulas/usePriceFormulaTour'
+import { tourSample } from '@/Components/PriceFormulas/tourExamples'
 import { useLeaveGuard } from '@/Composables/useLeaveGuard'
 import {
     DRAG_TYPE, EDITOR_KEY, PICKED_MODELS_KEY, edgeLook, formatResult, newNodeId, serializeGraph, settingsOf,
@@ -226,7 +227,7 @@ const panels = [
 const bench = reactive({
     mode: props.testContractId ? 'contract' : 'sample',
     contract_id: props.testContractId,
-    sample: [{ quantity: 3, product_type_id: null, product_id: null, address: 1 }],
+    sample: tourSample(props.tourTypes),
     price_interval: 'Jaarlijks',
     frequency: 'Jaarlijks',
     inputs: {},

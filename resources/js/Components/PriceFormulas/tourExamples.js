@@ -249,9 +249,9 @@ export function tourStage(name, types) {
 }
 
 /**
- * The made-up customer the rondleiding tries its examples on: machines of both
- * types, on two addresses, so a combination, a filter and a per-address line
- * all have something to show.
+ * The made-up customer the try-out starts with, and the rondleiding works its
+ * examples out on: machines of both types, on two addresses, so a combination,
+ * a filter and a per-address line all have something to show.
  */
 export function tourSample(types) {
     const [first, second] = types

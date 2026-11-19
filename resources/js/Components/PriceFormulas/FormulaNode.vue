@@ -30,10 +30,15 @@
                     {{ shown(output) }}
                 </span>
                 <div v-if="openList === output.id" ref="listRef"
-                    class="nodrag nowheel absolute right-2 top-full z-10 mt-1 max-h-56 w-64 overflow-y-auto rounded-md bg-white p-2 text-left text-xs shadow-lg ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-600">
-                    <p class="mb-1 font-semibold text-gray-900 dark:text-white">{{ output.label }}: {{ shown(output) }}</p>
-                    <ul class="space-y-0.5 text-gray-700 dark:text-slate-300">
-                        <li v-for="line in machineLines(output)" :key="line">{{ line }}</li>
+                    class="nodrag nowheel absolute left-2 right-2 top-full z-10 mt-1 max-h-72 overflow-y-auto rounded-md bg-white p-2 text-left text-xs shadow-lg ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-600">
+                    <p class="mb-1.5 font-semibold text-gray-900 dark:text-white">{{ output.label }}: {{ shown(output) }}</p>
+                    <ul class="space-y-1.5">
+                        <li v-for="line in machineLines(output)" :key="line.key">
+                            <p class="font-medium text-gray-900 dark:text-slate-100">
+                                {{ line.name }}<span v-if="line.count > 1" class="text-gray-500 dark:text-slate-400"> ×{{ line.count }}</span>
+                            </p>
+                            <p v-if="line.detail" class="text-gray-500 dark:text-slate-400">{{ line.detail }}</p>
+                        </li>
                     </ul>
                     <p v-if="hiddenCount(output)" class="mt-1 text-gray-400">en {{ hiddenCount(output) }} meer</p>
                 </div>
@@ -104,18 +109,26 @@ watch(openList, id => {
 
 onBeforeUnmount(() => document.removeEventListener('pointerdown', closeOutside, true))
 
-/** The machines on an output, the same ones counted once with how many: "Daikin FTXM25 ×3". */
+/**
+ * The machines on an output: brand and model, with type, serial number and
+ * address below. Machines alike in all of that are listed once, with how many.
+ */
 function machineLines(output) {
-    const counts = new Map()
-    for (const label of result.value?.outputs?.[output.id]?.labels ?? []) counts.set(label, (counts.get(label) ?? 0) + 1)
+    const lines = new Map()
+    for (const machine of result.value?.outputs?.[output.id]?.machines ?? []) {
+        const key = machine.name + '|' + machine.detail
+        const line = lines.get(key) ?? { key, name: machine.name, detail: machine.detail, count: 0 }
+        line.count++
+        lines.set(key, line)
+    }
 
-    return [...counts].map(([label, count]) => (count > 1 ? `${label} ×${count}` : label))
+    return [...lines.values()]
 }
 
 function hiddenCount(output) {
     const value = result.value?.outputs?.[output.id]
 
-    return value ? Math.max(0, value.count - value.labels.length) : 0
+    return value ? Math.max(0, value.count - (value.machines?.length ?? 0)) : 0
 }
 
 function handleClass(kind) {
