@@ -2,39 +2,39 @@
     "tour": "storing",
     "chapter": "informatie",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "informatie.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Mist er iets om de storing goed in te schatten? Met informatie opvragen stuur je de klant een mail met een link. Daar levert hij foto's, video's en documenten aan, zonder in te loggen.",
-            "hash": "7c947928b4cef344d021c4fb14f3cde28b2d2f1a",
+            "text": "Mist er iets om de storing goed in te schatten? Met \"informatie opvragen\" stuur je de klant een mail met een link. Via die link levert hij foto's en video's aan. Inloggen hoeft niet.",
+            "hash": "d66a023641b7947322ed4b5d2cf70776c7b50ff2",
             "start": 0,
-            "end": 9.52
+            "end": 10.602
         },
         {
-            "text": "Het onderwerp staat al ingevuld, en het adres van de klant ook, als die er een heeft. Je kunt ze allebei aanpassen.",
-            "hash": "299171faede64f0737ac0fde45d4754c0431acdb",
-            "start": 10.52,
-            "end": 17.115
+            "text": "Het onderwerp staat al ingevuld. Heeft de klant een mailadres? Dan staat dat er ook al. Je kunt ze allebei aanpassen.",
+            "hash": "099f3c5893648ddb4f5c020a5497efb7a69f87c5",
+            "start": 11.602,
+            "end": 18.186
         },
         {
-            "text": "Kies wat je wilt ontvangen. Wat je kiest, komt als lijstje in de brief. Nog een keer klikken haalt het weer weg.",
-            "hash": "e353b487ff5f89b739e07fcafe48e15cc2547589",
-            "start": 18.115,
-            "end": 23.223
+            "text": "Kies wat je wilt ontvangen. Wat je kiest komt als lijstje in de brief. Klik je nog een keer, dan gaat het er weer uit.",
+            "hash": "e6bc3210dd5853cb9d5eda009a951808f196cf90",
+            "start": 19.186,
+            "end": 24.703
         },
         {
             "text": "De brief mag je zelf herschrijven. De knop naar de aanleverpagina komt er altijd onder.",
-            "hash": "e89c6b91b965039a88613ae6c801c453a9176d1b",
-            "start": 24.223,
-            "end": 28.821
+            "hash": "9cbd57b93741bec655eb4f56d3f988aa7f925520",
+            "start": 25.703,
+            "end": 30.61
         },
         {
-            "text": "Na versturen staat de storing op wacht op terugkoppeling klant. Wat de klant aanlevert, komt vanzelf bij deze storing, en dan gaat hij terug naar in behandeling.",
-            "hash": "eb08de3ec46ca2c676abc21c8a3081bf86b330a1",
-            "start": 29.821,
-            "end": 38.087
+            "text": "Na \"versturen\" wacht de storing op de klant. Wat de klant aanlevert komt vanzelf bij deze storing. Daarna gaat hij terug naar \"in behandeling\".",
+            "hash": "d312bdc585daa142102eeb8d2ad4dc3ab5783a6f",
+            "start": 31.61,
+            "end": 40.567
         }
     ]
 }

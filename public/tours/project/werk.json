@@ -1,0 +1,46 @@
+{
+    "tour": "project",
+    "chapter": "werk",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "werk.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "De tijdlijn zet alles van dit project in de tijd. Klik op een blok voor de details.",
+            "hash": "77522428e0b50d31e0e715846f6bfcc07f656ee5",
+            "start": 0,
+            "end": 4.313
+        },
+        {
+            "text": "Hier staan de werkbonnen van dit project, met hun fase en monteurs.",
+            "hash": "4395ea7c63f3c873616dc28144310ab6897b4582",
+            "start": 5.313,
+            "end": 9.214
+        },
+        {
+            "text": "Ligt er een storing of machine op het bakje? Plak hem hier. Dan komt er een nieuwe werkbon onder dit project.",
+            "hash": "92b5da4633e1f0e1bcce608b5d3a3c38c8f529c7",
+            "start": 10.214,
+            "end": 16.268
+        },
+        {
+            "text": "Bij documenten zet je bestanden bij het project, zoals tekeningen of een offerte.",
+            "hash": "47ee153b32d22ad80b47bf41e46de4280cc28678",
+            "start": 17.268,
+            "end": 21.574
+        },
+        {
+            "text": "Een foto van het project deel je met al zijn werkbonnen. Ook met werkbonnen die later nog komen.",
+            "hash": "ac6cf1d0df26bb0036a2ea09853f2f625f4cb34b",
+            "start": 22.574,
+            "end": 27.995
+        },
+        {
+            "text": "Onderaan staat de geschiedenis van het project. Je ziet wie wat veranderde, en wanneer.",
+            "hash": "913db47c8fd1c65291b0d216861508062ad1ef40",
+            "start": 28.995,
+            "end": 33.12
+        }
+    ]
+}

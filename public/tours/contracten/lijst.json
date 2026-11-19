@@ -1,0 +1,40 @@
+{
+    "tour": "contracten",
+    "chapter": "lijst",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "lijst.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Je zoekt op de titel van een contract of op de naam van de klant.",
+            "hash": "7f5a6144d159d28b9e9475322649042b7bd74f59",
+            "start": 0,
+            "end": 3.231
+        },
+        {
+            "text": "Onder filters kies je een klant of een status.",
+            "hash": "e81edcabb60d340704814bed61df3c7157667f75",
+            "start": 4.231,
+            "end": 6.726
+        },
+        {
+            "text": "Per contract zie je de klant, de titel en de looptijd. Klik op de klant of de titel om het contract te openen.",
+            "hash": "2c1f46eb2087c095190d612fba987ac7b07c7d79",
+            "start": 7.726,
+            "end": 14.671
+        },
+        {
+            "text": "De status volgt uit de datums. Een contract is \"toekomstig\", \"actief\" of \"verlopen\". Alleen \"geannuleerd\" zet je zelf.",
+            "hash": "1f06945eb53059032fd1e49038faaafa5683c241",
+            "start": 15.671,
+            "end": 23.183
+        },
+        {
+            "text": "Met het prullenbakje verwijder je een contract. De machines en de werkbonnen blijven bestaan.",
+            "hash": "b75774f1ce62c7d0c287fa33e36844a551db86cc",
+            "start": 24.183,
+            "end": 29.694
+        }
+    ]
+}

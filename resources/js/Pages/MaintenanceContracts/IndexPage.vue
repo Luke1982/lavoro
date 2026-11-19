@@ -1,9 +1,12 @@
 <template>
-    <IndexHeaderComponent title="Onderhoudscontracten" subtitle="Overzicht van alle onderhoudscontracten"
+    <IndexHeaderComponent ref="header" title="Onderhoudscontracten" subtitle="Overzicht van alle onderhoudscontracten"
         search-url="/maintenancecontracts" search-placeholder="Zoek..." :search-other-params="filterParams"
         add-label="Voeg contract toe" @add="showCreateDrawer = true"
         :can-add="canCreateMaintenanceContract()"
         :has-active-filters="Boolean(customerFilter) || Boolean(statusFilter)">
+        <template #actions>
+            <TourButton tour="contracten" />
+        </template>
         <template #filters>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
@@ -34,7 +37,7 @@
                 <div class="col-span-2">Status</div>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
-            <div v-for="contract in maintenanceContracts.data" :key="contract.id"
+            <div v-for="contract in maintenanceContracts.data" :key="contract.id" data-tour="contracts.row"
                 class="relative md:grid md:grid-cols-12 p-4 pr-14 md:pr-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 md:items-center">
                 <div class="flex flex-col py-1 md:py-0 md:col-span-3">
                     <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Klant</span>
@@ -62,9 +65,9 @@
                         </div>
                     </span>
                 </div>
-                <div class="flex flex-col py-1 md:py-0 md:col-span-2">
+                <div class="flex flex-col py-1 md:py-0 md:col-span-2" data-cell="status">
                     <span class="block md:hidden font-semibold text-xs text-gray-500 dark:text-slate-400">Status</span>
-                    <EditableTextField type="combobox" v-model="contract.status" :options="statusEditOptions"
+                    <EditableTextField type="combobox" :model-value="contract.status" :options="statusEditOptions"
                         :readonly="!hasPermission('maintenancecontract.update')" :decoration="false"
                         @update="val => updateContractStatus(contract, val)">
                         <template #display>
@@ -74,7 +77,7 @@
                         </template>
                     </EditableTextField>
                 </div>
-                <div class="absolute right-4 top-4 md:static md:col-span-1 md:flex md:justify-end">
+                <div class="absolute right-4 top-4 md:static md:col-span-1 md:flex md:justify-end" data-cell="actions">
                     <div v-if="hasPermission('maintenancecontract.delete')" class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2">
                         <TrashIcon class="h-5 w-5 cursor-pointer text-red-500" @click="deleteContract(contract.id)" />
                     </div>
@@ -108,6 +111,8 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour } from '@/Composables/useTour'
 import { canCreateMaintenanceContract, hasPermission, nlDate, nlCurrency, maintenanceContractStatusText, maintenanceContractStatusClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -123,6 +128,7 @@ const props = defineProps({
 const searchParam = props.search
 
 const showCreateDrawer = ref(false)
+const header = ref(null)
 
 const { options: customerOptions, searching: customersSearching, search: searchCustomers } =
     useComboSearch('customers', props.allCustomers, props.customersUseAjax)
@@ -160,7 +166,12 @@ function applyFilters() {
 watch(customerFilter, applyFilters)
 watch(statusFilter, applyFilters)
 
+/**
+ * Picking the status a contract already has deselects it. That is no choice, so
+ * nothing is sent: an empty status would otherwise read as "not cancelled".
+ */
 function updateContractStatus(contract, value) {
+    if (!value) return
     router.patch(`/maintenancecontracts/${contract.id}`, { cancelled: value === 'geannuleerd' }, {
         preserveScroll: true,
         preserveState: true,
@@ -171,4 +182,22 @@ function deleteContract(id) {
     if (!confirm('Weet je zeker dat je dit onderhoudscontract wilt verwijderen?')) return
     useForm({}).delete(`/maintenancecontracts/${id}`, { preserveScroll: true, preserveState: true })
 }
+
+const firstRow = () => document.querySelector('[data-tour="contracts.row"]')
+
+/** The contracten rondleiding opens the filters and the drawer for a new contract, and closes them again. */
+useTour('contracten', {
+    openFilters: () => header.value?.openFilters() ?? null,
+    openCreate: () => {
+        if (showCreateDrawer.value) return null
+        showCreateDrawer.value = true
+
+        return () => { showCreateDrawer.value = false }
+    },
+}, {
+    spots: {
+        'contracts.status': () => firstRow()?.querySelector('[data-cell=status]') ?? null,
+        'contracts.delete': () => firstRow()?.querySelector('[data-cell=actions] div') ?? null,
+    },
+})
 </script>

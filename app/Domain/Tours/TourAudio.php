@@ -3,6 +3,7 @@
 namespace App\Domain\Tours;
 
 use App\Domain\Tours\Speech\SpeechDriver;
+use App\Domain\Tours\Speech\SpokenLine;
 use Closure;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -20,6 +21,27 @@ use RuntimeException;
  */
 class TourAudio
 {
+    /**
+     * After its last word a voice may draw breath. A breath is a sound at least
+     * BREATH_RISE decibel louder than the quiet before it, louder than
+     * BREATH_FLOOR, for BREATH_FRAMES hundredths of a second: a word's own last
+     * click is shorter. It is looked for in the BREATH_WINDOW seconds after the
+     * word, and the cut fades out over FADE seconds.
+     */
+    private const BREATH_WINDOW = 0.3;
+
+    private const BREATH_RISE = 12;
+
+    private const BREATH_FLOOR = -65;
+
+    private const BREATH_FRAMES = 3;
+
+    private const FADE = 0.03;
+
+    private const FRAME_SECONDS = 0.01;
+
+    private const ANALYSIS_RATE = 16000;
+
     public function __construct(
         private readonly SpeechDriver $driver,
         private readonly string $clips_root,
@@ -47,7 +69,7 @@ class TourAudio
 
             if ($force || !is_file($path)) {
                 File::ensureDirectoryExists($clip_folder);
-                File::put($path, $this->driver->speak($text));
+                $this->store($this->driver->speak($text), $path);
                 $spoken++;
                 $report('  stap ' . ($index + 1) . ' ingesproken');
             }
@@ -122,6 +144,97 @@ class TourAudio
             && ($cue['version'] ?? null) === $chapter['version']
             && (float) ($cue['gap'] ?? -1) === $this->gap_seconds
             && array_column($cue['steps'] ?? [], 'hash') === array_column($steps, 'hash');
+    }
+
+    /**
+     * Keeps the line without the breath a voice may draw after its last word, for
+     * a sentence that does not come. The cut goes in the quietest moment just
+     * after that word, so the word keeps its own fading tail.
+     */
+    private function store(SpokenLine $line, string $path): void
+    {
+        File::put($path, $line->audio);
+        $cut = $line->words_end === null ? null : $this->endOfSpeech($path, $line->words_end);
+        if ($cut === null) {
+            return;
+        }
+
+        $whole = $path . '.whole.mp3';
+        File::move($path, $whole);
+
+        try {
+            $result = Process::run([
+                $this->ffmpeg, '-y', '-loglevel', 'error', '-i', $whole, '-t', $this->seconds($cut),
+                '-af', 'afade=t=out:st=' . $this->seconds(max(0, $cut - self::FADE)) . ':d=' . self::FADE,
+                '-ac', '1', '-ar', '44100', '-b:a', '128k', $path,
+            ]);
+
+            if ($result->failed() || !is_file($path)) {
+                File::delete($path);
+
+                throw new RuntimeException('ffmpeg kon ' . $path . ' niet inkorten: ' . trim($result->errorOutput()));
+            }
+        } finally {
+            File::delete($whole);
+        }
+    }
+
+    /** The quietest moment after the last word and before any breath. */
+    private function endOfSpeech(string $path, float $words_end): ?float
+    {
+        $levels = $this->levelsAfter($path, $words_end);
+        if (!$levels) {
+            return null;
+        }
+
+        $quietest = 0;
+        $loud = 0;
+        foreach ($levels as $index => $level) {
+            if ($level < $levels[$quietest]) {
+                $quietest = $index;
+                $loud = 0;
+
+                continue;
+            }
+            $loud = $level > max($levels[$quietest] + self::BREATH_RISE, self::BREATH_FLOOR) ? $loud + 1 : 0;
+            if ($loud === self::BREATH_FRAMES) {
+                break;
+            }
+        }
+
+        return $words_end + ($quietest + 0.5) * self::FRAME_SECONDS;
+    }
+
+    /**
+     * The loudness of every FRAME_SECONDS in the BREATH_WINDOW from `$from`. The
+     * whole line is decoded: an MP3 read from a point halfway starts with a
+     * stretch of silence that is not in the line.
+     *
+     * @return array<int, float>
+     */
+    private function levelsAfter(string $path, float $from): array
+    {
+        $result = Process::run([
+            $this->ffmpeg, '-loglevel', 'error', '-i', $path,
+            '-ac', '1', '-ar', (string) self::ANALYSIS_RATE, '-f', 's16le', '-',
+        ]);
+        $samples = $result->successful() ? array_values(unpack('s*', $result->output()) ?: []) : [];
+        $window = array_slice($samples, (int) ($from * self::ANALYSIS_RATE), (int) (self::BREATH_WINDOW * self::ANALYSIS_RATE));
+
+        return array_map(fn (array $frame) => $this->decibels($frame), array_chunk($window, (int) (self::ANALYSIS_RATE * self::FRAME_SECONDS)));
+    }
+
+    /** @param  array<int, int>  $samples */
+    private function decibels(array $samples): float
+    {
+        $power = array_sum(array_map(fn (int $sample) => $sample * $sample, $samples)) / count($samples);
+
+        return 10 * log10(max($power, 1) / 32768 ** 2);
+    }
+
+    private function seconds(float $seconds): string
+    {
+        return number_format($seconds, 3, '.', '');
     }
 
     /**

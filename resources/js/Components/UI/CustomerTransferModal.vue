@@ -6,7 +6,7 @@
 
         <div v-else class="space-y-5 text-sm">
             <p class="text-gray-700 dark:text-gray-300">
-                Je verplaatst deze {{ subjectLabel }} naar <strong>{{ newCustomerName }}</strong>.
+                Je verplaatst {{ subjectLabel }} naar <strong>{{ newCustomerName }}</strong>.
                 De onderstaande machines gaan mee naar de nieuwe klant.
             </p>
 
@@ -73,6 +73,7 @@ import axios from 'axios'
 import BadgeComponent from './BadgeComponent.vue'
 import ComboBox from './ComboBox.vue'
 import ModalDialog from './ModalDialog.vue'
+import { subjectPhrase } from '@/Utilities/Utilities'
 
 const props = defineProps({
     open: { type: Boolean, required: true },
@@ -88,11 +89,11 @@ const loading = ref(false)
 const locationMap = ref({})
 const preview = ref({ assets: [], locations: [], contracts: [], target_locations: [] })
 
-const subjectLabel = computed(() => ({
-    contract: 'contract',
-    serviceorder: 'werkbon',
-    asset: 'machine',
-}[props.context] ?? 'record'))
+const MODELS = { contract: 'MaintenanceContract', serviceorder: 'ServiceOrder', asset: 'Asset' }
+
+const subjectLabel = computed(() => subjectPhrase(MODELS[props.context]) ?? 'dit record')
+
+const title = computed(() => 'Verhuizen naar ' + (props.newCustomerName || 'een andere klant'))
 
 const hasChildren = computed(() => preview.value.assets.some(asset => asset.is_child))
 

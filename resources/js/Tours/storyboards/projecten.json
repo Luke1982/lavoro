@@ -1,0 +1,166 @@
+{
+    "id": "projecten",
+    "title": "Rondleiding door de projecten",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/projects",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "project.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De projectenlijst",
+            "summary": "Zoeken, filteren en sorteren, wat je per project ziet, de status en verwijderen.",
+            "steps": [
+                {
+                    "spot": "list.search",
+                    "title": "Zoeken",
+                    "text": "Zoek op **nummer**, **titel**, **klant** of **projectleider**.",
+                    "say": "Je zoekt een project op nummer of titel. Een klant of projectleider werkt ook."
+                },
+                {
+                    "spot": "list.filter-panel",
+                    "action": "openFilters",
+                    "title": "Filters",
+                    "text": "De lijst opent op de lopende projecten: **Niet gestart** en **Gestart**. Onder **Filters** kies je een andere status, of **Alle statussen**. Je filtert ook op projectleider en op klant.",
+                    "say": "De lijst opent op de lopende projecten. Onder filters kies je een andere status. Je kunt ook filteren op projectleider of klant.",
+                    "marks": [
+                        {
+                            "spot": "list.filters",
+                            "when": "filters"
+                        }
+                    ]
+                },
+                {
+                    "spot": "projects.row",
+                    "title": "Een project in de lijst",
+                    "text": "Per project zie je de titel met de looptijd, het **nummer**, de klant en de status. Klik op de titel om het project te openen.",
+                    "say": "Per project zie je de titel en het nummer. Ook de klant en de status staan erbij. Klik op de titel om het project te openen."
+                },
+                {
+                    "spot": "projects.progress",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "title": "Voortgang",
+                    "text": "Onder **Voortgang** zie je hoeveel werkbonnen gesloten zijn en hoeveel mijlpalen behaald. Mijlpalen die te laat zijn, staan in rood.",
+                    "say": "Onder voortgang zie je hoeveel werkbonnen gesloten zijn. Ook de behaalde mijlpalen staan erbij. Wat te laat is, staat in rood."
+                },
+                {
+                    "spot": "projects.sort",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "title": "Sorteren",
+                    "text": "Klik op **Nummer**, **Titel**, **Klant**, **Einde** of **Status** om daarop te sorteren. Klik nog een keer voor de omgekeerde volgorde. De derde keer staat de lijst weer zoals eerst, met de nieuwste projecten bovenaan.",
+                    "say": "Klik op een kolomkop om daarop te sorteren. Nog een keer klikken draait de volgorde om."
+                },
+                {
+                    "spot": "projects.status",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "device": "desktop",
+                        "permissions": [
+                            "project.update"
+                        ]
+                    },
+                    "title": "Status",
+                    "text": "De **status** wijzig je hier meteen: klik erop en kies een andere.",
+                    "say": "De status wijzig je hier meteen. Klik erop en kies een andere."
+                },
+                {
+                    "spot": "projects.delete",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "project.delete"
+                        ]
+                    },
+                    "title": "Verwijderen",
+                    "text": "Een project verwijderen kan alleen als er geen werkbonnen onder staan. Is het prullenbakje grijs? Zet het project dan op **Geannuleerd**. Zo blijft bewaard waarvoor de werkbonnen gedaan zijn.",
+                    "say": "Een project verwijderen kan alleen als er geen werkbonnen onder staan. Is het prullenbakje grijs? Zet het project dan op \"geannuleerd\"."
+                }
+            ]
+        },
+        {
+            "id": "nieuw",
+            "version": 1,
+            "title": "Een project maken",
+            "summary": "De la voor een nieuw project, een sjabloon met mijlpalen, en waar je sjablonen beheert.",
+            "requires": {
+                "permissions": [
+                    "project.create"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "list.add",
+                    "title": "Voeg project toe",
+                    "text": "Met **Voeg project toe** open je een la voor een nieuw project. Op een telefoon is dat het plusje.",
+                    "say": "Met \"voeg project toe\" open je een la voor een nieuw project."
+                },
+                {
+                    "spot": "project.new.template",
+                    "skipIfMissing": true,
+                    "action": "openCreate",
+                    "title": "Sjabloon",
+                    "text": "Kies je een **sjabloon**? Dan krijgt het project meteen de mijlpalen daarvan. Ze worden gepland vanaf de startdatum. Zonder startdatum komen ze zonder datum.",
+                    "say": "Kies je een sjabloon? Dan krijgt het project meteen de mijlpalen daarvan. Ze worden gepland vanaf de startdatum."
+                },
+                {
+                    "spot": "project.new.customer",
+                    "action": "openCreate",
+                    "title": "Klant en projectleider",
+                    "text": "Kies de **klant** en de **projectleider**. Die staan expres leeg, zodat je niet per ongeluk de verkeerde kiest.",
+                    "say": "Kies de klant en de projectleider. Die staan expres leeg, zodat je niet per ongeluk de verkeerde kiest.",
+                    "marks": [
+                        {
+                            "spot": "project.new.manager",
+                            "when": "projectleider"
+                        }
+                    ]
+                },
+                {
+                    "spot": "project.new.status",
+                    "action": "openCreate",
+                    "title": "Status en looptijd",
+                    "text": "Een nieuw project staat op **Niet gestart**. Vul de start- en einddatum in. Een einddatum vóór de startdatum wordt geweigerd. De begrote uren mag je leeg laten.",
+                    "say": "Een nieuw project staat op \"niet gestart\". Vul de start- en einddatum in. De begrote uren mag je leeg laten.",
+                    "marks": [
+                        {
+                            "spot": "project.new.period",
+                            "when": "start- en einddatum"
+                        },
+                        {
+                            "spot": "project.new.hours",
+                            "when": "begrote uren"
+                        }
+                    ]
+                },
+                {
+                    "spot": "project.new.save",
+                    "action": "openCreate",
+                    "title": "Opslaan",
+                    "text": "Na **Opslaan** krijgt het project vanzelf een nummer, zoals P-2026-014: het jaar en een teller die elk jaar opnieuw begint. Daarna opent het nieuwe project meteen. De rondleiding slaat niets op.",
+                    "say": "Na opslaan krijgt het project vanzelf een nummer, met het jaar erin. Daarna opent het nieuwe project meteen."
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "projecttemplate.manage"
+                        ]
+                    },
+                    "title": "Sjablonen beheren",
+                    "text": "Sjablonen beheer je in het menu onder **Projecten** → **Sjablonen**. Per soort project leg je de mijlpalen vast, met het aantal dagen na de start. Een sjabloon aanpassen verandert niets aan projecten die er al mee gemaakt zijn.",
+                    "say": "Sjablonen beheer je in het menu, onder projecten. Per soort project leg je de mijlpalen vast."
+                }
+            ]
+        }
+    ]
+}

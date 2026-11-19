@@ -2,7 +2,7 @@
     <DrawerComponent v-model="open" title="Nieuw project"
         subtitle="Het project krijgt bij het opslaan vanzelf een nummer.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <DrawerField v-if="templateOptions.length" label="Sjabloon">
+            <DrawerField v-if="templateOptions.length" label="Sjabloon" data-tour="project.new.template">
                 <ComboBox :options="templateOptions" v-model="form.project_template_id" placeholder="Geen sjabloon"
                     :hasError="Boolean(form.errors.project_template_id)"
                     :errorMessage="form.errors.project_template_id" />
@@ -14,30 +14,30 @@
                 <TextInput v-model="form.title" type="text"
                     :hasError="Boolean(form.errors.title)" :errorMessage="form.errors.title" />
             </DrawerField>
-            <DrawerField label="Klant">
+            <DrawerField label="Klant" data-tour="project.new.customer">
                 <ComboBox :options="customerOptions" v-model="form.customer_id" placeholder="Selecteer klant"
                     :has-external-searching="customersUseAjax" :searching="customersSearching"
                     @change="searchCustomers"
                     :hasError="Boolean(form.errors.customer_id)" :errorMessage="form.errors.customer_id" />
             </DrawerField>
-            <DrawerField label="Projectleider">
+            <DrawerField label="Projectleider" data-tour="project.new.manager">
                 <ComboBox :options="users" v-model="form.project_manager_id" placeholder="Selecteer projectleider"
                     :hasError="Boolean(form.errors.project_manager_id)"
                     :errorMessage="form.errors.project_manager_id" />
             </DrawerField>
-            <DrawerField label="Status">
+            <DrawerField label="Status" data-tour="project.new.status">
                 <ComboBox :options="statuses" v-model="form.status" emit-value
                     :hasError="Boolean(form.errors.status)" :errorMessage="form.errors.status" />
             </DrawerField>
-            <DrawerField label="Startdatum">
+            <DrawerField label="Startdatum" data-tour="project.new.period">
                 <TextInput v-model="form.start_date" type="date"
                     :hasError="Boolean(form.errors.start_date)" :errorMessage="form.errors.start_date" />
             </DrawerField>
-            <DrawerField label="Einddatum">
+            <DrawerField label="Einddatum" data-tour="project.new.period">
                 <TextInput v-model="form.end_date" type="date"
                     :hasError="Boolean(form.errors.end_date)" :errorMessage="form.errors.end_date" />
             </DrawerField>
-            <DrawerField label="Begrote uren">
+            <DrawerField label="Begrote uren" data-tour="project.new.hours">
                 <TextInput v-model="form.budget_hours" type="number" placeholder="Optioneel"
                     :hasError="Boolean(form.errors.budget_hours)" :errorMessage="form.errors.budget_hours" />
             </DrawerField>
@@ -55,7 +55,7 @@
                     class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                     Annuleren
                 </button>
-                <button type="button" @click="submit" :disabled="form.processing"
+                <button type="button" data-tour="project.new.save" @click="submit" :disabled="form.processing"
                     class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Opslaan
                 </button>

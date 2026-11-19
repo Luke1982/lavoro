@@ -23,7 +23,7 @@ class FakeSpeech implements SpeechDriver
         return 'fake:tone';
     }
 
-    public function speak(string $text): string
+    public function speak(string $text): SpokenLine
     {
         $words = count(preg_split('/\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY));
         $seconds = number_format(max(1.5, $words / 2.4), 2, '.', '');
@@ -46,6 +46,6 @@ class FakeSpeech implements SpeechDriver
         @unlink($path);
         @unlink($base);
 
-        return $audio;
+        return new SpokenLine($audio);
     }
 }

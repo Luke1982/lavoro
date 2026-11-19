@@ -1,13 +1,14 @@
 <template>
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div class="flex items-center gap-2 min-w-0">
+        <div class="flex items-center gap-2 min-w-0" data-tour="project.header">
             <span class="rounded-md bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-gray-700 dark:text-slate-300 tabular-nums">
                 {{ project.number }}
             </span>
             <span :class="projectStatusClass(project.status)" class="text-xs font-medium">{{ project.status }}</span>
         </div>
-        <div class="flex items-center gap-2">
-            <ExcelExportButton :url="`/projects/${project.id}/export`" />
+        <div class="flex items-stretch gap-2">
+            <TourButton tour="project" />
+            <ExcelExportButton :url="`/projects/${project.id}/export`" data-tour="project.export" />
             <AssistantButton />
         </div>
     </div>
@@ -17,8 +18,9 @@
         Gestart om er weer werk aan toe te voegen.
     </div>
     <ChaptersComponent>
-        <ChapterHeaders>
-            <ChapterHeader v-for="(chapter, index) in chapters" :key="index" :index="index">
+        <ChapterHeaders data-tour="project.chapters">
+            <ChapterHeader v-for="(chapter, index) in chapters" :key="index" :index="index"
+                :data-tour="index === 1 ? 'project.administration.tab' : null">
                 {{ chapter }}
             </ChapterHeader>
         </ChapterHeaders>
@@ -27,10 +29,10 @@
             <template #chapter-0>
             <TwoThirdsOneThird>
                 <template #main>
-                    <BoxComponent>
+                    <BoxComponent data-tour="project.details">
                         <SectionHeader :icon="DocumentTextIcon" title="Details"
                             subtitle="Titel, looptijd en locatie van dit project." chapter="details" />
-                        <StepsProgressBar :steps="statuses" v-model="form.status"
+                        <StepsProgressBar :steps="statuses" v-model="form.status" data-tour="project.status"
                             class="mb-4 border-b border-gray-200 dark:border-slate-700 pb-4"
                             :class="{ 'pointer-events-none': !canUpdate }" />
                         <div class="grid grid-cols-12 gap-0 sm:gap-4">
@@ -49,7 +51,7 @@
                             <div class="col-span-12 md:col-span-2 mt-2 sm:mt-0 text-slate-400">
                                 <span class="text-xs font-bold">Locatie</span>
                             </div>
-                            <div class="col-span-12 md:col-span-10">
+                            <div class="col-span-12 md:col-span-10" data-tour="project.location">
                                 <EditableTextField type="combobox" v-model="form.location_id" :options="locationOptions"
                                     :empty-message="locationMessage" :error="form.errors.location_id"
                                     @revert="form.clearErrors('location_id')" :readonly="!canUpdate">
@@ -74,7 +76,7 @@
                             <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                                 <span class="text-xs font-bold">Klant</span>
                             </div>
-                            <div class="col-span-12 sm:col-span-10">
+                            <div class="col-span-12 sm:col-span-10" data-tour="project.customer">
                                 <EditableTextField type="combobox" v-model="form.customer_id" :options="customers"
                                     :error="form.errors.customer_id" @revert="form.clearErrors('customer_id')"
                                     :readonly="!canUpdate">
@@ -163,7 +165,7 @@
                         </div>
                     </BoxComponent>
 
-                    <BoxComponent class="mt-4">
+                    <BoxComponent class="mt-4" data-tour="project.progress">
                         <SectionHeader :icon="ChartBarIcon" title="Voortgang"
                             subtitle="Gerekend zoals de Excel-export van dit project." chapter="details" border />
                         <ProjectProgress :progress="progress" />
@@ -231,10 +233,11 @@
                             </dl>
                         </BoxComponent>
 
-                        <BoxComponent class="grow mt-4">
+                        <BoxComponent class="grow mt-4" data-tour="project.milestones">
                             <SectionHeader :icon="FlagIcon" title="Mijlpalen"
                                 subtitle="De ijkpunten waarlangs dit project vordert." chapter="milestones" border />
-                            <div v-if="canCreateMilestone" class="-mt-1 mb-4 flex items-center justify-end gap-1.5">
+                            <div v-if="canCreateMilestone" class="-mt-1 mb-4 flex items-center justify-end gap-1.5"
+                                data-tour="project.milestones.add">
                                 <DropdownMenu v-if="templates.length" placement="bottom-end" width-class="w-56"
                                     title="Mijlpalen uit een sjabloon"
                                     button-class="inline-flex items-center gap-1 rounded border border-gray-300 dark:border-slate-600 px-2 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer">
@@ -261,7 +264,7 @@
                             </div>
                             <div v-else class="flow-root">
                                 <ul role="list" class="-mb-5" v-auto-animate>
-                                    <li v-for="(ms, idx) in sortedMilestones" :key="ms.id">
+                                    <li v-for="(ms, idx) in sortedMilestones" :key="ms.id" data-milestone>
                                         <div class="relative pb-5">
                                             <span v-if="idx !== sortedMilestones.length - 1"
                                                 class="absolute top-3 left-3 -ml-px h-full w-0.5 bg-gray-200 dark:bg-slate-700/60"
@@ -273,7 +276,7 @@
                                                         <CheckIcon v-if="ms.actual_date" class="size-4 text-white" />
                                                         <ClockIcon v-else class="size-4 text-white" />
                                                     </span>
-                                                    <button v-else type="button"
+                                                    <button v-else type="button" data-cell="check"
                                                         v-tooltip="ms.actual_date ? 'Markeer als niet afgerond' : 'Markeer als afgerond met vandaag als werkelijke datum'"
                                                         @click="toggleMilestoneComplete(ms)"
                                                         :class="[milestoneColor(ms), 'flex size-7 items-center justify-center rounded-full border border-white dark:border-slate-700 shadow-sm cursor-pointer hover:brightness-110']">
@@ -293,9 +296,11 @@
                                                             </p>
                                                         </div>
                                                         <div class="flex items-center gap-1.5 ml-2 shrink-0">
-                                                            <PencilSquareIcon v-if="canUpdateMilestone"
-                                                                class="size-4 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
-                                                                @click="toggleEditMilestone(ms)" />
+                                                            <span v-if="canUpdateMilestone" data-cell="edit" class="inline-flex">
+                                                                <PencilSquareIcon
+                                                                    class="size-4 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 cursor-pointer"
+                                                                    @click="toggleEditMilestone(ms)" />
+                                                            </span>
                                                             <TrashIcon v-if="canDeleteMilestone"
                                                                 class="size-4 text-red-400 dark:text-red-300 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
                                                                 @click="deleteMilestone(ms.id)" />
@@ -375,7 +380,7 @@
                                                                 <EditableTextField v-model="editForms[ms.id].actual_date"
                                                                     type="input" input-type="date" class="w-full" />
                                                             </div>
-                                                            <div>
+                                                            <div data-tour="project.milestone.orders">
                                                                 <span class="text-xs font-bold text-gray-600 dark:text-slate-400">Werkbonnen</span>
                                                                 <ComboBox :options="serviceOrderOptions" multiple
                                                                     v-model="editForms[ms.id].service_order_ids"
@@ -398,7 +403,7 @@
                 </template>
             </TwoThirdsOneThird>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="project.timeline">
                 <SectionHeader :icon="CalendarIcon" title="Tijdlijn"
                     subtitle="De looptijd van dit project met de mijlpalen erop uitgezet." chapter="timeline" border />
                 <ProjectTimeline :project-id="project.id" :project-start-date="project.start_date"
@@ -408,16 +413,16 @@
             <TwoThirdsOneThird class="mt-4">
                 <template #main>
                     <DocumentUploadComponent :existing="project.documents" :documentable-id="project.id"
-                        documentable-type="\App\Models\Project" class="h-full" />
+                        documentable-type="\App\Models\Project" class="h-full" data-tour="project.documents" />
                 </template>
                 <template #sidebar>
                     <div class="h-full flex flex-col">
-                        <BoxComponent class="mt-4 md:mt-0">
+                        <BoxComponent class="mt-4 md:mt-0" data-tour="project.images">
                             <ImageUploadComponent :existing="project.images" :imageable-id="project.id"
                                 imageable-type="\App\Models\Project" />
                         </BoxComponent>
 
-                        <BoxComponent class="mt-4 grow"
+                        <BoxComponent class="mt-4 grow" data-tour="project.orders"
                             v-tray-drop="{ target: { type: 'project', id: project.id }, label: 'een werkbon onder dit project te maken', accepts: isClosed ? [] : undefined }">
                             <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen"
                                 subtitle="Het werk dat onder dit project wordt uitgevoerd." chapter="serviceorders" border>
@@ -441,7 +446,7 @@
                 </template>
             </TwoThirdsOneThird>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="project.history">
                 <SectionHeader :icon="ClockIcon" title="Geschiedenis"
                     subtitle="Wie wat veranderde aan dit project, zijn mijlpalen en zijn werkbonnen." chapter="timeline" border />
                 <TimelineComponent v-if="project.activities?.length" :activities="project.activities" />
@@ -550,6 +555,8 @@ import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import { ref, reactive, watch, computed, nextTick } from 'vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ExcelExportButton from '@/Components/UI/ExcelExportButton.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour, findSpot } from '@/Composables/useTour'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
@@ -848,6 +855,31 @@ const serviceOrderForm = useForm({
 function createServiceOrder() {
     serviceOrderForm.post('/serviceorders', { preserveScroll: true })
 }
+
+const firstMilestone = () => document.querySelector('[data-milestone]')
+
+/**
+ * The project rondleiding opens the first milestone for editing, to show where its
+ * werkbonnen are chosen, and closes it again. Opening saves nothing: a field only
+ * saves when it changes.
+ */
+useTour('project', {
+    editFirstMilestone: () => {
+        const first = sortedMilestones.value[0]
+        if (!first || editingMilestoneId.value !== null) return null
+        toggleEditMilestone(first)
+
+        return () => {
+            if (editingMilestoneId.value === first.id) toggleEditMilestone(first)
+        }
+    },
+}, {
+    spots: {
+        'project.milestone.check': () => firstMilestone()?.querySelector('[data-cell=check]') ?? null,
+        'project.milestone.edit': () => firstMilestone()?.querySelector('[data-cell=edit]') ?? null,
+        'project.administration': () => findSpot('project.administration.tab') ?? findSpot('project.chapters'),
+    },
+})
 </script>
 
 <style scoped>

@@ -2,45 +2,45 @@
     "tour": "activiteiten",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Hier kies je hoe ver je vooruit kijkt. Je ziet alle machines waarvan de keuring al verlopen is, of in die periode verloopt.",
-            "hash": "d810f408c0da07a3d8c684f8947c678352a19cdb",
+            "text": "Hier kies je hoe ver je vooruit kijkt. Je ziet de machines waarvan de keuring in die periode verloopt, of al verlopen is.",
+            "hash": "10c66f8a4858d93146407097c87725965cf6c981",
             "start": 0,
-            "end": 6.92
+            "end": 6.316
         },
         {
-            "text": "Zoek op klant, merk, model of serienummer.",
-            "hash": "ecf790d4bf0ba51161673ebd91c8b0e0923f4fbb",
-            "start": 7.92,
-            "end": 10.613
+            "text": "Je zoekt op klant of serienummer. Ook merk en model werken.",
+            "hash": "e869717359a32eff0cc5963a1a37f39dd80f5866",
+            "start": 7.316,
+            "end": 10.375
         },
         {
             "text": "Hier wissel je tussen een overzicht per klant en een tabel. Je laatste keuze blijft bewaard.",
-            "hash": "0bf2c4426d07324b96c308d00285ee5550b61725",
-            "start": 11.613,
-            "end": 16.954
+            "hash": "0ec3a96a6eb4b6a0c9da6e554e00dff285b010c6",
+            "start": 11.375,
+            "end": 16.616
         },
         {
-            "text": "In de tabel heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
-            "hash": "2911db0d65241fc83d96935239dda05c55793ff8",
-            "start": 17.954,
-            "end": 30.26
+            "text": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
+            "hash": "5edbccba4a707134375d8159a9d31dd96a5665b5",
+            "start": 17.616,
+            "end": 30.799
         },
         {
-            "text": "In de tabel filter je op klant, type, status, storingen en planning. Planning staat standaard op niet gepland.",
-            "hash": "bd0c0679c9587ffa1b6d510c582f7ceba50e704f",
-            "start": 31.26,
-            "end": 37.576
+            "text": "In de tabel kun je ook filteren, bijvoorbeeld op klant of op planning. Planning staat standaard op \"niet gepland\".",
+            "hash": "4dcd676b0e2a287b7e157b7102bee19a231a522b",
+            "start": 31.799,
+            "end": 37.948
         },
         {
             "text": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze.",
-            "hash": "e18898962807ee392a32513c5b54ecb91b2d6e21",
-            "start": 38.576,
-            "end": 44.52
+            "hash": "89861d700b6ac46421eafb5a937787453a8ad5c0",
+            "start": 38.948,
+            "end": 44.997
         }
     ]
 }

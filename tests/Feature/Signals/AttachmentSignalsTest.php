@@ -52,13 +52,14 @@ class AttachmentSignalsTest extends TestCase
     public function test_deleting_a_remark_announces_it_on_the_record_it_hung_from(): void
     {
         $order = $this->order();
+        $author = $this->admin();
         $remark = Remark::create([
             'content' => 'Klant belt terug',
-            'user_id' => $this->admin()->id,
+            'user_id' => $author->id,
         ]);
         $order->remarks()->attach($remark->id);
 
-        $this->actingAs($this->admin())
+        $this->actingAs($author)
             ->delete(route('remarks.destroy', $remark));
 
         $activity = Activity::where('event_key', 'remark.removed')->sole();

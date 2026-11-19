@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "kaart-en-route",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "kaart-en-route.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Delen je monteurs hun locatie, dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
-            "hash": "a4a713f5dc1137dc5f1bba22bbb10cfd7b3229aa",
+            "text": "Delen je monteurs hun locatie? Dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
+            "hash": "7bf2acc0b0e20dbd477e23a3f44d64b0b275acef",
             "start": 0,
-            "end": 5.759
+            "end": 4.948
         },
         {
             "text": "Zo staan ze allemaal op de kaart.",
-            "hash": "f1405fa30c8790173bf1decf02a4c16e13a98ba1",
-            "start": 6.759,
-            "end": 8.709
+            "hash": "a91e34366dc1c14d58073cd97f7f5ca43bf4697a",
+            "start": 5.948,
+            "end": 7.888
         },
         {
             "text": "In de rij van een monteur staat zijn laatste locatie op een kleine kaart. Met het pijltje maak je hem groter.",
-            "hash": "02283159d2c842d1c3e7879a1927f780d8f2c641",
-            "start": 9.709,
-            "end": 16.071
+            "hash": "aa5a277f97091414820279183eff70d17c19c1bd",
+            "start": 8.888,
+            "end": 15.193
         },
         {
-            "text": "Staat er voor een dag een route klaar, dan zie je bovenin die dag een knop Route. Die opent de route in Google Maps.",
-            "hash": "ea18cd3812214c5fde3d0bcb57b17f390a2842c4",
-            "start": 17.071,
-            "end": 23.48
+            "text": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\". Die opent de route in Google Maps.",
+            "hash": "70fd86af60b940a48ae3c7ca6d7963c996127f4a",
+            "start": 16.193,
+            "end": 23.475
         },
         {
             "text": "Een route maak je op de kaart van de keuringen of van de storingen. Zet je hem in de planning, dan verschijnt hij hier bij de monteur.",
-            "hash": "619ef6d6bf2caf586cff92c00b2b73a597944b6c",
-            "start": 24.48,
-            "end": 31.121
+            "hash": "fe4f0b084085cebdc760e67df7dc3fd0521c44c5",
+            "start": 24.475,
+            "end": 31.89
         }
     ]
 }

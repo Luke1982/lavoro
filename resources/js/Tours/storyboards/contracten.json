@@ -1,0 +1,160 @@
+{
+    "id": "contracten",
+    "title": "Rondleiding door de onderhoudscontracten",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/maintenancecontracts",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "maintenancecontract.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De contractenlijst",
+            "summary": "Zoeken, filteren, wat je per contract ziet en de status.",
+            "steps": [
+                {
+                    "spot": "list.search",
+                    "title": "Zoeken",
+                    "text": "Zoek op de **titel** van een contract of op de **naam van de klant**.",
+                    "say": "Je zoekt op de titel van een contract of op de naam van de klant."
+                },
+                {
+                    "spot": "list.filter-panel",
+                    "action": "openFilters",
+                    "title": "Filters",
+                    "text": "Onder **Filters** kies je een **klant** of een **status**. Klik nog een keer op je keuze om hem weer weg te halen.",
+                    "say": "Onder filters kies je een klant of een status.",
+                    "marks": [
+                        {
+                            "spot": "list.filters",
+                            "when": "filters"
+                        }
+                    ]
+                },
+                {
+                    "spot": "contracts.row",
+                    "skipIfMissing": true,
+                    "title": "Een contract in de lijst",
+                    "text": "Per contract zie je de klant, de titel en de looptijd. Mag je de financiële gegevens zien? Dan staat ook de prijs erbij. Klik op de klant of de titel om het contract te openen. Het contract met de nieuwste startdatum staat bovenaan.",
+                    "say": "Per contract zie je de klant, de titel en de looptijd. Klik op de klant of de titel om het contract te openen."
+                },
+                {
+                    "spot": "contracts.status",
+                    "skipIfMissing": true,
+                    "title": "Status",
+                    "text": "De **status** volgt uit de datums. Een contract is **toekomstig** zolang het nog niet begonnen is, **actief** tijdens de looptijd en **verlopen** na de einddatum. Alleen **geannuleerd** zet je zelf. Mag je contracten wijzigen? Klik dan op de status om een contract te annuleren of weer actief te maken.",
+                    "say": "De status volgt uit de datums. Een contract is \"toekomstig\", \"actief\" of \"verlopen\". Alleen \"geannuleerd\" zet je zelf."
+                },
+                {
+                    "spot": "contracts.delete",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.delete"
+                        ]
+                    },
+                    "title": "Verwijderen",
+                    "text": "Met het **prullenbakje** verwijder je een contract, na een bevestiging. De machines blijven bestaan, en de werkbonnen ook. Wil je de geschiedenis bewaren? Zet het contract dan op geannuleerd.",
+                    "say": "Met het prullenbakje verwijder je een contract. De machines en de werkbonnen blijven bestaan."
+                }
+            ]
+        },
+        {
+            "id": "nieuw",
+            "version": 1,
+            "title": "Een contract toevoegen",
+            "summary": "Een nieuw contract invullen, met of zonder sjabloon.",
+            "requires": {
+                "permissions": [
+                    "maintenancecontract.create",
+                    "maintenancecontract.see_financials"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "list.add",
+                    "title": "Voeg contract toe",
+                    "text": "Met **Voeg contract toe** open je het formulier voor een nieuw contract. Op een smal scherm is het een plusje. Het formulier vind je ook op de pagina van een klant.",
+                    "say": "Met \"voeg contract toe\" open je het formulier voor een nieuw contract."
+                },
+                {
+                    "spot": "contracts.new.template",
+                    "skipIfMissing": true,
+                    "action": "openCreate",
+                    "title": "Sjabloon",
+                    "text": "Sluit je vaker hetzelfde contract af? Kies dan een **sjabloon**. Dat vult de velden alvast in, zoals de prijs, de frequentie en de looptijd. Daarna kun je alles nog aanpassen. Sjablonen beheer je onder Onderhoudscontracten bij **Sjablonen**.",
+                    "say": "Sluit je vaker hetzelfde contract af? Kies dan een sjabloon. Dat vult de velden alvast in. Daarna kun je alles nog aanpassen."
+                },
+                {
+                    "spot": "contracts.new.customer",
+                    "action": "openCreate",
+                    "title": "Klant",
+                    "text": "Kies de **klant**. De machines van die klant koppel je later, op de pagina van het contract.",
+                    "say": "Kies de klant. De machines koppel je later, op de pagina van het contract."
+                },
+                {
+                    "spot": "contracts.new.start",
+                    "action": "openCreate",
+                    "title": "Looptijd",
+                    "text": "Vul de **startdatum** in. De **einddatum** mag leeg blijven. Dan loopt het contract door tot je het annuleert.",
+                    "say": "Vul de startdatum in. De einddatum mag leeg blijven. Dan loopt het contract door tot je het annuleert.",
+                    "marks": [
+                        {
+                            "spot": "contracts.new.end",
+                            "when": "einddatum"
+                        }
+                    ]
+                },
+                {
+                    "spot": "contracts.new.price",
+                    "action": "openCreate",
+                    "title": "Prijs",
+                    "text": "Vul de **prijs** in en hoe vaak je die rekent: per maand, per half jaar, per jaar of elk aantal dagen.",
+                    "say": "Vul de prijs in, en hoe vaak je die rekent.",
+                    "marks": [
+                        {
+                            "spot": "contracts.new.interval",
+                            "when": "hoe vaak"
+                        }
+                    ]
+                },
+                {
+                    "spot": "contracts.new.frequency",
+                    "action": "openCreate",
+                    "title": "Servicefrequentie",
+                    "text": "De **servicefrequentie** zegt hoe vaak er onderhoud is. Die geldt voor het hele contract. Moet elke machine een eigen frequentie krijgen? Zet dan **Frequentie per machine beheren** aan.",
+                    "say": "De servicefrequentie zegt hoe vaak er onderhoud is. Moet elke machine een eigen frequentie krijgen? Zet dan deze schakelaar aan.",
+                    "marks": [
+                        {
+                            "spot": "contracts.new.per-machine",
+                            "when": "schakelaar"
+                        }
+                    ]
+                },
+                {
+                    "spot": "contracts.new.auto",
+                    "action": "openCreate",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Automatisch werkbonnen",
+                    "text": "Zet je **Automatisch werkbonnen genereren** aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is. Dat volgt de servicefrequentie. Met **Genereerinterval** kies je een andere.",
+                    "say": "Zet je dit aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is."
+                },
+                {
+                    "spot": "contracts.new.submit",
+                    "action": "openCreate",
+                    "title": "Opslaan",
+                    "text": "Met **Opslaan** staat het contract in de lijst. Open het daarna om er machines aan te koppelen. De rondleiding slaat niets op.",
+                    "say": "Met \"opslaan\" staat het contract in de lijst. Open het daarna om er machines aan te koppelen."
+                }
+            ]
+        }
+    ]
+}

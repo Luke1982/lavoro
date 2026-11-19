@@ -1,0 +1,190 @@
+{
+    "id": "contract",
+    "title": "Rondleiding door een onderhoudscontract",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "assistant": false,
+    "chapters": [
+        {
+            "id": "contract",
+            "version": 1,
+            "title": "Het contract",
+            "summary": "De status, de gegevens, een andere klant en de prijs.",
+            "steps": [
+                {
+                    "spot": "contract.header",
+                    "title": "Bovenaan",
+                    "text": "Bovenaan staan de titel en de **status** van het contract. Daaronder staat de klant. Heeft het contract geen titel? Dan staat er de klant met de looptijd.",
+                    "say": "Bovenaan staan de titel en de status van het contract. Daaronder staat de klant."
+                },
+                {
+                    "spot": "contract.status",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.update"
+                        ]
+                    },
+                    "title": "Annuleren",
+                    "text": "Hier zet je het contract op **Geannuleerd**, of weer op **Actief**. Een geannuleerd contract maakt vanzelf geen werkbonnen meer. Toekomstig en verlopen volgen uit de datums.",
+                    "say": "Hier zet je het contract op \"geannuleerd\", of weer op \"actief\". Een geannuleerd contract maakt vanzelf geen werkbonnen meer."
+                },
+                {
+                    "spot": "contract.details",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.update"
+                        ]
+                    },
+                    "title": "Contractgegevens",
+                    "text": "Klik op een gegeven om het te wijzigen. Bewaren doe je door ernaast te klikken, of op het diskette-icoon. Een **einddatum** haal je weg met het kruisje. Dan loopt het contract door tot je het annuleert.",
+                    "say": "Klik op een gegeven om het te wijzigen. De einddatum mag leeg blijven. Dan loopt het contract door tot je het annuleert.",
+                    "marks": [
+                        {
+                            "spot": "contract.end",
+                            "when": "einddatum"
+                        }
+                    ]
+                },
+                {
+                    "spot": "contract.customer",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.update"
+                        ]
+                    },
+                    "title": "Een andere klant",
+                    "text": "Kies je een andere **klant** terwijl er machines op het contract staan? Dan gaan die machines mee naar de nieuwe klant. Per locatie kies je waar ze komen te staan. Andere contracten van de oude klant raken die machines kwijt.",
+                    "say": "Kies je een andere klant? Dan verhuizen de machines van het contract mee. Je kiest zelf op welke locatie ze komen."
+                },
+                {
+                    "spot": "contract.price",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.see_financials"
+                        ]
+                    },
+                    "title": "Prijs",
+                    "text": "Hier staan de **prijs** en het **prijsinterval**: hoe vaak je die prijs rekent. Niet iedereen ziet ze. Daarvoor is het recht nodig om de financiële gegevens van contracten te zien.",
+                    "say": "Hier staan de prijs en hoe vaak je die rekent. Niet iedereen ziet die. Daar is een apart recht voor.",
+                    "marks": [
+                        {
+                            "spot": "contract.interval",
+                            "when": "hoe vaak"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "machines",
+            "version": 1,
+            "title": "Frequentie en machines",
+            "summary": "Hoe vaak er onderhoud is, welke machines eronder vallen, en machines vanaf het bakje.",
+            "steps": [
+                {
+                    "spot": "contract.frequency",
+                    "title": "Servicefrequentie",
+                    "text": "De **servicefrequentie** zegt hoe vaak er onderhoud is: maandelijks, halfjaarlijks, jaarlijks of elk aantal dagen. Zet je **Per machine beheren** aan? Dan geef je elke machine een eigen frequentie.",
+                    "say": "De servicefrequentie zegt hoe vaak er onderhoud is. Zet je \"per machine beheren\" aan? Dan krijgt elke machine een eigen frequentie."
+                },
+                {
+                    "spot": "contract.machines",
+                    "title": "Machines",
+                    "text": "Hier staan de machines die onder het contract vallen, met hun type en serienummer. Met het prullenbakje koppel je een machine los. De machine zelf blijft bestaan.",
+                    "say": "Hier staan de machines die onder het contract vallen. Met het prullenbakje koppel je er één los."
+                },
+                {
+                    "spot": "contract.machines.form",
+                    "action": "openAddMachine",
+                    "requires": {
+                        "permissions": [
+                            "assetable.create.maintenancecontract"
+                        ]
+                    },
+                    "title": "Machine toevoegen",
+                    "text": "Met **Machine toevoegen** kies je een machine van deze klant. Machines die al onder het contract vallen, staan er niet tussen. Beheer je de frequentie per machine? Dan kies je die er meteen bij.",
+                    "say": "Met \"machine toevoegen\" kies je een machine van deze klant. Daarna klik je op \"toevoegen\"."
+                },
+                {
+                    "spot": "contract.machines",
+                    "requires": {
+                        "permissions": [
+                            "assetable.create.maintenancecontract"
+                        ]
+                    },
+                    "title": "Vanaf het bakje",
+                    "text": "Ligt er een machine op het **bakje**? Sleep hem op dit blok. Of kies in het bakje **Plakken** en tik daarna op dit blok. De machine valt dan meteen onder het contract. In de melding zet je dat terug met **Ongedaan maken**. Beheer je de frequentie per machine? Geef de machine dan nog een frequentie.",
+                    "say": "Ligt er een machine op het bakje? Sleep hem op dit blok. Hij valt dan meteen onder het contract."
+                }
+            ]
+        },
+        {
+            "id": "werkbonnen",
+            "version": 1,
+            "title": "Werkbonnen",
+            "summary": "De werkbonnen van dit contract, er zelf een aanmaken, en automatisch genereren.",
+            "actions": [
+                "showExampleOrders"
+            ],
+            "steps": [
+                {
+                    "spot": "contract.serviceorders",
+                    "title": "Werkbonnen van dit contract",
+                    "text": "Hier staan alle werkbonnen van dit contract, de nieuwste bovenaan. Per werkbon zie je de machines, de datum en de fase. Klik op een werkbon om hem te openen. Zijn er nog geen? Dan laat de rondleiding hier zien hoe ze eruit komen te zien. Die voorbeelden worden niet bewaard.",
+                    "say": "Hier staan de werkbonnen van dit contract. Per werkbon zie je de machines en de fase. Zijn er nog geen? Dan zie je hier een voorbeeld."
+                },
+                {
+                    "spot": "contract.generate",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.generate",
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Werkbon aanmaken",
+                    "text": "Met **Werkbon aanmaken** maak je meteen werkbonnen voor alle machines van het contract. Per locatie komt er één werkbon, met een keuring per machine. Dat kan altijd, ook als een machine nog niet aan de beurt is. Het automatisch genereren telt daarna opnieuw vanaf vandaag.",
+                    "say": "Met \"werkbon aanmaken\" maak je meteen werkbonnen voor alle machines. Per locatie komt er één werkbon."
+                },
+                {
+                    "spot": "contract.auto",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.update",
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Automatisch genereren",
+                    "text": "Zet je **Automatisch genereren** aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is. Je kiest of dat de servicefrequentie volgt, of een eigen frequentie. Lavoro kijkt elk uur. Een geannuleerd of verlopen contract maakt niets meer aan.",
+                    "say": "Zet je \"automatisch genereren\" aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is."
+                }
+            ]
+        },
+        {
+            "id": "dossier",
+            "version": 1,
+            "title": "Tijdlijn, opmerkingen en documenten",
+            "summary": "Wat er met het contract gebeurde, aantekeningen, en bestanden zoals het getekende contract.",
+            "steps": [
+                {
+                    "spot": "contract.timeline",
+                    "title": "Tijdlijn",
+                    "text": "De **tijdlijn** laat zien wat er met het contract is gebeurd. Je ziet wie de gegevens veranderde, welke machines erbij kwamen of eraf gingen en welke werkbonnen er zijn gemaakt. Werkbonnen die vanzelf zijn gemaakt, staan op naam van **Systeem**.",
+                    "say": "In de tijdlijn staat wat er met het contract is gebeurd. Je ziet ook welke werkbonnen er zijn gemaakt."
+                },
+                {
+                    "spot": "contract.remarks",
+                    "title": "Opmerkingen",
+                    "text": "Onder **Opmerkingen** zet je vragen en aantekeningen bij het contract.",
+                    "say": "Onder opmerkingen zet je vragen en aantekeningen bij het contract."
+                },
+                {
+                    "spot": "contract.documents",
+                    "skipIfMissing": true,
+                    "title": "Documenten",
+                    "text": "Bij **documenten** bewaar je bestanden bij het contract, zoals het getekende contract of een offerte. Je kunt ze in categorieën indelen.",
+                    "say": "Bij documenten bewaar je bestanden bij het contract, zoals het getekende contract."
+                }
+            ]
+        }
+    ]
+}

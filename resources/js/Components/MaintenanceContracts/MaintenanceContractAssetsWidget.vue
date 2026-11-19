@@ -3,7 +3,7 @@
         <SectionHeader :icon="PuzzlePieceIcon" title="Machines"
             subtitle="Machines die onder dit contract vallen." chapter="assets">
             <template v-if="canCreate" #actions>
-                <button type="button" @click="showAddForm = !showAddForm"
+                <button type="button" data-tour="contract.machines.add" @click="showAddForm = !showAddForm"
                     class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
                     <PlusIcon class="size-4" />
                     <span class="hidden sm:inline">Machine toevoegen</span>
@@ -12,19 +12,22 @@
         </SectionHeader>
 
         <div v-auto-animate>
-            <div v-if="showAddForm && canCreate"
+            <div v-if="showAddForm && canCreate" data-tour="contract.machines.form"
                 class="flex flex-col md:flex-row items-start gap-2 mb-4 p-4 rounded-lavoro-sm dark:bg-slate-800/50 border border-gray-200/70 dark:border-slate-700">
                 <div class="flex flex-col flex-grow w-full">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Kies een machine</span>
                     <AssetSelectMenu :assets="availableAssets" v-model="assetToAdd" placeholder="Selecteer machine" needs-box />
+                    <p v-if="addForm.errors.asset" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ addForm.errors.asset }}</p>
                 </div>
                 <div v-if="managePerAsset" class="flex flex-col w-full md:w-48">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Frequentie</span>
-                    <ComboBox :options="intervalOptions" v-model="addForm.frequency" />
+                    <ComboBox :options="intervalOptions" v-model="addForm.frequency"
+                        :hasError="Boolean(addForm.errors.frequency)" :errorMessage="addForm.errors.frequency" />
                 </div>
                 <div v-if="managePerAsset && addForm.frequency === 'Aangepast (dagen)'" class="flex flex-col w-full md:w-32">
                     <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Elke ... dagen</span>
-                    <TextInput v-model="addForm.frequency_days" type="number" />
+                    <TextInput v-model="addForm.frequency_days" type="number"
+                        :hasError="Boolean(addForm.errors.frequency_days)" :errorMessage="addForm.errors.frequency_days" />
                 </div>
                 <button @click="attachAsset" :disabled="!assetToAdd || addForm.processing"
                     class="w-full md:w-auto px-4 py-2 rounded-md text-sm font-medium transition-colors mt-4 md:mt-5.5 bg-lavoro-blue text-white hover:bg-lavoro-blue/90 disabled:bg-gray-300 disabled:dark:bg-slate-700 disabled:text-gray-500 disabled:cursor-not-allowed">
@@ -40,7 +43,7 @@
                 <div class="col-span-2 text-right pr-2">Acties</div>
             </div>
             <div v-auto-animate>
-                <div v-for="asset in assets" :key="asset.pivot.id"
+                <div v-for="asset in assets" :key="asset.pivot.id" data-tour="contract.machines.row"
                     class="grid grid-cols-12 py-3 items-center border-b border-gray-100 dark:border-slate-800 last:border-b-0 px-3 sm:px-1">
                     <component :is="hasPermission('asset.read') ? Link : 'div'"
                         :href="hasPermission('asset.read') ? `/assets/${asset.id}` : undefined"
@@ -94,6 +97,7 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import AssetSelectMenu from '@/Components/UI/AssetSelectMenu.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import { assetDisplayName, hasPermission, mapAssetForSelect } from '@/Utilities/Utilities'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     maintenanceContractId: { type: Number, required: true },
@@ -148,4 +152,14 @@ function detachAsset(asset) {
         { preserveScroll: true }
     )
 }
+
+/** The contract rondleiding opens the form for adding a machine, and closes it again. */
+useTour('contract', {
+    openAddMachine: () => {
+        if (showAddForm.value) return null
+        showAddForm.value = true
+
+        return () => { showAddForm.value = false }
+    },
+})
 </script>

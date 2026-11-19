@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "vrije-dagen",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "vrije-dagen.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Een gestreept blok betekent dat een monteur er dan niet is: een vrije dag, of een vast vrij moment uit zijn rooster.",
-            "hash": "ff3e51da74d0fcba7f2dcfb44538575bffead73f",
+            "text": "Een gestreept blok betekent dat een monteur er dan niet is. Het is een vrije dag, of een vast vrij moment uit zijn rooster.",
+            "hash": "645f79ff7d66ded3bc602e380ef485a8a6d803a2",
             "start": 0,
-            "end": 6.78
+            "end": 7.285
         },
         {
-            "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment is een weekdag, elke week of om de week, een hele dag of een deel ervan.",
-            "hash": "c9ed48bf22625b6c78433e7ed24812948cb67481",
-            "start": 7.78,
-            "end": 15.907
+            "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment valt op een weekdag, \"elke week\" of \"om de week\". Het duurt een hele dag of een deel ervan.",
+            "hash": "2c48acf27b8e875eff416ca21ec9a3bb578de687",
+            "start": 8.285,
+            "end": 17.011
         },
         {
-            "text": "Daaronder staan de losse vrije dagen: één datum, of een hele periode, zoals een vakantie.",
-            "hash": "11f03e2af8fb38612afb6395a8ae47ff67046e26",
-            "start": 16.907,
-            "end": 22.434
+            "text": "Daaronder staan de losse vrije dagen. Dat is één datum of een hele periode, zoals een vakantie.",
+            "hash": "3e846423f8feeaa516167303b77be09988d1723a",
+            "start": 18.011,
+            "end": 23.771
         },
         {
-            "text": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. En dan vraagt de planner eerst of je het zeker weet.",
-            "hash": "a8ab48ffd7b852213a3fd14a8ea11053f6c47d37",
-            "start": 23.434,
-            "end": 30.91
+            "text": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. Dan vraagt de planner eerst of je het zeker weet.",
+            "hash": "b4557b1824d575460cb79724328a170f4e8eef3b",
+            "start": 24.771,
+            "end": 32.193
         },
         {
-            "text": "Wil je je eigen rooster invullen? Klik dan op naar mijn rooster. Daar gaat de rondleiding verder.",
-            "hash": "e0c3f8f5c0165fc60e873ac835b02729ac568488",
-            "start": 31.91,
-            "end": 36.694
+            "text": "Wil je je eigen rooster invullen? Klik dan op \"naar mijn rooster\". Daar gaat de rondleiding verder.",
+            "hash": "c7c2654b7105d616cd9bc891182283ce63b973ad",
+            "start": 33.193,
+            "end": 38.06
         }
     ]
 }

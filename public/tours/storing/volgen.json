@@ -2,27 +2,27 @@
     "tour": "storing",
     "chapter": "volgen",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "volgen.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Volg je deze storing, dan krijg je een melding als de status of prioriteit verandert, of als de klant iets aanlevert.",
-            "hash": "6481e6a6a2bce8b157293abe6bc8a0b118baecb7",
+            "text": "Volg je deze storing? Dan krijg je een melding als de status of de prioriteit verandert. Ook als de klant iets aanlevert.",
+            "hash": "f5d6251d5000179b334f59da2cd60de8b8835e9c",
             "start": 0,
-            "end": 6.13
+            "end": 6.835
         },
         {
-            "text": "Hiermee leg je de storing op het bakje. Daarna plak je hem ergens anders: in de planner, op een werkbon, bij een machine of bij een project.",
-            "hash": "efda9fd2ad65a6b1a567e7e8e9609280f6a44dc0",
-            "start": 7.13,
-            "end": 14.932
+            "text": "Hiermee leg je de storing op het bakje. Daarna plak je hem ergens anders, bijvoorbeeld in de planner of op een werkbon.",
+            "hash": "95531a1fa8e93db183f5c1cafa97af0af591ac6e",
+            "start": 7.835,
+            "end": 14.163
         },
         {
-            "text": "Hoe je een storing vanaf het bakje inplant, laat de rondleiding door de planner zien.",
-            "hash": "21f20558efdf76ff620011510e6a5a82f94c8412",
-            "start": 15.932,
-            "end": 20.715
+            "text": "De rondleiding door de planner laat zien hoe je een storing vanaf het bakje inplant.",
+            "hash": "137ce6bcb46808ea4274115795b40a48462de9f5",
+            "start": 15.163,
+            "end": 19.606
         }
     ]
 }

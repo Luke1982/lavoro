@@ -97,7 +97,7 @@
                     <Link :href="`/tickets/${ticket.id}`" class="font-bold mb-1 text-lavoro-darkerblue">
                         {{ ticket.subject }}
                     </Link>
-                    <div v-if="contractBadges[ticket.id]" class="mt-1">
+                    <div v-if="contractBadges[ticket.id]" class="mt-1" data-tour="tickets.contract">
                         <BadgeComponent color="purple" :has-dot="false" :url="contractBadges[ticket.id].url"
                             :tooltip="contractBadges[ticket.id].tooltip">
                             {{ contractBadges[ticket.id].label }}

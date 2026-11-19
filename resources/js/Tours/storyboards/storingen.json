@@ -1,7 +1,7 @@
 {
     "id": "storingen",
     "title": "Rondleiding door de storingen",
-    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
     "page": "/tickets",
     "autoStart": true,
     "requires": {
@@ -12,28 +12,28 @@
     "chapters": [
         {
             "id": "lijst",
-            "version": 1,
+            "version": 2,
             "title": "De storingenlijst",
             "summary": "De aantallen per status, zoeken, filteren en wat je per storing ziet.",
             "steps": [
                 {
                     "spot": "tickets.counts",
                     "title": "Per status",
-                    "text": "Bovenaan zie je hoeveel storingen er **open** zijn, **in behandeling**, **wachten op de klant** en **gesloten**. Het percentage vergelijkt elk aantal met het gemiddelde van de vier.",
-                    "say": "Bovenaan zie je hoeveel storingen er open zijn, in behandeling, wachtend op de klant, en gesloten."
+                    "text": "Bovenaan zie je hoeveel storingen er **open** zijn, **in behandeling**, **wachten op de klant** en **gesloten**. Achter **gem.** staat het gemiddelde van die vier aantallen. Het percentage zegt hoeveel een aantal boven of onder dat gemiddelde ligt. Groen is gunstig en rood vraagt aandacht. Bij gesloten is meer dan gemiddeld gunstig, bij de andere drie juist minder.",
+                    "say": "Bovenaan zie je hoeveel storingen er per status zijn. Het percentage zegt hoeveel dat aantal boven of onder het gemiddelde ligt. Groen is gunstig. Rood vraagt aandacht."
                 },
                 {
                     "spot": "list.search",
                     "title": "Zoeken",
                     "text": "Zoek op **onderwerp**, **product**, **type**, **serienummer** of **klant**.",
-                    "say": "Zoek op onderwerp, product, type, serienummer of klant."
+                    "say": "Je zoekt op onderwerp of serienummer. Een product, type of klant werkt ook."
                 },
                 {
                     "spot": "list.filter-panel",
                     "action": "openFilters",
                     "title": "Filters",
-                    "text": "Onder **Filters** filter je op status, prioriteit, storingscode en op wie de storing heeft gesloten. Je browser onthoudt je keuze tot je hem wist.",
-                    "say": "Onder filters filter je op status, prioriteit, storingscode, of op wie de storing heeft gesloten. Je browser onthoudt je keuze.",
+                    "text": "Onder **Filters** kies je de status, de prioriteit, een storingscode en wie de storing heeft gesloten. Je browser onthoudt die keuze tot je hem wist.",
+                    "say": "Onder filters kies je bijvoorbeeld een status of een prioriteit. Je browser onthoudt die keuze.",
                     "marks": [
                         {
                             "spot": "list.filters",
@@ -44,8 +44,8 @@
                 {
                     "spot": "tickets.row",
                     "title": "Een storing in de lijst",
-                    "text": "Per storing zie je het onderwerp, de machine met serienummer, de klant met het adres, de **prioriteit** en de status. De prioriteit wijzig je hier direct; met het oogje open je de storing. Een paars label betekent dat de machine onder een onderhoudscontract valt.",
-                    "say": "Per storing zie je het onderwerp, de machine, de klant met het adres, de prioriteit en de status. De prioriteit kun je hier direct wijzigen.",
+                    "text": "Per storing zie je het onderwerp en de machine met serienummer. Daarnaast staan de klant met het adres, de **prioriteit** en de status. De prioriteit wijzig je hier meteen. Met het oogje open je de storing.",
+                    "say": "Per storing zie je het onderwerp, de machine en de klant. De prioriteit wijzig je hier meteen.",
                     "marks": [
                         {
                             "spot": "tickets.priority",
@@ -62,8 +62,20 @@
                         "device": "phone"
                     },
                     "title": "Een storing in de lijst",
-                    "text": "Per storing zie je het onderwerp, de status en de prioriteit. Een paars label betekent dat de machine onder een onderhoudscontract valt. Met het oogje open je de storing.",
+                    "text": "Per storing zie je het onderwerp, de status en de prioriteit. Met het oogje open je de storing.",
                     "say": "Per storing zie je het onderwerp, de status en de prioriteit. Met het oogje open je de storing."
+                },
+                {
+                    "spot": "tickets.contract",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.read"
+                        ]
+                    },
+                    "title": "Onderhoudscontract",
+                    "text": "Een paars label onder het onderwerp betekent dat de machine onder een lopend **onderhoudscontract** valt. Klik erop om het contract te openen. Met de muis erop zie je welk contract het is. Valt de machine onder meer contracten? Dan staat het aantal op het label en opent een klik de machine.",
+                    "say": "Een paars label betekent dat de machine onder een onderhoudscontract valt. Klik erop om het contract te openen."
                 }
             ]
         },
@@ -85,8 +97,8 @@
                 {
                     "spot": "tickets.bulk",
                     "title": "Bewerken of op het bakje",
-                    "text": "Onderin verschijnt een balk. Met **Bewerken** geef je alle aangevinkte storingen tegelijk een nieuwe status. Met **Op het bakje** leg je ze klaar om ze in de planner, op een werkbon of bij een project te plakken.",
-                    "say": "Onderin verschijnt dan een balk. Met bewerken geef je ze allemaal tegelijk een nieuwe status. Met de knop op het bakje leg je ze klaar voor de planner of een werkbon.",
+                    "text": "Onderin verschijnt dan een balk. Met **Bewerken** geef je alle aangevinkte storingen in één keer een nieuwe status. Met **Op het bakje** leg je ze klaar. Daarna plak je ze in de planner, op een werkbon of bij een project.",
+                    "say": "Onderin verschijnt dan een balk. Met \"bewerken\" geef je ze allemaal tegelijk een nieuwe status. Met \"op het bakje\" leg je ze klaar voor de planner of een werkbon.",
                     "marks": [
                         {
                             "spot": "tickets.tray",
@@ -105,8 +117,8 @@
                 {
                     "spot": "tickets.map",
                     "title": "Kaart",
-                    "text": "**Kaart** zet alle openstaande storingen op een kaart, één speld per adres, in de kleur van de hoogste prioriteit daar. Je ziet in één oogopslag waar het werk zit en hoe dringend het is. Met **Open de kaart** gaat de rondleiding daar verder.",
-                    "say": "Met de knop kaart zie je alle openstaande storingen op een kaart, per adres, zodat je ziet waar het dringend is. Klik op open de kaart, en de rondleiding gaat daar verder.",
+                    "text": "**Kaart** zet alle openstaande storingen op een kaart. Elk adres krijgt één speld in de kleur van de hoogste prioriteit daar. Zo zie je meteen waar het werk zit en hoe dringend het is. Met **Open de kaart** gaat de rondleiding daar verder.",
+                    "say": "Met de knop \"kaart\" zie je alle openstaande storingen op een kaart. Zo zie je meteen waar het dringend is. Klik op \"open de kaart\". Dan gaat de rondleiding daar verder.",
                     "cta": {
                         "label": "Open de kaart",
                         "action": "openMapWithTour"

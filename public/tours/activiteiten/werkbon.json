@@ -2,21 +2,21 @@
     "tour": "activiteiten",
     "chapter": "werkbon",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "werkbon.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Vink de machines aan die je wilt laten keuren, en de storingen die je meteen wilt meenemen.",
-            "hash": "1de7513521d835d82737a2120409d4b9ed353d60",
+            "text": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen.",
+            "hash": "9236a82e4cfda002cb032d61841ee0f9946cf4fb",
             "start": 0,
-            "end": 4.644
+            "end": 5.511
         },
         {
-            "text": "Rechtsonder maak je er een werkbon van. Je kunt hier blijven, de werkbon openen, of hem meteen inplannen. Een werkbon is altijd voor één klant.",
-            "hash": "234417a3c2850244a97c08e98b368598992b1324",
-            "start": 5.644,
-            "end": 14.653
+            "text": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant.",
+            "hash": "100610dde8eda7eb3b994079ff1d0576c5887e25",
+            "start": 6.511,
+            "end": 13.447
         }
     ]
 }

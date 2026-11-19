@@ -26,7 +26,9 @@ use App\Http\Requests\MaintenanceContractUpdateAssetableRequest;
 use App\Http\Requests\MaintenanceContractUpdateRequest;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
+use App\Models\ServiceOrderStage;
 use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use App\Traits\OffersContractTemplates;
@@ -112,6 +114,8 @@ class MaintenanceContractController extends Controller
                     ->orderByDesc('activityables.created_at');
             },
             'remarks.user',
+            'documents.category',
+            'documents.user:id,name',
             'generatedServiceOrders.serviceJobs.asset.product.brand',
         ]);
 
@@ -120,18 +124,18 @@ class MaintenanceContractController extends Controller
         }
 
         /**
-         * Every machine of the customer at any depth. Child machines have no customer_id,
-         * so customer->assets returns roots only and a component could never be put on a
-         * contract.
+         * The machines the customer owns. A part belongs to its machine, not to the
+         * customer, and comes under a contract only with that machine: attaching
+         * one directly is refused here as it is from the bakje.
          */
         $customer_assets = $maintenancecontract->customer
-            ? $maintenancecontract->customer->assetTree([
+            ? $maintenancecontract->customer->assets()->with([
                 'product.brand',
                 'product.productType',
                 'product.images',
                 'linkedLocation',
                 'childAssets.product.brand',
-            ])
+            ])->get()
             : collect();
 
         return inertia('MaintenanceContracts/ShowPage', [
@@ -139,6 +143,8 @@ class MaintenanceContractController extends Controller
             'customerAssets' => $customer_assets,
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
+            'documentCategories' => DocumentCategory::forPicker(),
+            'firstStageName' => ServiceOrderStage::orderBy('order')->value('name'),
         ]);
     }
 

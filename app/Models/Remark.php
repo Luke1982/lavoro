@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Remark extends Model
 {
@@ -34,5 +35,14 @@ class Remark extends Model
     public function isFromCustomer(): bool
     {
         return $this->user_id === null;
+    }
+
+    /** The record this remark was placed on, if it still exists. */
+    public function remarkable(): ?Model
+    {
+        $link = DB::table('remarkables')->where('remark_id', $this->id)->first();
+        $class = ltrim((string) $link?->remarkable_type, '\\');
+
+        return $link && class_exists($class) ? $class::find($link->remarkable_id) : null;
     }
 }

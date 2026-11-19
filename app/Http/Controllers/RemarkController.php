@@ -6,10 +6,9 @@ use App\Actions\Remarks\AddRemarkAction;
 use App\Domain\Signals\Attachments\RemarkRemoved;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\RemarkCreateRequest;
-use App\Models\Event;
+use App\Http\Requests\RemarkDestroyRequest;
 use App\Models\Remark;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class RemarkController extends Controller
 {
@@ -34,29 +33,16 @@ class RemarkController extends Controller
         }
     }
 
-    public function destroy(Remark $remark)
+    public function destroy(RemarkDestroyRequest $request, Remark $remark)
     {
-        $link = DB::table('remarkables')
-            ->where('remark_id', $remark->id)
-            ->first();
-
-        if ($link && ltrim((string) $link->remarkable_type, '\\') === 'App\\Models\\Event') {
-            $event = Event::find($link->remarkable_id);
-            if (!$event || !request()->user()->can('provideFeedback', $event)) {
-                abort(403);
-            }
-        }
-
-        if ($link) {
-            $remarkable_record = (new ($link->remarkable_type))->find($link->remarkable_id);
-            if ($remarkable_record) {
-                Signals::dispatch(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
-            }
+        $remarkable_record = $remark->remarkable();
+        if ($remarkable_record) {
+            Signals::dispatch(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
         }
 
         $remark->delete();
 
-        if (request()->wantsJson()) {
+        if ($request->wantsJson()) {
             return response()->json(['deleted' => true]);
         }
 

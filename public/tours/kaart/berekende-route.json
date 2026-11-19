@@ -2,39 +2,39 @@
     "tour": "kaart",
     "chapter": "berekende-route",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "berekende-route.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Elk adres krijgt een nummer en een aankomsttijd, en de route staat op de kaart. Bovenaan zie je hoe laat je terug bent en hoeveel kilometer je rijdt.",
-            "hash": "0689feb5911937f20f5dfaa1a52d225d6f0b0ea7",
+            "text": "Elk adres krijgt een nummer en een aankomsttijd. De route staat op de kaart. Bovenaan zie je hoe laat je terug bent en hoeveel kilometer je rijdt.",
+            "hash": "0957c6b424fda04d0586ca216e60abff3381f0e0",
             "start": 0,
-            "end": 7.848
+            "end": 7.927
         },
         {
-            "text": "Past een adres niet in je werkdag, dan zie je dat onderaan, met de reden erbij.",
-            "hash": "65cdda822f25c1754fe39c519e0a77e5cc169cf0",
-            "start": 8.848,
-            "end": 13.632
+            "text": "Past een adres niet in je werkdag? Dan zie je dat onderaan, met de reden erbij.",
+            "hash": "561c2942c30bbc9b8171571b13baca4fa23901d7",
+            "start": 8.927,
+            "end": 13.17
         },
         {
-            "text": "Met andersom rijd je dezelfde route in omgekeerde volgorde. Wordt een tijd dan niet gehaald, dan zie je dat in rood.",
-            "hash": "de8f8e95573a42ae35d932ce20d6a720ddd94498",
-            "start": 14.632,
-            "end": 21.412
+            "text": "Met \"andersom\" rijd je dezelfde route in omgekeerde volgorde. Haal je dan een tijd niet? Dan zie je dat in rood.",
+            "hash": "26dfc2bb4910e1c4c1234d6d89147847713ee8b9",
+            "start": 14.17,
+            "end": 20.503
         },
         {
-            "text": "Met openen in Google Maps start je de navigatie, ook op je telefoon.",
-            "hash": "bd62b8608242673f7f230ef3763f5fb599d115cb",
-            "start": 22.412,
-            "end": 26.266
+            "text": "Met \"openen in Google Maps\" start je de navigatie, ook op je telefoon.",
+            "hash": "5c2751e06c6ee9d4523d624e74c399060b430f7d",
+            "start": 21.503,
+            "end": 25.838
         },
         {
-            "text": "Kies een monteur en een dag, en de route staat in de planner bij die dag.",
-            "hash": "4c6058d7a8101fd056ebf52920bcb7e2eb12785f",
-            "start": 27.266,
-            "end": 31.539
+            "text": "Kies een monteur en een dag. Dan staat de route in de planner bij die dag.",
+            "hash": "32425382168055bea67706f0529e884a8ee1fddc",
+            "start": 26.838,
+            "end": 31.313
         }
     ]
 }

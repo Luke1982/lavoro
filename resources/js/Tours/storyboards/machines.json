@@ -1,7 +1,7 @@
 {
     "id": "machines",
     "title": "Rondleiding door de machines",
-    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
     "page": "/assets",
     "autoStart": true,
     "requires": {
@@ -20,7 +20,7 @@
                     "spot": "list.search",
                     "title": "Zoeken",
                     "text": "Zoek op **serienummer**, **merk**, **model**, **soort** of **klant**. De lijst past zich aan terwijl je typt.",
-                    "say": "Zoek een machine op serienummer, merk, model, soort of klant. De lijst past zich aan terwijl je typt.",
+                    "say": "Je zoekt een machine op serienummer of klant. Ook merk, model en soort werken. De lijst past zich aan terwijl je typt.",
                     "aid": {
                         "type": "typing",
                         "to": "list.search",
@@ -31,8 +31,8 @@
                     "spot": "list.filter-panel",
                     "action": "openFilters",
                     "title": "Filters",
-                    "text": "Onder **Filters** kies je de status, actief of niet actief, en of je alleen machines met **storingen** wilt zien: met storingen, met open storingen of met lopende storingen. Het filter werkt op alle machines en blijft staan tot je op **Wis filters** klikt, ook als je later terugkomt.",
-                    "say": "Onder filters kies je een status, en of je alleen machines met storingen wilt zien. Het filter werkt op alle machines, en blijft staan tot je het wist.",
+                    "text": "Onder **Filters** kies je de status: actief of niet actief. Je kiest ook of je alleen machines met **storingen** wilt zien: met storingen, met open storingen of met lopende storingen. Het filter werkt op alle machines. Het blijft staan tot je op **Wis filters** klikt, ook als je later terugkomt.",
+                    "say": "Onder filters kies je een status. Je kunt ook alleen machines met storingen laten zien. Het filter blijft staan tot je het wist.",
                     "marks": [
                         {
                             "spot": "list.filters",
@@ -51,8 +51,8 @@
                 {
                     "spot": "machines.row",
                     "title": "Een machine in de lijst",
-                    "text": "Per machine zie je merk en model met de soort en de klant, het **serienummer**, sinds wanneer hij in gebruik is en de **volgende keuring**. Is die datum rood, dan is de keuring al verlopen. Rechts zie je hoeveel storingen er **open**, **lopend** en **gesloten** zijn. Klik op een regel om de machine te openen.",
-                    "say": "Per machine zie je merk en model, de klant, het serienummer en de datum van de volgende keuring. Is die datum rood, dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
+                    "text": "Per machine zie je merk en model met de soort en de klant. Ook zie je het **serienummer**, sinds wanneer hij in gebruik is en de **volgende keuring**. Is die datum rood? Dan is de keuring al verlopen. Rechts zie je hoeveel storingen er **open**, **lopend** en **gesloten** zijn. Klik op een regel om de machine te openen.",
+                    "say": "Per machine zie je het merk, het model en de klant. Ook het serienummer en de volgende keuring staan erbij. Is die datum rood? Dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
                     "marks": [
                         {
                             "spot": "machines.row.serial",
@@ -77,8 +77,8 @@
                         "device": "phone"
                     },
                     "title": "Een machine in de lijst",
-                    "text": "Per machine zie je merk en model met de soort en de klant, en rechts de status en de **volgende keuring**. Tik op een regel om de machine te openen; daar vind je ook het serienummer en de storingen.",
-                    "say": "Per machine zie je merk en model, de klant, de status en de datum van de volgende keuring. Tik op een regel om de machine te openen."
+                    "text": "Per machine zie je merk en model met de soort en de klant. Rechts staan de status en de **volgende keuring**. Tik op een regel om de machine te openen. Daar vind je ook het serienummer en de storingen.",
+                    "say": "Per machine zie je het merk, het model en de klant. Rechts staan de status en de volgende keuring. Tik op een regel om de machine te openen."
                 }
             ]
         },
@@ -96,29 +96,29 @@
                 {
                     "spot": "list.add",
                     "title": "Voeg machine toe",
-                    "text": "Met **Voeg machine toe** open je het formulier. Je vindt het ook onder het plusje bij Machines op een klant, een locatie of een product; wat daar al bekend is, zoals de klant, staat dan al ingevuld.",
-                    "say": "Met voeg machine toe open je het formulier. Je vindt het ook bij een klant, een locatie en een product. Wat daar al bekend is, staat dan al ingevuld."
+                    "text": "Met **Voeg machine toe** open je het formulier. Je vindt het ook onder het plusje bij Machines op een klant, een locatie of een product. Wat daar al bekend is, zoals de klant, staat dan al ingevuld.",
+                    "say": "Met \"voeg machine toe\" open je het formulier. Je vindt het ook bij een klant, een locatie of een product. Wat daar al bekend is staat dan al ingevuld."
                 },
                 {
                     "spot": "machines.new.product",
                     "action": "openNewMachine",
                     "title": "Product",
-                    "text": "Kies eerst het **product**: merk en model uit de catalogus. Typ een deel van de naam en kies uit de lijst. Staat het er nog niet in, dan maak je het hier meteen aan; daarover gaat het volgende hoofdstuk.",
-                    "say": "Kies eerst het product: merk en model uit de catalogus. Staat het er nog niet in, dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk."
+                    "text": "Kies eerst het **product**: merk en model uit de catalogus. Typ een deel van de naam en kies uit de lijst. Staat het er nog niet in? Dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk.",
+                    "say": "Kies eerst het product uit de catalogus. Staat het er nog niet in? Dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk."
                 },
                 {
                     "spot": "machines.new.customer",
                     "action": "openNewMachine",
                     "title": "Klant en locatie",
-                    "text": "Kies dan de **klant**. Staat die er nog niet in, typ dan de naam en kies **Nieuwe klant**. Zodra je een klant hebt gekozen, verschijnt **Locatie**; die mag je leeg laten.",
-                    "say": "Kies dan de klant. Staat die er nog niet in, typ dan de naam en kies nieuwe klant. Daarna kies je de locatie."
+                    "text": "Kies dan de **klant**. Staat die er nog niet in? Typ dan de naam en kies **Nieuwe klant**. Zodra je een klant hebt gekozen, verschijnt **Locatie**. Die mag je leeg laten.",
+                    "say": "Kies dan de klant. Staat die er nog niet in? Typ dan de naam en kies \"nieuwe klant\". Daarna kies je de locatie."
                 },
                 {
                     "spot": "machines.new.serial",
                     "action": "openNewMachine",
                     "title": "Serienummer",
-                    "text": "Typ het **serienummer** in, of scan het typeplaatje: de eerste knop maakt een foto, met de tweede kies je een foto die je al hebt. Lavoro leest de nummers op de foto en jij tikt het juiste aan. Een bundel, of een product dat je per stuk telt, heeft geen serienummer; dan blijft dit veld uit.",
-                    "say": "Typ het serienummer in, of scan het typeplaatje met de camera. Lavoro leest de nummers op de foto, en jij tikt het juiste aan.",
+                    "text": "Typ het **serienummer** in, of scan het typeplaatje. De eerste knop maakt een foto. Met de tweede kies je een foto die je al hebt. Lavoro leest de nummers op de foto en jij tikt het juiste aan. Een bundel heeft geen serienummer, net als een product dat je per stuk telt. Dan blijft dit veld weg.",
+                    "say": "Typ het serienummer in, of scan het typeplaatje met de camera. Lavoro leest de nummers op de foto. Jij tikt het juiste aan.",
                     "marks": [
                         {
                             "spot": "machines.new.scan",
@@ -130,8 +130,8 @@
                     "spot": "machines.new.next-service",
                     "action": "openNewMachine",
                     "title": "Datums",
-                    "text": "**In gebruikname** staat op vandaag. De **volgende keuring** rekent Lavoro zelf uit, aan de hand van hoe lang een keuring van dit product geldig is, of anders van dit soort apparaat. Klopt dat niet, pas de datum dan aan. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
-                    "say": "In gebruikname staat op vandaag. De volgende keuring rekent Lavoro zelf uit, aan de hand van hoe lang een keuring van dit product geldig is. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
+                    "text": "**In gebruikname** staat op vandaag. De **volgende keuring** rekent Lavoro zelf uit. Dat doet hij met hoe lang een keuring van dit product geldig is, of anders van dit soort apparaat. Klopt dat niet? Pas de datum dan aan. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
+                    "say": "\"In gebruikname\" staat op vandaag. De volgende keuring rekent Lavoro zelf uit. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
                     "marks": [
                         {
                             "spot": "machines.new.in-service",
@@ -147,8 +147,8 @@
                     "spot": "machines.new.submit",
                     "action": "openNewMachine",
                     "title": "Toevoegen",
-                    "text": "**Actief** staat standaard aan; zet het uit voor een machine die er wel is, maar niet meer in gebruik. Klik op **Toevoegen** en de machine staat in de lijst, met de vaste onderdelen van het product erbij.",
-                    "say": "Actief staat standaard aan. Klik op toevoegen, en de machine staat in de lijst, met de vaste onderdelen van het product erbij.",
+                    "text": "**Actief** staat standaard aan. Zet het uit voor een machine die er wel is, maar niet meer wordt gebruikt. Klik op **Toevoegen**. De machine staat dan in de lijst, met de vaste onderdelen van het product erbij.",
+                    "say": "\"Actief\" staat standaard aan. Klik op \"toevoegen\". Dan staat de machine in de lijst, met de vaste onderdelen van het product erbij.",
                     "marks": [
                         {
                             "spot": "machines.new.active",
@@ -177,8 +177,8 @@
                     "spot": "combo.create",
                     "action": "typeNewProduct",
                     "title": "Nieuw product",
-                    "text": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de **PX-12 Hybride** van het merk Polarix. Onderaan de lijst verschijnt **Nieuw product ‘PX-12 Hybride’**. Die optie zie je alleen als je producten mag aanmaken.",
-                    "say": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de PX-12 Hybride. Onderaan de lijst verschijnt nieuw product.",
+                    "text": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de **PX-12 Hybride** van het merk Polarix. Onderaan de lijst verschijnt **Nieuw product ‘PX-12 Hybride’**. Die keuze zie je alleen als je producten mag aanmaken.",
+                    "say": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de PX-12 Hybride. Onderaan de lijst verschijnt \"nieuw product\".",
                     "marks": [
                         {
                             "spot": "machines.new.product",
@@ -190,8 +190,8 @@
                     "spot": "products.new",
                     "action": "openNewProduct",
                     "title": "Het productformulier",
-                    "text": "Klik daarop en het productformulier opent over het machineformulier heen. Wat je typte, staat al bij **Model**. Wat je in het machineformulier al had ingevuld, blijft gewoon staan.",
-                    "say": "Klik daarop, en het productformulier opent over het machineformulier heen. Het model dat je typte, staat er al in.",
+                    "text": "Klik daarop. Het productformulier opent dan over het machineformulier heen. Wat je typte, staat al bij **Model**. Wat je in het machineformulier al had ingevuld, blijft gewoon staan.",
+                    "say": "Klik daarop. Het productformulier opent dan over het machineformulier heen. Het model dat je typte staat er al in.",
                     "marks": [
                         {
                             "spot": "products.new.model",
@@ -203,8 +203,8 @@
                     "spot": "products.new.type",
                     "action": "openNewProduct",
                     "title": "Producttype",
-                    "text": "Kies het **producttype**, het soort apparaat. Daar horen de keurpunten van elke keuring bij. Staat het er niet bij, typ dan de naam en kies **Nieuw producttype**.",
-                    "say": "Kies het producttype, het soort apparaat. Staat het er niet bij, dan maak je het op dezelfde manier aan."
+                    "text": "Kies het **producttype**: het soort apparaat. Daar horen de keurpunten van elke keuring bij. Staat het er niet bij? Typ dan de naam en kies **Nieuw producttype**.",
+                    "say": "Kies het producttype. Dat is het soort apparaat. Staat het er niet bij? Dan maak je het op dezelfde manier aan."
                 },
                 {
                     "spot": "combo.create",
@@ -213,8 +213,8 @@
                         "typeNewBrand"
                     ],
                     "title": "Nieuw merk",
-                    "text": "Ook het merk **Polarix** bestaat nog niet. Typ het in bij **Merk**, en onderaan verschijnt **Nieuw merk ‘Polarix’**. Daarvoor moet je ook merken mogen aanmaken.",
-                    "say": "Ook het merk Polarix bestaat nog niet. Typ het in, en kies nieuw merk.",
+                    "text": "Ook het merk **Polarix** bestaat nog niet. Typ het in bij **Merk**. Onderaan verschijnt dan **Nieuw merk ‘Polarix’**. Daarvoor moet je ook merken mogen aanmaken.",
+                    "say": "Ook het merk Polarix bestaat nog niet. Typ het in en kies \"nieuw merk\".",
                     "marks": [
                         {
                             "spot": "products.new.brand",
@@ -234,7 +234,7 @@
                         "pretendNewBrand"
                     ],
                     "title": "Meteen gekozen",
-                    "text": "Het merk wordt meteen aangemaakt en ingevuld; je hoeft het productformulier er niet voor te verlaten. Een merk of producttype is in één klik klaar. Voor een nieuw product of een nieuwe klant opent eerst een formulier, zoals dit.",
+                    "text": "Het merk wordt meteen aangemaakt en ingevuld. Je hoeft het productformulier er niet voor te verlaten. Een merk of producttype is in één klik klaar. Voor een nieuw product of een nieuwe klant opent eerst een formulier, zoals dit.",
                     "say": "Het merk wordt meteen aangemaakt en ingevuld. Je hoeft het productformulier er niet voor te verlaten.",
                     "requires": {
                         "permissions": [
@@ -249,8 +249,8 @@
                         "pretendNewBrand"
                     ],
                     "title": "Bundel of registreerbaar",
-                    "text": "Een **bundel** is een set van andere producten; een machine van een bundel krijgt geen serienummer. Zet **Registreerbaar** uit voor iets dat je per stuk telt, zoals zonnepanelen. Ook dan vraagt Lavoro nergens om een serienummer.",
-                    "say": "Een bundel is een set van andere producten. Zet registreerbaar uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro geen serienummer.",
+                    "text": "Een **bundel** is een set van andere producten. Een machine van een bundel krijgt geen serienummer. Zet **Registreerbaar** uit voor iets dat je per stuk telt, zoals zonnepanelen. Ook dan vraagt Lavoro nergens om een serienummer.",
+                    "say": "Een bundel is een set van andere producten. Zet \"registreerbaar\" uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro geen serienummer.",
                     "marks": [
                         {
                             "spot": "products.new.bundle",
@@ -270,14 +270,14 @@
                     ],
                     "title": "Product aanmaken",
                     "text": "Klik op **Product aanmaken** om het product op te slaan, met het nieuwe merk erbij.",
-                    "say": "Klik op product aanmaken om het product op te slaan."
+                    "say": "Klik op \"product aanmaken\" om het product op te slaan."
                 },
                 {
                     "spot": "machines.new.product",
                     "action": "pretendNewProduct",
                     "title": "Terug bij de machine",
-                    "text": "Je bent terug in het machineformulier, met het nieuwe product al ingevuld. Het serienummer kun je nu invullen en de volgende keuring staat klaar. Vul de rest in en klik op **Toevoegen**.",
-                    "say": "Je bent dan terug in het machineformulier, met het nieuwe product al ingevuld. Vul de rest in, en klik op toevoegen.",
+                    "text": "Je bent terug in het machineformulier. Het nieuwe product is al ingevuld. Het serienummer kun je nu invullen en de volgende keuring staat klaar. Vul de rest in en klik op **Toevoegen**.",
+                    "say": "Je bent dan terug in het machineformulier. Het nieuwe product is al ingevuld. Vul de rest in en klik op \"toevoegen\".",
                     "marks": [
                         {
                             "spot": "machines.new.serial",
@@ -296,7 +296,7 @@
                 {
                     "title": "Op het bakje",
                     "text": "Bovenaan de pagina van een machine staat **Op het bakje**. Zo leg je de machine klaar om hem op een andere pagina te gebruiken. Op een telefoon open je daarvoor het bakje en tik je op **Deze machine op het bakje leggen**.",
-                    "say": "Bovenaan de pagina van een machine staat de knop op het bakje. Zo leg je de machine klaar om hem op een andere pagina te gebruiken.",
+                    "say": "Bovenaan de pagina van een machine staat de knop \"op het bakje\". Zo leg je de machine klaar om hem op een andere pagina te gebruiken.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-place",
@@ -305,8 +305,8 @@
                 },
                 {
                     "title": "Waar hij heen kan",
-                    "text": "Sleep hem naar de **dag van een monteur** in de planner, naar **Keuringen** op een werkbon, naar **Gerelateerde machines** van een andere machine, naar een **klant** of **locatie**, naar **Machines** op een onderhoudscontract, of naar **Werkbonnen** op een project. Tijdens het slepen lichten die plekken op, met erbij wat er gaat gebeuren.",
-                    "say": "Sleep hem naar de planner, een werkbon, een andere machine, een klant of locatie, een contract of een project. Tijdens het slepen lichten die plekken op, met erbij wat er gaat gebeuren.",
+                    "text": "Sleep hem naar een van deze plekken: de **dag van een monteur** in de planner, **Keuringen** op een werkbon, **Gerelateerde machines** van een andere machine, een **klant** of **locatie**, **Machines** op een onderhoudscontract, of **Werkbonnen** op een project. Tijdens het slepen lichten die plekken op. Er staat dan bij wat er gaat gebeuren.",
+                    "say": "Sleep hem bijvoorbeeld naar de planner of naar een werkbon. Ook een klant, een contract of een project kan. Tijdens het slepen lichten die plekken op. Er staat dan bij wat er gaat gebeuren.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-places"
@@ -314,13 +314,13 @@
                 },
                 {
                     "title": "Eerst een vraag, of meteen",
-                    "text": "Inplannen, verhuizen en een nieuwe werkbon bij een project vragen eerst wat je wilt. Een keuring op een werkbon, een onderdeel in een andere machine en een contract gebeuren meteen; die draai je in de melding terug met **Ongedaan maken**. Staat de machine er al, dan wordt hij overgeslagen en zegt de melding welke.",
-                    "say": "Inplannen, verhuizen en een nieuwe werkbon maken vragen eerst wat je wilt. De rest gebeurt meteen, en kun je in de melding nog terugdraaien."
+                    "text": "Inplannen, verhuizen en een nieuwe werkbon bij een project vragen eerst wat je wilt. Een keuring op een werkbon, een onderdeel in een andere machine en een contract gebeuren meteen. Die draai je terug met **Ongedaan maken** in de melding. Staat de machine er al? Dan wordt hij overgeslagen en zegt de melding welke.",
+                    "say": "Bij inplannen, verhuizen of een nieuwe werkbon vraagt Lavoro eerst wat je wilt. De rest gebeurt meteen. Dat kun je in de melding nog terugdraaien."
                 },
                 {
                     "title": "Tikken in plaats van slepen",
-                    "text": "Slepen hoeft niet: kies in het bakje bij de machine **Plakken**, ga naar de pagina waar hij heen moet en tik op de plek die oplicht. Dat werkt ook op een telefoon. Alleen in de planner moet je slepen, omdat daar telt waar je loslaat.",
-                    "say": "Slepen hoeft niet. Kies in het bakje plakken, en tik daarna op de plek waar de machine heen moet. Dat werkt ook op je telefoon."
+                    "text": "Slepen hoeft niet. Kies in het bakje bij de machine **Plakken**. Ga dan naar de pagina waar hij heen moet en tik op de plek die oplicht. Dat werkt ook op een telefoon. Alleen in de planner moet je slepen, omdat daar telt waar je loslaat.",
+                    "say": "Slepen hoeft niet. Kies in het bakje \"plakken\". Tik daarna op de plek waar de machine heen moet. Dat werkt ook op je telefoon."
                 }
             ]
         }

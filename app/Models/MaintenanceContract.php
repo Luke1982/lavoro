@@ -112,6 +112,7 @@ class MaintenanceContract extends Model
                 'assetables' => 'assetable',
                 'activityables' => 'activityable',
                 'remarkables' => 'remarkable',
+                'documentables' => 'documentable',
             ];
 
             foreach ($pivot_tables as $table => $morph) {
@@ -126,6 +127,11 @@ class MaintenanceContract extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function documents()
+    {
+        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
     }
 
     public function assets()

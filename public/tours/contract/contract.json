@@ -1,0 +1,40 @@
+{
+    "tour": "contract",
+    "chapter": "contract",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "contract.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan staan de titel en de status van het contract. Daaronder staat de klant.",
+            "hash": "213812414f4c1ecddee4615ff6ac4b98e446ca70",
+            "start": 0,
+            "end": 4.432
+        },
+        {
+            "text": "Hier zet je het contract op \"geannuleerd\", of weer op \"actief\". Een geannuleerd contract maakt vanzelf geen werkbonnen meer.",
+            "hash": "b3ce0fb0b68118cd0c3632a490f9044b1b78d75d",
+            "start": 5.432,
+            "end": 12.661
+        },
+        {
+            "text": "Klik op een gegeven om het te wijzigen. De einddatum mag leeg blijven. Dan loopt het contract door tot je het annuleert.",
+            "hash": "f046e4e8db2bdaf2efc0a523959d582eb39a96cb",
+            "start": 13.661,
+            "end": 20.981
+        },
+        {
+            "text": "Kies je een andere klant? Dan verhuizen de machines van het contract mee. Je kiest zelf op welke locatie ze komen.",
+            "hash": "48ce9f7f54dbd056faf8f147640384421c3d07b3",
+            "start": 21.981,
+            "end": 28.067
+        },
+        {
+            "text": "Hier staan de prijs en hoe vaak je die rekent. Niet iedereen ziet die. Daar is een apart recht voor.",
+            "hash": "18b6d617fb643c0e9300621a87add48ea04504f5",
+            "start": 29.067,
+            "end": 34.181
+        }
+    ]
+}

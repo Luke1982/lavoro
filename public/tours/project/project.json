@@ -1,0 +1,46 @@
+{
+    "tour": "project",
+    "chapter": "project",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "project.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan staan het projectnummer en de status. Op dat nummer kun je ook zoeken.",
+            "hash": "cfcaedaa3eef95fbc308d5cf2472add8d435159e",
+            "start": 0,
+            "end": 4.544
+        },
+        {
+            "text": "Met \"exporteren\" download je de nacalculatie van het project in Excel.",
+            "hash": "d5de95593db2b433021f76e527ddeadde26274e3",
+            "start": 5.544,
+            "end": 10.129
+        },
+        {
+            "text": "De status volgt het werk. Begint een monteur aan een werkbon van dit project? Dan gaat het vanzelf naar \"gestart\".",
+            "hash": "df50b3524a60f875738f1ac0108a68b688dfcdb1",
+            "start": 11.129,
+            "end": 17.775
+        },
+        {
+            "text": "Klik op een gegeven om het te wijzigen. Kies je een andere klant? Dan vervallen de locatie en de contactpersoon.",
+            "hash": "fdb818887a73f5ff8a245325b0311af3d9373d58",
+            "start": 18.775,
+            "end": 24.876
+        },
+        {
+            "text": "Kies een locatie van de klant, of typ zelf een adres. Die locatie geldt voor werkbonnen zonder eigen locatie.",
+            "hash": "e91d5dd9265c5ac7650192a835ed49316e498fe9",
+            "start": 25.876,
+            "end": 32.441
+        },
+        {
+            "text": "Bij voortgang zie je hoeveel werkbonnen gesloten zijn en hoeveel mijlpalen behaald. Ook de gewerkte uren staan erbij. Een rode balk vraagt aandacht.",
+            "hash": "de29342096b331497eec5e8ede4c0f43e7fa1784",
+            "start": 33.441,
+            "end": 41.777
+        }
+    ]
+}

@@ -1,7 +1,7 @@
 {
     "id": "storing",
     "title": "Rondleiding door een storing",
-    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
     "autoStart": true,
     "assistant": false,
     "chapters": [
@@ -9,19 +9,19 @@
             "id": "storing",
             "version": 1,
             "title": "De storing",
-            "summary": "Wat er bovenaan staat, aan welke machine de storing is, en wat je zelf kunt wijzigen.",
+            "summary": "Wat er bovenaan staat, om welke machine het gaat en wat je zelf kunt wijzigen.",
             "steps": [
                 {
                     "spot": "ticket.header",
                     "title": "Bovenaan",
-                    "text": "Bovenaan staan het onderwerp en de **status** van de storing, met de prioriteit, wanneer hij is aangemaakt en door wie, en wanneer hij voor het laatst is bijgewerkt.",
-                    "say": "Bovenaan staan het onderwerp en de status van de storing, met wanneer hij is aangemaakt en door wie."
+                    "text": "Bovenaan staan het onderwerp en de **status** van de storing. Daaronder zie je de prioriteit, en wanneer de storing is aangemaakt en door wie. Ook zie je wanneer hij voor het laatst is bijgewerkt.",
+                    "say": "Bovenaan staan het onderwerp en de status van de storing. Daaronder zie je wanneer hij is aangemaakt en door wie."
                 },
                 {
                     "spot": "ticket.machine",
                     "title": "Aan welke machine",
-                    "text": "Hier staat aan welke **machine** de storing is: merk, model, type en serienummer, bij welke klant en op welke locatie. Wat blauw is kun je aanklikken, zoals het serienummer om de machine te openen.",
-                    "say": "Hier zie je aan welke machine de storing is, bij welke klant en op welke locatie. Wat blauw is, kun je aanklikken."
+                    "text": "Hier zie je aan welke **machine** de storing is: merk, model, type en serienummer. Ook de klant en de locatie staan erbij. Op alles wat blauw is kun je klikken. Het serienummer opent bijvoorbeeld de machine.",
+                    "say": "Hier zie je aan welke machine de storing is. Ook de klant en de locatie staan erbij. Op alles wat blauw is kun je klikken."
                 },
                 {
                     "spot": "ticket.subject",
@@ -31,8 +31,8 @@
                         ]
                     },
                     "title": "Wijzigen",
-                    "text": "Klik op het **onderwerp**, de **omschrijving** of de **storingscode** om die aan te passen. Klik ernaast of op het diskette-icoon om te bewaren.",
-                    "say": "Klik op het onderwerp, de omschrijving of de storingscode om die aan te passen. Klik ernaast, of op het diskette-icoon, om te bewaren.",
+                    "text": "Klik op het **onderwerp**, de **omschrijving** of de **storingscode** om die aan te passen. Bewaren doe je door ernaast te klikken, of op het diskette-icoon.",
+                    "say": "Klik op het onderwerp, de omschrijving of de storingscode om die aan te passen. Klik daarna ernaast om te bewaren.",
                     "marks": [
                         {
                             "spot": "ticket.description",
@@ -47,8 +47,8 @@
                 {
                     "spot": "ticket.status",
                     "title": "Status",
-                    "text": "De **status** volgt de planning. Komt er een afspraak op de werkbon van deze storing, dan gaat hij vanzelf naar **In behandeling**, tenzij hij al gesloten is; verdwijnt de laatste afspraak, dan terug naar **Open**. Mag je de status wijzigen, klik er dan op. Sluit je de storing, dan wordt vastgelegd wie dat deed.",
-                    "say": "De status volgt de planning. Komt er een afspraak op de werkbon, dan gaat de storing vanzelf naar in behandeling. Verdwijnt de laatste afspraak, dan gaat hij terug naar open."
+                    "text": "De **status** volgt de planning. Komt er een afspraak op de werkbon van deze storing? Dan gaat hij vanzelf naar **In behandeling**, behalve als hij al gesloten is. Verdwijnt de laatste afspraak, dan gaat hij terug naar **Open**. Mag je de status wijzigen? Klik er dan op. Als je de storing sluit, wordt vastgelegd wie dat deed.",
+                    "say": "De status volgt de planning. Komt er een afspraak op de werkbon? Dan gaat de storing vanzelf naar \"in behandeling\". Verdwijnt de laatste afspraak? Dan gaat hij terug naar \"open\"."
                 },
                 {
                     "spot": "ticket.priority",
@@ -58,8 +58,8 @@
                         ]
                     },
                     "title": "Prioriteit",
-                    "text": "De **prioriteit** kies je met één klik: laag, normaal of hoog. Op de kaart van de storingen krijgt een adres de kleur van de hoogste prioriteit daar.",
-                    "say": "De prioriteit kies je met één klik: laag, normaal of hoog. Op de kaart van de storingen zie je die terug als kleur."
+                    "text": "De **prioriteit** kies je met één klik: laag, normaal of hoog. Op de kaart van de storingen krijgt elk adres de kleur van de hoogste prioriteit daar.",
+                    "say": "De prioriteit kies je met één klik. Op de kaart van de storingen zie je die terug als kleur."
                 }
             ]
         },
@@ -77,15 +77,15 @@
                 {
                     "spot": "ticket.info",
                     "title": "Informatie opvragen",
-                    "text": "Mist er iets om de storing goed in te schatten? Met **Informatie opvragen** stuur je de klant een mail met een link naar een pagina waar hij foto's, video's en documenten aanlevert. Inloggen hoeft niet, en de link werkt veertien dagen. Op een smal scherm staat het in het menu achter de drie puntjes.",
-                    "say": "Mist er iets om de storing goed in te schatten? Met informatie opvragen stuur je de klant een mail met een link. Daar levert hij foto's, video's en documenten aan, zonder in te loggen."
+                    "text": "Mist er iets om de storing goed in te schatten? Met **Informatie opvragen** stuur je de klant een mail met een link. Via die link levert hij foto's, video's en documenten aan. Inloggen hoeft niet, en de link werkt veertien dagen. Op een smal scherm staat dit in het menu achter de drie puntjes.",
+                    "say": "Mist er iets om de storing goed in te schatten? Met \"informatie opvragen\" stuur je de klant een mail met een link. Via die link levert hij foto's en video's aan. Inloggen hoeft niet."
                 },
                 {
                     "spot": "info.address",
                     "action": "openInfoRequest",
                     "title": "Aan wie",
-                    "text": "Het onderwerp staat al ingevuld, en het adres van de klant ook als die er een heeft. Je kunt ze allebei aanpassen.",
-                    "say": "Het onderwerp staat al ingevuld, en het adres van de klant ook, als die er een heeft. Je kunt ze allebei aanpassen."
+                    "text": "Het onderwerp staat al ingevuld. Heeft de klant een mailadres? Dan staat dat er ook al. Je kunt ze allebei aanpassen.",
+                    "say": "Het onderwerp staat al ingevuld. Heeft de klant een mailadres? Dan staat dat er ook al. Je kunt ze allebei aanpassen."
                 },
                 {
                     "spot": "info.options",
@@ -94,8 +94,8 @@
                         "chooseRequested"
                     ],
                     "title": "Wat je vraagt",
-                    "text": "Kies wat je wilt ontvangen: **foto's**, **video's** of **andere aanvullende informatie**; foto's en video's staan al aan. Wat je kiest komt als lijstje in de brief; nog een keer klikken haalt het weer weg.",
-                    "say": "Kies wat je wilt ontvangen. Wat je kiest, komt als lijstje in de brief. Nog een keer klikken haalt het weer weg.",
+                    "text": "Kies wat je wilt ontvangen: **foto's**, **video's** of **andere aanvullende informatie**. Foto's en video's staan al aan. Wat je kiest komt als lijstje in de brief. Klik je nog een keer, dan gaat het er weer uit.",
+                    "say": "Kies wat je wilt ontvangen. Wat je kiest komt als lijstje in de brief. Klik je nog een keer, dan gaat het er weer uit.",
                     "marks": [
                         {
                             "spot": "info.body",
@@ -110,7 +110,7 @@
                         "chooseRequested"
                     ],
                     "title": "De brief",
-                    "text": "De **brief** mag je helemaal zelf herschrijven. De knop naar de aanleverpagina komt er altijd onder, dus die kan niet stuk.",
+                    "text": "De **brief** mag je helemaal zelf herschrijven. De knop naar de aanleverpagina komt er altijd onder. Die kun je dus niet per ongeluk weghalen.",
                     "say": "De brief mag je zelf herschrijven. De knop naar de aanleverpagina komt er altijd onder."
                 },
                 {
@@ -120,8 +120,8 @@
                         "chooseRequested"
                     ],
                     "title": "Na versturen",
-                    "text": "Na **Versturen** staat de storing op **Wacht op terugkoppeling klant**. Wat de klant aanlevert komt vanzelf bij deze storing: foto's bij de afbeeldingen, video's en documenten bij de documenten, en zijn toelichting als opmerking. De storing gaat dan terug naar **In behandeling**. De rondleiding verstuurt niets.",
-                    "say": "Na versturen staat de storing op wacht op terugkoppeling klant. Wat de klant aanlevert, komt vanzelf bij deze storing, en dan gaat hij terug naar in behandeling."
+                    "text": "Na **Versturen** staat de storing op **Wacht op terugkoppeling klant**. Wat de klant aanlevert, komt vanzelf bij deze storing. Foto's komen bij de afbeeldingen. Video's en documenten komen bij de documenten. Zijn toelichting wordt een opmerking. Daarna gaat de storing terug naar **In behandeling**. De rondleiding verstuurt niets.",
+                    "say": "Na \"versturen\" wacht de storing op de klant. Wat de klant aanlevert komt vanzelf bij deze storing. Daarna gaat hij terug naar \"in behandeling\"."
                 }
             ]
         },
@@ -135,21 +135,21 @@
                     "spot": "ticket.serviceorder",
                     "skipIfMissing": true,
                     "title": "De werkbon",
-                    "text": "Staat de storing op een **werkbon**, dan zie je die hier, met de fase en de monteur.",
-                    "say": "Staat de storing op een werkbon, dan zie je die hier, met de fase en de monteur."
+                    "text": "Staat de storing op een **werkbon**? Dan zie je die hier met de fase en de monteur.",
+                    "say": "Staat de storing op een werkbon? Dan zie je die hier met de fase en de monteur."
                 },
                 {
                     "spot": "ticket.events",
                     "skipIfMissing": true,
                     "title": "Afspraken",
-                    "text": "Onder **Afspraken** staat wanneer er iemand voor deze storing langskomt, wie er gaat en waar, net als op de werkbon zelf.",
-                    "say": "Onder afspraken zie je wanneer er iemand voor deze storing langskomt, wie er gaat en waar."
+                    "text": "Onder **Afspraken** zie je wanneer er iemand voor deze storing langskomt. Je ziet ook wie er gaat en waar, net als op de werkbon.",
+                    "say": "Onder afspraken zie je wanneer er iemand voor deze storing langskomt. Je ziet ook wie er gaat en waar."
                 },
                 {
                     "spot": "ticket.remarks",
                     "title": "Opmerkingen",
-                    "text": "Onder **Opmerkingen** schrijf je aantekeningen bij de storing. Een toelichting die de klant via de aanleverpagina stuurt, komt hier ook, met het label *Klant*.",
-                    "say": "Onder opmerkingen schrijf je aantekeningen bij de storing. Wat de klant er via de aanleverpagina bij schrijft, komt hier ook."
+                    "text": "Onder **Opmerkingen** schrijf je aantekeningen bij de storing. Stuurt de klant een toelichting via de aanleverpagina? Dan komt die hier ook, met het label *Klant*.",
+                    "say": "Onder opmerkingen schrijf je aantekeningen bij de storing. Wat de klant via de aanleverpagina schrijft, komt hier ook."
                 },
                 {
                     "spot": "ticket.images",
@@ -159,14 +159,14 @@
                         ]
                     },
                     "title": "Foto's",
-                    "text": "Hier zet je **foto's** van de storing. Foto's die de klant aanlevert, komen er vanzelf bij.",
-                    "say": "Hier zet je foto's van de storing. Foto's die de klant aanlevert, komen er vanzelf bij."
+                    "text": "Hier zet je **foto's** van de storing. Foto's van de klant komen er vanzelf bij.",
+                    "say": "Hier zet je foto's van de storing. Foto's van de klant komen er vanzelf bij."
                 },
                 {
                     "spot": "ticket.timeline",
                     "title": "Tijdlijn",
-                    "text": "De **tijdlijn** laat alles zien wat er met deze storing gebeurd is: wie wat veranderde en wanneer, met de oude en de nieuwe waarde. Verandert de status vanzelf door de planning, dan staat de reden erbij.",
-                    "say": "In de tijdlijn staat alles wat er met deze storing gebeurd is: wie wat veranderde, en wanneer."
+                    "text": "De **tijdlijn** laat alles zien wat er met deze storing is gebeurd. Je ziet wie wat veranderde en wanneer, met de oude en de nieuwe waarde. Verandert de status vanzelf door de planning? Dan staat de reden erbij.",
+                    "say": "In de tijdlijn staat alles wat er met deze storing is gebeurd. Je ziet wie wat veranderde en wanneer."
                 },
                 {
                     "spot": "ticket.documents",
@@ -176,7 +176,7 @@
                         ]
                     },
                     "title": "Documenten",
-                    "text": "Bij **documenten** zet je bestanden, zoals een rapport of een offerte. Video's en documenten van de klant komen hier vanzelf, in de categorie *Klantinformatie*.",
+                    "text": "Bij **documenten** zet je bestanden, zoals een rapport of een offerte. Video's en documenten van de klant komen hier vanzelf. Ze staan in de categorie *Klantinformatie*.",
                     "say": "Bij documenten zet je bestanden bij de storing. Video's en documenten van de klant komen hier vanzelf."
                 }
             ]
@@ -190,15 +190,15 @@
                 {
                     "spot": "ticket.follow",
                     "title": "Volgen",
-                    "text": "Met het **belletje** volg je deze storing; op een smal scherm staat **Volg deze storing** in het menu achter de drie puntjes. Je krijgt dan een melding als de status of de prioriteit verandert, of als de klant iets aanlevert. Nog een keer klikken zet het volgen uit.",
-                    "say": "Volg je deze storing, dan krijg je een melding als de status of prioriteit verandert, of als de klant iets aanlevert."
+                    "text": "Met het **belletje** volg je deze storing. Op een smal scherm staat **Volg deze storing** in het menu achter de drie puntjes. Je krijgt dan een melding als de status of de prioriteit verandert. Ook als de klant iets aanlevert, krijg je er een. Klik nog een keer om het volgen te stoppen.",
+                    "say": "Volg je deze storing? Dan krijg je een melding als de status of de prioriteit verandert. Ook als de klant iets aanlevert."
                 },
                 {
                     "spot": "tray.place",
                     "action": "showTrayPlace",
                     "title": "Op het bakje",
-                    "text": "Hiermee leg je de storing op het **bakje**. Daarna plak je hem op een andere pagina: op de dag van een monteur in de planner, op een werkbon, bij een andere machine of bij een project.",
-                    "say": "Hiermee leg je de storing op het bakje. Daarna plak je hem ergens anders: in de planner, op een werkbon, bij een machine of bij een project."
+                    "text": "Hiermee leg je de storing op het **bakje**. Daarna plak je hem op een andere pagina. Dat kan op de dag van een monteur in de planner, op een werkbon, bij een andere machine of bij een project.",
+                    "say": "Hiermee leg je de storing op het bakje. Daarna plak je hem ergens anders, bijvoorbeeld in de planner of op een werkbon."
                 },
                 {
                     "requires": {
@@ -209,8 +209,8 @@
                         ]
                     },
                     "title": "Inplannen vanaf het bakje",
-                    "text": "Hoe je een storing vanaf het bakje op de dag van een monteur sleept, laat de rondleiding door de planner zien.",
-                    "say": "Hoe je een storing vanaf het bakje inplant, laat de rondleiding door de planner zien.",
+                    "text": "De rondleiding door de planner laat zien hoe je een storing vanaf het bakje op de dag van een monteur sleept.",
+                    "say": "De rondleiding door de planner laat zien hoe je een storing vanaf het bakje inplant.",
                     "cta": {
                         "label": "Naar de planner",
                         "href": "/planner",

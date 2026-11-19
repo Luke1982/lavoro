@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "kopieren",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "kopieren.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies kopiëren.",
-            "hash": "d2a510d92657876735bb235bdba43f1692fa72bf",
+            "text": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies \"kopiëren\".",
+            "hash": "c7a384e88ac51a88a4c0d3a1b22cd83930a4028e",
             "start": 0,
-            "end": 4.876
+            "end": 5.519
         },
         {
-            "text": "Met naar morgen zet je hem een dag later neer, op dezelfde tijd.",
-            "hash": "06bb1a053f4c07a88ed374fa2b9e4344407fbcf8",
-            "start": 5.876,
-            "end": 9.452
+            "text": "Met \"naar morgen\" zet je hem één dag later neer, op dezelfde tijd.",
+            "hash": "f61827a3477afe8e986acbc79ef1d4f45eb8d8ae",
+            "start": 6.519,
+            "end": 10.781
         },
         {
-            "text": "Met rest van de week komt hij op elke werkdag die deze week nog over is.",
-            "hash": "80eb766b3bcece0a51390ada1a02c3e4fa20cccf",
-            "start": 10.452,
-            "end": 14.957
+            "text": "Met \"rest van de week\" komt hij op elke werkdag die deze week nog over is.",
+            "hash": "4368c9b21736d6b83d65dbce45a0d66cc7b8eb45",
+            "start": 11.781,
+            "end": 16.436
         },
         {
-            "text": "Met naar volgende week zet je hem precies een week later.",
-            "hash": "fa8e6171198812983f58d5c0e1f67573607b747e",
-            "start": 15.957,
-            "end": 18.929
+            "text": "Met \"naar volgende week\" zet je hem precies één week later.",
+            "hash": "358022be422e533a74e78917e865810b836848c7",
+            "start": 17.436,
+            "end": 20.837
         },
         {
-            "text": "Of kies zelf een datum, tot een jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
-            "hash": "db36640eba42033d0325d863bf511b7b0da02933",
-            "start": 19.929,
-            "end": 27.174
+            "text": "Je kunt ook zelf een datum kiezen, tot één jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
+            "hash": "ffdb3c0a18fb1586cb8015c195b31f1ffc7a7c6b",
+            "start": 21.837,
+            "end": 29.198
         }
     ]
 }

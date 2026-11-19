@@ -1,7 +1,7 @@
 <template>
     <DrawerComponent v-model="open" :title="drawerTitle" subtitle="Vul de gegevens in van het nieuwe contract.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <div v-if="templateOptions.length"
+            <div data-tour="contracts.new.template" v-if="templateOptions.length"
                 class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Sjabloon</label>
                 <div class="sm:col-span-2">
@@ -11,7 +11,7 @@
                     </p>
                 </div>
             </div>
-            <div v-if="!customer" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.customer" v-if="!customer" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Klant</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="customerOptions" v-model="form.customer_id" placeholder="Selecteer klant"
@@ -20,7 +20,7 @@
                         :hasError="Boolean(form.errors.customer_id)" :errorMessage="form.errors.customer_id" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.title" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Titel</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="form.title" type="text" placeholder="Optioneel"
@@ -28,14 +28,14 @@
                         @update:model-value="titleEditedByHand = true" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.start" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Startdatum</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="form.start_date" type="date"
                         :hasError="Boolean(form.errors.start_date)" :errorMessage="form.errors.start_date" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.end" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Einddatum</label>
                 <div class="sm:col-span-2">
                     <TextInput v-model="form.end_date" type="date" placeholder="Optioneel"
@@ -43,14 +43,14 @@
                         @update:model-value="endDateEditedByHand = true" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.price" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
                 <div class="sm:col-span-2">
                     <CurrencyInput v-model="form.price"
                         :hasError="Boolean(form.errors.price)" :errorMessage="form.errors.price" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.interval" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijsinterval</label>
                 <div class="sm:col-span-2">
                     <ComboBox :options="intervalOptions" v-model="form.price_interval"
@@ -66,14 +66,14 @@
                         :errorMessage="form.errors.price_interval_days" />
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div data-tour="contracts.new.per-machine" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Frequentie per machine beheren</label>
                 <div class="sm:col-span-2">
                     <SwitchComponent v-model="form.manage_frequency_per_asset" />
                 </div>
             </div>
             <template v-if="!form.manage_frequency_per_asset">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+                <div data-tour="contracts.new.frequency" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                     <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Servicefrequentie</label>
                     <div class="sm:col-span-2">
                         <ComboBox :options="intervalOptions" v-model="form.frequency"
@@ -90,7 +90,7 @@
                     </div>
                 </div>
             </template>
-            <div v-if="canSchedule" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
+            <div v-if="canSchedule" data-tour="contracts.new.auto" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">
                     Automatisch werkbonnen genereren
                 </label>
@@ -125,7 +125,7 @@
                     class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                     Annuleren
                 </button>
-                <button type="button" @click="submit" :disabled="form.processing"
+                <button type="button" data-tour="contracts.new.submit" @click="submit" :disabled="form.processing"
                     class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Opslaan
                 </button>

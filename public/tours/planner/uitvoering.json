@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "uitvoering",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "uitvoering.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Op een afspraak in je eigen rij staan twee knopjes: de klok voor je tijden en de handtekening, en het kruisje om je deel te annuleren.",
-            "hash": "f41bcf25818d31b5735d4a4e42cc9d9149ac57bd",
+            "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok is voor je tijden en de handtekening. Met het kruisje annuleer je je eigen deel.",
+            "hash": "759e030542b4ed4c2cbd11ef102c5b72587e8f0f",
             "start": 0,
-            "end": 7.384
+            "end": 8.249
         },
         {
-            "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging, vul je reistijd in, en laat de klant tekenen.",
-            "hash": "da5727b31c3ca54823d4e90141b5a7b58cf41424",
-            "start": 8.384,
-            "end": 16.047
+            "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging. Vul je reistijd in en laat de klant tekenen.",
+            "hash": "2f4272ae5e6ff36ee638c798e21150267a0c812f",
+            "start": 9.249,
+            "end": 16.46
         },
         {
             "text": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
-            "hash": "7b30017e6cd7131a6273bc7dca774038d60cbf89",
-            "start": 17.047,
-            "end": 21.505
+            "hash": "7006187e50378e2a937ff41533bc71deaae6e0a5",
+            "start": 17.46,
+            "end": 21.538
         },
         {
-            "text": "Mag je tijden voor een ander invullen, dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net zoals je dat voor jezelf doet.",
-            "hash": "89cc287fc7eb2890cdd3831c866ea569585c010e",
-            "start": 22.505,
-            "end": 32.768
+            "text": "Mag je tijden voor een ander invullen? Dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als voor jezelf.",
+            "hash": "d2881697de0f4b948ada750e19a3ea65e4a9d5ac",
+            "start": 22.538,
+            "end": 31.74
         },
         {
-            "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij, of trek je een annulering in. Dat geldt alleen voor de monteur in die rij.",
-            "hash": "8ccfc2645ab47d6fc168dfaf3b9eb4e77c4d82fc",
-            "start": 33.768,
-            "end": 40.688
+            "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij. Of je trekt er een annulering mee in. Dat geldt alleen voor de monteur in die rij.",
+            "hash": "38ce9030ef544ccb2c9b27562699bb39df2607bf",
+            "start": 32.74,
+            "end": 41.084
         }
     ]
 }

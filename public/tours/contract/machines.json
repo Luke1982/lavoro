@@ -1,0 +1,34 @@
+{
+    "tour": "contract",
+    "chapter": "machines",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "machines.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "De servicefrequentie zegt hoe vaak er onderhoud is. Zet je \"per machine beheren\" aan? Dan krijgt elke machine een eigen frequentie.",
+            "hash": "38ebf932316f8575dfcbb8822d5d43d7a19f3066",
+            "start": 0,
+            "end": 7.838
+        },
+        {
+            "text": "Hier staan de machines die onder het contract vallen. Met het prullenbakje koppel je er één los.",
+            "hash": "1b4e8317bc1d0fbdd8084c0517952cfe178055e5",
+            "start": 8.838,
+            "end": 14.254
+        },
+        {
+            "text": "Met \"machine toevoegen\" kies je een machine van deze klant. Daarna klik je op \"toevoegen\".",
+            "hash": "d50fcd2aeec7bf9cdcfd813e92029bc37057d4c5",
+            "start": 15.254,
+            "end": 20.445
+        },
+        {
+            "text": "Ligt er een machine op het bakje? Sleep hem op dit blok. Hij valt dan meteen onder het contract.",
+            "hash": "659e3c874b71d75748fe05d6c01e9b41c3b23baa",
+            "start": 21.445,
+            "end": 26.395
+        }
+    ]
+}

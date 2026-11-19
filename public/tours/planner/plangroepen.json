@@ -2,45 +2,45 @@
     "tour": "planner",
     "chapter": "plangroepen",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "plangroepen.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Met plangroepen orden je de monteurs. Per vakgebied bijvoorbeeld, of per regio.",
-            "hash": "5df0968b4725a58d326e1d757d9ab4e30f8da937",
+            "text": "Met plangroepen orden je de monteurs, bijvoorbeeld per vakgebied of per regio.",
+            "hash": "6c64affd6983219ca635c765717b540619b1a320",
             "start": 0,
-            "end": 4.969
+            "end": 4.669
         },
         {
-            "text": "Klik op toevoegen, geef de groep een naam en een kleur, en druk op enter.",
-            "hash": "a834f50b044653b7a41fcab5fcaa08a3978ba228",
-            "start": 5.969,
-            "end": 9.963
+            "text": "Klik op \"toevoegen\". Geef de groep een naam en een kleur. Druk dan op enter.",
+            "hash": "6f1ddc98cd2933265ee01a19a49fb4d14f59a476",
+            "start": 5.669,
+            "end": 9.859
         },
         {
             "text": "Klik op een naam om hem te wijzigen. Sleep een groep omhoog of omlaag om de volgorde te veranderen.",
-            "hash": "992ecf769a954e1ad1ee3d4250177c1582e8d1d8",
-            "start": 10.963,
-            "end": 16.118
+            "hash": "61af950e3b964bc7accec1b365863bb080ecbcdf",
+            "start": 10.859,
+            "end": 16.711
         },
         {
-            "text": "Bij elke monteur staat een gekleurd vakje per groep. Klik het aan, of weer uit. Iemand kan in meer groepen zitten.",
-            "hash": "0d00c8fa47dd659c50a5b204581d5eb61c6a7dff",
-            "start": 17.118,
-            "end": 23.852
+            "text": "Bij elke monteur staat een gekleurd vakje per groep. Klik het aan of weer uit. Iemand kan in meer groepen zitten.",
+            "hash": "efb991c2ba3fe82b06802198235661dbd014138a",
+            "start": 17.711,
+            "end": 23.819
         },
         {
             "text": "Met het vinkje helemaal rechts bepaal je of iemand een rij in de planner krijgt.",
-            "hash": "83878fa1d5b160679913d651ae7ceff54da52766",
-            "start": 24.852,
-            "end": 29.263
+            "hash": "0d5bab703197bd14062c23c7da687e8a1eb552dd",
+            "start": 24.819,
+            "end": 29.402
         },
         {
-            "text": "In de planner zelf klik je een groep aan om alleen die monteurs te zien. Nog een keer klikken, en iedereen staat er weer.",
-            "hash": "37d41fd9175308a24bb7d770e40648fd21dc47ac",
-            "start": 30.263,
-            "end": 36.208
+            "text": "In de planner zelf klik je een groep aan om alleen die monteurs te zien. Klik nog een keer en iedereen staat er weer.",
+            "hash": "49f44bb6ec013101d6523e867821ff37408269fb",
+            "start": 30.402,
+            "end": 37.032
         }
     ]
 }

@@ -1,7 +1,7 @@
 {
     "id": "activiteiten",
     "title": "Rondleiding door de aankomende keuringen",
-    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee, en overslaan kan altijd.",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
     "page": "/upcomingactivities",
     "autoStart": true,
     "requires": {
@@ -19,27 +19,27 @@
                 {
                     "spot": "activities.days",
                     "title": "Hoe ver vooruit",
-                    "text": "Kies hoe ver je vooruit kijkt: **60, 90, 180 of 365 dagen**. Je ziet alle machines waarvan de keuring al verlopen is of in die periode verloopt, met hun storingen. Daar maak je hier werkbonnen voor.",
-                    "say": "Hier kies je hoe ver je vooruit kijkt. Je ziet alle machines waarvan de keuring al verlopen is, of in die periode verloopt."
+                    "text": "Kies hoe ver je vooruit kijkt: **60, 90, 180 of 365 dagen**. Je ziet alle machines waarvan de keuring in die periode verloopt, of al verlopen is. Hun storingen staan erbij. Daar maak je hier werkbonnen voor.",
+                    "say": "Hier kies je hoe ver je vooruit kijkt. Je ziet de machines waarvan de keuring in die periode verloopt, of al verlopen is."
                 },
                 {
                     "spot": "list.search",
                     "title": "Zoeken",
                     "text": "Zoek op **klant**, **merk**, **model** of **serienummer**.",
-                    "say": "Zoek op klant, merk, model of serienummer."
+                    "say": "Je zoekt op klant of serienummer. Ook merk en model werken."
                 },
                 {
                     "spot": "activities.views",
                     "title": "Per klant of als tabel",
-                    "text": "**Per klant** staan de machines van één klant bij elkaar, per locatie, met hun storingen eronder. In de **tabel** heeft elke machine een eigen regel. Je laatste keuze blijft bewaard.",
+                    "text": "**Per klant** staan de machines van één klant bij elkaar, per locatie. Hun storingen staan eronder. In de **tabel** heeft elke machine een eigen regel. Je laatste keuze blijft bewaard.",
                     "say": "Hier wissel je tussen een overzicht per klant en een tabel. Je laatste keuze blijft bewaard."
                 },
                 {
                     "spot": "activities.table",
                     "action": "showTable",
                     "title": "De tabel",
-                    "text": "In de **tabel** heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren: op serienummer, machine, klant, locatie of keuringsdatum. Een **+3** achter een klantnaam betekent dat er nog drie machines van die klant in de lijst staan. Een onderdeel heeft ook een eigen regel, met de machine waar het in zit.",
-                    "say": "In de tabel heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
+                    "text": "In de **tabel** heeft elke machine een eigen regel, ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Dat kan op serienummer, machine, klant, locatie of keuringsdatum. Een **+3** achter een klantnaam betekent dat er nog drie machines van die klant in de lijst staan. Een onderdeel heeft ook een eigen regel, met de machine waar het in zit.",
+                    "say": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer in de lijst staan.",
                     "marks": [
                         {
                             "spot": "activities.table.header",
@@ -55,7 +55,7 @@
                     "spot": "activities.filters",
                     "title": "Filters in de tabel",
                     "text": "In de tabel filter je op klant, type, status, storingen en planning. **Planning** staat standaard op *Niet gepland*. Een machine telt als gepland zodra hij op een werkbon staat met een afspraak in de toekomst.",
-                    "say": "In de tabel filter je op klant, type, status, storingen en planning. Planning staat standaard op niet gepland.",
+                    "say": "In de tabel kun je ook filteren, bijvoorbeeld op klant of op planning. Planning staat standaard op \"niet gepland\".",
                     "action": "showTable"
                 },
                 {
@@ -84,14 +84,14 @@
                 {
                     "spot": "activities.checked",
                     "title": "Aanvinken",
-                    "text": "Vink de machines aan die je wilt laten keuren, en de storingen die je meteen wilt meenemen. In de tabel stelt Lavoro voor wat er nog meer mee kan: de storingen van die machine en andere machines van dezelfde klant.",
-                    "say": "Vink de machines aan die je wilt laten keuren, en de storingen die je meteen wilt meenemen."
+                    "text": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen. In de tabel stelt Lavoro voor wat er nog meer mee kan: de storingen van die machine en andere machines van dezelfde klant.",
+                    "say": "Vink de machines aan die je wilt laten keuren. Vink ook de storingen aan die je meteen wilt meenemen."
                 },
                 {
                     "spot": "activities.workorder",
                     "title": "Werkbon maken",
-                    "text": "Rechtsonder maak je er een werkbon van: **blijf hier**, **open die** meteen, of **plan deze in**. Een werkbon is altijd voor één klant. Vink je iets van twee klanten aan, dan kleurt de knop rood.",
-                    "say": "Rechtsonder maak je er een werkbon van. Je kunt hier blijven, de werkbon openen, of hem meteen inplannen. Een werkbon is altijd voor één klant."
+                    "text": "Rechtsonder maak je er een werkbon van. Je kiest: **blijf hier**, **open die** meteen of **plan deze in**. Een werkbon is altijd voor één klant. Vink je iets van twee klanten aan? Dan kleurt de knop rood.",
+                    "say": "Rechtsonder maak je er een werkbon van. Je kunt hem ook meteen openen of inplannen. Een werkbon is altijd voor één klant."
                 }
             ]
         },
@@ -104,8 +104,8 @@
                 {
                     "spot": "activities.map",
                     "title": "Kaart",
-                    "text": "**Kaart** zet alle klanten uit de lijst op een kaart, in een apart venster. Je ziet in één oogopslag waar het werk zit en hoe dringend het is. Met **Open de kaart** gaat de rondleiding daar verder.",
-                    "say": "Met de knop kaart zie je alle klanten uit de lijst op een kaart, zodat je ziet waar het werk zit. Klik op open de kaart, en de rondleiding gaat daar verder.",
+                    "text": "**Kaart** zet alle klanten uit de lijst op een kaart, in een apart venster. Zo zie je meteen waar het werk zit en hoe dringend het is. Met **Open de kaart** gaat de rondleiding daar verder.",
+                    "say": "Met de knop \"kaart\" zie je alle klanten uit de lijst op een kaart. Zo zie je meteen waar het werk zit. Klik op \"open de kaart\". Dan gaat de rondleiding daar verder.",
                     "cta": {
                         "label": "Open de kaart",
                         "action": "openMapWithTour"

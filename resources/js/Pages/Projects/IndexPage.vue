@@ -1,8 +1,11 @@
 <template>
-    <IndexHeaderComponent title="Projecten" subtitle="Overzicht van alle projecten" search-url="/projects"
+    <IndexHeaderComponent ref="header" title="Projecten" subtitle="Overzicht van alle projecten" search-url="/projects"
         search-label="Zoek binnen projecten" search-placeholder="Zoek op nummer, titel, klant of projectleider"
         :search-other-params="otherParams" add-label="Voeg project toe" @add="showCreateDrawer = true"
         :can-add="hasPermission('project.create')" :has-active-filters="hasActiveFilters">
+        <template #actions>
+            <TourButton tour="projecten" />
+        </template>
         <template #filters>
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <ComboBox v-for="filter in filters" :key="filter.param" :model-value="filter.value"
@@ -20,7 +23,7 @@
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="displayProjects.length">
-            <div role="row"
+            <div role="row" data-tour="projects.sort"
                 class="hidden lg:grid grid-cols-12 gap-x-2 font-bold text-sm border-b-lavoro-darkergray dark:border-b-slate-600 rounded-t-lavoro-sm p-4 bg-lavoro-lightgray dark:bg-slate-800/50">
                 <SortableColumnHeader class="col-span-1" column="number" v-bind="sorting" @sort="sortBy">
                     Nummer
@@ -41,7 +44,7 @@
                 </SortableColumnHeader>
                 <div class="col-span-1 text-right">Acties</div>
             </div>
-            <div v-for="project in displayProjects" :key="project.id" role="row"
+            <div v-for="project in displayProjects" :key="project.id" role="row" data-tour="projects.row"
                 class="grid grid-cols-12 gap-x-2 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 items-center">
                 <div class="hidden lg:block col-span-1 text-xs font-medium text-gray-500 dark:text-slate-400 tabular-nums">
                     {{ project.number }}
@@ -65,7 +68,7 @@
                 <div class="col-span-1 hidden lg:flex items-center text-xs text-slate-700 dark:text-slate-300">
                     {{ project.end_date ? nlDate(project.end_date) : '–' }}
                 </div>
-                <div class="col-span-2 hidden lg:flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-400">
+                <div class="col-span-2 hidden lg:flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-400" data-cell="progress">
                     <div class="flex items-center gap-2">
                         <div class="h-1.5 w-16 shrink-0 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                             <div class="h-full rounded-full bg-lavoro-blue"
@@ -80,7 +83,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="col-span-1 hidden lg:flex items-center">
+                <div class="col-span-1 hidden lg:flex items-center" data-cell="status">
                     <EditableTextField v-if="hasPermission('project.update')" type="combobox" :model-value="statusId(project.status)"
                         :options="statuses" :decoration="false" @update="(value) => updateStatus(project, value)">
                         <template #display>
@@ -94,7 +97,7 @@
                         <Link :href="`/projects/${project.id}`" class="text-sm text-lavoro-darkerblue">
                             <EyeIcon class="h-5 w-5" />
                         </Link>
-                        <div v-if="hasPermission('project.delete')"
+                        <div v-if="hasPermission('project.delete')" data-cell="delete"
                             class="ml-0 sm:ml-2 border-l-lavoro-darkblue border-l-0 sm:border-l-1 border-t-1 sm:border-t-0 pl-0 sm:pl-2 pt-2 sm:pt-0"
                             v-tooltip="project.service_orders_count ? 'Dit project heeft werkbonnen. Zet het op Geannuleerd als het niet doorgaat.' : null">
                             <TrashIcon v-if="project.service_orders_count" class="h-5 w-5 cursor-not-allowed text-gray-300 dark:text-slate-600" />
@@ -128,10 +131,12 @@ import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import SortableColumnHeader from '@/Components/UI/SortableColumnHeader.vue'
 import ProjectCreateDrawer from '@/Components/Projects/ProjectCreateDrawer.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
 import { EyeIcon, TrashIcon, FolderKanbanIcon } from '@lucide/vue'
 import { hasPermission, nlDate, projectStatusClass } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
 import { useQueryParams } from '@/Composables/useQueryParams'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     projects: { type: Object, required: true },
@@ -149,6 +154,7 @@ const EVERY_STATUS = 'all'
 const CLEAR = '__clear__'
 
 const showCreateDrawer = ref(false)
+const header = ref(null)
 const displayProjects = computed(() => props.projects?.data || [])
 const { visit } = useQueryParams()
 
@@ -241,4 +247,26 @@ function deleteProject(project) {
     if (!confirm(`Project ${project.number} ${project.title}${milestones} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return
     router.delete(`/projects/${project.id}`, { preserveScroll: true })
 }
+
+const firstRow = () => document.querySelector('[data-tour="projects.row"]')
+
+/**
+ * The projects rondleiding opens the filters and the drawer for a new project to
+ * show what is in them, and points at the cells of the first project in the list.
+ */
+useTour('projecten', {
+    openFilters: () => header.value?.openFilters() ?? null,
+    openCreate: () => {
+        if (showCreateDrawer.value) return null
+        showCreateDrawer.value = true
+
+        return () => { showCreateDrawer.value = false }
+    },
+}, {
+    spots: {
+        'projects.progress': () => firstRow()?.querySelector('[data-cell=progress]') ?? null,
+        'projects.status': () => firstRow()?.querySelector('[data-cell=status]') ?? null,
+        'projects.delete': () => firstRow()?.querySelector('[data-cell=delete]') ?? null,
+    },
+})
 </script>

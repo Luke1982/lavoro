@@ -1,0 +1,28 @@
+{
+    "tour": "contract",
+    "chapter": "werkbonnen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "werkbonnen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Hier staan de werkbonnen van dit contract. Per werkbon zie je de machines en de fase. Zijn er nog geen? Dan zie je hier een voorbeeld.",
+            "hash": "d9eb747f8e095c77ca117d772681e1670a391f60",
+            "start": 0,
+            "end": 7.024
+        },
+        {
+            "text": "Met \"werkbon aanmaken\" maak je meteen werkbonnen voor alle machines. Per locatie komt er één werkbon.",
+            "hash": "abc3e1ecccd846216ac98551a5b427ef0f4a483f",
+            "start": 8.024,
+            "end": 14.558
+        },
+        {
+            "text": "Zet je \"automatisch genereren\" aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is.",
+            "hash": "df1cff3e99b6df3370daf4104d5ad7a1a2ddd3dd",
+            "start": 15.558,
+            "end": 22.517
+        }
+    ]
+}

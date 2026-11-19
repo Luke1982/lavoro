@@ -5,13 +5,16 @@
             <ChevronRightIcon class="size-4 text-gray-400 mx-2" />
             <span class="text-slate-800 dark:text-slate-100 font-bold text-sm">{{ maintenanceContract.display_title }}</span>
         </div>
-        <div v-if="canUpdate" class="w-full sm:w-auto">
-            <SelectMenuComponent v-model="statusValue" :options="statusOptions" label="Status"
-                class="w-full sm:w-auto" @update:model-value="updateStatus" />
+        <div class="flex w-full sm:w-auto items-stretch gap-2">
+            <TourButton tour="contract" />
+            <div v-if="canUpdate" class="w-full sm:w-auto" data-tour="contract.status">
+                <SelectMenuComponent v-model="statusValue" :options="statusOptions" label="Status"
+                    class="w-full sm:w-auto" @update:model-value="updateStatus" />
+            </div>
         </div>
     </div>
 
-    <div class="flex flex-col mt-6 mb-4">
+    <div class="flex flex-col mt-6 mb-4" data-tour="contract.header">
         <div class="flex items-center gap-2 flex-wrap">
             <h1 class="text-2xl font-bold dark:text-slate-100">{{ maintenanceContract.display_title }}</h1>
             <BadgeComponent :color="maintenanceContractStatusBadgeColor(maintenanceContract.status)" :has-dot="false">
@@ -26,11 +29,11 @@
 
     <TwoThirdsOneThird>
         <template #main>
-            <BoxComponent>
+            <BoxComponent data-tour="contract.details">
                 <SectionHeader :icon="ClipboardDocumentCheckIcon" title="Contractgegevens"
                     subtitle="Klant, looptijd en prijsafspraken van dit contract." chapter="details" />
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-auto-animate>
-                    <EditableTextField v-model="form.customer_id" type="combobox" label="Klant"
+                    <EditableTextField v-model="form.customer_id" type="combobox" label="Klant" data-tour="contract.customer"
                         :options="internalCustomers"
                         :error="form.errors.customer_id" :readonly="!canUpdate"
                         @update="onCustomerUpdate" @revert="form.clearErrors('customer_id')">
@@ -49,27 +52,30 @@
                         :error="form.errors.start_date" :readonly="!canUpdate"
                         @update="() => patch('start_date')" @revert="form.clearErrors('start_date')" />
                     <EditableTextField v-model="form.end_date" type="input" inputType="date" label="Einddatum"
+                        data-tour="contract.end"
                         placeholder="Geen einddatum" clearable
                         :error="form.errors.end_date" :readonly="!canUpdate"
                         @update="() => patch('end_date')" @revert="form.clearErrors('end_date')" />
-                    <div v-if="hasPermission('maintenancecontract.see_financials')">
-<EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
-                        :error="form.errors.price" :readonly="!canUpdate"
-                        @update="() => patch('price')" @revert="form.clearErrors('price')" />
-                    <EditableTextField v-model="form.price_interval" type="combobox" label="Prijsinterval"
-                        :options="intervalOptions"
-                        :error="form.errors.price_interval" :readonly="!canUpdate"
-                        @update="() => patch('price_interval', 'price_interval_days')"
-                        @revert="form.clearErrors('price_interval')" />
-                    </div>
-                    <EditableTextField v-if="form.price_interval === 'Aangepast (dagen)'"
-                        v-model="form.price_interval_days" type="input" inputType="number" label="Elke ... dagen"
-                        :error="form.errors.price_interval_days" :readonly="!canUpdate"
-                        @update="() => patch('price_interval_days')" @revert="form.clearErrors('price_interval_days')" />
+                    <template v-if="hasPermission('maintenancecontract.see_financials')">
+                        <EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
+                            data-tour="contract.price"
+                            :error="form.errors.price" :readonly="!canUpdate"
+                            @update="() => patch('price')" @revert="form.clearErrors('price')" />
+                        <EditableTextField v-model="form.price_interval" type="combobox" label="Prijsinterval"
+                            data-tour="contract.interval" :options="intervalOptions"
+                            :error="form.errors.price_interval" :readonly="!canUpdate"
+                            @update="() => patch('price_interval', 'price_interval_days')"
+                            @revert="form.clearErrors('price_interval')" />
+                        <EditableTextField v-if="form.price_interval === 'Aangepast (dagen)'"
+                            v-model="form.price_interval_days" type="input" inputType="number" label="Elke ... dagen"
+                            :error="form.errors.price_interval_days" :readonly="!canUpdate"
+                            @update="() => patch('price_interval_days')"
+                            @revert="form.clearErrors('price_interval_days')" />
+                    </template>
                 </div>
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="contract.frequency">
                 <SectionHeader :icon="ClockIcon" title="Servicefrequentie"
                     subtitle="Hoe vaak er onderhoud plaatsvindt onder dit contract." chapter="frequency">
                     <template #actions>
@@ -93,7 +99,7 @@
                 </p>
             </BoxComponent>
 
-            <BoxComponent class="mt-4"
+            <BoxComponent class="mt-4" data-tour="contract.machines"
                 v-tray-drop="{ target: { type: 'maintenancecontract', id: maintenanceContract.id }, label: 'onder dit contract te brengen' }">
                 <MaintenanceContractAssetsWidget :maintenance-contract-id="maintenanceContract.id"
                     :assets="maintenanceContract.assets" :customer-assets="customerAssets"
@@ -106,27 +112,31 @@
                 </div>
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="contract.serviceorders">
                 <SectionHeader :icon="ClipboardDocumentListIcon" title="Werkbonnen" :subtitle="autoGenerateSummary"
                     chapter="serviceorders">
                     <template v-if="canSchedule || canGenerate" #actions>
-                        <div v-if="canSchedule" class="flex items-center gap-2">
+                        <div v-if="canSchedule" class="flex items-center gap-2" data-tour="contract.auto">
                             <span class="text-xs text-gray-500 dark:text-slate-400">Automatisch genereren</span>
                             <SwitchComponent v-model="autoGenerateSwitch" @update="handleAutoGenerateToggle" />
                         </div>
-                        <button v-if="canGenerate" type="button"
+                        <button v-if="canGenerate" type="button" data-tour="contract.generate"
                             class="text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50"
                             :disabled="generating" @click="generateServiceOrders">
                             Werkbon aanmaken
                         </button>
                     </template>
                 </SectionHeader>
-                <ul v-if="maintenanceContract.generated_service_orders?.length"
+                <p v-if="exampleOrders" class="mt-3 text-xs italic text-amber-700 dark:text-amber-400">
+                    Voorbeeld uit de rondleiding: zo komen de werkbonnen van dit contract hier te staan.
+                </p>
+                <ul v-if="shownServiceOrders.length"
                     class="divide-y divide-gray-100 dark:divide-slate-700 mt-3">
-                    <li v-for="so in maintenanceContract.generated_service_orders" :key="so.id"
+                    <li v-for="so in shownServiceOrders" :key="so.id"
                         class="py-2 flex items-center justify-between gap-2">
                         <div class="flex flex-col">
-                            <Link :href="`/serviceorders/${so.id}`" class="font-medium hover:underline">
+                            <span v-if="so.example" class="font-medium">Voorbeeldwerkbon</span>
+                            <Link v-else :href="`/serviceorders/${so.id}`" class="font-medium hover:underline">
                                 Werkbon #{{ so.id }}
                             </Link>
                             <span class="text-xs text-gray-500 dark:text-slate-400">
@@ -193,16 +203,20 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent class="mt-6 md:mt-0">
+            <BoxComponent class="mt-6 md:mt-0" data-tour="contract.timeline">
                 <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                     subtitle="Alles wat er op dit contract gebeurd is, op volgorde." chapter="timeline" />
                 <TimelineComponent :activities="maintenanceContract.activities || []" />
             </BoxComponent>
 
-            <BoxComponent class="mt-4">
+            <BoxComponent class="mt-4" data-tour="contract.remarks">
                 <RemarksComponent :remarkable-type="'App\\Models\\MaintenanceContract'"
                     :remarkable-id="maintenanceContract.id" :comments="maintenanceContract.remarks || []" />
             </BoxComponent>
+
+            <DocumentUploadComponent :existing="maintenanceContract.documents || []"
+                :documentable-id="maintenanceContract.id" documentable-type="\App\Models\MaintenanceContract"
+                class="mt-4" data-tour="contract.documents" />
         </template>
     </TwoThirdsOneThird>
 
@@ -230,15 +244,19 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import MaintenanceContractAssetsWidget from '@/Components/MaintenanceContracts/MaintenanceContractAssetsWidget.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
-import { hasPermission, nlDate, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { formatLocalDateAsISO, hasPermission, nlDate, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     maintenanceContract: { type: Object, required: true },
     customerAssets: { type: Array, default: () => [] },
     customers: { type: Array, default: () => [] },
     contractIntervalOptions: { type: Array, default: () => [] },
+    firstStageName: { type: String, default: null },
 })
 
 const canUpdate = computed(() => hasPermission('maintenancecontract.update'))
@@ -255,6 +273,40 @@ const contractLocations = computed(() => {
     return [...map.values()]
 })
 const generating = ref(false)
+
+/** Shown by the contract rondleiding on a contract without werkbonnen, and never saved. */
+const exampleOrders = ref(null)
+const shownServiceOrders = computed(() => exampleOrders.value ?? props.maintenanceContract.generated_service_orders ?? [])
+
+/**
+ * What Werkbon aanmaken would make right now: one werkbon per location of the
+ * machines, dated today, in the first fase. At most two, enough to see the list.
+ */
+function exampleServiceOrders() {
+    const byLocation = new Map()
+    for (const asset of props.maintenanceContract.assets ?? []) {
+        const key = asset.linked_location?.id ?? 0
+        byLocation.set(key, [...(byLocation.get(key) ?? []), asset])
+    }
+    const groups = byLocation.size ? [...byLocation.values()].slice(0, 2) : [[]]
+
+    return groups.map((assets, index) => ({
+        id: 'voorbeeld-' + index,
+        example: true,
+        order_date: formatLocalDateAsISO(new Date()),
+        service_order_stage: props.firstStageName ? { name: props.firstStageName } : null,
+        service_jobs: assets.map((asset) => ({ asset })),
+    }))
+}
+
+useTour('contract', {
+    showExampleOrders: () => {
+        if (shownServiceOrders.value.length) return null
+        exampleOrders.value = exampleServiceOrders()
+
+        return () => { exampleOrders.value = null }
+    },
+})
 
 function generateServiceOrders() {
     generating.value = true
@@ -327,7 +379,7 @@ function patchAutoGenerate(payload) {
 
 function generatedServiceOrderAssetLabel(serviceOrder) {
     const jobs = serviceOrder.service_jobs || []
-    if (!jobs.length) return 'Onbekende machine'
+    if (!jobs.length) return serviceOrder.example ? 'De machines van dit contract' : 'Onbekende machine'
     return jobs.map(job => {
         const asset = job.asset
         if (!asset) return 'Onbekende machine'

@@ -1,0 +1,204 @@
+{
+    "id": "project",
+    "title": "Rondleiding door een project",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "assistant": false,
+    "requires": {
+        "permissions": [
+            "project.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "project",
+            "version": 1,
+            "title": "Het project",
+            "summary": "Nummer en status, exporteren, de gegevens, de locatie en de voortgang.",
+            "steps": [
+                {
+                    "spot": "project.header",
+                    "title": "Nummer en status",
+                    "text": "Bovenaan staan het **projectnummer** en de **status**. Het nummer bestaat uit het jaar en een teller die elk jaar opnieuw begint. Het staat ook op de werkbon-PDF van elke werkbon onder dit project, en je kunt erop zoeken.",
+                    "say": "Bovenaan staan het projectnummer en de status. Op dat nummer kun je ook zoeken."
+                },
+                {
+                    "spot": "project.export",
+                    "title": "Exporteren",
+                    "text": "Met **Exporteren** download je de nacalculatie van het project als Excel-bestand. Daarin staan onder meer de uren per monteur, de werkbonnen, de afspraken, de materialen en de mijlpalen. Bedragen staan er alleen in als je ze op de werkbonnen ook mag zien.",
+                    "say": "Met \"exporteren\" download je de nacalculatie van het project in Excel."
+                },
+                {
+                    "spot": "project.status",
+                    "title": "De status",
+                    "text": "De **status** volgt het werk. Staat het project op **Niet gestart**? Dan gaat het vanzelf naar **Gestart** zodra er gewerkt wordt: een monteur begint aan een afspraak, registreert tijden, of een werkbon wordt gesloten. Mag je het project wijzigen, dan kies je hier zelf een status. Onder een **afgerond** of **geannuleerd** project kunnen geen nieuwe werkbonnen.",
+                    "say": "De status volgt het werk. Begint een monteur aan een werkbon van dit project? Dan gaat het vanzelf naar \"gestart\"."
+                },
+                {
+                    "spot": "project.details",
+                    "requires": {
+                        "permissions": [
+                            "project.update"
+                        ]
+                    },
+                    "title": "De gegevens",
+                    "text": "Klik op een gegeven om het te wijzigen. Kies je een andere **klant**? Dan vervallen de locatie en de contactpersoon, want die hoorden bij de vorige klant. Een einddatum vóór de startdatum wordt geweigerd.",
+                    "say": "Klik op een gegeven om het te wijzigen. Kies je een andere klant? Dan vervallen de locatie en de contactpersoon.",
+                    "marks": [
+                        {
+                            "spot": "project.customer",
+                            "when": "andere klant"
+                        }
+                    ]
+                },
+                {
+                    "spot": "project.location",
+                    "title": "Locatie",
+                    "text": "Kies een **locatie** van de klant, of laat het veld leeg en typ een vrije locatie. Een gekozen locatie geldt voor de werkbonnen zonder eigen locatie, ook op de kaart en in de planner.",
+                    "say": "Kies een locatie van de klant, of typ zelf een adres. Die locatie geldt voor werkbonnen zonder eigen locatie."
+                },
+                {
+                    "spot": "project.progress",
+                    "title": "Voortgang",
+                    "text": "**Voortgang** telt zoals de Excel-export. Je ziet hoeveel werkbonnen gesloten zijn en hoeveel mijlpalen behaald. Ook de gewerkte uren staan erbij, tegenover de begrote uren. Zijn er geen uren begroot, dan tegenover de geplande uren. Een rode balk betekent: over de begroting, of een mijlpaal over datum.",
+                    "say": "Bij voortgang zie je hoeveel werkbonnen gesloten zijn en hoeveel mijlpalen behaald. Ook de gewerkte uren staan erbij. Een rode balk vraagt aandacht."
+                }
+            ]
+        },
+        {
+            "id": "mijlpalen",
+            "version": 1,
+            "title": "Mijlpalen",
+            "summary": "Mijlpalen toevoegen of uit een sjabloon halen, afvinken, en laten wachten op werkbonnen.",
+            "steps": [
+                {
+                    "spot": "project.milestones",
+                    "title": "Mijlpalen",
+                    "text": "**Mijlpalen** zijn de ijkpunten van het project. Groen is behaald en blauw is gepland. Rood is over datum, en grijs heeft nog geen datum.",
+                    "say": "Mijlpalen zijn de ijkpunten van het project. Groen is behaald. Rood is over datum."
+                },
+                {
+                    "spot": "project.milestones.add",
+                    "requires": {
+                        "permissions": [
+                            "projectmilestone.create"
+                        ]
+                    },
+                    "title": "Toevoegen",
+                    "text": "Met **Toevoegen** maak je een mijlpaal. Zijn er sjablonen? Dan zet je met **Uit sjabloon** de mijlpalen van een sjabloon erbij, gepland vanaf de startdatum. Staan er al mijlpalen, dan vraagt hij eerst of ze erbij moeten.",
+                    "say": "Met \"toevoegen\" maak je een mijlpaal. Je kunt ook de mijlpalen van een sjabloon erbij zetten."
+                },
+                {
+                    "spot": "project.milestone.check",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "projectmilestone.update"
+                        ]
+                    },
+                    "title": "Afvinken",
+                    "text": "Klik op het rondje om een mijlpaal af te vinken, met vandaag als datum. Klik nog een keer om hem weer open te zetten.",
+                    "say": "Klik op het rondje om een mijlpaal af te vinken, met vandaag als datum. Nog een keer klikken zet hem weer open."
+                },
+                {
+                    "spot": "project.milestone.orders",
+                    "skipIfMissing": true,
+                    "action": "editFirstMilestone",
+                    "requires": {
+                        "permissions": [
+                            "projectmilestone.update"
+                        ]
+                    },
+                    "title": "Wachten op werkbonnen",
+                    "text": "Met het potloodje bewerk je een mijlpaal. Onder **Werkbonnen** kies je de werkbonnen waar hij op wacht. Is de laatste daarvan gesloten? Dan is de mijlpaal vanzelf behaald. Een werkbon hoort bij hooguit één mijlpaal.",
+                    "say": "Met het potloodje bewerk je een mijlpaal. Onder \"werkbonnen\" kies je waar hij op wacht. Is de laatste daarvan gesloten? Dan is de mijlpaal vanzelf behaald.",
+                    "marks": [
+                        {
+                            "spot": "project.milestone.edit",
+                            "when": "potloodje"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "werk",
+            "version": 1,
+            "title": "Tijdlijn en werkbonnen",
+            "summary": "De tijdlijn, de werkbonnen, plakken vanaf het bakje, documenten, foto's delen en de geschiedenis.",
+            "steps": [
+                {
+                    "spot": "project.timeline",
+                    "title": "Tijdlijn",
+                    "text": "De **tijdlijn** zet de mijlpalen, werkbonnen, afspraken, taken en storingen van het project in de tijd. Met **Maanden** en **Weken** kies je de indeling, en **Vandaag** springt naar vandaag. Klik op een blok voor de details.",
+                    "say": "De tijdlijn zet alles van dit project in de tijd. Klik op een blok voor de details."
+                },
+                {
+                    "spot": "project.orders",
+                    "title": "Werkbonnen",
+                    "text": "Hier staan de werkbonnen onder dit project, met onder meer hun fase, afspraken en monteurs. Mag je werkbonnen maken, dan maak je er met **Werkbon aanmaken** een bij. Onder een afgerond of geannuleerd project kan dat niet.",
+                    "say": "Hier staan de werkbonnen van dit project, met hun fase en monteurs."
+                },
+                {
+                    "spot": "project.orders",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Vanaf het bakje",
+                    "text": "Ligt er een storing of machine op het **bakje**? Plak hem hier. Na een vraag komt er een nieuwe werkbon onder dit project. Onder een afgerond of geannuleerd project kan dat niet.",
+                    "say": "Ligt er een storing of machine op het bakje? Plak hem hier. Dan komt er een nieuwe werkbon onder dit project."
+                },
+                {
+                    "spot": "project.documents",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "document.upload"
+                        ]
+                    },
+                    "title": "Documenten",
+                    "text": "Bij **Documenten** zet je bestanden bij het project, zoals tekeningen of een offerte.",
+                    "say": "Bij documenten zet je bestanden bij het project, zoals tekeningen of een offerte."
+                },
+                {
+                    "spot": "project.images",
+                    "requires": {
+                        "permissions": [
+                            "image.update"
+                        ]
+                    },
+                    "title": "Foto's delen",
+                    "text": "Een foto van het project deel je met al zijn werkbonnen, ook met werkbonnen die later nog komen. Beweeg over de foto en klik op het deel-icoon. Op een telefoon tik je op de foto en kies je **Delen met werkbonnen**. Op de werkbon kun je de foto bekijken, maar niet wijzigen.",
+                    "say": "Een foto van het project deel je met al zijn werkbonnen. Ook met werkbonnen die later nog komen."
+                },
+                {
+                    "spot": "project.history",
+                    "title": "Geschiedenis",
+                    "text": "Onderaan staat de **geschiedenis**: wie wat veranderde, met de oude en de nieuwe waarde. Ook statuswijzigingen, mijlpalen en werkbonnen staan erin, met de reden erbij. De assistent leest dezelfde geschiedenis.",
+                    "say": "Onderaan staat de geschiedenis van het project. Je ziet wie wat veranderde, en wanneer."
+                }
+            ]
+        },
+        {
+            "id": "administratie",
+            "version": 1,
+            "title": "Administratie",
+            "summary": "Financiële notities bij het project, alleen met het recht op projectfinanciën.",
+            "requires": {
+                "permissions": [
+                    "project.manage_financials"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "project.administration",
+                    "title": "Administratie",
+                    "text": "Op het tabblad **Administratie** houd je financiële notities bij, in een rekenblad. Op een telefoon kies je dat tabblad in de keuzelijst bovenaan. Wijzigingen worden vanzelf opgeslagen. Alleen wie het recht op projectfinanciën heeft, ziet dit tabblad.",
+                    "say": "Op het tabblad \"administratie\" houd je financiële notities bij. Die worden vanzelf opgeslagen."
+                }
+            ]
+        }
+    ]
+}

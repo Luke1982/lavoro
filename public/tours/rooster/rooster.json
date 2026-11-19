@@ -2,39 +2,39 @@
     "tour": "rooster",
     "chapter": "rooster",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "rooster.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Dit is je rooster. Alles wat je hier invult, zie je als blok in de planner.",
-            "hash": "69757678ab634d7510c40185d9dcc34aea4b70d6",
+            "text": "Dit is je rooster. Alles wat je hier invult zie je als blok in de planner.",
+            "hash": "43b44399dfd91a20c23ddd2f621a51ab046c4156",
             "start": 0,
-            "end": 4.272
+            "end": 4.496
         },
         {
-            "text": "Een vast vrij moment stel je in per weekdag: elke week of om de week, met de tijden erbij. Geef het een label, zoals papadag.",
-            "hash": "7b4e3d573696e2f84efd239afea6e304c8d1ef5c",
-            "start": 5.272,
-            "end": 12.842
+            "text": "Een vast vrij moment stel je in per weekdag. Dat kan \"elke week\" of \"om de week\". Vul de tijden in en geef het een label, zoals papadag.",
+            "hash": "7bbb77ba945a2bcad6519c45f61e1deac16a7218",
+            "start": 5.496,
+            "end": 14.244
         },
         {
-            "text": "Kies je om de week, vul dan ook de eerste keer in. Vanaf die dag rekent de planner zelf verder.",
-            "hash": "ce9166dd25501fd8211ac931321dd7d810dbecc9",
-            "start": 13.842,
-            "end": 18.997
+            "text": "Kies je \"om de week\"? Vul dan ook de eerste keer in. Vanaf die dag rekent de planner zelf verder.",
+            "hash": "6807f2459c0e341ebd24113216aabdf5de2c461b",
+            "start": 15.244,
+            "end": 20.732
         },
         {
-            "text": "Losse vrije dagen vul je hieronder in: één datum, of een periode, met een label zoals vakantie.",
-            "hash": "cc79edcd3f7391a1dd29df666e369e61aab41340",
-            "start": 19.997,
-            "end": 25.848
+            "text": "Losse vrije dagen vul je hieronder in. Kies één datum of een periode. Geef het een label, zoals vakantie.",
+            "hash": "8c2df8070319c7ad192bf31eed3733cfc6eaa0c4",
+            "start": 21.732,
+            "end": 27.605
         },
         {
-            "text": "Sla op, en het blok staat meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
-            "hash": "fa9d94e9c41cbfe8c8f2ba4ec840f4c221dc1639",
-            "start": 26.848,
-            "end": 32.189
+            "text": "Sla op. Dan staat het blok meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
+            "hash": "9c6c61e46e4090ad1ca959f3f1deac9674b27e36",
+            "start": 28.605,
+            "end": 34.298
         }
     ]
 }

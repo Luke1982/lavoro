@@ -2,33 +2,33 @@
     "tour": "machines",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:Zg5vPmUEsvYSlZqStoWP:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Zoek een machine op serienummer, merk, model, soort of klant. De lijst past zich aan terwijl je typt.",
-            "hash": "611acc7159bd7b098f22eda367651787ab11eafe",
+            "text": "Je zoekt een machine op serienummer of klant. Ook merk, model en soort werken. De lijst past zich aan terwijl je typt.",
+            "hash": "db1a1ad5f7d6974dcb39e39160d2f4a5000dcffd",
             "start": 0,
-            "end": 6.455
+            "end": 7.05
         },
         {
-            "text": "Onder filters kies je een status, en of je alleen machines met storingen wilt zien. Het filter werkt op alle machines, en blijft staan tot je het wist.",
-            "hash": "74f746c8220118d270c82e37ff3a295f87df2a84",
-            "start": 7.455,
-            "end": 15.071
+            "text": "Onder filters kies je een status. Je kunt ook alleen machines met storingen laten zien. Het filter blijft staan tot je het wist.",
+            "hash": "a23ce3f9c9eed06a1b92c9d985340bf0e9dae498",
+            "start": 8.05,
+            "end": 15.507
         },
         {
-            "text": "Per machine zie je merk en model, de klant, het serienummer en de datum van de volgende keuring. Is die datum rood, dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
-            "hash": "7481b24c681cc30c4f2e148c075fc8d3688e3051",
-            "start": 16.071,
-            "end": 30.143
+            "text": "Per machine zie je het merk, het model en de klant. Ook het serienummer en de volgende keuring staan erbij. Is die datum rood? Dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
+            "hash": "49279889ff14be0a747ef044e7106b6ff11b4e8f",
+            "start": 16.507,
+            "end": 31.123
         },
         {
-            "text": "Per machine zie je merk en model, de klant, de status en de datum van de volgende keuring. Tik op een regel om de machine te openen.",
-            "hash": "39bc2c0b5ebe6a5243077ead40521dbaad7afad0",
-            "start": 31.143,
-            "end": 39.177
+            "text": "Per machine zie je het merk, het model en de klant. Rechts staan de status en de volgende keuring. Tik op een regel om de machine te openen.",
+            "hash": "d24a9bf3669b91d43d3721d7de0b3f7e046a90f5",
+            "start": 32.123,
+            "end": 40.453
         }
     ]
 }

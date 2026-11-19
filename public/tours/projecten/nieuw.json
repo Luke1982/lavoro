@@ -1,0 +1,46 @@
+{
+    "tour": "projecten",
+    "chapter": "nieuw",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "nieuw.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met \"voeg project toe\" open je een la voor een nieuw project.",
+            "hash": "63b842a5c3636ded86e45bf7d084a28db8534440",
+            "start": 0,
+            "end": 3.176
+        },
+        {
+            "text": "Kies je een sjabloon? Dan krijgt het project meteen de mijlpalen daarvan. Ze worden gepland vanaf de startdatum.",
+            "hash": "2454e8ad3a41285d36bcbbbd70de606002b73f92",
+            "start": 4.176,
+            "end": 10.562
+        },
+        {
+            "text": "Kies de klant en de projectleider. Die staan expres leeg, zodat je niet per ongeluk de verkeerde kiest.",
+            "hash": "55a0cc242947356eaaff4629892f829f34cd5840",
+            "start": 11.562,
+            "end": 17.638
+        },
+        {
+            "text": "Een nieuw project staat op \"niet gestart\". Vul de start- en einddatum in. De begrote uren mag je leeg laten.",
+            "hash": "8708b61eb09b136b27f9c8cc94022688c821da69",
+            "start": 18.638,
+            "end": 24.904
+        },
+        {
+            "text": "Na opslaan krijgt het project vanzelf een nummer, met het jaar erin. Daarna opent het nieuwe project meteen.",
+            "hash": "1e1a1171e57910739f89131b71b2dce01942e646",
+            "start": 25.904,
+            "end": 32.302
+        },
+        {
+            "text": "Sjablonen beheer je in het menu, onder projecten. Per soort project leg je de mijlpalen vast.",
+            "hash": "eebc7217cdfa85f63a693f15b5eebc767252b79c",
+            "start": 33.302,
+            "end": 38.698
+        }
+    ]
+}

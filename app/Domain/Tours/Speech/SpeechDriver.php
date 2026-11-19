@@ -18,6 +18,6 @@ interface SpeechDriver
      */
     public function signature(): string;
 
-    /** The line as MP3 bytes. Throws when it cannot. */
-    public function speak(string $text): string;
+    /** The line as MP3. Throws when it cannot. */
+    public function speak(string $text): SpokenLine;
 }
