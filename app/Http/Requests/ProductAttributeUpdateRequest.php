@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ProductAttributeValueTypes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +20,15 @@ class ProductAttributeUpdateRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255', Rule::unique('product_attributes', 'name')->ignore($id)],
             'searchable' => ['sometimes', 'boolean'],
+            'value_type' => ['sometimes', 'string', Rule::in(array_column(ProductAttributeValueTypes::cases(), 'name'))],
+            'unit' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^\D/u'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'unit.regex' => 'Een eenheid begint niet met een cijfer.',
         ];
     }
 }

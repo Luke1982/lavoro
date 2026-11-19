@@ -183,6 +183,12 @@
                                 Zoek op Google Afbeeldingen
                             </button>
                         </BoxComponent>
+                        <BoxComponent class="mt-4">
+                            <SectionHeader :icon="HistoryIcon" title="Geschiedenis"
+                                subtitle="Wat er aan de kenmerken van dit product veranderde." chapter="timeline" />
+                            <TimelineComponent v-if="product.activities?.length" :activities="product.activities" />
+                            <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
+                        </BoxComponent>
                     </template>
                 </TwoThirdsOneThird>
             </template>
@@ -604,7 +610,8 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue';
 import TitleValueIconComponent from '@/Components/UI/TitleValueIconComponent.vue';
-import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon } from '@lucide/vue';
+import { CalendarArrowDownIcon, CalendarArrowUpIcon, CalendarIcon, ClockIcon, EuroIcon, HashIcon, HistoryIcon } from '@lucide/vue';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 const props = defineProps({

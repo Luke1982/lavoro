@@ -272,6 +272,7 @@ const names = computed(() => ({
     productTypes: Object.fromEntries(props.productTypes.map(type => [type.id, type.name])),
     brands: Object.fromEntries(props.brands.map(brand => [brand.id, brand.name])),
     attributes: Object.fromEntries(props.attributes.map(attribute => [attribute.id, attribute.name])),
+    attributeUnits: Object.fromEntries(props.attributes.map(attribute => [attribute.id, attribute.unit ?? ''])),
     products: Object.fromEntries([...props.productOptions, ...pickedModels].map(product => [product.id, product.name])),
 }))
 

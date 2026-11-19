@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesAttributeValue;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class ProductAttributeValueStoreRequest extends FormRequest
 {
+    use ValidatesAttributeValue;
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('productattribute'));
@@ -14,15 +16,8 @@ class ProductAttributeValueStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        $attribute_id = $this->route('productattribute')->id;
-
         return [
-            'value' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('product_attribute_values', 'value')->where('product_attribute_id', $attribute_id),
-            ],
+            'value' => $this->attributeValueRules($this->route('productattribute')),
         ];
     }
 }

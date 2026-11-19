@@ -98,7 +98,7 @@ class PriceFormulaController extends Controller
             'catalog' => NodeCatalog::forEditor(),
             'productTypes' => ProductType::flatListWithPath(),
             'brands' => Brand::orderBy('name')->get(['id', 'name']),
-            'attributes' => ProductAttribute::orderBy('name')->get(['id', 'name']),
+            'attributes' => ProductAttribute::orderBy('name')->get(['id', 'name', 'value_type', 'unit']),
             ...$this->productPicker($graph),
             'intervalOptions' => array_map(fn (array $option) => $option['name'], ContractInterval::comboBoxArray()),
             'templates' => $priceformula->templates()->orderBy('name')->get(['id', 'name']),

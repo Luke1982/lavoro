@@ -15,6 +15,11 @@ class ProductAttributeValueable extends Model
         'product_attribute_id',
     ];
 
+    protected $casts = [
+        'product_attribute_id' => 'integer',
+        'product_attribute_value_id' => 'integer',
+    ];
+
     public function value()
     {
         return $this->belongsTo(ProductAttributeValue::class, 'product_attribute_value_id');

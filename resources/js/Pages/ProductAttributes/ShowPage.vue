@@ -17,6 +17,30 @@
                 @revert="nameForm.clearErrors('name')" />
         </div>
 
+        <!-- Format -->
+        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-xl">
+            <div>
+                <h3 class="text-sm font-semibold mb-2">Soort waarde</h3>
+                <ComboBox :options="valueTypes" :model-value="attribute.value_type"
+                    :disabled="!hasPermission('productattribute.update')"
+                    @update:model-value="v => v && v !== attribute.value_type && saveFormat({ value_type: v })" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                    <template v-if="isNumeric">Waarden zijn getallen, zodat een prijsformule erop kan vergelijken (≥ 10).</template>
+                    <template v-else>Waarden zijn vrije tekst, zoals 'Rood'.</template>
+                </p>
+                <p v-if="formatErrors.value_type" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ formatErrors.value_type }}</p>
+            </div>
+            <div v-if="isNumeric">
+                <h3 class="text-sm font-semibold mb-2">Eenheid</h3>
+                <EditableTextField :model-value="attribute.unit ?? ''" type="input" placeholder="bijv. kW"
+                    :readonly="!hasPermission('productattribute.update')" :error="formatErrors.unit"
+                    @update="v => saveFormat({ unit: v })" />
+                <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                    Staat achter elke waarde. Een andere eenheid rekent niet om: 1500 W wordt 1500 kW.
+                </p>
+            </div>
+        </div>
+
         <!-- Product types -->
         <div class="mb-6">
             <h3 class="text-sm font-semibold mb-2">Producttypen</h3>
@@ -35,19 +59,24 @@
                 </button>
             </div>
 
-            <div v-if="addingValue" class="flex gap-2 items-center mb-3">
-                <input v-model="newValueText" type="text" placeholder="bijv. 'Rood'"
-                    class="flex-1 max-w-xs rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    @keyup.enter="submitValue" />
-                <button @click="submitValue"
-                    class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                    :disabled="!newValueText.trim()">
-                    Toevoegen
-                </button>
-                <button @click="addingValue = false; newValueText = ''"
-                    class="px-3 py-1.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-slate-600">
-                    Annuleren
-                </button>
+            <div v-if="addingValue" class="mb-3">
+                <div class="flex gap-2 items-center">
+                    <input v-model="addValueForm.value" type="text" :inputmode="isNumeric ? 'decimal' : 'text'"
+                        :placeholder="isNumeric ? 'bijv. 1,5' : 'bijv. \'Rood\''"
+                        class="flex-1 max-w-xs rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        @keyup.enter="submitValue" />
+                    <span v-if="isNumeric && attribute.unit" class="text-sm text-gray-500 dark:text-slate-400">{{ attribute.unit }}</span>
+                    <button @click="submitValue"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                        :disabled="!addValueForm.value.trim() || addValueForm.processing">
+                        Toevoegen
+                    </button>
+                    <button @click="addingValue = false; addValueForm.reset(); addValueForm.clearErrors()"
+                        class="px-3 py-1.5 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-slate-600">
+                        Annuleren
+                    </button>
+                </div>
+                <p v-if="addValueForm.errors.value" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ addValueForm.errors.value }}</p>
             </div>
 
             <table v-if="attribute.values.length" class="w-full text-sm">
@@ -61,9 +90,13 @@
                     <tr v-for="val in attribute.values" :key="val.id" class="border-b border-gray-100 dark:border-slate-800">
                         <td class="py-1.5">
                             <template v-if="editingValueId === val.id">
-                                <input v-model="editValueText" type="text"
-                                    class="rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
-                                    @keyup.enter="saveValue(val.id)" @keyup.esc="editingValueId = null" />
+                                <div class="flex items-center gap-2">
+                                    <input v-model="editValueForm.value" type="text" :inputmode="isNumeric ? 'decimal' : 'text'"
+                                        class="rounded-md border-gray-300 dark:border-slate-600 text-sm focus:ring-indigo-500 focus:border-indigo-500 w-full max-w-xs"
+                                        @keyup.enter="saveValue(val.id)" @keyup.esc="editingValueId = null" />
+                                    <span v-if="isNumeric && attribute.unit" class="text-sm text-gray-500 dark:text-slate-400">{{ attribute.unit }}</span>
+                                </div>
+                                <p v-if="editValueForm.errors.value" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ editValueForm.errors.value }}</p>
                             </template>
                             <template v-else>{{ val.value }}</template>
                         </td>
@@ -95,6 +128,13 @@
             <p v-else class="text-sm text-gray-400 italic">Nog geen waarden toegevoegd.</p>
         </div>
 
+        <div class="mt-8 pt-4 border-t border-gray-200 dark:border-slate-700">
+            <SectionHeader :icon="HistoryIcon" title="Geschiedenis"
+                subtitle="Wie wat veranderde aan dit kenmerk en zijn waarden." chapter="timeline" />
+            <TimelineComponent v-if="attribute.activities?.length" :activities="attribute.activities" />
+            <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
+        </div>
+
         <!-- Danger zone -->
         <div v-if="hasPermission('productattribute.delete')"
             class="mt-8 pt-4 border-t border-gray-200 dark:border-slate-700 flex justify-end">
@@ -107,18 +147,34 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useForm, router, Link } from '@inertiajs/vue3'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { ArrowLeftIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { HistoryIcon } from '@lucide/vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import { hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     attribute: { type: Object, required: true },
     productTypes: { type: Array, default: () => [] },
+    valueTypes: { type: Array, default: () => [] },
 })
+
+const isNumeric = computed(() => props.attribute.value_type === 'number')
+
+const formatErrors = ref({})
+
+function saveFormat(changes) {
+    router.patch(`/productattributes/${props.attribute.id}`, changes, {
+        preserveScroll: true,
+        onSuccess: () => { formatErrors.value = {} },
+        onError: errors => { formatErrors.value = errors },
+    })
+}
 
 const nameForm = useForm({ name: props.attribute.name })
 
@@ -138,37 +194,31 @@ function onProductTypesChange(ids) {
 }
 
 const addingValue = ref(false)
-const newValueText = ref('')
+const addValueForm = useForm({ value: '' })
 
 function submitValue() {
-    if (!newValueText.value.trim()) return
-    router.post(
-        `/productattributes/${props.attribute.id}/values`,
-        { value: newValueText.value.trim() },
-        {
-            preserveScroll: true,
-            onSuccess: () => { addingValue.value = false; newValueText.value = '' },
-        }
-    )
+    if (!addValueForm.value.trim()) return
+    addValueForm.post(`/productattributes/${props.attribute.id}/values`, {
+        preserveScroll: true,
+        onSuccess: () => { addingValue.value = false; addValueForm.reset() },
+    })
 }
 
 const editingValueId = ref(null)
-const editValueText = ref('')
+const editValueForm = useForm({ value: '' })
 
+/** A number is edited as the number alone; the unit stays beside the field. */
 function startEditValue(val) {
+    editValueForm.clearErrors()
     editingValueId.value = val.id
-    editValueText.value = val.value
+    editValueForm.value = val.number === null ? val.value : String(val.number).replace('.', ',')
 }
 
 function saveValue(value_id) {
-    router.patch(
-        `/productattributevalues/${value_id}`,
-        { value: editValueText.value.trim() },
-        {
-            preserveScroll: true,
-            onSuccess: () => { editingValueId.value = null },
-        }
-    )
+    editValueForm.patch(`/productattributevalues/${value_id}`, {
+        preserveScroll: true,
+        onSuccess: () => { editingValueId.value = null },
+    })
 }
 
 function deleteValue(value_id) {

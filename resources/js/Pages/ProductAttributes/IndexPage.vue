@@ -22,7 +22,12 @@
                     <EditableTextField :model-value="attr.name" :decoration="false"
                         :readonly="!hasPermission('productattribute.update')"
                         @update="(val) => router.patch(`/productattributes/${attr.id}`, { name: val }, { preserveScroll: true, preserveState: true })">
-                        <template #display>{{ attr.name }}</template>
+                        <template #display>
+                            {{ attr.name }}
+                            <span v-if="attr.value_type === 'number'" class="ml-1 text-xs text-gray-500 dark:text-slate-400">
+                                getal{{ attr.unit ? ' in ' + attr.unit : '' }}
+                            </span>
+                        </template>
                     </EditableTextField>
                 </div>
                 <div class="col-span-2 flex items-center">
@@ -78,10 +83,13 @@ const formRef = ref(null)
 const props = defineProps({
     attributes: { type: Object, required: true },
     search: { type: String, default: '' },
+    valueTypes: { type: Array, default: () => [] },
 })
 
 const fields = [
     { key: 'name', label: 'Naam', type: 'text' },
+    { key: 'value_type', label: 'Soort waarde', type: 'combobox', options: props.valueTypes, initialId: 'text' },
+    { key: 'unit', label: 'Eenheid', type: 'text', placeholder: 'bijv. kW', disabledWhen: form => form.value_type !== 'number', disabledPlaceholder: 'alleen bij een getal' },
 ]
 
 const innerAttributes = computed(() => props.attributes?.data || [])

@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class Product extends Model
 {
+    use HasActivities;
     use HasCustomFields;
 
     /** @use HasFactory<ProductFactory> */
@@ -214,6 +217,36 @@ class Product extends Model
             ])
             ->filter(fn ($v) => $v !== null)
             ->all();
+    }
+
+    /**
+     * Products holding one of these values for every kenmerk among them: more
+     * values of one kenmerk widen the list, another kenmerk narrows it.
+     *
+     * @param  array<int, int>  $value_ids
+     */
+    public function scopeWithAttributeValues(Builder $query, array $value_ids): Builder
+    {
+        $by_attribute = ProductAttributeValue::whereKey($value_ids)->get(['id', 'product_attribute_id'])
+            ->groupBy('product_attribute_id');
+
+        foreach ($by_attribute as $values) {
+            $query->whereHas('productAttributeValueables', fn ($valueables) => $valueables
+                ->whereIn('product_attribute_value_id', $values->modelKeys()));
+        }
+
+        return $query;
+    }
+
+    /** Products whose number for this kenmerk lies between min and max, both included; null leaves an end open. */
+    public function scopeWithAttributeBetween(Builder $query, int $attribute_id, ?float $min, ?float $max): Builder
+    {
+        return $query->whereHas('productAttributeValueables', fn ($valueables) => $valueables
+            ->whereIn('product_attribute_value_id', ProductAttributeValue::query()
+                ->where('product_attribute_id', $attribute_id)
+                ->when($min !== null, fn ($values) => $values->where('number', '>=', $min))
+                ->when($max !== null, fn ($values) => $values->where('number', '<=', $max))
+                ->select('id')));
     }
 
     public function scopeWithAttributeData($query)

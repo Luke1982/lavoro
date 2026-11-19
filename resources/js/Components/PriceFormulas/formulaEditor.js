@@ -52,7 +52,8 @@ export function summarize(node, definition, names) {
         case 'filter_brand': return names.brands[get('brand_id')] ?? 'Kies een merk'
         case 'filter_attribute': {
             const attribute = names.attributes[get('product_attribute_id')]
-            return attribute ? `${attribute} ${option('operator')} ${get('value') || '…'}` : 'Kies een kenmerk'
+            const unit = get('value') ? names.attributeUnits?.[get('product_attribute_id')] : ''
+            return attribute ? `${attribute} ${option('operator')} ${get('value') || '…'}${unit ? ' ' + unit : ''}` : 'Kies een kenmerk'
         }
         case 'combination': {
             const parts = (get('components') || []).map(component => {

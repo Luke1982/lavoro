@@ -39,7 +39,14 @@
             </div>
             <div v-if="productAttributes.length" class="flex flex-wrap gap-4 mt-4">
                 <div v-for="attr in productAttributes" :key="attr.id" class="flex-grow min-w-48">
-                    <div class="flex items-end gap-2">
+                    <div v-if="attr.value_type === 'number'" class="flex items-start gap-2">
+                        <TextInput v-for="end in ['min', 'max']" :key="end" :id="`range-${attr.id}-${end}`"
+                            v-model="rangesSelected[attr.id][end]" type="text" class="flex-1"
+                            :label="end === 'min' ? `${attr.name} vanaf` : 'tot en met'" :placeholder="attr.unit ?? ''"
+                            :has-error="Boolean(errors[`range.${attr.id}.${end}`])"
+                            :error-message="errors[`range.${attr.id}.${end}`]" />
+                    </div>
+                    <div v-else class="flex items-end gap-2">
                         <ComboBox :options="attr.values.map(v => ({ id: v.id, name: v.value }))"
                             v-model="attrValuesSelected[attr.id]" multiple
                             :placeholder="`Selecteer ${attr.name.toLowerCase()}`" class="w-full"
@@ -305,7 +312,7 @@
 
 <script setup>
 import SelectionBar from '@/Components/UI/SelectionBar.vue'
-import { Link, useForm, router } from '@inertiajs/vue3'
+import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
@@ -317,6 +324,7 @@ import { XCircleIcon } from '@heroicons/vue/24/outline'
 import { formatProductSalePeriod, hasPermission } from '@/Utilities/Utilities'
 import { BoxIcon, CopyIcon, EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import TextInput from '@/Components/UI/TextInput.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
@@ -326,11 +334,13 @@ import ProductFormFields from '@/Components/Products/ProductFormFields.vue'
 import { useProductForm } from '@/Composables/useProductForm'
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
-const { products, brands, productTypes, productAttributes, perPage, canImport } = defineProps({
+const { products, brands, productTypes, productAttributes, ranges, perPage, canImport } = defineProps({
     products: { type: Object, required: true },
     brands: { type: Array, default: () => [] },
     productTypes: { type: Array, default: () => [] },
     productAttributes: { type: Array, default: () => [] },
+    /** Per numeric kenmerk id the range filtered on: { min, max }, either end null. */
+    ranges: { type: Object, default: () => ({}) },
     perPage: { type: Number, default: 20 },
     canImport: { type: Boolean, default: false },
 })
@@ -479,60 +489,91 @@ const displayProducts = computed(() => (products.data || []).map(p => ({
     ...p,
     open: openIds.value.has(p.id)
 })))
-// product type filter
-const typeFromURL = typeof window !== 'undefined'
-    ? (new URLSearchParams(window.location.search).get('onlyType') || '').split(',').map(Number).filter(Boolean)
-    : []
-const productTypeToShow = ref(typeFromURL)
+const errors = computed(() => usePage().props.errors ?? {})
 
-// brand filter
-const brandFromURL = typeof window !== 'undefined'
-    ? (new URLSearchParams(window.location.search).get('onlyBrand') || '').split(',').map(Number).filter(Boolean)
-    : []
+const idsFrom = text => (text || '').split(',').map(Number).filter(Boolean)
+const urlParam = key => typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get(key)
+const decimal = number => (number === null || number === undefined ? '' : String(number).replace('.', ','))
+
+const typeFromURL = idsFrom(urlParam('onlyType'))
+const brandFromURL = idsFrom(urlParam('onlyBrand'))
+const attrValFromURL = idsFrom(urlParam('onlyAttributeValues'))
+
+const productTypeToShow = ref(typeFromURL)
 const brandToShow = ref(brandFromURL)
 
-// attribute values filter — one selection array per attribute
-const attrValFromURL = typeof window !== 'undefined'
-    ? (new URLSearchParams(window.location.search).get('onlyAttributeValues') || '').split(',').map(Number).filter(Boolean)
-    : []
-const attrValuesSelected = reactive(
-    productAttributes.reduce((acc, attr) => {
-        const attrValueIds = new Set(attr.values.map(v => v.id))
-        acc[attr.id] = attrValFromURL.filter(id => attrValueIds.has(id))
-        return acc
-    }, {})
-)
+/** One selection array per kenmerk with a list of values. */
+const attrValuesSelected = reactive(Object.fromEntries(productAttributes.map(attr => [attr.id, []])))
+
+function selectAttributeValues(ids) {
+    productAttributes.forEach(attr => {
+        const own = new Set(attr.values.map(v => v.id))
+        attrValuesSelected[attr.id] = ids.filter(id => own.has(id))
+    })
+}
+selectAttributeValues(attrValFromURL)
+
+/** One range per numeric kenmerk, as typed: a decimal comma stays a comma. */
+const numericAttributes = productAttributes.filter(attr => attr.value_type === 'number')
+const rangesSelected = reactive(Object.fromEntries(numericAttributes.map(attr => [attr.id, {
+    min: decimal(ranges[attr.id]?.min),
+    max: decimal(ranges[attr.id]?.max),
+}])))
+
+function selectRanges(selected) {
+    numericAttributes.forEach(attr => {
+        rangesSelected[attr.id] = { min: selected[attr.id]?.min ?? '', max: selected[attr.id]?.max ?? '' }
+    })
+}
+
+/** Only the ranges with an end, so an empty filter leaves the address bar alone. */
+const activeRanges = computed(() => Object.fromEntries(
+    Object.entries(rangesSelected)
+        .map(([id, range]) => [id, Object.fromEntries(Object.entries(range).filter(([, bound]) => String(bound).trim() !== ''))])
+        .filter(([, range]) => Object.keys(range).length),
+))
 
 watch(productTypeToShow, val => localStorage.setItem('productFilter_types', val.join(',')))
 watch(brandToShow, val => localStorage.setItem('productFilter_brands', val.join(',')))
 watch(attrValuesSelected, val => {
     localStorage.setItem('productFilter_attrValues', Object.values(val).flat().join(','))
 }, { deep: true })
+watch(activeRanges, val => localStorage.setItem('productFilter_ranges', JSON.stringify(val)))
+
+function storedRanges() {
+    try {
+        return JSON.parse(localStorage.getItem('productFilter_ranges') || '{}') ?? {}
+    } catch {
+        return {}
+    }
+}
 
 onMounted(() => {
-    if (typeFromURL.length || brandFromURL.length || attrValFromURL.length) return
-    const lsTypes = (localStorage.getItem('productFilter_types') || '').split(',').map(Number).filter(Boolean)
-    const lsBrands = (localStorage.getItem('productFilter_brands') || '').split(',').map(Number).filter(Boolean)
-    const lsAttrVals = (localStorage.getItem('productFilter_attrValues') || '').split(',').map(Number).filter(Boolean)
-    if (!lsTypes.length && !lsBrands.length && !lsAttrVals.length) return
+    if (typeFromURL.length || brandFromURL.length || attrValFromURL.length || Object.keys(ranges).length) return
+    const lsTypes = idsFrom(localStorage.getItem('productFilter_types'))
+    const lsBrands = idsFrom(localStorage.getItem('productFilter_brands'))
+    const lsAttrVals = idsFrom(localStorage.getItem('productFilter_attrValues'))
+    const lsRanges = storedRanges()
+    if (!lsTypes.length && !lsBrands.length && !lsAttrVals.length && !Object.keys(lsRanges).length) return
     productTypeToShow.value = lsTypes
     brandToShow.value = lsBrands
-    productAttributes.forEach(attr => {
-        const attrValueIds = new Set(attr.values.map(v => v.id))
-        attrValuesSelected[attr.id] = lsAttrVals.filter(id => attrValueIds.has(id))
-    })
-    router.get('/products', {
-        onlyType: lsTypes.join(','),
-        onlyBrand: lsBrands.join(','),
-        onlyAttributeValues: lsAttrVals.join(','),
-    }, { replace: true, preserveState: true, preserveScroll: true })
+    selectAttributeValues(lsAttrVals)
+    selectRanges(lsRanges)
+    router.get('/products', filterParams.value, { replace: true, preserveState: true, preserveScroll: true })
 })
 
 const filterParams = computed(() => ({
     onlyType: productTypeToShow.value.join(','),
     onlyBrand: brandToShow.value.join(','),
     onlyAttributeValues: Object.values(attrValuesSelected).flat().join(','),
+    range: Object.keys(activeRanges.value).length ? activeRanges.value : undefined,
 }))
+
+function rangeText(attr, { min, max }) {
+    const unit = attr.unit ? ' ' + attr.unit : ''
+    if (min && max) return `${min} – ${max}${unit}`
+    return min ? `vanaf ${min}${unit}` : `t/m ${max}${unit}`
+}
 
 const activeFilters = computed(() => {
     const filters = []
@@ -550,16 +591,22 @@ const activeFilters = computed(() => {
             if (val) filters.push({ key: `attrval-${id}`, label: attr.name, value: val.value, clear: () => { attrValuesSelected[attr.id] = attrValuesSelected[attr.id].filter(x => x !== id) } })
         })
     })
+    numericAttributes.forEach(attr => {
+        const range = activeRanges.value[attr.id]
+        if (range) filters.push({ key: `range-${attr.id}`, label: attr.name, value: rangeText(attr, range), clear: () => { rangesSelected[attr.id] = { min: '', max: '' } } })
+    })
     return filters
 })
 
 function clearAllFilters() {
     productTypeToShow.value = []
     brandToShow.value = []
-    productAttributes.forEach(attr => { attrValuesSelected[attr.id] = [] })
+    selectAttributeValues([])
+    selectRanges({})
     localStorage.removeItem('productFilter_types')
     localStorage.removeItem('productFilter_brands')
     localStorage.removeItem('productFilter_attrValues')
+    localStorage.removeItem('productFilter_ranges')
 }
 
 const saleEdits = reactive({})

@@ -2,33 +2,40 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Products\SyncProductAttributeTypesAction;
+use App\Http\Requests\ProductAttributeProductTypeDestroyRequest;
+use App\Http\Requests\ProductAttributeProductTypeStoreRequest;
+use App\Http\Requests\ProductAttributeProductTypeSyncRequest;
 use App\Models\ProductAttribute;
 use App\Models\ProductType;
-use App\Http\Requests\ProductAttributeProductTypeStoreRequest;
-use App\Http\Requests\ProductAttributeProductTypeDestroyRequest;
 
 class ProductAttributeProductTypeController extends Controller
 {
-    public function store(ProductAttributeProductTypeStoreRequest $request, ProductAttribute $productattribute, ProductType $producttype)
-    {
-        if (! $productattribute->productTypes()->where('product_type_id', $producttype->id)->exists()) {
-            $productattribute->productTypes()->attach($producttype->id);
-        }
+    public function __construct(private SyncProductAttributeTypesAction $types) {}
+
+    public function store(
+        ProductAttributeProductTypeStoreRequest $request,
+        ProductAttribute $productattribute,
+        ProductType $producttype,
+    ) {
+        $this->types->attach($productattribute, $producttype->id);
 
         return redirect()->back()->with('success', 'Producttype gekoppeld.');
     }
 
-    public function destroy(ProductAttributeProductTypeDestroyRequest $request, ProductAttribute $productattribute, ProductType $producttype)
-    {
-        $productattribute->productTypes()->detach($producttype->id);
+    public function destroy(
+        ProductAttributeProductTypeDestroyRequest $request,
+        ProductAttribute $productattribute,
+        ProductType $producttype,
+    ) {
+        $this->types->detach($productattribute, $producttype->id);
 
         return redirect()->back()->with('success', 'Producttype ontkoppeld.');
     }
 
-    public function sync(ProductAttributeProductTypeStoreRequest $request, ProductAttribute $productattribute)
+    public function sync(ProductAttributeProductTypeSyncRequest $request, ProductAttribute $productattribute)
     {
-        $ids = array_filter((array) $request->input('product_type_ids', []), 'is_numeric');
-        $productattribute->productTypes()->sync($ids);
+        $this->types->handle($productattribute, $request->validated('product_type_ids'));
 
         return redirect()->back()->with('success', 'Producttypen bijgewerkt.');
     }

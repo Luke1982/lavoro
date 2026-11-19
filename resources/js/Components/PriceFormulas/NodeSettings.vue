@@ -11,7 +11,7 @@
         <div v-for="field in definition.fields" :key="field.key" :data-formula-field="field.type" :data-formula-field-key="field.key">
             <template v-if="field.type === 'number' || field.type === 'text'">
                 <TextInput :id="'setting-' + field.key" :model-value="node.data?.[field.key] ?? ''"
-                    :type="field.type === 'number' ? 'number' : 'text'" step="any" :label="field.label"
+                    :type="field.type === 'number' ? 'number' : 'text'" step="any" :label="labelOf(field)"
                     :placeholder="field.default == null ? '' : String(field.default)" :disabled="readonly"
                     @update:model-value="v => set(field.key, field.type === 'number' ? toNumber(v) : v)" />
             </template>
@@ -131,6 +131,13 @@ const { options: modelOptions, searching, search } =
 
 const value = field => settingOf(props.node, props.definition, field.key)
 const list = field => value(field) ?? []
+
+/** The value of a kenmerk filter is compared in the unit of that kenmerk, so the label says which. */
+function labelOf(field) {
+    if (field.key !== 'value' || props.node.type !== 'filter_attribute') return field.label
+    const unit = props.attributes.find(attribute => attribute.id === props.node.data?.product_attribute_id)?.unit
+    return unit ? `${field.label} (in ${unit})` : field.label
+}
 
 const toNumber = v => (v === '' || v === null || v === undefined ? null : Number(v))
 

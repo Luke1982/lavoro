@@ -129,13 +129,15 @@ final class PricedMachines
         ];
     }
 
-    /** @return array<int, string> attribute id → value */
+    /** @return array<int, string> attribute id → value; the bare number for a numeric kenmerk */
     private static function attributesOf(Collection $valueables): array
     {
         return $valueables
             ->filter(fn ($valueable) => $valueable->product_attribute_id && $valueable->value)
             ->mapWithKeys(fn ($valueable) => [
-                (int) $valueable->product_attribute_id => (string) $valueable->value->value,
+                (int) $valueable->product_attribute_id => $valueable->value->number !== null
+                    ? (string) $valueable->value->number
+                    : (string) $valueable->value->value,
             ])
             ->all();
     }

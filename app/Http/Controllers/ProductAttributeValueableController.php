@@ -2,30 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
-use App\Models\ProductAttributeValueable;
+use App\Actions\Products\SetProductAttributeValuesAction;
 use App\Http\Requests\ProductAttributeValueableStoreRequest;
+use App\Models\Product;
 
 class ProductAttributeValueableController extends Controller
 {
-    public function store(ProductAttributeValueableStoreRequest $request)
+    public function store(ProductAttributeValueableStoreRequest $request, SetProductAttributeValuesAction $set_values)
     {
         $data = $request->validated();
 
-        ProductAttributeValueable::where([
-            'productattributevalueable_type' => Product::class,
-            'productattributevalueable_id'   => $data['product_id'],
-            'product_attribute_id'           => $data['product_attribute_id'],
-        ])->delete();
-
-        if (! empty($data['product_attribute_value_id'])) {
-            ProductAttributeValueable::create([
-                'product_attribute_value_id'     => $data['product_attribute_value_id'],
-                'productattributevalueable_type' => Product::class,
-                'productattributevalueable_id'   => $data['product_id'],
-                'product_attribute_id'           => $data['product_attribute_id'],
-            ]);
-        }
+        $set_values->handle(
+            Product::findOrFail($data['product_id']),
+            [$data['product_attribute_id'] => $data['product_attribute_value_id'] ?? null],
+        );
 
         return redirect()->back()->with('success', 'Kenmerkwaarde opgeslagen.');
     }

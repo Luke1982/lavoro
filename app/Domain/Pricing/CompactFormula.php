@@ -193,7 +193,8 @@ final class CompactFormula
             'product_type' => 'naam of pad van een producttype; subtypes tellen mee',
             'product' => 'merk en model uit de catalogus',
             'brand' => 'naam van een merk',
-            'attribute' => 'naam van een kenmerk',
+            'attribute' => 'naam van een kenmerk; is het kenmerk een getal met een eenheid, dan vergelijk je '
+                . 'op het getal in die eenheid ("10" voor 10 kW)',
             'tiers' => 'lijst van {"from": stuk vanaf 2, "amount": bedrag per stuk}',
             'components' => 'lijst van {"quantity": aantal, "product_type" of "product": naam}',
             'number' => 'getal' . (isset($field['default']) ? ', standaard ' . json_encode($field['default']) : ''),

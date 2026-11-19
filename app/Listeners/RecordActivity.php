@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Domain\Signals\ActivityBuffer;
+use App\Domain\Signals\ChangeSentence;
 use App\Domain\Signals\Signal;
 use App\Models\Activity;
 use App\Models\ActivityChange;
@@ -138,13 +139,9 @@ class RecordActivity
 
     private function describe(Activity $activity): string
     {
-        $parts = $activity->fieldChanges
+        return ChangeSentence::of($activity->fieldChanges
             ->filter(fn (ActivityChange $change) => $change->old_label !== $change->new_label)
-            ->map(fn (ActivityChange $change) => $change->label . ' gewijzigd van \''
-                . ($change->old_label ?? '-') . '\' naar \'' . ($change->new_label ?? '-') . '\'')
-            ->all();
-
-        return implode(', ', $parts);
+            ->map(fn (ActivityChange $change) => $change->only(['label', 'old_label', 'new_label'])));
     }
 
     /**

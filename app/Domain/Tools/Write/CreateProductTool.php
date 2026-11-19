@@ -2,6 +2,9 @@
 
 namespace App\Domain\Tools\Write;
 
+use App\Actions\Products\FindOrAddProductAttributeValueAction;
+use App\Actions\Products\SetProductAttributeValuesAction;
+use App\Actions\Products\SyncProductAttributeTypesAction;
 use App\Domain\Tools\Confirmable;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
@@ -76,7 +79,7 @@ class CreateProductTool implements Confirmable, Tool
                 'attributes' => [
                     'type' => 'object',
                     'description' => 'Kenmerken als naam-waarde-paren, bijvoorbeeld {"Koelvermogen": "2,5 kW"}. '
-                        . 'Alleen wat je echt hebt afgelezen of opgezocht.',
+                        . 'Alleen wat je echt hebt afgelezen of opgezocht, in de eenheid van het kenmerk.',
                     'additionalProperties' => ['type' => 'string'],
                 ],
             ],
@@ -154,6 +157,18 @@ class CreateProductTool implements Confirmable, Tool
             }
         }
 
+        foreach ($this->attributesIn($call) as $name => $input) {
+            $attribute = $this->existingAttribute($name);
+
+            if ($attribute !== null && $attribute->valueFields($input) === null) {
+                return ToolResult::failed(
+                    'Kenmerk ' . $attribute->name . ' is een getal'
+                        . ($attribute->unit ? ' in ' . $attribute->unit : '')
+                        . ', en "' . $input . '" is dat niet. Geef alleen het getal op, zoals 1,5.'
+                );
+            }
+        }
+
         $made = DB::transaction(function () use ($call, $brand_name, $type_name, $model, $existing_brand) {
             $brand = $existing_brand ?? Brand::create(['name' => $brand_name]);
             $type = $this->existingType($type_name) ?? ProductType::create(['name' => $type_name]);
@@ -168,26 +183,21 @@ class CreateProductTool implements Confirmable, Tool
             ]);
 
             $attributes = [];
+            $value_ids = [];
 
-            foreach ($this->attributesIn($call) as $name => $value) {
-                $attribute = ProductAttribute::query()
-                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-                    ->first() ?? ProductAttribute::create(['name' => $name]);
+            foreach ($this->attributesIn($call) as $name => $input) {
+                $attribute = $this->existingAttribute($name) ?? ProductAttribute::create(['name' => $name]);
 
                 /** A kenmerk only shows on the form when its soort knows about it. */
-                $attribute->productTypes()->syncWithoutDetaching([$type->id]);
+                app(SyncProductAttributeTypesAction::class)->attach($attribute, $type->id);
 
-                $attribute_value = $attribute->values()
-                    ->whereRaw('LOWER(value) = ?', [mb_strtolower($value)])
-                    ->first() ?? $attribute->values()->create(['value' => $value]);
-
-                $product->productAttributeValueables()->create([
-                    'product_attribute_id' => $attribute->id,
-                    'product_attribute_value_id' => $attribute_value->id,
-                ]);
-
-                $attributes[$attribute->name] = $attribute_value->value;
+                $fields = $attribute->valueFields($input);
+                $value = app(FindOrAddProductAttributeValueAction::class)->handle($attribute, $fields);
+                $value_ids[$attribute->id] = $value->id;
+                $attributes[$attribute->name] = $value->value;
             }
+
+            app(SetProductAttributeValuesAction::class)->handle($product, $value_ids);
 
             return ['product' => $product, 'brand' => $brand, 'type' => $type, 'attributes' => $attributes];
         });
@@ -212,6 +222,11 @@ class CreateProductTool implements Confirmable, Tool
     }
 
     /** @return array<string, string> */
+    private function existingAttribute(string $name): ?ProductAttribute
+    {
+        return ProductAttribute::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
+    }
+
     private function attributesIn(ToolCall $call): array
     {
         $given = $call->argument('attributes');

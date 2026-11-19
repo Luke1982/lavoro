@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Event;
 use App\Models\MaintenanceContract;
 use App\Models\Material;
+use App\Models\ProductAttribute;
 use App\Models\Project;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
@@ -34,6 +35,7 @@ class ActivityLabelsTest extends TestCase
         Material::class,
         Event::class,
         ServiceOrderTaskInstance::class,
+        ProductAttribute::class,
     ];
 
     public function test_every_logged_field_has_a_dutch_label(): void

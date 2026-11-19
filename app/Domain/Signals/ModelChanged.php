@@ -94,16 +94,6 @@ class ModelChanged extends BaseSignal
 
     private function changeSentence(): ?string
     {
-        if ($this->changes === []) {
-            return null;
-        }
-
-        $parts = array_map(
-            fn (array $change) => $change['label'] . ' gewijzigd van \''
-                . ($change['old_label'] ?? '-') . '\' naar \'' . ($change['new_label'] ?? '-') . '\'',
-            $this->changes,
-        );
-
-        return implode(', ', $parts);
+        return $this->changes === [] ? null : ChangeSentence::of($this->changes);
     }
 }

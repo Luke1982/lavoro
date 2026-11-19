@@ -7,6 +7,12 @@ use App\Models\User;
 
 class ProductPolicy
 {
+    /** The product list: everyone it is in the menu for. */
+    public function viewAny(User $user): bool
+    {
+        return $user->hasPermission('product.read');
+    }
+
     /**
      * Determine if the user can view the product.
      */

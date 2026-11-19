@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Products\SetProductAttributeValuesAction;
 use App\Http\Requests\ProductBulkUpdateRequest;
 use App\Http\Requests\ProductCreateRequest;
+use App\Http\Requests\ProductIndexRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
@@ -12,14 +14,12 @@ use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Product;
 use App\Models\ProductAttribute;
-use App\Models\ProductAttributeValue;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Supplier;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -27,37 +27,23 @@ class ProductController extends Controller
 {
     use ReadsPerPage;
 
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    public function index(ProductIndexRequest $request)
     {
-        $products = Product::query();
+        $search = trim((string) $request->validated('search'));
+        $products = $search === '' ? Product::query() : self::getByTerm($search);
 
-        $search = trim((string) $request->input('search', ''));
-        if ($search !== '') {
-            $products = self::getByTerm($search);
-        }
+        $only_type = $request->idList('onlyType');
+        $only_brand = $request->idList('onlyBrand');
+        $only_attribute_values = $request->idList('onlyAttributeValues');
+        $ranges = $request->ranges();
 
-        $onlyType = array_values(array_filter(explode(',', $request->input('onlyType', '')), fn ($v) => $v !== ''));
-        if (count($onlyType)) {
-            $products->whereIn('product_type_id', $onlyType);
-        }
+        $products
+            ->when($only_type !== [], fn ($query) => $query->whereIn('product_type_id', $only_type))
+            ->when($only_brand !== [], fn ($query) => $query->whereIn('brand_id', $only_brand))
+            ->when($only_attribute_values !== [], fn ($query) => $query->withAttributeValues($only_attribute_values));
 
-        $onlyBrand = array_values(array_filter(explode(',', $request->input('onlyBrand', '')), fn ($v) => $v !== ''));
-        if (count($onlyBrand)) {
-            $products->whereIn('brand_id', $onlyBrand);
-        }
-
-        $onlyAttributeValues = array_values(array_filter(explode(',', $request->input('onlyAttributeValues', '')), fn ($v) => $v !== ''));
-        if (count($onlyAttributeValues)) {
-            $values_by_attr = [];
-            foreach (ProductAttributeValue::whereIn('id', $onlyAttributeValues)->get(['id', 'product_attribute_id']) as $av) {
-                $values_by_attr[$av->product_attribute_id][] = (int) $av->id;
-            }
-            foreach ($values_by_attr as $val_ids) {
-                $products->whereHas('productAttributeValueables', fn ($q) => $q->whereIn('product_attribute_value_id', $val_ids));
-            }
+        foreach ($ranges as $attribute_id => ['min' => $min, 'max' => $max]) {
+            $products->withAttributeBetween($attribute_id, $min, $max);
         }
 
         return inertia(
@@ -80,9 +66,10 @@ class ProductController extends Controller
                     }),
                 'search' => $search,
                 ...$this->formOptions(),
-                'onlyType' => $onlyType,
-                'onlyBrand' => $onlyBrand,
-                'onlyAttributeValues' => $onlyAttributeValues,
+                'onlyType' => $only_type,
+                'onlyBrand' => $only_brand,
+                'onlyAttributeValues' => $only_attribute_values,
+                'ranges' => (object) $ranges,
                 'perPage' => $this->perPage($request),
                 'canImport' => $request->user()->can('import', Product::class),
             ]
@@ -142,6 +129,9 @@ class ProductController extends Controller
             'childProducts.productType',
             'parentProducts.brand',
             'parentProducts.productType',
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at'),
         ]);
 
         $typePaths = ProductType::pathMap();
@@ -254,6 +244,8 @@ class ProductController extends Controller
                 ->map(fn ($attr) => [
                     'id' => $attr->id,
                     'name' => $attr->name,
+                    'value_type' => $attr->value_type,
+                    'unit' => $attr->unit,
                     'values' => $attr->values
                         ->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])
                         ->values(),
@@ -266,23 +258,11 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ProductStoreRequest $request)
+    public function store(ProductStoreRequest $request, SetProductAttributeValuesAction $set_values)
     {
-        $product = DB::transaction(function () use ($request) {
+        $product = DB::transaction(function () use ($request, $set_values) {
             $product = Product::create($request->safe()->except('attributes'));
-
-            $allowed_attribute_ids = $product->productType->productAttributes->pluck('id');
-
-            foreach ($request->input('attributes', []) as $attr) {
-                if (!$allowed_attribute_ids->contains($attr['product_attribute_id'])) {
-                    continue;
-                }
-
-                $product->productAttributeValueables()->create([
-                    'product_attribute_id' => $attr['product_attribute_id'],
-                    'product_attribute_value_id' => $attr['product_attribute_value_id'],
-                ]);
-            }
+            $set_values->handle($product, self::valuesByAttribute($request->validated('attributes', [])));
 
             return $product;
         });
@@ -310,9 +290,9 @@ class ProductController extends Controller
             ->with('extra', $product->load(['brand', 'productType']));
     }
 
-    public function bulkUpdate(ProductBulkUpdateRequest $request)
+    public function bulkUpdate(ProductBulkUpdateRequest $request, SetProductAttributeValuesAction $set_values)
     {
-        DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request, $set_values) {
             $product_ids = $request->input('product_ids');
 
             if ($request->filled('product_type_id')) {
@@ -323,34 +303,23 @@ class ProductController extends Controller
                 Product::whereIn('id', $product_ids)->update(['brand_id' => $request->input('brand_id')]);
             }
 
-            if ($request->has('attributes') && count($request->input('attributes', []))) {
-                $products = Product::whereIn('id', $product_ids)
-                    ->with('productType.productAttributes')
-                    ->get();
+            $values = self::valuesByAttribute($request->validated('attributes', []));
 
-                foreach ($request->input('attributes') as $attr) {
-                    $attributeId = $attr['product_attribute_id'];
-                    $valueId = $attr['product_attribute_value_id'];
-
-                    foreach ($products as $product) {
-                        if (!$product->productType->productAttributes->contains('id', $attributeId)) {
-                            continue;
-                        }
-
-                        $product->productAttributeValueables()
-                            ->where('product_attribute_id', $attributeId)
-                            ->delete();
-
-                        $product->productAttributeValueables()->create([
-                            'product_attribute_id' => $attributeId,
-                            'product_attribute_value_id' => $valueId,
-                        ]);
-                    }
-                }
+            if ($values !== []) {
+                $set_values->handleMany(Product::whereIn('id', $product_ids)->get(), $values);
             }
         });
 
         return redirect()->back()->with('success', 'Producten bijgewerkt.');
+    }
+
+    /**
+     * @param  array<int, array{product_attribute_id: int, product_attribute_value_id: ?int}>  $attributes
+     * @return array<int, ?int> kenmerk id → value id
+     */
+    private static function valuesByAttribute(array $attributes): array
+    {
+        return array_column($attributes, 'product_attribute_value_id', 'product_attribute_id');
     }
 
     /**

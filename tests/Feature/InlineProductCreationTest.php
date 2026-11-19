@@ -105,6 +105,8 @@ class InlineProductCreationTest extends TestCase
         $response->assertJsonPath('productAttributes', [[
             'id' => $attribute->id,
             'name' => 'Spanning',
+            'value_type' => 'text',
+            'unit' => null,
             'values' => [['id' => $value->id, 'value' => '18V']],
             'product_type_ids' => [$this->type->id],
         ]]);
