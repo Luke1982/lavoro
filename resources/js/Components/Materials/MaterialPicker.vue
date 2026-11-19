@@ -36,34 +36,40 @@
             :class="stacked ? '' : 'mb-4 md:flex-row p-0 sm:p-4 sm:border dark:bg-slate-800/50'">
             <div class="flex flex-col flex-grow w-full py-2"
                 :class="stacked ? '' : 'sm:border-r border-r-gray-200/70 dark:border-r-slate-700/70 p-0 sm:pr-4 sm:mr-4'">
-                <div class="flex items-center justify-between mb-0.5">
-                    <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Kies een materiaal</span>
-                </div>
+                <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Materiaal</span>
                 <div class="flex">
-                    <button v-if="canCreateMaterial" type="button" @click="showQuickCreate = !showQuickCreate"
+                    <button v-if="canCreate && canCreateMaterial" type="button" @click="showQuickCreate = !showQuickCreate"
                         class="inline-flex items-center gap-1 text-xs font-semibold bg-lavoro-blue text-white p-0.5 px-2 mr-2 rounded-lavoro-sm"
                         v-tooltip="showQuickCreate ? 'Sluit snel aanmaken' : 'Snel materiaal aanmaken'">
                         <WandIcon class="size-5" />
                     </button>
-                    <ComboBox :options="comboMaterials" v-model="materialToAdd" :has-external-searching="materialsUseAjax"
-                        :searching="materialSearching" @change="searchMaterials" class="flex-grow" />
+                    <ComboBox v-if="canCreate" :options="comboMaterials" v-model="choice"
+                        :has-external-searching="materialsUseAjax" :searching="materialSearching"
+                        placeholder="Wat heb je gebruikt?"
+                        :create-label="canCreateFreeform ? 'Anders, namelijk' : ''"
+                        :has-error="!!form.errors.description" :error-message="form.errors.description"
+                        @change="searchMaterials" @create="chooseOwnLine" class="flex-grow" />
+                    <TextInput v-else v-model="form.description" placeholder="Wat heb je gebruikt?"
+                        :has-error="!!form.errors.description" :error-message="form.errors.description"
+                        class="flex-grow" />
                 </div>
             </div>
             <div class="flex flex-col w-full" :class="stacked ? '' : 'md:w-28'">
                 <span class="text-xs font-bold text-slate-400 dark:text-slate-300 mb-0.5">Aantal</span>
-                <TextInput v-model="form.quantity" type="number" placeholder="Aantal" />
+                <TextInput v-model="form.quantity" type="number" placeholder="Aantal"
+                    :has-error="!!form.errors.quantity" :error-message="form.errors.quantity" />
             </div>
             <div v-if="showUnforseen" class="flex items-center gap-1 w-full"
                 :class="stacked ? 'justify-between pt-2' : 'flex-col md:w-auto'">
                 <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Onvoorzien</span>
-                <SwitchComponent v-model="form.unforseen" />
+                <SwitchComponent v-model="unforseen" />
             </div>
-            <button @click="attachMaterial" :disabled="sentToAdministration || !materialToAdd" :class="[
+            <button @click="add" :disabled="!canSubmit" :class="[
                 'w-full px-4 py-2 rounded-md text-sm font-medium transition-colors mt-4',
                 stacked ? '' : 'md:w-auto',
-                (sentToAdministration || !materialToAdd)
-                    ? 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-                    : 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
+                canSubmit
+                    ? 'bg-lavoro-blue text-white hover:bg-lavoro-blue/90 cursor-pointer'
+                    : 'bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
             ]">
                 Toevoegen
             </button>
@@ -82,8 +88,10 @@ import { useComboSearch } from '@/Composables/useComboSearch'
 import { useMaterialPermissions } from '@/Composables/useMaterialLines.js'
 
 /**
- * Puts a catalogue material on a werkbon or task, with the button that creates a
- * material on the spot when the catalogue does not have it yet.
+ * Puts what was used on a werkbon or task, as one field: pick it from the catalogue,
+ * or, for whoever may book free lines, type what the catalogue does not have and take
+ * "Anders, namelijk". Whoever may only do one of the two gets just that one, in the
+ * same place. Which kind of line it becomes is this form's business, not the user's.
  */
 const props = defineProps({
     /** Where the line is booked: the werkbon, or a task instance. */
@@ -92,7 +100,6 @@ const props = defineProps({
     materialsUseAjax: { type: Boolean, default: false },
     categories: { type: Array, default: () => [] },
     usageUnits: { type: Array, default: () => [] },
-    sentToAdministration: { type: Boolean, default: false },
     showUnforseen: { type: Boolean, default: false },
     /** One field under the other and without a box of its own, for a panel as narrow as a phone. */
     stacked: { type: Boolean, default: false },
@@ -100,16 +107,32 @@ const props = defineProps({
 
 const emit = defineEmits(['added'])
 
-const { canSeeFinancials, canCreateMaterial } = useMaterialPermissions()
+const { canSeeFinancials, canCreate, canCreateFreeform, canCreateMaterial } = useMaterialPermissions()
 
-const materialToAdd = ref(null)
-const form = useForm({ quantity: 1, unforseen: false })
+/** The combobox id of a line typed by hand, so it shows as chosen like any catalogue material. */
+const OWN_LINE = 'own-line'
+
+const choice = ref(null)
+const form = useForm({ quantity: 1, description: '' })
+
+const isOwnLine = computed(() => !canCreate.value || choice.value === OWN_LINE)
+const canSubmit = computed(() => !form.processing && (!canCreate.value || !!choice.value))
+
+/**
+ * A line typed by hand starts as onvoorzien and a catalogue material as voorzien, as
+ * each always did on its own form. Once the switch is touched, it is what was chosen.
+ */
+const unforseenChoice = ref(null)
+const unforseen = computed({
+    get: () => unforseenChoice.value ?? isOwnLine.value,
+    set: (value) => { unforseenChoice.value = value },
+})
 
 const { options: materialOptions, searching: materialSearching, search: searchMaterials } =
     useComboSearch('materials', props.allMaterials, props.materialsUseAjax)
 
 const comboMaterials = computed(() => {
-    return materialOptions.value.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
+    const catalogue = materialOptions.value.slice().sort((a, b) => a.name.localeCompare(b.name)).map(m => {
         const parts = [m.name]
         if (m.code) {
             parts.push('code ' + m.code)
@@ -120,7 +143,14 @@ const comboMaterials = computed(() => {
         }
         return { id: m.id, name: parts.join(', ') }
     })
+
+    return choice.value === OWN_LINE ? [...catalogue, { id: OWN_LINE, name: form.description }] : catalogue
 })
+
+function chooseOwnLine(description) {
+    form.description = description
+    choice.value = OWN_LINE
+}
 
 const showQuickCreate = ref(false)
 const page = usePage()
@@ -138,7 +168,7 @@ function createMaterial() {
             const created = page.props.flash?.extra
             if (created) {
                 materialOptions.value = [created, ...materialOptions.value]
-                materialToAdd.value = created.id
+                choice.value = created.id
             }
             showQuickCreate.value = false
             quickForm.reset()
@@ -146,15 +176,24 @@ function createMaterial() {
     })
 }
 
-function attachMaterial() {
-    if (!materialToAdd.value || form.quantity <= 0) return
-    form.post(props.endpoint + '/materials/' + materialToAdd.value, {
-        preserveScroll: true,
-        onSuccess: () => {
-            materialToAdd.value = null
-            form.reset()
-            emit('added')
-        },
-    })
+/** A line typed by hand goes to the free lines with its description; a catalogue material only needs its id. */
+function add() {
+    const ownLine = isOwnLine.value
+
+    form
+        .transform(({ quantity, description }) => ({
+            quantity,
+            unforseen: unforseen.value,
+            ...(ownLine && { description }),
+        }))
+        .post(props.endpoint + (ownLine ? '/freeform-materials' : '/materials/' + choice.value), {
+            preserveScroll: true,
+            onSuccess: () => {
+                choice.value = null
+                unforseenChoice.value = null
+                form.reset()
+                emit('added')
+            },
+        })
 }
 </script>

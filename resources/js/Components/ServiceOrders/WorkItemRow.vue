@@ -1,28 +1,31 @@
 <template>
-    <div class="flex items-center gap-3 rounded-lavoro-sm border p-3 transition-colors" :class="settled
+    <div class="rounded-lavoro-sm border p-3 transition-colors" :class="settled
         ? 'border-gray-200/70 bg-gray-50/70 dark:border-slate-700/60 dark:bg-slate-800/40'
         : 'border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900'">
-        <div class="flex size-11 flex-none items-center justify-center rounded-lg" :class="badge.bg">
-            <component :is="done ? CheckIcon : icon" class="size-6" :class="badge.text" />
+        <div class="flex items-center gap-3">
+            <div class="flex size-11 flex-none items-center justify-center rounded-lg" :class="badge.bg">
+                <component :is="done ? CheckIcon : icon" class="size-6" :class="badge.text" />
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold line-clamp-2"
+                    :class="settled ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'">
+                    {{ title }}
+                </p>
+                <p v-if="subtitle" class="mt-0.5 text-xs text-gray-500 dark:text-slate-400 line-clamp-2">{{ subtitle }}</p>
+                <slot />
+            </div>
+            <span v-if="muted" class="flex-none text-xs font-medium text-gray-400 dark:text-slate-500">{{ mutedLabel }}</span>
+            <component v-else :is="href ? Link : 'button'" :href="href" :type="href ? undefined : 'button'"
+                :disabled="href ? undefined : disabled"
+                class="inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-lavoro-sm px-3 py-2 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                :class="done
+                    ? 'border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
+                    : 'bg-lavoro-blue text-white hover:opacity-90'" @click="onAction">
+                <component :is="done ? CheckIcon : actionIcon" class="size-4" />
+                {{ done ? doneLabel : actionLabel }}
+            </component>
         </div>
-        <div class="min-w-0 flex-1">
-            <p class="text-sm font-semibold line-clamp-2"
-                :class="settled ? 'text-gray-500 dark:text-slate-400' : 'text-gray-900 dark:text-slate-100'">
-                {{ title }}
-            </p>
-            <p v-if="subtitle" class="mt-0.5 text-xs text-gray-500 dark:text-slate-400 line-clamp-2">{{ subtitle }}</p>
-            <slot />
-        </div>
-        <span v-if="muted" class="flex-none text-xs font-medium text-gray-400 dark:text-slate-500">{{ mutedLabel }}</span>
-        <component v-else :is="href ? Link : 'button'" :href="href" :type="href ? undefined : 'button'"
-            :disabled="href ? undefined : disabled"
-            class="inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-lavoro-sm px-3 py-2 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-            :class="done
-                ? 'border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400'
-                : 'bg-lavoro-blue text-white hover:opacity-90'" @click="onAction">
-            <component :is="done ? CheckIcon : actionIcon" class="size-4" />
-            {{ done ? doneLabel : actionLabel }}
-        </component>
+        <slot name="footer" />
     </div>
 </template>
 
@@ -35,6 +38,9 @@ import { Check as CheckIcon } from '@lucide/vue'
  * Eén ding dat er op een werkbon moet gebeuren, met de ene knop die het doet:
  * een keuring uitvoeren, een storing oplossen, een taak afvinken. Wat af is
  * blijft staan, grijs en met een vinkje, zodat de lijst laat zien hoe ver je bent.
+ *
+ * Wat er verder bij hoort, zoals het materiaal van een taak, komt in `footer`:
+ * over de hele breedte onder de regel, zodat het niet met de knop om ruimte vecht.
  */
 const props = defineProps({
     icon: { type: [Object, Function], required: true },

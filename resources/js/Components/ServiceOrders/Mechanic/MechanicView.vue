@@ -6,7 +6,10 @@
 
         <WorkToDo data-tour="mechanic.work" :service-order-id="serviceOrder.id" :servicejobs="serviceOrder.servicejobs"
             :tickets="serviceOrder.tickets" :task-instances="serviceOrder.task_instances"
-            :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed" :type="serviceOrder.type" />
+            :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed"
+            :sent-to-administration="serviceOrder.sent_to_administration" :type="serviceOrder.type"
+            :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
+            :material-usage-units="materialUsageUnits" />
 
         <MaterialsCompact data-tour="mechanic.materials" :service-order-id="serviceOrder.id" :materials="materials"
             :freeform-materials="freeformMaterials" :all-materials="allMaterials"

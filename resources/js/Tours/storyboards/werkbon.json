@@ -110,14 +110,14 @@
                     "skipIfMissing": true,
                     "action": "openTaskWork",
                     "title": "Een taak uitvoeren",
-                    "text": "Een taak zonder machines of checks vink je af met **Afvinken**. Heeft hij die wel? Dan klapt **Uitvoeren** de taak open, op dezelfde plek. Daar registreer je de machines en vink je de checks af. Met **Sluiten** klap je hem weer in.",
+                    "text": "Een taak zonder machines of checks vink je af met **Afvinken**. Heeft hij die wel? Dan klapt **Uitvoeren** de taak open, op dezelfde plek. Daar registreer je de machines en vink je de checks af. Met **Sluiten** klap je hem weer in. Met **Materiaal toevoegen** onder de taak boek je wat je ervoor gebruikte.",
                     "say": "Heeft een taak machines of checks? Dan klapt \"uitvoeren\" hem open, op dezelfde plek. Daar vink je de checks af."
                 },
                 {
                     "spot": "mechanic.materials",
                     "skipIfMissing": true,
                     "title": "Materialen",
-                    "text": "Tik op een materiaal om het open te klappen. Daar pas je het aantal aan, of haal je het weg. Met **Toevoegen** boek je iets nieuws, uit de catalogus of als vrije regel. Prijzen staan hier niet.",
+                    "text": "Tik op een materiaal om het open te klappen. Daar pas je het aantal aan, of haal je het weg. Met **Toevoegen** boek je iets nieuws: zoek het op, of typ het en kies **Anders, namelijk**. Prijzen staan hier niet.",
                     "say": "Tik op een materiaal om het aantal aan te passen. Met \"toevoegen\" boek je iets nieuws."
                 },
                 {

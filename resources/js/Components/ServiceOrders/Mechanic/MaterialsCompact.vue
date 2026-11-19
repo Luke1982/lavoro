@@ -1,6 +1,6 @@
 <template>
-    <BoxComponent v-if="canSee" padding="p-4 sm:p-5">
-        <SectionHeader :icon="Package" title="Materialen" chapter="materials">
+    <component :is="bare ? 'div' : BoxComponent" v-if="canSee" v-bind="bare ? {} : { padding: 'p-4 sm:p-5' }">
+        <SectionHeader v-if="!bare" :icon="Package" title="Materialen" chapter="materials">
             <template v-if="canAdd" #actions>
                 <button type="button" data-tour="mechanic.materials.add" :aria-expanded="adding" @click="adding = !adding"
                     class="inline-flex items-center gap-1.5 rounded-lavoro-sm px-3 py-2 text-sm font-semibold ring-1 transition-colors"
@@ -15,13 +15,10 @@
         </SectionHeader>
 
         <div v-auto-animate>
-            <div v-if="adding && canAdd"
-                class="mb-3 flex flex-col gap-4 rounded-lavoro-sm bg-gray-50 p-3 dark:bg-slate-800/60">
-                <MaterialPicker v-if="canCreate" :endpoint="base" :all-materials="allMaterials"
-                    :materials-use-ajax="materialsUseAjax" :categories="categories" :usage-units="usageUnits"
-                    :show-unforseen="showUnforseen" stacked />
-                <FreeformMaterialForm v-if="canCreateFreeform" :endpoint="base" :show-unforseen="showUnforseen"
-                    stacked :class="canCreate ? 'border-t border-gray-200 pt-4 dark:border-slate-700' : ''" />
+            <div v-if="(adding || bare) && canAdd" class="mb-3"
+                :class="bare ? '' : 'rounded-lavoro-sm bg-gray-50 p-3 dark:bg-slate-800/60'">
+                <MaterialPicker :endpoint="base" :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+                    :categories="categories" :usage-units="usageUnits" :show-unforseen="showUnforseen" stacked />
             </div>
         </div>
 
@@ -54,7 +51,7 @@
 
                     <p v-if="isForeign(row.line)" class="text-xs text-gray-500 dark:text-slate-400">
                         {{ row.line.task_label ? 'Geboekt op de taak ' + row.line.task_label : 'Geboekt op een taak die jij niet kunt zien' }}.
-                        Het aantal pas je aan bij die taak, in de standaardweergave.
+                        Het aantal pas je aan bij die taak.
                     </p>
 
                     <template v-if="!locked && canEditLine(row.line)">
@@ -102,8 +99,8 @@
                 </div>
             </li>
         </ul>
-        <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog geen materialen gebruikt.</p>
-    </BoxComponent>
+        <p v-else-if="!bare" class="text-sm text-gray-400 dark:text-slate-500">Nog geen materialen gebruikt.</p>
+    </component>
 </template>
 
 <script setup>
@@ -113,7 +110,6 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import MaterialPicker from '@/Components/Materials/MaterialPicker.vue'
-import FreeformMaterialForm from '@/Components/Materials/FreeformMaterialForm.vue'
 import { useMaterialLines } from '@/Composables/useMaterialLines.js'
 
 /**
@@ -124,6 +120,9 @@ import { useMaterialLines } from '@/Composables/useMaterialLines.js'
  * Toevoegen klapt op dezelfde manier open, bovenaan de lijst, en blijft open na
  * elke regel: wie aan het eind van de dag vijf materialen boekt, hoeft het niet
  * vijf keer opnieuw te openen.
+ *
+ * Kaal, zonder kader en kop, is het de lijst van één taak: het formulier staat
+ * dan meteen open, want wie hem openklapt komt iets boeken.
  */
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -136,24 +135,33 @@ const props = defineProps({
     isClosed: { type: Boolean, default: false },
     sentToAdministration: { type: Boolean, default: false },
     type: { type: String, default: null },
+    /** De taak waarop geboekt wordt, in plaats van de werkbon. */
+    endpointBase: { type: String, default: null },
+    /** De taak die deze lijst is: zijn eigen regels zijn hier aan te passen, die van andere taken niet. */
+    taskInstanceId: { type: Number, default: null },
+    /** Zonder kader en kop, met het formulier al open: de materialen onder een taak. */
+    bare: { type: Boolean, default: false },
 })
 
 const {
     canSee,
     base,
-    canCreate,
-    canCreateFreeform,
+    canBook,
     isForeign,
     canEditLine,
     canRemoveLine,
     quantityError,
     updateLine,
     removeLine,
-} = useMaterialLines({ serviceOrderId: () => props.serviceOrderId })
+} = useMaterialLines({
+    serviceOrderId: () => props.serviceOrderId,
+    endpointBase: () => props.endpointBase,
+    taskInstanceId: () => props.taskInstanceId,
+})
 
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
 const locked = computed(() => props.isClosed || props.sentToAdministration)
-const canAdd = computed(() => !locked.value && (canCreate.value || canCreateFreeform.value))
+const canAdd = computed(() => !locked.value && canBook.value)
 const adding = ref(false)
 
 const rows = computed(() => [
@@ -162,7 +170,7 @@ const rows = computed(() => [
         freeform: false,
         line: material,
         name: material.name,
-        note: material.task_label ? 'Taak: ' + material.task_label : '',
+        note: isForeign(material) && material.task_label ? 'Taak: ' + material.task_label : '',
         code: material.code,
         quantity: material.pivot.quantity,
         unit: material.usage_unit?.name ?? '',
@@ -173,7 +181,7 @@ const rows = computed(() => [
         freeform: true,
         line: freeform,
         name: freeform.description,
-        note: ['Vrije regel', freeform.task_label && 'Taak: ' + freeform.task_label].filter(Boolean).join(' · '),
+        note: ['Vrije regel', isForeign(freeform) && freeform.task_label && 'Taak: ' + freeform.task_label].filter(Boolean).join(' · '),
         code: null,
         quantity: freeform.quantity,
         unit: '',

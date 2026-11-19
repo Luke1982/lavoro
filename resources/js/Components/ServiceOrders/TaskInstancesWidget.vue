@@ -36,15 +36,35 @@
                     :disabled="!canToggle && !summaries[instance.id].hasWork" :muted="instance.is_cancelled"
                     muted-label="Geannuleerd" @action="act(instance)">
                     <TaskProgressBadges :summary="summaries[instance.id]" @open="toggleOpen(instance)" />
+                    <template v-if="offersMaterials(instance)" #footer>
+                        <button type="button" data-tour="mechanic.task.materials"
+                            :aria-expanded="materialsOpenId === instance.id" @click="toggleMaterials(instance)"
+                            class="mt-3 flex w-full items-center justify-center gap-2 rounded-lavoro-sm border px-3 py-2.5 text-sm font-semibold transition-colors"
+                            :class="materialsOpenId === instance.id
+                                ? 'border-lavoro-blue bg-lavoro-blue text-white'
+                                : 'border-dashed border-gray-300 text-lavoro-blue hover:bg-gray-50 dark:border-slate-600 dark:text-sky-300 dark:hover:bg-slate-800'">
+                            <PackageIcon class="size-4" />
+                            {{ canAddMaterialsTo(instance) ? 'Materiaal toevoegen' : 'Materialen' }}
+                            <span v-if="materialCount(instance) > 0"
+                                class="flex h-5 min-w-5 items-center justify-center rounded-full bg-lavoro-green px-1.5 text-xs font-semibold text-gray-800">
+                                {{ materialCount(instance) }}
+                            </span>
+                        </button>
+                    </template>
                 </WorkItemRow>
-                <div class="grid transition-[grid-template-rows] duration-200 ease-out"
-                    :class="openInstanceId === instance.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
-                    <div class="overflow-hidden" :inert="openInstanceId !== instance.id">
-                        <TaskWorkPanel v-if="unfolded.has(instance.id)" :instance="instance" :can-toggle="canToggle && instance.id > 0"
-                            class="mt-2 rounded-lavoro-sm border border-gray-200 bg-gray-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40"
-                            @complete="completeInline(instance)" @reopen="toggleComplete(instance, false)" />
-                    </div>
-                </div>
+                <FoldPanel :open="openInstanceId === instance.id">
+                    <TaskWorkPanel :instance="instance" :can-toggle="canToggle && instance.id > 0" :class="FOLDED_OPEN"
+                        @complete="completeInline(instance)" @reopen="toggleComplete(instance, false)" />
+                </FoldPanel>
+                <FoldPanel :open="materialsOpenId === instance.id">
+                    <MaterialsCompact bare :service-order-id="serviceOrderId"
+                        :endpoint-base="`/serviceordertaskinstances/${instance.id}`" :task-instance-id="instance.id"
+                        :materials="instance.materials ?? []" :freeform-materials="instance.freeform_materials ?? []"
+                        :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+                        :categories="materialCategories" :usage-units="materialUsageUnits"
+                        :is-closed="isClosed || instance.is_cancelled" :sent-to-administration="sentToAdministration"
+                        :type="type" :class="FOLDED_OPEN" />
+                </FoldPanel>
             </div>
         </div>
         <div v-else v-auto-animate>
@@ -464,9 +484,11 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import CheckboxComponent from '@/Components/UI/AnimatedCheckbox.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
+import FoldPanel from '@/Components/UI/FoldPanel.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue'
+import MaterialsCompact from '@/Components/ServiceOrders/Mechanic/MaterialsCompact.vue'
 import FlexPartsFieldset from '@/Components/ServiceOrders/FlexPartsFieldset.vue'
 import WorkItemRow from '@/Components/ServiceOrders/WorkItemRow.vue'
 import TaskWorkPanel from '@/Components/ServiceOrders/Tasks/TaskWorkPanel.vue'
@@ -475,6 +497,7 @@ import TaskCheckOptions from '@/Components/ServiceOrders/Tasks/TaskCheckOptions.
 import { serialCounts, bundleParts } from '@/Components/ServiceOrders/Tasks/taskSerials.js'
 import { checkCounts, extrasOf } from '@/Components/ServiceOrders/Tasks/taskChecks.js'
 import { useTour } from '@/Composables/useTour'
+import { useMaterialPermissions } from '@/Composables/useMaterialLines.js'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -483,6 +506,8 @@ const props = defineProps({
     products: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
     isClosed: { type: Boolean, default: false },
+    /** Booked materials are frozen once the order went to the administration. */
+    sentToAdministration: { type: Boolean, default: false },
     type: { type: String, default: null },
     allMaterials: { type: Array, default: () => [] },
     materialsUseAjax: { type: Boolean, default: false },
@@ -545,6 +570,24 @@ function openMaterialsModal(instance) {
 watch(materialsModalOpen, (is_open) => {
     if (!is_open) materialsInstanceId.value = null
 })
+
+const { canSee: canSeeMaterials, canBook } = useMaterialPermissions()
+
+/** Not once the werkbon is closed or went to the administration, and not on a cancelled task. */
+function canAddMaterialsTo(instance) {
+    return canBook.value && !props.isClosed && !props.sentToAdministration && !instance.is_cancelled
+}
+
+/** In the monteursweergave, below each task; never on the rondleiding's example, which books nothing. */
+function offersMaterials(instance) {
+    return instance.id > 0 && canSeeMaterials.value && (materialCount(instance) > 0 || canAddMaterialsTo(instance))
+}
+
+const materialsOpenId = ref(null)
+
+function toggleMaterials(instance) {
+    materialsOpenId.value = materialsOpenId.value === instance.id ? null : instance.id
+}
 
 const canCreate = computed(() => !props.isClosed && hasPermission('serviceordertaskinstance.create'))
 const canToggle = computed(() => !props.isClosed && (hasPermission('serviceordertaskinstance.open_close') || hasPermission('serviceordertaskinstance.update')))
@@ -841,7 +884,9 @@ const formErrors = form => [...new Set(Object.entries(form.errors)
     .map(([, message]) => message))]
 
 const openInstanceId = ref(null)
-const unfolded = reactive(new Set())
+
+/** What a task's work and its materials look like, folded open under it in the monteursweergave. */
+const FOLDED_OPEN = 'mt-2 rounded-lavoro-sm border border-gray-200 bg-gray-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40'
 
 function actionLabel(instance) {
     if (!summaries.value[instance.id].hasWork) return 'Afvinken'
@@ -856,13 +901,7 @@ function act(instance) {
 }
 
 function toggleOpen(instance) {
-    if (openInstanceId.value === instance.id) {
-        openInstanceId.value = null
-        return
-    }
-
-    unfolded.add(instance.id)
-    openInstanceId.value = instance.id
+    openInstanceId.value = openInstanceId.value === instance.id ? null : instance.id
 }
 
 function completeInline(instance) {

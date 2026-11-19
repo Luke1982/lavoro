@@ -7,6 +7,9 @@ import { hasAnyPermission, hasPermission } from '@/Utilities/Utilities.js'
  * only needs to know whether to show the materials at all.
  */
 export function useMaterialPermissions() {
+    const canCreate = computed(() => hasPermission('materiable.create.serviceorder'))
+    const canCreateFreeform = computed(() => hasPermission('freeformmaterial.create'))
+
     return {
         canSee: computed(() => hasAnyPermission([
             'material.read.serviceorder',
@@ -16,13 +19,15 @@ export function useMaterialPermissions() {
             'freeformmaterial.read',
         ])),
         canSeeFinancials: computed(() => hasPermission('serviceorder.see_financials')),
-        canCreate: computed(() => hasPermission('materiable.create.serviceorder')),
+        canCreate,
         canCreateMaterial: computed(() => hasPermission('material.create')),
         canUpdate: computed(() => hasPermission('materiable.update.serviceorder')),
         canDelete: computed(() => hasPermission('materiable.delete.serviceorder')),
-        canCreateFreeform: computed(() => hasPermission('freeformmaterial.create')),
+        canCreateFreeform,
         canUpdateFreeform: computed(() => hasPermission('freeformmaterial.update')),
         canDeleteFreeform: computed(() => hasPermission('freeformmaterial.delete')),
+        /** May put a line on at all: from the catalogue, typed by hand, or both. */
+        canBook: computed(() => canCreate.value || canCreateFreeform.value),
     }
 }
 

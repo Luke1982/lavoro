@@ -13,7 +13,9 @@
                 :done="ticket.status?.toLowerCase() === 'gesloten'" />
 
             <TaskInstancesWidget v-if="showTasks" compact :service-order-id="serviceOrderId" :instances="taskInstances"
-                :is-closed="isClosed" :type="type" :hidden-count="hiddenTaskCount" />
+                :is-closed="isClosed" :sent-to-administration="sentToAdministration" :type="type"
+                :hidden-count="hiddenTaskCount" :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+                :material-categories="materialCategories" :material-usage-units="materialUsageUnits" />
 
             <p v-if="isEmpty" class="text-sm text-gray-400 dark:text-slate-500">
                 Er staan geen keuringen, storingen of taken op deze werkbon.
@@ -34,7 +36,8 @@ import { hasPermission } from '@/Utilities/Utilities'
 /**
  * Alles wat er op deze werkbon gedaan moet worden, in één lijst: de keuringen,
  * de storingen en de taken. Een keuring en een storing hebben hun eigen pagina
- * waar het werk gebeurt; een taak vink je hier af.
+ * waar het werk gebeurt; een taak vink je hier af, en onder een taak boek je wat
+ * je ervoor gebruikte.
  */
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -43,7 +46,13 @@ const props = defineProps({
     taskInstances: { type: Array, default: () => [] },
     hiddenTaskCount: { type: Number, default: 0 },
     isClosed: { type: Boolean, default: false },
+    sentToAdministration: { type: Boolean, default: false },
     type: { type: String, default: null },
+    /** Wat er onder een taak te boeken valt. */
+    allMaterials: { type: Array, default: () => [] },
+    materialsUseAjax: { type: Boolean, default: false },
+    materialCategories: { type: Array, default: () => [] },
+    materialUsageUnits: { type: Array, default: () => [] },
 })
 
 const jobs = computed(() => hasPermission('servicejob.read') ? props.servicejobs : [])

@@ -2,14 +2,14 @@
     <div>
         <SectionHeader :icon="Package" title="Materialen"
             subtitle="Overzicht van gebruikte materialen voor deze bon." chapter="materials">
-            <template v-if="canSeeFinancials || (canCreate && !isClosed)" #actions>
+            <template v-if="canSeeFinancials || canAdd" #actions>
                 <button v-if="canSeeFinancials" type="button" @click="showFinancial = !showFinancial"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 p-1"
                     v-tooltip="showFinancial ? 'Verberg prijzen' : 'Toon prijzen'">
                     <EyeSlashIcon v-if="showFinancial" class="size-5" />
                     <EyeIcon v-else class="size-5" />
                 </button>
-                <button v-if="canCreate && !isClosed" type="button" @click="showAddForm = !showAddForm"
+                <button v-if="canAdd" type="button" @click="showAddForm = !showAddForm"
                     class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-lavoro-blue hover:bg-lavoro-blue/90 rounded-md transition-colors">
                     <PlusIcon class="size-4" />
                     <span class="hidden sm:inline">Materiaal toevoegen</span>
@@ -18,14 +18,10 @@
         </SectionHeader>
 
         <div v-auto-animate>
-            <MaterialPicker v-if="showAddForm && canCreate && !isClosed" :endpoint="base" :all-materials="allMaterials"
+            <MaterialPicker v-if="showAddForm && canAdd" :endpoint="base" :all-materials="allMaterials"
                 :materials-use-ajax="materialsUseAjax" :categories="categories" :usage-units="usageUnits"
-                :sent-to-administration="sentToAdministration" :show-unforseen="showUnforseen"
-                @added="showAddForm = false" />
+                :show-unforseen="showUnforseen" @added="showAddForm = false" />
         </div>
-
-        <FreeformMaterialForm v-if="canCreateFreeform && !isClosed && !sentToAdministration" :endpoint="base"
-            :show-unforseen="showUnforseen" />
 
         <!-- Sent-to-admin warning -->
         <div v-if="sentToAdministration"
@@ -229,7 +225,6 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import MaterialPicker from '@/Components/Materials/MaterialPicker.vue'
-import FreeformMaterialForm from '@/Components/Materials/FreeformMaterialForm.vue'
 import { useMaterialLines } from '@/Composables/useMaterialLines.js'
 
 const props = defineProps({
@@ -291,8 +286,7 @@ const props = defineProps({
 const {
     base,
     canSeeFinancials,
-    canCreate,
-    canCreateFreeform,
+    canBook,
     isForeign,
     canEditLine,
     canRemoveLine,
@@ -309,6 +303,7 @@ const showAddForm = ref(false)
 const showFinancial = ref(false)
 const showUnforseen = computed(() => props.type === 'installation' || props.type === 'mixed')
 const locked = computed(() => props.isClosed || props.sentToAdministration)
+const canAdd = computed(() => !locked.value && canBook.value)
 
 function getMaterialIcon(material) {
     return getIconByName(material.category?.icon ?? null)
