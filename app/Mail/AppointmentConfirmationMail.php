@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Domain\Planning\Clock;
 use App\Mail\Concerns\ShowsCompanyLogo;
 use App\Models\Company;
 use App\Models\Event;
@@ -31,6 +32,8 @@ class AppointmentConfirmationMail extends Mailable
                 'event' => $this->event,
                 'serviceOrder' => $this->serviceOrder,
                 'company' => $company,
+                'start' => Clock::toLocal($this->event->start),
+                'end' => Clock::toLocal($this->event->end),
                 ...$this->companyLogo(),
             ]);
     }

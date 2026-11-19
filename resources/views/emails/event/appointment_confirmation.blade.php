@@ -105,8 +105,8 @@
             <p>Beste {{ $serviceOrder->customer->contact_person ?? $serviceOrder->customer->name }},</p>
             <p>Hierbij bevestigen wij uw afspraak:</p>
             <p class="meta">
-                <span class="label">Datum:</span> {{ $event->start->format('d-m-Y') }}<br>
-                <span class="label">Tijd:</span> {{ $event->start->format('H:i') }} – {{ $event->end->format('H:i') }}<br>
+                <span class="label">Datum:</span> {{ $start->format('d-m-Y') }}<br>
+                <span class="label">Tijd:</span> {{ $start->format('H:i') }} – {{ $end->format('H:i') }}<br>
                 <span class="label">Werkbon:</span> #{{ $serviceOrder->id }}<br>
                 <span class="label">Klant:</span> {{ $serviceOrder->customer->name }}
             </p>
