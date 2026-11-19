@@ -27,22 +27,26 @@ class SendStandardEmailJob implements ShouldQueue
 
     public function handle(): void
     {
-        $event = Event::with(['serviceOrders.customer', 'customers'])->find($this->event_id);
+        $event = Event::withTrashed()->find($this->event_id);
         $standard_email = StandardEmail::with('standardAttachments')->find($this->standard_email_id);
 
         if (!$event || !$standard_email) {
             return;
         }
 
-        $to = StandardEmailRenderer::defaultRecipient($event);
+        $mail = StandardEmailRenderer::compose($standard_email, $event);
 
-        if (!$to) {
+        if (!$mail['to']) {
             return;
         }
 
-        $subject = StandardEmailRenderer::render($standard_email->subject, $event);
-        $body = StandardEmailRenderer::render($standard_email->body, $event);
-
-        StandardEmailSender::send($event, $standard_email, $to, $subject, $body, $this->trigger);
+        StandardEmailSender::send(
+            $event,
+            $standard_email,
+            $mail['to'],
+            $mail['subject'],
+            $mail['body'],
+            $this->trigger,
+        );
     }
 }

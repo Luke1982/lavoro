@@ -10,6 +10,7 @@ import planner from './storyboards/planner.json'
 import project from './storyboards/project.json'
 import projecten from './storyboards/projecten.json'
 import rooster from './storyboards/rooster.json'
+import standaardemails from './storyboards/standaardemails.json'
 import storing from './storyboards/storing.json'
 import storingen from './storyboards/storingen.json'
 import werkbon from './storyboards/werkbon.json'
@@ -20,7 +21,7 @@ import werkbonnen from './storyboards/werkbonnen.json'
  * read the same files: the assistant offers chapters from them and the audio
  * command speaks their lines, and neither may drift from what the screen plays.
  */
-export const TOURS = Object.fromEntries([planner, rooster, machines, activiteiten, storingen, storing, projecten, project, contracten, contract, werkbonnen, werkbon, checklists, macros, macro, kaart].map((tour) => [tour.id, tour]))
+export const TOURS = Object.fromEntries([planner, rooster, machines, activiteiten, storingen, storing, projecten, project, contracten, contract, werkbonnen, werkbon, checklists, macros, macro, standaardemails, kaart].map((tour) => [tour.id, tour]))
 
 export function tourById(id) {
     return TOURS[id] ?? null

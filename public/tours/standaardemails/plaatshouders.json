@@ -1,0 +1,52 @@
+{
+    "tour": "standaardemails",
+    "chapter": "plaatshouders",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "plaatshouders.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Een plaatshouder is een stukje dat Lavoro zelf invult. Bijvoorbeeld de naam van de klant. Of de datum van de afspraak. Zo krijgt elke klant zijn eigen mail.",
+            "hash": "6082a469c98585d7b5e9c37829b50d38c0643826",
+            "start": 0,
+            "end": 9.647
+        },
+        {
+            "text": "Klik op \"Plaatshouder invoegen\". Dan komt deze lijst. Kies er een uit. Hij komt op de plek waar je aan het typen was.",
+            "hash": "17005e3c344b47ededacd6aadfd883c888db086b",
+            "start": 10.647,
+            "end": 16.777
+        },
+        {
+            "text": "Er is van alles. Over de afspraak, zoals de datum, de tijd en de monteur. Over de klant, zoals de naam, het adres en het telefoonnummer. En over de werkbon.",
+            "hash": "3403333c7831c77fb8c82950e7315a2e6dcd4b5b",
+            "start": 17.777,
+            "end": 28.286
+        },
+        {
+            "text": "Hier is een voorbeeld. Een plaatshouder is een grijs blokje. Bij het versturen zet Lavoro er de echte gegevens in.",
+            "hash": "21882e55357cef410bb9a2586881575dd52d24b3",
+            "start": 29.286,
+            "end": 35.954
+        },
+        {
+            "text": "Hier staat \"Beste\", met daarachter de contactpersoon. Dan leest elke klant zijn eigen naam. En op de plek van de datum staat de echte datum.",
+            "hash": "67b508a9967f93a156275ad9d09d9c696976a8a1",
+            "start": 36.954,
+            "end": 45.578
+        },
+        {
+            "text": "Ook in het onderwerp kun je ze gebruiken. Daar is geen lijst. Neem de code over, zoals je hem hier ziet.",
+            "hash": "77440508e62495f19ad0e3a31cc6ba457475769d",
+            "start": 46.578,
+            "end": 52.103
+        },
+        {
+            "text": "Is iets niet ingevuld, zoals een telefoonnummer? Dan blijft die plek gewoon leeg. Lees je zin dus ook eens zonder.",
+            "hash": "d7a9a655d391bb2c1a6f58516df917e69185a9ea",
+            "start": 53.103,
+            "end": 59.433
+        }
+    ]
+}

@@ -102,7 +102,7 @@
         </div>
         <div class="container">
             <h1>Afspraakbevestiging</h1>
-            <p>Beste {{ $serviceOrder->customer->contact_person ?? $serviceOrder->customer->name }},</p>
+            <p>Beste {{ $serviceOrder->customer->contactname ?: $serviceOrder->customer->name }},</p>
             <p>Hierbij bevestigen wij uw afspraak:</p>
             <p class="meta">
                 <span class="label">Datum:</span> {{ $start->format('d-m-Y') }}<br>

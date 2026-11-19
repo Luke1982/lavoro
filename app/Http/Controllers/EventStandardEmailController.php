@@ -19,13 +19,9 @@ class EventStandardEmailController extends Controller
 
     public function preview(EventStandardEmailReadRequest $request, Event $event, StandardEmail $standard_email)
     {
-        $event->load(['serviceOrders.customer', 'customers']);
-
         return response()->json([
             'standard_email_id' => $standard_email->id,
-            'to' => StandardEmailRenderer::defaultRecipient($event),
-            'subject' => StandardEmailRenderer::render($standard_email->subject, $event),
-            'body' => StandardEmailRenderer::render($standard_email->body, $event),
+            ...StandardEmailRenderer::compose($standard_email, $event),
         ]);
     }
 

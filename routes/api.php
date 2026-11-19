@@ -46,8 +46,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('events/{event}/send-confirmation', [EventApiController::class, 'sendConfirmation']);
     Route::get('events/{event}/feedback', [EventApiController::class, 'feedback']);
     Route::get('events/{event}/standard-emails', [EventStandardEmailController::class, 'index']);
-    Route::get('events/{event}/standard-emails/{standard_email}/preview', [EventStandardEmailController::class, 'preview']);
-    Route::post('events/{event}/standard-emails/send', [EventStandardEmailController::class, 'send']);
+    Route::get('events/{event}/standard-emails/{standard_email}/preview', [EventStandardEmailController::class, 'preview'])
+        ->withTrashed();
+    Route::post('events/{event}/standard-emails/send', [EventStandardEmailController::class, 'send'])
+        ->withTrashed();
 
     Route::get('events/{event}/email-history', [EventStandardEmailController::class, 'history']);
     Route::get('events/{event}/execution', [EventExecutionController::class, 'show']);

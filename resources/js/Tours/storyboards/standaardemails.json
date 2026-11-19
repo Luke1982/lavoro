@@ -1,0 +1,240 @@
+{
+    "id": "standaardemails",
+    "title": "Rondleiding door de standaard e-mails",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/standard-emails",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "standardemail.manage"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "Standaard e-mails",
+            "summary": "Wat een standaard e-mail is, en waar je ze terugvindt.",
+            "steps": [
+                {
+                    "spot": "standaardemails.list",
+                    "title": "Eén keer schrijven",
+                    "text": "Een **standaard e-mail** schrijf je één keer. Daarna gebruik je hem steeds opnieuw, bijvoorbeeld om een afspraak te bevestigen. Lavoro vult zelf de datum, de tijd en de klant in.",
+                    "say": "Een standaard e-mail schrijf je één keer. Daarna gebruik je hem steeds opnieuw. Lavoro vult zelf de datum, de tijd en de klant in."
+                },
+                {
+                    "spot": "standaardemails.item",
+                    "skipIfMissing": true,
+                    "title": "Je e-mails",
+                    "text": "Hier staan je e-mails. Je ziet de **naam** en het **onderwerp**. De groene labels zeggen bij welk moment de mail hoort, en hoe hij dan gaat.",
+                    "say": "Hier staan je e-mails. Je ziet de naam en het onderwerp. De groene labels zeggen bij welk moment de mail hoort.",
+                    "marks": [
+                        {
+                            "spot": "standaardemails.item.triggers",
+                            "when": "groene labels"
+                        }
+                    ]
+                },
+                {
+                    "spot": "standaardemails.item.actions",
+                    "skipIfMissing": true,
+                    "title": "Bewerken en verwijderen",
+                    "text": "Met **Bewerken** pas je een e-mail aan. Met **Verwijderen** gooi je hem weg. Lavoro vraagt dat eerst nog aan je.",
+                    "say": "Met \"Bewerken\" pas je een e-mail aan. Met \"Verwijderen\" gooi je hem weg."
+                },
+                {
+                    "spot": "standaardemails.add",
+                    "title": "Een nieuwe e-mail",
+                    "text": "Met **Nieuwe standaard e-mail** begin je aan een nieuwe. Dat doet de rondleiding zo ook.",
+                    "say": "Met \"Nieuwe standaard e-mail\" begin je aan een nieuwe.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "standaardemails.add",
+                        "gesture": "click"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "schrijven",
+            "version": 1,
+            "title": "Een e-mail schrijven",
+            "summary": "De naam, het onderwerp en de tekst.",
+            "actions": [
+                "openCreate"
+            ],
+            "steps": [
+                {
+                    "spot": "standaardemails.name",
+                    "title": "Naam",
+                    "text": "De **naam** is alleen voor jou en je collega's. De klant ziet hem niet. Kies iets dat je snel terugvindt, zoals *Bevestiging afspraak*.",
+                    "say": "De naam is alleen voor jou. De klant ziet hem niet. Kies iets dat je snel terugvindt.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "standaardemails.name",
+                        "text": "Bevestiging afspraak"
+                    }
+                },
+                {
+                    "spot": "standaardemails.subject",
+                    "title": "Onderwerp",
+                    "text": "Het **onderwerp** ziet de klant als eerste in zijn mailbox. Houd het kort en duidelijk, zoals *Uw afspraak is bevestigd*.",
+                    "say": "Het onderwerp ziet de klant als eerste. Houd het kort en duidelijk.",
+                    "aid": {
+                        "type": "typing",
+                        "to": "standaardemails.subject",
+                        "text": "Uw afspraak is bevestigd"
+                    }
+                },
+                {
+                    "spot": "standaardemails.body",
+                    "title": "De tekst",
+                    "text": "Hier schrijf je de **tekst** van de mail. Gewoon zoals je een brief schrijft: een aanhef, wat je wilt zeggen, en een groet.",
+                    "say": "Hier schrijf je de tekst. Gewoon zoals je een brief schrijft."
+                },
+                {
+                    "spot": "standaardemails.toolbar",
+                    "title": "Vet, schuin en een lijstje",
+                    "text": "Met de knoppen bovenaan maak je tekst **vet** of *schuin*, of maak je een lijstje met puntjes. Selecteer eerst de tekst, en klik dan op de knop. Klik je nog een keer, dan gaat het er weer af.",
+                    "say": "Met deze knoppen maak je tekst vet of schuin. Of je maakt een lijstje. Selecteer eerst de tekst. Klik dan op de knop."
+                }
+            ]
+        },
+        {
+            "id": "plaatshouders",
+            "version": 1,
+            "title": "Plaatshouders",
+            "summary": "Stukjes die Lavoro zelf invult, zoals de klant en de datum.",
+            "actions": [
+                "openCreate"
+            ],
+            "steps": [
+                {
+                    "spot": "standaardemails.placeholders.button",
+                    "title": "Wat is een plaatshouder?",
+                    "text": "Een **plaatshouder** is een stukje in de tekst dat Lavoro zelf invult. Bijvoorbeeld de naam van de klant, of de datum van de afspraak. Dat hoef je dus nooit zelf te typen. En elke klant krijgt zo zijn eigen mail.",
+                    "say": "Een plaatshouder is een stukje dat Lavoro zelf invult. Bijvoorbeeld de naam van de klant. Of de datum van de afspraak. Zo krijgt elke klant zijn eigen mail."
+                },
+                {
+                    "spot": "standaardemails.placeholders.list",
+                    "action": "openPlaceholders",
+                    "title": "Een plaatshouder kiezen",
+                    "text": "Klik op **Plaatshouder invoegen...** en kies er een uit de lijst. Hij komt op de plek waar je aan het typen was. Je kunt ook twee accolades typen, **{{**. Dan komt dezelfde lijst. Typ daarna een stukje van de naam om te zoeken.",
+                    "say": "Klik op \"Plaatshouder invoegen\". Dan komt deze lijst. Kies er een uit. Hij komt op de plek waar je aan het typen was."
+                },
+                {
+                    "spot": "standaardemails.placeholders.list",
+                    "action": "openPlaceholders",
+                    "title": "Wat er allemaal is",
+                    "text": "Er zijn plaatshouders over de **afspraak**, zoals de datum, de tijd en de monteur. Over de **klant**, zoals de naam, het adres en het telefoonnummer. Over de **werkbon**. En je eigen **bedrijfsnaam**. Scroll door de lijst om ze allemaal te zien.",
+                    "say": "Er is van alles. Over de afspraak, zoals de datum, de tijd en de monteur. Over de klant, zoals de naam, het adres en het telefoonnummer. En over de werkbon."
+                },
+                {
+                    "spot": "standaardemails.body",
+                    "action": "showExample",
+                    "title": "Zo ziet het eruit",
+                    "text": "Hier is een voorbeeld. Een plaatshouder is een **grijs blokje** tussen dubbele accolades, zoals **{{customer_contact}}**. Bij het versturen zet Lavoro er de echte gegevens in. Dit voorbeeld wordt niet bewaard.",
+                    "say": "Hier is een voorbeeld. Een plaatshouder is een grijs blokje. Bij het versturen zet Lavoro er de echte gegevens in."
+                },
+                {
+                    "spot": "standaardemails.body",
+                    "action": "showExample",
+                    "title": "Wat de klant leest",
+                    "text": "Hier staat *Beste*, met daarachter het blokje voor de contactpersoon, **{{customer_contact}}**. De klant leest dan bijvoorbeeld *Beste Wim Scholten*. Op de plek van de datum staat de echte datum, en op de plek van de monteur de echte monteur.",
+                    "say": "Hier staat \"Beste\", met daarachter de contactpersoon. Dan leest elke klant zijn eigen naam. En op de plek van de datum staat de echte datum."
+                },
+                {
+                    "spot": "standaardemails.subject",
+                    "action": "showExample",
+                    "title": "Ook in het onderwerp",
+                    "text": "Plaatshouders werken ook in het **onderwerp**. Daar is geen lijst. Typ de code zoals hij in een grijs blokje staat, met de dubbele accolades erom, zoals hier **{{event_start_date}}**.",
+                    "say": "Ook in het onderwerp kun je ze gebruiken. Daar is geen lijst. Neem de code over, zoals je hem hier ziet."
+                },
+                {
+                    "spot": "standaardemails.body",
+                    "action": "showExample",
+                    "title": "Is iets niet ingevuld?",
+                    "text": "Heeft de klant geen telefoonnummer, of de afspraak geen omschrijving? Dan blijft die plek gewoon **leeg**. Lees je zin daarom ook eens zonder de plaatshouder. Klopt hij dan nog?",
+                    "say": "Is iets niet ingevuld, zoals een telefoonnummer? Dan blijft die plek gewoon leeg. Lees je zin dus ook eens zonder."
+                }
+            ]
+        },
+        {
+            "id": "versturen",
+            "version": 1,
+            "title": "Vanzelf versturen",
+            "summary": "Wanneer de mail gaat, of je hem eerst ziet, en bijlagen.",
+            "actions": [
+                "openCreate",
+                "showExample"
+            ],
+            "steps": [
+                {
+                    "spot": "standaardemails.triggers.add",
+                    "title": "Trigger toevoegen",
+                    "text": "Met **Trigger toevoegen** kies je wanneer de mail vanzelf gaat. Zonder trigger gaat hij nooit vanzelf. Dan verstuur je hem met de hand, vanaf een afspraak.",
+                    "say": "Met \"Trigger toevoegen\" kies je wanneer de mail vanzelf gaat. Zonder trigger verstuur je hem alleen met de hand."
+                },
+                {
+                    "spot": "standaardemails.trigger.moment",
+                    "title": "Het moment",
+                    "text": "Kies eerst het **moment**: **Afspraak aangemaakt**, **Afspraak gewijzigd** of **Afspraak verwijderd**. Met *Afspraak aangemaakt* gaat de bevestiging zodra je een afspraak inplant.",
+                    "say": "Kies eerst het moment. Bijvoorbeeld \"Afspraak aangemaakt\". Dan gaat de mail zodra je een afspraak inplant."
+                },
+                {
+                    "spot": "standaardemails.trigger.mode",
+                    "title": "Hoe hij gaat",
+                    "text": "Kies dan **hoe** hij gaat. **Automatisch versturen**: hij gaat meteen, je merkt er niets van. **Bevestigen voor verzenden**: de planner laat je de mail eerst zien, en je klikt zelf op **Versturen**. **Bewerken voor verzenden**: je ziet de mail eerst, en kunt hem nog aanpassen.",
+                    "say": "Kies dan hoe hij gaat. \"Automatisch versturen\" gaat meteen. Bij \"Bevestigen voor verzenden\" zie je de mail eerst. Bij \"Bewerken voor verzenden\" kun je hem ook nog aanpassen."
+                },
+                {
+                    "spot": "standaardemails.trigger",
+                    "title": "Naar wie?",
+                    "text": "De mail gaat naar het **e-mailadres van de klant** van de afspraak. Heeft de klant geen e-mailadres, dan gaat hij niet vanzelf. Bij **Bewerken voor verzenden** vul je dan zelf een adres in.",
+                    "say": "De mail gaat naar het e-mailadres van de klant. Heeft de klant er geen? Dan gaat hij niet vanzelf."
+                },
+                {
+                    "spot": "standaardemails.trigger.remove",
+                    "title": "Meer of minder",
+                    "text": "Met het **kruisje** haal je een trigger weer weg. Je mag er ook meer toevoegen, bijvoorbeeld één bij aanmaken en één bij wijzigen.",
+                    "say": "Met het kruisje haal je een trigger weer weg. Je mag er ook meer toevoegen."
+                },
+                {
+                    "spot": "standaardemails.attachments",
+                    "title": "Bijlagen",
+                    "text": "Moet er altijd een bestand mee, zoals je algemene voorwaarden? Kies het bij **Standaard bijlagen**. Die bestanden zet je klaar onder Communicatie, bij **Standaard bijlagen**.",
+                    "say": "Moet er altijd een bestand mee? Zoals je voorwaarden? Kies het dan hier."
+                },
+                {
+                    "spot": "standaardemails.save",
+                    "title": "Opslaan",
+                    "text": "Met **Opslaan** bewaar je de e-mail. Mist er iets, dan staat in rood wat er mist. De rondleiding slaat niets op.",
+                    "say": "Met \"Opslaan\" bewaar je de e-mail. Mist er iets? Dan zie je dat in rood."
+                }
+            ]
+        },
+        {
+            "id": "met-de-hand",
+            "version": 1,
+            "title": "Met de hand versturen",
+            "summary": "Een standaard e-mail versturen vanaf een afspraak.",
+            "steps": [
+                {
+                    "title": "Vanaf een afspraak",
+                    "text": "Open een afspraak in de **planner**. Onderaan staat het kopje **E-mail**. Kies daar een standaard e-mail.",
+                    "say": "Open een afspraak in de planner. Onderaan staat het kopje \"E-mail\". Kies daar een standaard e-mail."
+                },
+                {
+                    "title": "Eerst kijken, of meteen weg",
+                    "text": "Met het envelopje, **Bewerken en verzenden**, zie je de mail eerst, met alles al ingevuld. Je kunt hem dan nog aanpassen, en daarna versturen. Met het pijltje, **Direct verzenden**, gaat hij meteen weg.",
+                    "say": "Met het envelopje zie je de mail eerst. Dan kun je hem nog aanpassen. Met het pijltje gaat hij meteen weg."
+                },
+                {
+                    "title": "Wat er al verstuurd is",
+                    "text": "Daaronder zie je welke mails er al zijn verstuurd, en naar wie. Met **Opnieuw versturen** stuur je hem nog een keer.",
+                    "say": "Daaronder zie je welke mails er al zijn verstuurd. Met \"Opnieuw versturen\" stuur je hem nog een keer."
+                }
+            ]
+        }
+    ]
+}

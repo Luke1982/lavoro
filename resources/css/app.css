@@ -461,6 +461,11 @@
     margin-block: 0;
 }
 
+/* Een plaatshouder in de editor is een grijs blokje, zodat je ziet dat Lavoro dat stuk zelf invult. */
+.ProseMirror .standard-email-placeholder {
+    @apply rounded bg-gray-200 px-1 py-0.5 text-gray-700 dark:bg-slate-600 dark:text-slate-100;
+}
+
 .rich-text h1,
 .rich-text h2,
 .rich-text h3 {
