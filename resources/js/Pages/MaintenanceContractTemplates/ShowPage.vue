@@ -31,7 +31,21 @@
                 :error="form.errors.duration_months" :readonly="!canUpdate"
                 @update="() => patch('duration_months')" @revert="form.clearErrors('duration_months')" />
             <template v-if="canSeeFinancials">
-                <EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
+                <div>
+                    <EditableTextField v-model="form.price_formula_id" type="combobox" label="Prijsformule"
+                        :options="priceFormulas" placeholder="Geen formule, vaste prijs"
+                        :error="form.errors.price_formula_id" :readonly="!canUpdate"
+                        @update="() => patch('price_formula_id')" @revert="form.clearErrors('price_formula_id')" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                        <template v-if="hasFormula">
+                            Een contract van dit sjabloon krijgt de nieuwste versie van deze formule.
+                            <Link v-if="hasPermission('priceformula.read')" :href="`/priceformulas/${form.price_formula_id}`"
+                                class="underline">Formule openen</Link>
+                        </template>
+                        <template v-else>Met een formule wordt de prijs berekend uit de machines op het contract.</template>
+                    </p>
+                </div>
+                <EditableTextField v-if="!hasFormula" v-model="form.price" type="input" inputType="currency" label="Prijs"
                     placeholder="Geen prijs" clearable
                     :error="form.errors.price" :readonly="!canUpdate"
                     @update="() => patch('price')" @revert="form.clearErrors('price')" />
@@ -113,7 +127,11 @@ import {
 const props = defineProps({
     template: { type: Object, required: true },
     contractIntervalOptions: { type: Array, default: () => [] },
+    priceFormulas: { type: Array, default: () => [] },
 })
+
+/** With a formula, the formula makes the price; the fixed price field would only mislead. */
+const hasFormula = computed(() => Boolean(form.price_formula_id))
 
 const canUpdate = computed(() => hasPermission('maintenancecontracttemplate.update'))
 const canSeeFinancials = computed(() => hasPermission('maintenancecontract.see_financials'))
@@ -129,6 +147,7 @@ const form = useForm({
     price: props.template.price,
     price_interval: props.template.price_interval,
     price_interval_days: props.template.price_interval_days,
+    price_formula_id: props.template.price_formula_id,
     manage_frequency_per_asset: props.template.manage_frequency_per_asset,
     frequency: props.template.frequency,
     frequency_days: props.template.frequency_days,

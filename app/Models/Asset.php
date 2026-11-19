@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\Contracts\DetachContractAssetAction;
 use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
@@ -64,6 +65,25 @@ class Asset extends Model
      */
     protected static function booted(): void
     {
+        /**
+         * Taken off its contracts first, the way the contract screen does it, so the
+         * timeline says so and a contract priced by a formula reprices. The database
+         * would drop the link by itself, but without a word.
+         */
+        static::deleting(function (Asset $asset) {
+            DB::table('assetables')
+                ->where('asset_id', $asset->id)
+                ->where('assetable_type', MaintenanceContract::class)
+                ->get(['id', 'assetable_id'])
+                ->each(function ($pivot) {
+                    $contract = MaintenanceContract::find($pivot->assetable_id);
+
+                    if ($contract) {
+                        app(DetachContractAssetAction::class)->execute($contract, $pivot->id);
+                    }
+                });
+        });
+
         static::saving(function (Asset $asset) {
             if (($asset->customer_id === null) === ($asset->parent_asset_id === null)) {
                 throw new DomainException(

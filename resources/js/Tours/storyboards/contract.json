@@ -7,7 +7,7 @@
     "chapters": [
         {
             "id": "contract",
-            "version": 1,
+            "version": 2,
             "title": "Het contract",
             "summary": "De status, de gegevens, een andere klant en de prijs.",
             "steps": [
@@ -64,7 +64,7 @@
                         ]
                     },
                     "title": "Prijs",
-                    "text": "Hier staan de **prijs** en het **prijsinterval**: hoe vaak je die prijs rekent. Niet iedereen ziet ze. Daarvoor is het recht nodig om de financiële gegevens van contracten te zien.",
+                    "text": "Hier staan de **prijs** en het **prijsinterval**: hoe vaak je die prijs rekent. Niet iedereen ziet ze. Daarvoor is het recht nodig om de financiële gegevens van contracten te zien. Rekent een **prijsformule** de prijs uit, dan typ je hem hier niet zelf; daarover gaat het hoofdstuk Prijsformule.",
                     "say": "Hier staan de prijs en hoe vaak je die rekent. Niet iedereen ziet die. Daar is een apart recht voor.",
                     "marks": [
                         {
@@ -72,6 +72,77 @@
                             "when": "hoe vaak"
                         }
                     ]
+                }
+            ]
+        },
+        {
+            "id": "prijsformule",
+            "version": 1,
+            "title": "Prijsformule",
+            "summary": "De prijs laten berekenen met een formule: een formule kiezen, versies, invoer, en wat er gebeurt als de machines veranderen.",
+            "requires": {
+                "permissions": [
+                    "maintenancecontract.see_financials"
+                ]
+            },
+            "actions": [
+                "showExampleFormula"
+            ],
+            "steps": [
+                {
+                    "spot": "contract.formula",
+                    "title": "Prijsformule",
+                    "text": "In dit blok laat je de prijs berekenen met een formule uit **Prijsformules**, op basis van de machines op dit contract. Heeft dit contract nog geen formule, dan laat de rondleiding hier een voorbeeld zien; dat wordt niet opgeslagen.",
+                    "say": "In het blok \"prijsformule\" laat je de prijs berekenen met een formule, op basis van de machines op dit contract."
+                },
+                {
+                    "spot": "contract.formula.pick",
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.update"
+                        ]
+                    },
+                    "title": "Een formule kiezen",
+                    "text": "Kies hier een **formule**. Het contract gebruikt dan de nieuwste versie, en de prijs wordt meteen berekend. Klik je de gekozen formule nog eens aan, dan haal je hem eraf: de prijs blijft staan, en die vul je voortaan weer zelf in.",
+                    "say": "Kies hier een formule, en de prijs wordt meteen berekend. Klik je de gekozen formule nog eens aan, dan haal je hem eraf, en vul je de prijs weer zelf in."
+                },
+                {
+                    "spot": "contract.formula.version",
+                    "title": "Versie",
+                    "text": "Hier zie je welke **versie** van de formule dit contract gebruikt. Met **Bekijk de berekening** open je de formule, uitgerekend voor precies dit contract: bij elk blok zie je wat eruit komt, bijvoorbeeld hoeveel machines er door een filter gaan.",
+                    "say": "Hier zie je welke versie van de formule dit contract gebruikt. Met \"bekijk de berekening\" zie je de formule, uitgerekend voor dit contract."
+                },
+                {
+                    "spot": "contract.formula.newer",
+                    "skipIfMissing": true,
+                    "title": "Een nieuwere versie",
+                    "text": "Is de formule sindsdien gewijzigd, dan staat hier dat er een **nieuwere versie** is en wat de prijs daarmee wordt, bijvoorbeeld €255 in plaats van €245. Het contract houdt zijn prijs tot je op **Bijwerken** klikt. De nieuwe prijs komt op de tijdlijn.",
+                    "say": "Is de formule sindsdien gewijzigd, dan zie je hier wat de prijs met de nieuwe versie wordt. Het contract houdt zijn prijs, tot je op \"bijwerken\" klikt."
+                },
+                {
+                    "spot": "contract.formula.inputs",
+                    "skipIfMissing": true,
+                    "title": "Invoer voor dit contract",
+                    "text": "Vraagt de formule om **invoer per contract**, zoals het aantal extra bezoeken of een afgesproken korting, dan vul je die hier in. Laat je een veld leeg, dan geldt de standaardwaarde. Na **Opslaan en opnieuw berekenen** staat de nieuwe prijs erboven en op de tijdlijn.",
+                    "say": "Vraagt de formule om invoer, zoals het aantal extra bezoeken, dan vul je die hier in. Daarna wordt de prijs opnieuw berekend."
+                },
+                {
+                    "spot": "contract.formula.result",
+                    "title": "Wat het kost",
+                    "text": "Hier staat wat dit contract volgens de formule kost: de prijs **per periode** en de **eenmalige kosten**. Rekent de formule een machine niet mee, bijvoorbeeld omdat er voor dat type geen prijs is, dan staat die machine hier in het geel: daarvoor betaalt de klant niets.",
+                    "say": "Hier staat wat het contract kost, per periode en eenmalig. Rekent de formule een machine niet mee, dan staat die machine in het geel."
+                },
+                {
+                    "spot": "contract.price",
+                    "title": "De prijs wordt berekend",
+                    "text": "Met een formule wordt het veld **Prijs** bovenaan door de formule ingevuld; zelf aanpassen kan dan niet. De eenmalige kosten staan eronder.",
+                    "say": "Met een formule wordt het veld \"prijs\" bovenaan door de formule ingevuld. Zelf aanpassen kan dan niet."
+                },
+                {
+                    "spot": "contract.machines",
+                    "title": "Machines erbij of eraf",
+                    "text": "Koppel je een machine aan het contract of haal je er een af, verhuist er een naar een ander adres of krijgt een machine een ander model, dan wordt de prijs **opnieuw** berekend. De melding zegt van welke naar welke prijs, bijvoorbeeld van €400 naar €450, en de tijdlijn onthoudt het. Een geannuleerd of verlopen contract houdt de prijs waarmee het is geëindigd.",
+                    "say": "Koppel je een machine aan het contract, of haal je er een af, dan wordt de prijs opnieuw berekend. De melding zegt van welke prijs naar welke prijs het gaat."
                 }
             ]
         },

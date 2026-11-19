@@ -212,6 +212,8 @@ const durationLabel = template => {
 }
 
 const priceLabel = template => {
+    if (template.has_price_formula) return `${template.price_formula?.name ?? 'Prijsformule'} / ${template.price_interval ?? 'onbepaald'}`
+
     const price = template.price ?? null
 
     return price === null ? '—' : `${nlCurrency(price)} / ${template.price_interval ?? 'onbepaald'}`

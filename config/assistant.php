@@ -2,6 +2,9 @@
 
 use App\Domain\Assistant\Providers\AnthropicModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Assistant\Transcription\ElevenLabsTranscriber;
+use App\Domain\Assistant\Transcription\FakeTranscriber;
+use App\Domain\Assistant\Transcription\OpenAiTranscriber;
 use App\Domain\Tools\Read\AskWhichOneTool;
 use App\Domain\Tools\Read\FindAppointmentTool;
 use App\Domain\Tools\Read\FindAssetTool;
@@ -17,14 +20,17 @@ use App\Domain\Tools\Read\OfferTourTool;
 use App\Domain\Tools\Read\ReadDocumentationTool;
 use App\Domain\Tools\Read\ReadFileTool;
 use App\Domain\Tools\Read\ReadManualTool;
+use App\Domain\Tools\Read\ReadPriceFormulasTool;
 use App\Domain\Tools\Read\ReportFindingsTool;
 use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
 use App\Domain\Tools\Read\SummarizeProjectTool;
+use App\Domain\Tools\Read\TryPriceFormulaTool;
 use App\Domain\Tools\Read\ViewImagesTool;
 use App\Domain\Tools\Write\AddServiceOrderTaskTool;
+use App\Domain\Tools\Write\ApplyPriceFormulaTool;
 use App\Domain\Tools\Write\CreateAssetTool;
 use App\Domain\Tools\Write\CreateCustomerTool;
 use App\Domain\Tools\Write\CreateEventTool;
@@ -35,6 +41,7 @@ use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
 use App\Domain\Tools\Write\RunMacroTool;
 use App\Domain\Tools\Write\SaveDocumentTool;
+use App\Domain\Tools\Write\SavePriceFormulaTool;
 
 return [
 
@@ -88,6 +95,10 @@ return [
         OfferTourTool::class,
         FindProjectTool::class,
         SummarizeProjectTool::class,
+        ReadPriceFormulasTool::class,
+        TryPriceFormulaTool::class,
+        SavePriceFormulaTool::class,
+        ApplyPriceFormulaTool::class,
     ],
 
     /*
@@ -437,5 +448,42 @@ return [
     */
 
     'eur_per_usd' => (float) env('ASSISTANT_EUR_PER_USD', 0.92),
+
+    /*
+    |---------------------------------------------------------------------------
+    | Inspreken
+    |---------------------------------------------------------------------------
+    |
+    | A spoken message or an uploaded recording is written out by one of these
+    | before the assistant sees it. What it costs is booked against the same
+    | allowance as the questions themselves, by the minute: usd_per_minute is
+    | the supplier's rate, to be checked against their bill like the token rates
+    | above.
+    |
+    */
+
+    'transcription' => [
+        'driver' => env('ASSISTANT_TRANSCRIPTION_DRIVER', 'elevenlabs'),
+        'max_kilobytes' => (int) env('ASSISTANT_TRANSCRIPTION_MAX_KB', 25_600),
+
+        'drivers' => [
+            'elevenlabs' => [
+                'class' => ElevenLabsTranscriber::class,
+                'key' => env('ELEVENLABS_API_KEY'),
+                'model' => env('ASSISTANT_TRANSCRIPTION_MODEL', 'scribe_v1'),
+                'usd_per_minute' => 0.0067,
+            ],
+            'openai' => [
+                'class' => OpenAiTranscriber::class,
+                'key' => env('OPENAI_API_KEY'),
+                'model' => 'gpt-4o-mini-transcribe',
+                'usd_per_minute' => 0.003,
+            ],
+            'fake' => [
+                'class' => FakeTranscriber::class,
+                'usd_per_minute' => 0,
+            ],
+        ],
+    ],
 
 ];

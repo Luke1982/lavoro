@@ -607,6 +607,7 @@ class TenancyDoctor extends Command
 
         $this->checkInvoiceSentFolder();
         $this->checkRoutePlanner();
+        $this->checkTranscription();
         $this->checkWebPush();
         $this->checkFirebase();
 
@@ -715,6 +716,28 @@ class TenancyDoctor extends Command
                 . ' account.heigit.org'
             ),
             default => $this->pass('route planner at ' . $url),
+        };
+    }
+
+    /**
+     * Speaking to the assistant: a driver that exists, a key for it, and ffprobe
+     * to measure what a recording costs. Whether the key may transcribe at all
+     * only the supplier knows; a refusal lands in the log as a warning.
+     */
+    private function checkTranscription(): void
+    {
+        $driver = (string) config('assistant.transcription.driver');
+        $config = config('assistant.transcription.drivers.' . $driver);
+        $ffprobe = (string) config('tours.ffprobe');
+
+        match (true) {
+            !is_array($config) => $this->bad('ASSISTANT_TRANSCRIPTION_DRIVER "' . $driver . '" does not exist --'
+                . ' every recording sent to the assistant is refused'),
+            $driver !== 'fake' && blank($config['key'] ?? null) => $this->bad('no key for transcription with '
+                . $driver . ' -- the Inspreken button refuses every recording'),
+            !is_executable($ffprobe) => $this->bad('ffprobe not found at ' . $ffprobe . ' -- recordings are'
+                . ' booked at nothing and tour audio cannot be made'),
+            default => $this->pass('transcription with ' . $driver),
         };
     }
 

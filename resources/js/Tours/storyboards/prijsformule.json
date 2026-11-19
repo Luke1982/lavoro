@@ -1,0 +1,917 @@
+{
+    "id": "prijsformule",
+    "title": "Rondleiding door een prijsformule",
+    "intro": "Kies wat je wilt zien. De rondleiding bouwt voorbeelden op het canvas en rekent ze voor je uit. Daarna staat je eigen formule er weer precies zo, en er wordt niets opgeslagen.",
+    "autoStart": true,
+    "assistant": false,
+    "chapters": [
+        {
+            "id": "scherm",
+            "version": 1,
+            "title": "Het scherm",
+            "summary": "Naam en versie, de blokken, het canvas, het paneel rechts en wat de formule kost.",
+            "actions": [
+                "keepCanvas",
+                "stageBasis"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.canvas",
+                    "title": "Een prijsformule",
+                    "text": "Een **prijsformule** rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Je bouwt hem met **blokken** die je met **lijnen** verbindt. Op het canvas staat nu de eenvoudigste formule: tel de machines en reken €50 per machine. Heeft een klant 8 machines, dan kost het contract 8 × €50 = €400. Je eigen formule komt straks terug; er wordt niets opgeslagen.",
+                    "say": "Een prijsformule rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Je bouwt hem met blokken en lijnen. Op het canvas staat nu de eenvoudigste formule: tel de machines, en reken vijftig euro per machine. Heeft een klant acht machines, dan kost het contract acht keer vijftig euro. Dat is vierhonderd euro.",
+                    "aid": {
+                        "type": "sweep",
+                        "to": "formula.canvas"
+                    }
+                },
+                {
+                    "spot": "formula.header",
+                    "title": "Naam en omschrijving",
+                    "text": "Bovenaan staan de **naam** en de **omschrijving**. Klik erop om ze te wijzigen. Kies een naam die een collega meteen begrijpt, zoals 'Airco jaarcontract': die naam kies je straks in de lijst op een contract of een sjabloon.",
+                    "say": "Bovenaan staan de naam en de omschrijving. Kies een naam die een collega meteen begrijpt, zoals \"airco jaarcontract\". Die naam kies je straks op een contract."
+                },
+                {
+                    "spot": "formula.version",
+                    "title": "De versie",
+                    "text": "Rechts staat de **versie** die je nu bewerkt, en wanneer en door wie die is opgeslagen. Daaronder lees je of er al contracten zijn die deze versie gebruiken. Dat bepaalt wat **Opslaan** doet: zonder contracten wordt de versie gewoon bijgewerkt, met contracten komt er een nieuwe versie. Daarover gaat het hoofdstuk 'Opslaan en versies'.",
+                    "say": "Rechts staat de versie die je nu bewerkt. Daaronder lees je of er al contracten zijn die deze versie gebruiken. Dat bepaalt wat \"opslaan\" doet. Daarover gaat een apart hoofdstuk."
+                },
+                {
+                    "spot": "formula.palette",
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "De blokken",
+                    "text": "Links staan alle **blokken**, in vijf groepen met elk een eigen kleur. **Bronnen**: hier begint het, bijvoorbeeld met de machines. **Filters**: machines opsplitsen, zoals airco's apart van warmtepompen. **Tellen**: van machines een getal maken, zoals '6 airco's'. **Rekenen**: van dat getal een bedrag maken, zoals 6 × €50. **Resultaat**: de prijs die op het contract komt. Sleep een blok naar het canvas, of klik erop.",
+                    "say": "Links staan de blokken, in vijf groepen. Bij \"bronnen\" begint het, bijvoorbeeld met de machines. Met \"filters\" splits je machines op, zoals airco's apart van warmtepompen. Met \"tellen\" maak je van machines een getal. Met \"rekenen\" maak je van dat getal een bedrag. En \"resultaat\" is de prijs die op het contract komt.",
+                    "marks": [
+                        {
+                            "spot": "formula.palette.source",
+                            "when": "bronnen"
+                        },
+                        {
+                            "spot": "formula.palette.filter",
+                            "when": "filters"
+                        },
+                        {
+                            "spot": "formula.palette.count",
+                            "when": "tellen"
+                        },
+                        {
+                            "spot": "formula.palette.math",
+                            "when": "rekenen"
+                        },
+                        {
+                            "spot": "formula.palette.result",
+                            "when": "resultaat"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.controls",
+                    "title": "Zoomen en schuiven",
+                    "text": "In- en uitzoomen doe je met het scrollwiel, of met **+** en **−** linksonder. Het vierkantje daaronder zet de hele formule in beeld. Sleep de lege achtergrond om te schuiven. Rechtsonder staat een **kaartje** van de hele formule; ook daarop kun je klikken en slepen.",
+                    "say": "Zoomen doe je met het scrollwiel, of met de knoppen plus en min linksonder. Schuiven doe je door de lege achtergrond te slepen. Rechtsonder staat een kaartje van de hele formule.",
+                    "marks": [
+                        {
+                            "spot": "formula.minimap",
+                            "when": "kaartje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.panel",
+                    "title": "Het paneel rechts",
+                    "text": "Rechts staan **twee tabbladen**. Op **Blok** stel je het blok in dat je hebt aangeklikt, bijvoorbeeld het bedrag per machine. Op **Proberen** reken je de formule uit voor een voorbeeldklant of voor een bestaand contract, zodat je meteen ziet wat eruit komt.",
+                    "say": "Rechts staan twee tabbladen. Op \"blok\" stel je het blok in dat je hebt aangeklikt, bijvoorbeeld het bedrag per machine. Op \"proberen\" reken je de formule uit voor een voorbeeldklant, of voor een bestaand contract.",
+                    "marks": [
+                        {
+                            "spot": "formula.panel.tabs",
+                            "when": "twee tabbladen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.totals",
+                    "title": "Wat het kost",
+                    "text": "Linksboven op het canvas staat altijd wat de formule op dit moment oplevert: de **prijs per periode** en de **eenmalige kosten**. Verander je iets, bijvoorbeeld €50 in €55 per machine, dan wordt alles meteen opnieuw uitgerekend: 8 machines kosten dan €440.",
+                    "say": "Linksboven staat altijd wat de formule nu oplevert: de prijs per periode, en de eenmalige kosten. Verander je iets, dan wordt alles meteen opnieuw uitgerekend."
+                },
+                {
+                    "spot": "formula.contracts",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.see_financials"
+                        ]
+                    },
+                    "title": "Contracten op deze formule",
+                    "text": "Onder het canvas staan de **contracten** die deze formule gebruiken, met hun versie en hun prijs. Daar zet je ze ook over op een nieuwere versie.",
+                    "say": "Onder het canvas staan de contracten die deze formule gebruiken. Daar zet je ze ook over op een nieuwere versie."
+                }
+            ]
+        },
+        {
+            "id": "lijnen",
+            "version": 1,
+            "title": "Blokken en lijnen",
+            "summary": "Ingangen en uitgangen, blauwe en grijze lijnen, een lijn trekken, en wat niet kan.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.machines",
+                    "action": "stageUnwired",
+                    "title": "Een blok",
+                    "text": "Elk blok heeft bovenaan een gekleurde balk met zijn naam; de kleur laat zien uit welke groep het komt. **Ingangen** zitten links, **uitgangen** rechts. Wat links binnenkomt, verwerkt het blok, en de uitkomst gaat er rechts uit. Het blok **Aantal** krijgt bijvoorbeeld links machines binnen en geeft rechts een getal: hoeveel machines het zijn.",
+                    "say": "Elk blok heeft een gekleurde balk met zijn naam. Links zitten de ingangen, rechts de uitgangen. Het blok \"aantal\" krijgt bijvoorbeeld links machines binnen, en geeft rechts een getal: hoeveel machines het zijn."
+                },
+                {
+                    "spot": "formula.handle.machinesOut",
+                    "action": "stageUnwired",
+                    "title": "Blauw en grijs",
+                    "text": "Er lopen twee soorten dingen over de lijnen. Een **blauw rondje** is voor **machines**: een groep machines, zoals 'alle airco's van deze klant'. Een **grijs blokje** is voor een **getal**: een aantal, zoals 6, of een bedrag, zoals €300.",
+                    "say": "Er lopen twee soorten dingen over de lijnen. Een blauw rondje is voor machines, zoals alle airco's van een klant. Een grijs blokje is voor een getal: een aantal, zoals zes, of een bedrag, zoals driehonderd euro.",
+                    "marks": [
+                        {
+                            "spot": "formula.handle.countOut",
+                            "when": "grijs blokje"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.count",
+                    "action": [
+                        "stageUnwired",
+                        "wireLater"
+                    ],
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "Een lijn trekken",
+                    "text": "Je verbindt twee blokken door van een **uitgang** naar een **ingang** te slepen. Kijk: de machines gaan nu naar het blok **Aantal**, en dat telt ze. Een lijn weghalen? Klik erop en druk op Backspace.",
+                    "say": "Je verbindt twee blokken door van een uitgang naar een ingang te slepen. Kijk: de machines gaan nu naar het blok \"aantal\", en dat telt ze.",
+                    "aid": {
+                        "type": "ghost",
+                        "from": "formula.handle.machinesOut",
+                        "to": "formula.handle.countIn",
+                        "land": "same"
+                    }
+                },
+                {
+                    "spot": "formula.node.count",
+                    "action": "stageBasis",
+                    "title": "Waarden op de blokken",
+                    "text": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt, en bij elke ingang wat erin gaat. Heeft de voorbeeldklant 8 machines, dan staat er bij **Aantal** een 8, en bij **Prijs per stuk** 8 × €50 = €400. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
+                    "say": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt. Heeft de voorbeeldklant acht machines, dan staat er bij \"aantal\" het getal acht. Bij \"prijs per stuk\" staat dan vierhonderd euro, want acht keer vijftig euro is vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.price",
+                            "when": "elk blok"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.canvas",
+                    "action": "stageBasis",
+                    "title": "Wat niet kan",
+                    "text": "Een lijn verbindt alleen dingen van dezelfde soort: machines met machines, en getallen met getallen. Een lijn die in een kring terugloopt naar het blok waar hij begon, kan ook niet. Komen er **meerdere lijnen op één ingang**, dan worden ze samengevoegd: getallen worden opgeteld (€300 plus €60 is €360) en groepen machines worden bij elkaar gevoegd.",
+                    "say": "Een lijn verbindt alleen dingen van dezelfde soort: machines met machines, en getallen met getallen. Komen er meerdere lijnen op één ingang, dan worden getallen opgeteld. Komt er driehonderd euro binnen en zestig euro, dan wordt dat driehonderdzestig euro.",
+                    "marks": [
+                        {
+                            "spot": "formula.edges.machines",
+                            "when": "machines met machines"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.count",
+                    "action": [
+                        "stageBasis",
+                        "selectCount"
+                    ],
+                    "title": "Aanklikken",
+                    "text": "Klik op een blok, en rechts verschijnen zijn **instellingen**. Bovenaan geef je het een **eigen naam**, zoals 'Airco per stuk', zodat je later nog weet waar het voor is. Onderaan staat **Blok verwijderen**; met Backspace kan het ook.",
+                    "say": "Klik op een blok, en rechts verschijnen zijn instellingen. Bovenaan geef je het een eigen naam, zoals \"airco per stuk\". Onderaan haal je het blok weg.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.title",
+                            "when": "eigen naam"
+                        },
+                        {
+                            "spot": "formula.settings.remove",
+                            "when": "weg"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.palette.tiers",
+                    "action": "stageBasis",
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "Een blok toevoegen",
+                    "text": "Sleep een blok uit de lijst links naar de plek op het canvas waar je het wilt hebben. Klik je er alleen op, dan komt het in het midden van je scherm te staan, onder de blokken die daar al staan.",
+                    "say": "Een blok toevoegen doe je door het uit de lijst naar het canvas te slepen. Klik je er alleen op, dan komt het in het midden te staan.",
+                    "aid": {
+                        "type": "ghost",
+                        "from": "formula.palette.tiers",
+                        "to": "formula.canvas",
+                        "land": "same"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "bronnen",
+            "version": 1,
+            "title": "Bronnen",
+            "summary": "Waar een formule begint: de machines, een vast bedrag, invoer per contract en gegevens van het contract.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.machines",
+                    "action": [
+                        "stageBasis",
+                        "selectMachines"
+                    ],
+                    "title": "Machines",
+                    "text": "Het blok **Machines** geeft alle machines die op het contract staan. Bijna elke formule begint hier. Staan er 8 machines op het contract, dan komen er hier 8 uit. Bij het proberen zijn het de machines van de voorbeeldklant, of van het contract dat je kiest.",
+                    "say": "Het blok \"machines\" geeft alle machines die op het contract staan. Bijna elke formule begint hier. Staan er acht machines op het contract, dan komen er hier acht uit."
+                },
+                {
+                    "spot": "formula.node.startup",
+                    "action": [
+                        "stageOneTime",
+                        "selectStartup"
+                    ],
+                    "title": "Bedrag of getal",
+                    "text": "**Bedrag of getal** is één vast getal dat je zelf invult. Hier is het €150 aan **opstartkosten**, die elke klant één keer betaalt, hoeveel machines er ook staan. Je kunt het ook gebruiken voor een vaste basisprijs per jaar, of als getal om mee te rekenen.",
+                    "say": "Het blok \"bedrag of getal\" is één vast getal dat je zelf invult. Hier is het honderdvijftig euro aan opstartkosten, die elke klant één keer betaalt. Je kunt het ook gebruiken voor een vaste basisprijs per jaar."
+                },
+                {
+                    "spot": "formula.node.input",
+                    "action": [
+                        "stageInput",
+                        "selectInput"
+                    ],
+                    "title": "Invoer per contract",
+                    "text": "**Invoer per contract** is een getal dat per klant verschilt, en dat je daarom op het contract zelf invult. Hier is dat het aantal **extra bezoeken** per jaar. Elk extra bezoek kost €60: spreek je er 2 af, dan komt er 2 × €60 = €120 bij. Je geeft het blok een **naam**, die op het contract boven het invulveld staat, en een **standaardwaarde** voor als niemand iets invult.",
+                    "say": "Het blok \"invoer per contract\" is een getal dat per klant verschilt, en dat je op het contract zelf invult. Hier is dat het aantal extra bezoeken per jaar. Elk extra bezoek kost zestig euro. Spreek je er twee af, dan komt er honderdtwintig euro bij. De naam van het blok staat op het contract boven het invulveld.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.name",
+                            "when": "de naam"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.contract",
+                    "action": [
+                        "stageVisits",
+                        "selectContract"
+                    ],
+                    "title": "Contract",
+                    "text": "Het blok **Contract** geeft twee gegevens van het contract zelf. **Prijsperiodes per jaar**: hoe vaak per jaar de klant betaalt, dus 12 bij maandelijks en 1 bij jaarlijks. **Looptijd in maanden**: hoe lang het contract loopt. Zo maak je van een jaarprijs een maandprijs: €600 per jaar gedeeld door 12 is €50 per maand.",
+                    "say": "Het blok \"contract\" geeft twee gegevens van het contract zelf: hoe vaak per jaar de klant betaalt, en hoe lang het contract loopt. Zo maak je van een jaarprijs een maandprijs: zeshonderd euro per jaar, gedeeld door twaalf betalingen per jaar, is vijftig euro per maand."
+                }
+            ]
+        },
+        {
+            "id": "filters",
+            "version": 1,
+            "title": "Filters",
+            "summary": "Machines uitsplitsen op producttype, model, merk of kenmerk, en elke machine maar één keer meetellen.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.filter",
+                    "action": [
+                        "stageFilter",
+                        "selectFilter"
+                    ],
+                    "title": "Filter op type",
+                    "text": "**Filter op type** haalt de machines van één producttype uit de rest, bijvoorbeeld de airco's. Ook de types die eronder vallen tellen mee: kies je 'Airconditioning', dan horen 'Single split' en 'Multi split' er ook bij. Welk type je wilt, kies je rechts.",
+                    "say": "Het blok \"filter op type\" haalt de machines van één producttype uit de rest, bijvoorbeeld de airco's. Ook de types die eronder vallen, tellen mee. Welk type je wilt, kies je rechts.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.type",
+                            "when": "kies je rechts"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.handle.filterMatch",
+                    "action": "stageFilter",
+                    "title": "Voldoet en overige",
+                    "text": "Een filter heeft twee uitgangen. **Voldoet** geeft de machines van het gekozen type, **Overige** alle andere. Stel: een klant heeft 6 machines van dit type en 2 van een ander type. Dan komen er 6 uit bij Voldoet en 2 bij Overige. Samen weer alle 8.",
+                    "say": "Een filter heeft twee uitgangen. \"Voldoet\" geeft de machines van het gekozen type. \"Overige\" geeft alle andere. Heeft een klant zes machines van dit type, en twee van een ander type, dan komen er zes uit bij \"voldoet\", en twee bij \"overige\".",
+                    "marks": [
+                        {
+                            "spot": "formula.handle.filterRest",
+                            "when": "overige"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.restCount",
+                    "action": "stageFilter",
+                    "title": "Geen machine dubbel",
+                    "text": "Gebruik **Overige** voor de rest, zoals hier: machines van dit type kosten €50 per stuk, alle andere €30. Voor de klant met 6 en 2 machines is dat 6 × €50 + 2 × €30 = €300 + €60 = €360. Zo krijgt elke machine precies één prijs, en reken je nooit een machine dubbel. Wil je een derde prijs, zet dan achter **Overige** nog een filter.",
+                    "say": "Gebruik \"overige\" voor de rest. Hier kosten machines van dit type vijftig euro per stuk, en de rest dertig euro. Zes machines keer vijftig euro is driehonderd euro, en twee machines keer dertig euro is zestig euro. Samen driehonderdzestig euro. Zo krijgt elke machine precies één prijs.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.restPrice",
+                            "when": "de rest"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.palette.filterModel",
+                    "action": "stageFilter",
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "Model en merk",
+                    "text": "**Filter op model** haalt de machines van één bepaald model eruit, bijvoorbeeld alleen de Daikin FTXM25. **Filter op merk** haalt alle machines van één merk eruit, bijvoorbeeld alles van Mitsubishi. Verder werken ze precies zoals het filter op type, met Voldoet en Overige.",
+                    "say": "Het blok \"filter op model\" haalt de machines van één bepaald model eruit. Het blok \"filter op merk\" haalt alle machines van één merk eruit, bijvoorbeeld alles van Mitsubishi.",
+                    "marks": [
+                        {
+                            "spot": "formula.palette.filterBrand",
+                            "when": "filter op merk"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.palette.filterAttribute",
+                    "action": "stageFilter",
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "Filter op kenmerk",
+                    "text": "**Filter op kenmerk** kijkt naar een kenmerk van het model, zoals het koelvermogen. Je kiest het kenmerk, een vergelijking en een waarde, bijvoorbeeld 'koelvermogen ≥ 10'. Zo zet je grote installaties apart van kleine en geef je ze een hogere prijs. Staat er bij het model '10 kW', dan rekent het filter gewoon met 10. Met **bevat** zoek je op een stukje tekst.",
+                    "say": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs."
+                }
+            ]
+        },
+        {
+            "id": "combinatie",
+            "version": 1,
+            "title": "Combinaties",
+            "summary": "Machines die samen op één adres staan, met één pakketprijs.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.combination",
+                    "action": [
+                        "stageCombination",
+                        "selectCombination"
+                    ],
+                    "title": "Een combinatie",
+                    "text": "**Combinatie** zoekt machines die **samen op één adres** staan, zoals een buitendeel met een binnendeel, of een compressor met een droger. Rechts geef je aan **waaruit** één combinatie bestaat: per onderdeel een aantal en een type of model. Hier: één machine van dit type plus één van het andere type.",
+                    "say": "Het blok \"combinatie\" zoekt machines die samen op één adres staan, zoals een compressor met een droger. Rechts geef je aan waaruit één combinatie bestaat. Hier is dat één machine van dit type, en één van het andere type.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.components",
+                            "when": "waaruit"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.combination",
+                    "action": "stageCombination",
+                    "title": "Drie uitgangen",
+                    "text": "Er komen drie dingen uit: het **aantal combinaties**, de machines die **in een combinatie** zitten, en de **overige** machines. Stel: op adres 1 staan 4 machines van dit type en 1 van het andere, op adres 2 staan er 2 en 1. Dan zijn er 2 combinaties, één op elk adres, en blijven er 4 machines over. Een machine in Utrecht en een in Zeist vormen samen nooit een combinatie.",
+                    "say": "Er komen drie dingen uit: het aantal combinaties, de machines in een combinatie, en de overige machines. Stel: op het eerste adres staan vier machines van dit type, en één van het andere type. Op het tweede adres staan er twee van dit type, en één van het andere. Dan zijn er twee combinaties, één op elk adres, en blijven er vier machines over. Machines op verschillende adressen vormen samen nooit een combinatie."
+                },
+                {
+                    "spot": "formula.node.package",
+                    "action": [
+                        "stageCombination",
+                        "selectPackage"
+                    ],
+                    "title": "Een pakketprijs",
+                    "text": "Het aantal combinaties gaat hier naar **Vermenigvuldigen**, met €120 per combinatie: dat is de **pakketprijs**. Twee combinaties kosten dus 2 × €120 = €240. De machines in een combinatie krijgen geen eigen prijs meer; die zitten in het pakket.",
+                    "say": "Het aantal combinaties gaat naar het blok \"vermenigvuldigen\": keer honderdtwintig euro. Dat is de pakketprijs. Twee combinaties kosten dus tweehonderdveertig euro. De machines in een combinatie krijgen geen eigen prijs meer."
+                },
+                {
+                    "spot": "formula.node.filter",
+                    "action": "stageCombination",
+                    "title": "De rest per stuk",
+                    "text": "De **overige** machines gaan door naar het filter en krijgen daar een prijs per stuk. In het voorbeeld zijn dat de 4 machines die niet in een pakket zitten. Zo reken je voor elke machine precies één keer: in een pakket, of los.",
+                    "say": "De overige machines gaan door naar het filter, en krijgen daar een prijs per stuk. Zo reken je voor elke machine precies één keer: in een pakket, of los."
+                }
+            ]
+        },
+        {
+            "id": "tellen",
+            "version": 1,
+            "title": "Tellen",
+            "summary": "Machines en adressen tellen, catalogusprijzen optellen, onderhoudsbeurten tellen, en machines die niets kosten.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.count",
+                    "action": "stageFilter",
+                    "title": "Aantal",
+                    "text": "**Aantal** telt de machines die binnenkomen en maakt er een getal van: 6 machines worden het getal 6. Dat getal gaat meestal door naar **Prijs per stuk**, dat er een bedrag van maakt.",
+                    "say": "Het blok \"aantal\" telt de machines die binnenkomen: zes machines worden het getal zes. Dat getal gaat meestal door naar het blok \"prijs per stuk\", dat er een bedrag van maakt."
+                },
+                {
+                    "spot": "formula.node.addresses",
+                    "action": [
+                        "stageCallout",
+                        "selectCallout"
+                    ],
+                    "title": "Aantal adressen",
+                    "text": "**Aantal adressen** telt op hoeveel verschillende adressen de machines staan. Dat aantal wordt hier vermenigvuldigd met €35: dat zijn de **voorrijkosten**. Staan de machines op 2 adressen, dan is dat 2 × €35 = €70. Machines zonder locatie tellen samen als één adres: dat van de klant.",
+                    "say": "Het blok \"aantal adressen\" telt op hoeveel verschillende adressen de machines staan. Dat aantal wordt hier vermenigvuldigd met vijfendertig euro: dat zijn de voorrijkosten. Staan de machines op twee adressen, dan is dat zeventig euro.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.callout",
+                            "when": "voorrijkosten"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.catalog",
+                    "action": [
+                        "stageCatalog",
+                        "selectCatalog"
+                    ],
+                    "title": "Catalogusprijs",
+                    "text": "**Catalogusprijs** telt de prijzen van de machines uit de catalogus bij elkaar op: de verkoopprijs of de inkoopprijs. Daarvan reken je een percentage. Hier wordt die som vermenigvuldigd met 0,08: dat is **acht procent** per jaar. Staat er voor €10.000 aan machines, dan kost het contract €800 per jaar.",
+                    "say": "Het blok \"catalogusprijs\" telt de catalogusprijzen van de machines bij elkaar op. Daarvan reken je een percentage. Hier is dat acht procent per jaar: voor tienduizend euro aan machines betaalt de klant achthonderd euro per jaar.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.share",
+                            "when": "acht procent"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.visits",
+                    "action": "stageVisits",
+                    "title": "Onderhoudsbeurten",
+                    "text": "**Onderhoudsbeurten per jaar** telt hoe vaak alle machines samen per jaar onderhoud krijgen, volgens de frequentie op het contract. 8 machines die elk 2 keer per jaar onderhoud krijgen, zijn 16 beurten. Kost een beurt €45, dan is dat 16 × €45 = €720 per jaar. Deel je dat door het aantal prijsperiodes per jaar uit het blok **Contract** (12 bij maandelijks betalen), dan is het €60 per maand.",
+                    "say": "Het blok \"onderhoudsbeurten per jaar\" telt hoe vaak alle machines samen onderhoud krijgen. Acht machines die twee keer per jaar onderhoud krijgen, zijn zestien beurten. Kost dat vijfenveertig euro per beurt, dan is het zevenhonderdtwintig euro per jaar. En gedeeld door twaalf, het aantal betalingen per jaar bij maandelijks betalen, is dat zestig euro per maand.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.perVisit",
+                            "when": "per beurt"
+                        },
+                        {
+                            "spot": "formula.node.perPeriod",
+                            "when": "gedeeld door"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.bench.unpriced",
+                    "action": [
+                        "stageUnwired",
+                        "showTrialPanel"
+                    ],
+                    "skipIfMissing": true,
+                    "title": "Wat niets kost",
+                    "text": "Komt een machine bij **geen enkel** blok uit de groep Tellen aan, dan rekent de formule er niets voor. Hier is het blok **Machines** nog nergens op aangesloten, dus kosten alle 8 machines niets. Dat staat in het geel bij het proberen, en later ook op het contract, zodat je het niet over het hoofd ziet.",
+                    "say": "Komt een machine bij geen enkel blok uit de groep \"tellen\" aan, dan rekent de formule er niets voor. Hier is het blok \"machines\" nog nergens op aangesloten, dus kosten alle machines niets. Dat zie je in het geel bij het proberen."
+                }
+            ]
+        },
+        {
+            "id": "rekenen",
+            "version": 1,
+            "title": "Rekenen",
+            "summary": "Prijs per stuk en de staffel, optellen, vermenigvuldigen, delen, aftrekken, korting, minimum en maximum, afronden en als-dan.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.price",
+                    "action": [
+                        "stageFilter",
+                        "selectPrice"
+                    ],
+                    "title": "Prijs per stuk",
+                    "text": "**Prijs per stuk** maakt van een aantal een bedrag. Hier kost elke machine van dit type €50. Komen er 6 binnen, dan komt er 6 × €50 = €300 uit.",
+                    "say": "Het blok \"prijs per stuk\" maakt van een aantal een bedrag. Hier kost elke machine van dit type vijftig euro per stuk. Komen er zes binnen, dan komt er driehonderd euro uit.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.amount",
+                            "when": "per stuk"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.settings.steps",
+                    "action": [
+                        "stageTiers",
+                        "selectPrice"
+                    ],
+                    "title": "Een staffel",
+                    "text": "Met een **staffel** wordt het per stuk goedkoper vanaf een bepaald aantal. Hier kost elk stuk vanaf het derde €40 in plaats van €50. Voor 6 machines: de eerste 2 kosten 2 × €50 = €100, de andere 4 kosten 4 × €40 = €160, samen €260. Met **+ Stap** voeg je meer stappen toe, bijvoorbeeld €35 vanaf het tiende stuk.",
+                    "say": "Met een staffel wordt het per stuk goedkoper vanaf een bepaald aantal. Hier kost elk stuk vanaf het derde veertig euro in plaats van vijftig. Zes machines kosten dan twee keer vijftig, plus vier keer veertig. Samen tweehonderdzestig euro."
+                },
+                {
+                    "spot": "formula.settings.mode",
+                    "action": [
+                        "stageTiers",
+                        "selectPrice"
+                    ],
+                    "title": "Voor welke stuks de staffel geldt",
+                    "text": "Kies voor welke stuks de lagere prijs geldt. **Alleen de stuks vanaf die stap**: 4 machines kosten €50 + €50 + €40 + €40 = €180. **Alle stuks, zodra die stap is bereikt**: dan kosten alle 4 €40, samen €160. Let op bij die tweede keuze: ligt de stap bij 6 stuks, dan kosten 5 machines €250 en 6 machines maar €240. Een machine erbij maakt het contract dan goedkoper.",
+                    "say": "Kies voor welke stuks de lagere prijs geldt: alleen de stuks vanaf die stap, of alle stuks, zodra die stap is bereikt. Stel dat de stap bij het derde stuk ligt. Vier machines kosten dan met de eerste keuze honderdtachtig euro, en met de tweede keuze honderdzestig euro. Let op bij die tweede keuze: ligt de stap bij zes stuks, dan kosten vijf machines tweehonderdvijftig euro, en zes machines maar tweehonderdveertig. Een machine erbij maakt het contract dan goedkoper."
+                },
+                {
+                    "spot": "formula.node.sum",
+                    "action": "stageFilter",
+                    "title": "Optellen",
+                    "text": "**Optellen** telt alles bij elkaar op wat binnenkomt. Hier komen €300 voor dit type en €60 voor de rest binnen; eruit komt €360. Je kunt er zoveel lijnen op aansluiten als je wilt.",
+                    "say": "Het blok \"optellen\" telt alles bij elkaar op wat binnenkomt. Hier komt driehonderd euro binnen, en zestig euro. Eruit komt driehonderdzestig euro. Je kunt er zoveel lijnen op aansluiten als je wilt."
+                },
+                {
+                    "spot": "formula.node.callout",
+                    "action": [
+                        "stageCallout",
+                        "selectCallout"
+                    ],
+                    "title": "Vermenigvuldigen",
+                    "text": "**Vermenigvuldigen** rekent A keer B. Hier is A het aantal adressen en B €35: 2 adressen × €35 = €70 voorrijkosten. Is er geen lijn op B aangesloten, dan gebruikt het blok het getal uit de **instellingen**. Zo is 'keer €35' één blok.",
+                    "say": "Het blok \"vermenigvuldigen\" rekent A keer B. Hier is A het aantal adressen, en B is vijfendertig euro. Bij twee adressen komt er dus zeventig euro uit. Is er geen lijn op B aangesloten, dan gebruikt het blok het getal uit de instellingen.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.fallback",
+                            "when": "instellingen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.palette.divide",
+                    "action": "stageCallout",
+                    "requires": {
+                        "permissions": [
+                            "priceformula.update"
+                        ]
+                    },
+                    "title": "Delen, aftrekken en maximaal",
+                    "text": "Zo werken ook deze drie. **Delen**: A gedeeld door B, zoals €600 per jaar gedeeld door 12 = €50 per maand. **Aftrekken**: A min B, zoals €360 min €25 vaste korting = €335. **Maximaal**: nooit meer dan B. Is B €500, dan blijft €360 gewoon €360, maar wordt €620 afgetopt op €500.",
+                    "say": "Zo werken ook de blokken \"delen\", \"aftrekken\" en \"maximaal\". Met \"delen\" maak je van een jaarprijs een maandprijs: zeshonderd euro per jaar, gedeeld door twaalf, is vijftig euro per maand. Met \"aftrekken\" haal je er een vast bedrag af: driehonderdzestig euro min vijfentwintig euro is driehonderdvijfendertig euro. En \"maximaal\" zorgt dat de prijs nooit boven een grens komt. Is die grens vijfhonderd euro, dan blijft driehonderdzestig euro gewoon staan, maar wordt zeshonderdtwintig euro vijfhonderd euro.",
+                    "marks": [
+                        {
+                            "spot": "formula.palette.subtract",
+                            "when": "aftrekken"
+                        },
+                        {
+                            "spot": "formula.palette.maximum",
+                            "when": "maximaal"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.discount",
+                    "action": [
+                        "stageAdjusted",
+                        "selectDiscount"
+                    ],
+                    "title": "Korting of toeslag",
+                    "text": "**Korting of toeslag** telt een percentage op of trekt het af; een min ervoor is korting. Hier is het −5%: van €390 gaat €19,50 af, dus komt er €370,50 uit. Er zijn twee uitgangen: **Met percentage** geeft het bedrag na de korting (€370,50), **Alleen het percentage** geeft alleen de korting zelf (−€19,50), bijvoorbeeld om die apart te laten zien.",
+                    "say": "Het blok \"korting of toeslag\" telt een percentage op, of trekt het af. Met een min ervoor is het korting: vijf procent van driehonderdnegentig euro is negentien euro vijftig. Eruit komt dus driehonderdzeventig euro vijftig. De tweede uitgang, \"alleen het percentage\", geeft alleen de korting zelf: die negentien euro vijftig, bijvoorbeeld om die apart te laten zien.",
+                    "marks": [
+                        {
+                            "spot": "formula.handle.discountPart",
+                            "when": "alleen het percentage"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.minimum",
+                    "action": [
+                        "stageAdjusted",
+                        "selectMinimum"
+                    ],
+                    "title": "Minimaal",
+                    "text": "**Minimaal** geeft nooit minder dan B. Zo maak je een **minimumprijs**, hier €100. Komt een kleine klant met 1 machine uit op €50, dan wordt het toch €100. Komt het totaal hoger uit, zoals €370,50, dan verandert er niets.",
+                    "say": "Het blok \"minimaal\" geeft nooit minder dan B. Zo maak je een minimumprijs, hier honderd euro. Komt een kleine klant uit op vijftig euro, dan wordt het toch honderd euro. Een hoger bedrag blijft gewoon staan."
+                },
+                {
+                    "spot": "formula.node.round",
+                    "action": [
+                        "stageAdjusted",
+                        "selectRound"
+                    ],
+                    "title": "Afronden",
+                    "text": "**Afronden** maakt van een krom bedrag een rond bedrag: op 5 cent, 1 euro, 5, 10, 50 of 100 euro, en naar boven, naar beneden of naar het dichtstbijzijnde bedrag. Hier op €5 naar boven: €370,50 wordt €375.",
+                    "say": "Het blok \"afronden\" maakt van een krom bedrag een rond bedrag. Hier wordt afgerond op vijf euro, naar boven: driehonderdzeventig euro vijftig wordt driehonderdvijfenzeventig euro."
+                },
+                {
+                    "spot": "formula.node.condition",
+                    "action": [
+                        "stageCondition",
+                        "selectCondition"
+                    ],
+                    "title": "Als … dan",
+                    "text": "**Als … dan** vergelijkt een getal met een ander getal. Klopt de vergelijking, dan geeft het blok de waarde bij **Dan**, en anders de waarde bij **Anders**. Hier: zijn er 5 machines of meer, dan −€25, anders €0. Een klant met 8 machines krijgt dus €25 korting: 8 × €50 = €400, min €25 is €375. Een klant met 4 machines krijgt geen korting.",
+                    "say": "Het blok \"als, dan\" vergelijkt twee getallen. Klopt de vergelijking, dan geeft het blok de waarde bij \"dan\", en anders de waarde bij \"anders\". Hier krijgt de klant vanaf vijf machines vijfentwintig euro korting. Met acht machines betaalt de klant dus driehonderdvijfenzeventig euro, in plaats van vierhonderd.",
+                    "marks": [
+                        {
+                            "spot": "formula.settings.compare",
+                            "when": "vergelijkt"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "resultaat",
+            "version": 1,
+            "title": "Resultaat",
+            "summary": "Prijs per periode, eenmalige kosten, en wat niet meetelt.",
+            "actions": [
+                "keepCanvas"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.node.result",
+                    "action": "stageAdjusted",
+                    "title": "Prijs per periode",
+                    "text": "Het bedrag dat in **Prijs per periode** binnenkomt, is wat het contract kost per **prijsinterval**: per maand, per halfjaar of per jaar, net wat er op het contract staat. Komt hier €375 binnen en betaalt de klant per jaar, dan kost het contract €375 per jaar. Een formule heeft maar één zo'n blok.",
+                    "say": "Wat in het blok \"prijs per periode\" terechtkomt, is wat het contract kost per prijsinterval: per maand, per halfjaar of per jaar, net wat er op het contract staat. Komt er driehonderdvijfenzeventig euro binnen en betaalt de klant per jaar, dan kost het contract driehonderdvijfenzeventig euro per jaar. Een formule heeft maar één zo'n blok."
+                },
+                {
+                    "spot": "formula.node.once",
+                    "action": "stageOneTime",
+                    "title": "Eenmalige kosten",
+                    "text": "**Eenmalige kosten** staan los van de prijs per periode: de klant betaalt ze maar één keer, zoals €150 opstartkosten of een inventarisatie bij de start. Op het contract staan ze onder de prijs.",
+                    "say": "Het blok \"eenmalige kosten\" staat los van de prijs per periode. Denk aan honderdvijftig euro opstartkosten, die de klant maar één keer betaalt. Op het contract staan ze onder de prijs."
+                },
+                {
+                    "spot": "formula.canvas",
+                    "action": "stageOneTime",
+                    "title": "Wat los staat",
+                    "text": "Een blok dat uiteindelijk niet in een resultaatblok uitkomt, laat wel een waarde zien, maar telt **niet** mee in de prijs. Handig om iets uit te proberen; vergeet het daarna niet aan te sluiten.",
+                    "say": "Een blok dat niet in een resultaatblok terechtkomt, telt niet mee in de prijs. Handig om iets uit te proberen, maar vergeet het daarna niet aan te sluiten."
+                }
+            ]
+        },
+        {
+            "id": "proberen",
+            "version": 1,
+            "title": "Proberen",
+            "summary": "Een voorbeeldklant, invoer, de uitkomst, en proberen op een echt contract.",
+            "actions": [
+                "keepCanvas",
+                "stageInput"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.panel.tabs",
+                    "action": "showTrialPanel",
+                    "title": "Proberen",
+                    "text": "Op het tabblad **Proberen** reken je de formule uit terwijl je bouwt. Er wordt niets opgeslagen, en geen enkel contract verandert.",
+                    "say": "Op het tabblad \"proberen\" reken je de formule uit terwijl je bouwt. Er wordt niets opgeslagen, en geen enkel contract verandert."
+                },
+                {
+                    "spot": "formula.bench.machines",
+                    "action": "showTrialPanel",
+                    "title": "Een voorbeeldklant",
+                    "text": "Vul in welke machines een **voorbeeldklant** heeft: hoeveel, van welk type of model, en op welk **adres**. Bijvoorbeeld 4 machines van dit type op adres 1 en 2 op adres 2. Regels met hetzelfde adresnummer staan op hetzelfde adres; dat maakt uit voor combinaties en voorrijkosten. Met **+ Machines** voeg je een regel toe.",
+                    "say": "Vul in welke machines een voorbeeldklant heeft: hoeveel, van welk type of model, en op welk adres. Bijvoorbeeld vier machines van dit type op adres één, en twee op adres twee. Regels met hetzelfde adresnummer staan op hetzelfde adres. Dat maakt uit voor combinaties en voorrijkosten."
+                },
+                {
+                    "spot": "formula.bench.context",
+                    "action": "showTrialPanel",
+                    "title": "Interval en onderhoud",
+                    "text": "Kies hoe vaak de voorbeeldklant **betaalt** (het prijsinterval) en hoe vaak er **onderhoud** is. Het blok **Contract** gebruikt het eerste: maandelijks betalen geeft 12 prijsperiodes per jaar. **Onderhoudsbeurten per jaar** gebruikt het tweede: halfjaarlijks onderhoud aan 8 machines is 16 beurten.",
+                    "say": "Kies hoe vaak de voorbeeldklant betaalt, en hoe vaak er onderhoud is. Bij maandelijks betalen zijn er twaalf prijsperiodes per jaar. Halfjaarlijks onderhoud aan acht machines is zestien beurten."
+                },
+                {
+                    "spot": "formula.bench.inputs",
+                    "action": "fillExampleInput",
+                    "title": "Invoer proberen",
+                    "text": "Heeft de formule **invoer per contract**, dan vul je die hier in om te zien wat het doet. Hier zijn 2 extra bezoeken ingevuld: de prijs gaat 2 × €60 = €120 omhoog, van €360 naar €480. Laat je het veld leeg, dan geldt de standaardwaarde.",
+                    "say": "Heeft de formule invoer per contract, dan vul je die hier in. Hier zijn twee extra bezoeken ingevuld: de prijs gaat honderdtwintig euro omhoog, van driehonderdzestig naar vierhonderdtachtig euro. Laat je het veld leeg, dan geldt de standaardwaarde."
+                },
+                {
+                    "spot": "formula.bench.result",
+                    "action": "showTrialPanel",
+                    "title": "De uitkomst",
+                    "text": "Hier staat wat het contract zou kosten: **per periode** en **eenmalig**, en voor hoeveel machines. Kan de formule nog niet rekenen, bijvoorbeeld omdat in een filter nog geen type is gekozen, dan staat hier wat er ontbreekt.",
+                    "say": "Hier staat wat het contract zou kosten, per periode en eenmalig. Ontbreekt er nog iets, bijvoorbeeld een type in een filter, dan staat hier wat."
+                },
+                {
+                    "spot": "formula.bench.contract",
+                    "action": "tryOnContract",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "maintenancecontract.see_financials"
+                        ]
+                    },
+                    "title": "Op een echt contract",
+                    "text": "Met **Bestaand contract** reken je met een echt contract: zijn machines, zijn prijsinterval en wat erop is ingevuld. Zo zie je wat een wijziging voor die klant betekent voordat je opslaat, bijvoorbeeld dat het contract van €420 naar €445 per jaar zou gaan.",
+                    "say": "Met \"bestaand contract\" reken je met een echt contract, met zijn eigen machines. Zo zie je wat een wijziging voor die klant betekent, voordat je iets opslaat."
+                }
+            ]
+        },
+        {
+            "id": "opslaan",
+            "version": 1,
+            "title": "Opslaan en versies",
+            "summary": "Opslaan, wijzigingen weggooien, wanneer er een nieuwe versie komt, en meldingen.",
+            "requires": {
+                "permissions": [
+                    "priceformula.update"
+                ]
+            },
+            "actions": [
+                "keepCanvas",
+                "stageFilter"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.save",
+                    "title": "Opslaan",
+                    "text": "Heb je iets veranderd, dan verschijnt hier **Opslaan**. Op de knop staat wat er gebeurt: gewoon **Opslaan**, of bijvoorbeeld **Opslaan als versie 3** als er een nieuwe versie komt. Tijdens de rondleiding zijn de knoppen uitgeschakeld: de voorbeelden worden nooit opgeslagen.",
+                    "say": "Heb je iets veranderd, dan verschijnt hier de knop \"opslaan\". Op de knop staat ook of het een nieuwe versie wordt. Tijdens de rondleiding doen de knoppen niets."
+                },
+                {
+                    "spot": "formula.save",
+                    "title": "Weggooien",
+                    "text": "Met **Wijzigingen weggooien** zet je het canvas terug naar hoe het was bij de laatste keer opslaan. Handig als je iets hebt geprobeerd dat je toch niet wilt houden.",
+                    "say": "Met \"wijzigingen weggooien\" zet je het canvas terug naar hoe het was bij de laatste keer opslaan."
+                },
+                {
+                    "spot": "formula.version",
+                    "title": "Wanneer een nieuwe versie",
+                    "text": "Gebruikt nog **geen enkel contract** deze versie, dan wordt die bij Opslaan gewoon bijgewerkt. Gebruiken er **wel contracten** deze versie, dan maakt Opslaan een **nieuwe versie**. Stel: 10 contracten staan op versie 2 en je verhoogt de prijs per stuk van €50 naar €55. Dan wordt het versie 3, en die 10 contracten houden hun oude prijs tot je ze bijwerkt. Nieuwe contracten krijgen altijd de nieuwste versie.",
+                    "say": "Gebruikt nog geen enkel contract deze versie, dan wordt die bij opslaan gewoon bijgewerkt. Gebruiken er wel contracten deze versie, dan maakt opslaan een nieuwe versie. Stel: tien contracten staan op versie twee, en jij verhoogt de prijs per stuk van vijftig naar vijfenvijftig euro. Dan wordt het versie drie, en die tien contracten houden hun oude prijs, tot je ze bijwerkt. Zo verandert een prijs nooit zonder dat je het weet."
+                },
+                {
+                    "spot": "formula.canvas",
+                    "title": "Wat je te horen krijgt",
+                    "text": "Na het opslaan zegt een melding wat er is gebeurd, bijvoorbeeld 'Opgeslagen als versie 3. 10 contracten staan nog op een oudere versie en houden hun prijs tot je ze bijwerkt.' Klopt er iets niet, zoals twee blokken Prijs per periode, dan wordt er niet opgeslagen en staat bovenaan waarom. Ga je weg zonder op te slaan, dan vraagt Lavoro eerst of je dat zeker weet.",
+                    "say": "Na het opslaan zegt een melding wat er is gebeurd, en hoeveel contracten nog op een oudere versie staan. Ga je weg zonder op te slaan, dan vraagt Lavoro eerst of je dat zeker weet."
+                }
+            ]
+        },
+        {
+            "id": "contracten",
+            "version": 1,
+            "title": "Contracten bijwerken",
+            "summary": "Welke contracten deze formule gebruiken, wat ze met de nieuwste versie kosten, en ze bijwerken.",
+            "requires": {
+                "permissions": [
+                    "maintenancecontract.see_financials"
+                ]
+            },
+            "actions": [
+                "showExampleContracts"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.contracts",
+                    "title": "Contracten op deze formule",
+                    "text": "Hier staan alle contracten die deze formule gebruiken, met hun **versie** en hun **huidige prijs**.",
+                    "say": "Hier staan alle contracten die deze formule gebruiken, met hun versie en hun huidige prijs."
+                },
+                {
+                    "spot": "formula.contracts.outdated",
+                    "skipIfMissing": true,
+                    "title": "Op een oudere versie",
+                    "text": "Staan er lopende contracten op een **oudere versie**, dan zie je hier hoeveel, en wat ze samen per periode kosten: nu, en met de nieuwste versie. Bijvoorbeeld: samen nu €370, met de nieuwste versie €395. **Alles bijwerken** zet ze allemaal over; je krijgt eerst nog een bevestiging met de bedragen.",
+                    "say": "Staan er contracten op een oudere versie, dan zie je hier wat ze samen nu kosten, en wat ze met de nieuwste versie gaan kosten. Met \"alles bijwerken\" zet je ze allemaal over."
+                },
+                {
+                    "spot": "formula.contracts.list",
+                    "title": "Eén voor één",
+                    "text": "Per contract op een oudere versie zie je de prijs **nu**, een pijltje, en de prijs **met de nieuwste versie**: oranje als hij omhooggaat, groen als hij omlaaggaat, bijvoorbeeld €370 → €395. Met **Bijwerken** zet je alleen dat ene contract over; de nieuwe prijs komt op de tijdlijn van het contract. Een **afgelopen** contract houdt de prijs waarmee het is geëindigd.",
+                    "say": "Per contract zie je de prijs nu, en de prijs met de nieuwste versie. Met \"bijwerken\" zet je alleen dat ene contract over. De nieuwe prijs komt op de tijdlijn van het contract. Een afgelopen contract houdt de prijs waarmee het is geëindigd."
+                },
+                {
+                    "spot": "formula.templates",
+                    "skipIfMissing": true,
+                    "title": "Sjablonen",
+                    "text": "Hier staan de **contractsjablonen** die deze formule gebruiken. Een nieuw contract dat je uit zo'n sjabloon maakt, gebruikt meteen de nieuwste versie.",
+                    "say": "Hier staan de sjablonen die deze formule gebruiken. Een nieuw contract uit zo'n sjabloon gebruikt meteen de nieuwste versie."
+                }
+            ]
+        },
+        {
+            "id": "voorbeeld",
+            "version": 1,
+            "title": "Een hele formule",
+            "summary": "Een complete formule van links naar rechts, helemaal uitgerekend: pakket, staffel, voorrijkosten, invoer, korting en opstartkosten.",
+            "actions": [
+                "keepCanvas",
+                "stageFull"
+            ],
+            "steps": [
+                {
+                    "spot": "formula.canvas",
+                    "title": "Van links naar rechts",
+                    "text": "Tot slot een complete formule, helemaal uitgerekend. Je leest hem **van links naar rechts**: links komen de machines binnen, rechts komt de prijs eruit. De voorbeeldklant heeft 8 machines op 2 adressen: op adres 1 staan 4 machines van dit type en 1 van het andere type, op adres 2 staan er 2 en 1.",
+                    "say": "Tot slot een complete formule, helemaal uitgerekend. Je leest hem van links naar rechts: links komen de machines binnen, rechts komt de prijs eruit. De voorbeeldklant heeft acht machines, op twee adressen. Op het eerste adres staan vier machines van het ene type, en één van het andere type. Op het tweede adres staan twee machines van het ene type, en één van het andere."
+                },
+                {
+                    "spot": "formula.node.combination",
+                    "action": "focusStart",
+                    "title": "Eerst de pakketten",
+                    "text": "Eerst zoekt de formule **combinaties**: één machine van elk type op hetzelfde adres. Op elk adres is er één zo'n combinatie, dus zijn er 2. Die kosten samen 2 × €120 = €240 aan **pakketprijs**. De overige 4 machines gaan verder.",
+                    "say": "Eerst zoekt de formule combinaties: één machine van elk type, op hetzelfde adres. Op elk adres is dat één combinatie, dus twee in totaal. Twee pakketten van honderdtwintig euro is samen tweehonderdveertig euro. De overige vier machines gaan verder."
+                },
+                {
+                    "spot": "formula.node.filter",
+                    "action": "focusStart",
+                    "title": "Dan per type",
+                    "text": "Het **filter** verdeelt die 4 overige machines. Ze zijn alle 4 van dit type: van het andere type zitten er al 2 in de pakketten. Dit type krijgt een eigen prijs met een staffel. Voor het andere type staat een aparte prijs klaar, maar daar komt nu niets binnen.",
+                    "say": "Het filter verdeelt de overige machines. Ze zijn alle vier van dit type, want de twee machines van het andere type zitten al in de pakketten. Voor het andere type staat een aparte prijs klaar, maar daar komt nu niets binnen."
+                },
+                {
+                    "spot": "formula.node.price",
+                    "action": "focusMiddle",
+                    "title": "Per stuk",
+                    "text": "Hier worden aantallen bedragen. De 4 machines kosten €50 per stuk, en vanaf het derde stuk €40: €50 + €50 + €40 + €40 = €180.",
+                    "say": "Hier worden aantallen bedragen. De eerste twee machines kosten vijftig euro per stuk, de volgende twee veertig euro. Samen honderdtachtig euro."
+                },
+                {
+                    "spot": "formula.node.callout",
+                    "action": "focusMiddle",
+                    "title": "Voorrijkosten",
+                    "text": "Daaronder staan de **voorrijkosten**: 2 adressen × €35 = €70. En de **extra bezoeken**, die je per contract invult, à €60 per bezoek. De voorbeeldklant heeft er geen, dus dat is €0.",
+                    "say": "Daaronder staan de voorrijkosten: twee adressen keer vijfendertig euro is zeventig euro. En de extra bezoeken, die je per contract invult. Die zijn er hier niet.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.extra",
+                            "when": "extra bezoeken"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.sum",
+                    "action": "focusEnd",
+                    "title": "Alles bij elkaar",
+                    "text": "**Optellen** zet alle bedragen bij elkaar: €240 voor de pakketten + €180 voor de losse machines + €70 voorrijkosten = €490.",
+                    "say": "Het blok \"optellen\" zet alle bedragen bij elkaar: tweehonderdveertig euro voor de pakketten, plus honderdtachtig euro voor de losse machines, plus zeventig euro voorrijkosten. Samen vierhonderdnegentig euro."
+                },
+                {
+                    "spot": "formula.node.discount",
+                    "action": "focusEnd",
+                    "title": "Korting, minimum en afronden",
+                    "text": "Dan gaat er 5% **korting** af: €490 − €24,50 = €465,50. Het **minimum** van €100 doet hier niets, want €465,50 is meer. Tot slot wordt het **afgerond** op €5 naar boven: €470.",
+                    "say": "Dan gaat er vijf procent korting af. Dat wordt vierhonderdvijfenzestig euro vijftig. Het wordt nooit minder dan honderd euro, maar dat speelt hier niet. Tot slot wordt het afgerond op vijf euro naar boven: vierhonderdzeventig euro.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.minimum",
+                            "when": "nooit minder"
+                        },
+                        {
+                            "spot": "formula.node.round",
+                            "when": "afgerond"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.node.result",
+                    "action": "focusEnd",
+                    "title": "De prijs",
+                    "text": "Dat is de **prijs per periode**: €470. Daaronder staan de **opstartkosten** van €150, als **eenmalige kosten**.",
+                    "say": "Dat is de prijs per periode: vierhonderdzeventig euro. Daaronder staan de opstartkosten van honderdvijftig euro, als eenmalige kosten.",
+                    "marks": [
+                        {
+                            "spot": "formula.node.once",
+                            "when": "opstartkosten"
+                        }
+                    ]
+                },
+                {
+                    "spot": "formula.totals",
+                    "title": "Voor de voorbeeldklant",
+                    "text": "Linksboven staat wat deze formule de voorbeeldklant kost. Nu ben jij aan de beurt: na dit hoofdstuk staat je eigen formule er weer.",
+                    "say": "Linksboven staat wat deze formule de voorbeeldklant kost. Nu ben jij aan de beurt. Je eigen formule staat er zo weer."
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,135 @@
+{
+    "id": "prijsformules",
+    "page": "/priceformulas",
+    "title": "Rondleiding door de prijsformules",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "priceformula.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De formules",
+            "summary": "Wat een prijsformule is, en wat de lijst per formule laat zien.",
+            "actions": [
+                "showExampleFormula"
+            ],
+            "steps": [
+                {
+                    "spot": "formulas.list",
+                    "title": "Prijsformules",
+                    "text": "Een **prijsformule** rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Bijvoorbeeld: €50 per airco, €40 vanaf de derde, €120 voor een buitendeel met binnendeel op één adres, en €35 voorrijkosten per adres. Je kiest een formule op een contract of op een contractsjabloon. Is de lijst nog leeg, dan zie je hier een voorbeeld; dat wordt niet opgeslagen.",
+                    "say": "Een prijsformule rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Bijvoorbeeld: vijftig euro per airco, en vijfendertig euro voorrijkosten per adres. Je kiest een formule op een contract, of op een sjabloon."
+                },
+                {
+                    "spot": "formulas.row",
+                    "title": "Een formule",
+                    "text": "Per formule zie je de **naam** en de **omschrijving**. Klik op de naam om de formule te openen en verder te bouwen.",
+                    "say": "Per formule zie je de naam en de omschrijving. Klik op de naam om de formule te openen."
+                },
+                {
+                    "spot": "formulas.version",
+                    "title": "Versie",
+                    "text": "Dit is de nieuwste **versie**. Sla je een formule op terwijl er al contracten zijn die hem gebruiken, dan krijgt hij een nieuw versienummer. Die contracten houden hun oude prijs tot je ze bijwerkt, zodat een prijs nooit ongemerkt verandert.",
+                    "say": "Dit is de nieuwste versie. Contracten houden hun versie, en dus hun prijs, tot je ze bijwerkt."
+                },
+                {
+                    "spot": "formulas.contracts",
+                    "title": "Contracten",
+                    "text": "Hier zie je hoeveel **contracten** de formule gebruiken. Staan er nog contracten op een oudere versie, dan staat dat er in het geel bij, bijvoorbeeld '2 op een oudere versie'. Klik daarop om ze bij te werken.",
+                    "say": "Hier zie je hoeveel contracten de formule gebruiken. Staan er nog contracten op een oudere versie, dan staat dat er in het geel bij."
+                },
+                {
+                    "spot": "formulas.templates",
+                    "title": "Sjablonen",
+                    "text": "Hier staan de **contractsjablonen** die deze formule gebruiken. Een contract dat je uit zo'n sjabloon maakt, gebruikt meteen de nieuwste versie.",
+                    "say": "Hier staan de sjablonen die deze formule gebruiken."
+                }
+            ]
+        },
+        {
+            "id": "nieuw",
+            "version": 1,
+            "title": "Een formule maken",
+            "summary": "Een nieuwe formule maken.",
+            "requires": {
+                "permissions": [
+                    "priceformula.create"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "list.add",
+                    "title": "Nieuwe formule",
+                    "text": "Met **Nieuwe formule** maak je er een aan.",
+                    "say": "Met de knop \"nieuwe formule\" maak je er een aan."
+                },
+                {
+                    "spot": "formulas.new.name",
+                    "action": "openCreate",
+                    "title": "Naam",
+                    "text": "Geef de formule een **naam** die je collega's herkennen, zoals 'Airco standaard'. Die naam kies je straks op een contract.",
+                    "say": "Geef de formule een naam die je collega's herkennen, zoals \"Airco standaard\".",
+                    "aid": {
+                        "type": "typing",
+                        "to": "formulas.new.name",
+                        "text": "Airco standaard"
+                    }
+                },
+                {
+                    "spot": "formulas.new.description",
+                    "action": "openCreate",
+                    "title": "Omschrijving",
+                    "text": "Een **omschrijving** is niet verplicht, maar helpt een collega de goede formule te kiezen. Bijvoorbeeld: 'Airco's per stuk, goedkoper vanaf de derde, plus voorrijkosten per adres'.",
+                    "say": "Een omschrijving is niet verplicht, maar helpt een collega de goede formule te kiezen."
+                },
+                {
+                    "spot": "formulas.new.submit",
+                    "action": "openCreate",
+                    "title": "Aanmaken",
+                    "text": "Met **Aanmaken** open je de nieuwe formule. Die begint eenvoudig: €50 per machine, dus 8 machines kosten €400. Daarna breid je hem uit met blokken. Op die pagina zit een eigen rondleiding.",
+                    "say": "Met \"aanmaken\" open je de nieuwe formule. Die begint eenvoudig, met vijftig euro per machine. Op die pagina zit een eigen rondleiding."
+                }
+            ]
+        },
+        {
+            "id": "gebruiken",
+            "version": 1,
+            "title": "Waar je een formule gebruikt",
+            "summary": "Op een contract, op een sjabloon, en wat er gebeurt als de machines veranderen.",
+            "actions": [
+                "showExampleFormula"
+            ],
+            "steps": [
+                {
+                    "spot": "formulas.list",
+                    "title": "Op een contract",
+                    "text": "Op een onderhoudscontract kies je een formule in het blok **Prijsformule**. Het contract gebruikt dan de nieuwste versie, en de prijs vul je niet meer zelf in: die wordt berekend uit de machines op het contract. Kost elke machine €50 en staan er 8 op, dan is de prijs €400.",
+                    "say": "Op een contract kies je een formule in het blok \"prijsformule\". De prijs vul je dan niet meer zelf in: die wordt berekend uit de machines op het contract."
+                },
+                {
+                    "spot": "formulas.list",
+                    "title": "Machines erbij of eraf",
+                    "text": "Komt er een machine bij, gaat er een af, verhuist er een naar een ander adres of krijgt een machine een ander model, dan wordt de prijs opnieuw berekend. Zet je bijvoorbeeld een negende machine op een contract van €400, dan meldt Lavoro 'De prijs gaat van €400,00 naar €450,00'. De tijdlijn onthoudt het oude en het nieuwe bedrag.",
+                    "say": "Komt er een machine bij, of gaat er één af, dan wordt de prijs opnieuw berekend. Een melding zegt van welke prijs naar welke prijs het gaat."
+                },
+                {
+                    "spot": "formulas.list",
+                    "title": "Op een sjabloon",
+                    "text": "Ook op een **contractsjabloon** kies je een formule. Maak je uit dat sjabloon een nieuw contract, dan hoef je geen prijs in te vullen: die wordt meteen berekend met de nieuwste versie.",
+                    "say": "Ook op een sjabloon kies je een formule. Maak je uit dat sjabloon een nieuw contract, dan hoef je geen prijs in te vullen.",
+                    "cta": {
+                        "label": "Naar de contracten",
+                        "href": "/maintenancecontracts",
+                        "tour": "contracten",
+                        "chapter": "nieuw"
+                    }
+                }
+            ]
+        }
+    ]
+}

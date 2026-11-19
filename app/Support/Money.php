@@ -25,6 +25,12 @@ final class Money
         return number_format($cents / 100, 2, ',', '.');
     }
 
+    /** Euros as a person reads them, with the sign: €1.234,56. */
+    public static function euros(float|int|string|null $amount): string
+    {
+        return "\u{20AC}" . self::human((int) round(((float) $amount) * 100));
+    }
+
     /**
      * As it belongs in an input field: dot as decimal, because an
      * <input type="number"> refuses a comma. Empty stays empty -- that means

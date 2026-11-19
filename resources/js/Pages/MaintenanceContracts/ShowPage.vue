@@ -57,10 +57,15 @@
                         :error="form.errors.end_date" :readonly="!canUpdate"
                         @update="() => patch('end_date')" @revert="form.clearErrors('end_date')" />
                     <template v-if="hasPermission('maintenancecontract.see_financials')">
-                        <EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
-                            data-tour="contract.price"
-                            :error="form.errors.price" :readonly="!canUpdate"
-                            @update="() => patch('price')" @revert="form.clearErrors('price')" />
+                        <div data-tour="contract.price">
+                            <EditableTextField v-model="form.price" type="input" inputType="currency" label="Prijs"
+                                :error="form.errors.price" :readonly="!canUpdate || hasFormula"
+                                @update="() => patch('price')" @revert="form.clearErrors('price')" />
+                            <p v-if="hasFormula" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Berekend met de prijsformule hieronder<template v-if="maintenanceContract.one_time_price != null">,
+                                    plus {{ nlCurrency(maintenanceContract.one_time_price) }} eenmalig</template>.
+                            </p>
+                        </div>
                         <EditableTextField v-model="form.price_interval" type="combobox" label="Prijsinterval"
                             data-tour="contract.interval" :options="intervalOptions"
                             :error="form.errors.price_interval" :readonly="!canUpdate"
@@ -110,6 +115,17 @@
                     <BadgeComponent v-for="loc in contractLocations" :key="loc.id" color="gray" :has-dot="false"
                         :url="`/locations/${loc.id}`">{{ loc.title }}</BadgeComponent>
                 </div>
+            </BoxComponent>
+
+            <BoxComponent v-if="hasPermission('maintenancecontract.see_financials')" class="mt-4"
+                data-tour="contract.formula">
+                <SectionHeader :icon="CalculatorIcon" title="Prijsformule" chapter="financial"
+                    subtitle="Laat de prijs berekenen uit de machines op dit contract, met een formule uit Prijsformules." />
+                <ContractFormulaBox :contract-id="maintenanceContract.id" :price-formulas="priceFormulas"
+                    :price-formula="exampleFormula ?? priceFormula" :example="Boolean(exampleFormula)" :can-update="canUpdate"
+                    :can-read-formulas="hasPermission('priceformula.read')"
+                    :stored-price="maintenanceContract.price == null ? null : Number(maintenanceContract.price)"
+                    :ended="['geannuleerd', 'verlopen'].includes(maintenanceContract.status)" />
             </BoxComponent>
 
             <BoxComponent class="mt-4" data-tour="contract.serviceorders">
@@ -228,9 +244,11 @@
 
 <script setup>
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
-import { ChevronRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import {
+    CalculatorIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, ClockIcon,
+} from '@heroicons/vue/24/outline'
 import { TimelineIcon } from '@lucide/vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
@@ -246,9 +264,13 @@ import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import MaintenanceContractAssetsWidget from '@/Components/MaintenanceContracts/MaintenanceContractAssetsWidget.vue'
+import ContractFormulaBox from '@/Components/PriceFormulas/ContractFormulaBox.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
-import { formatLocalDateAsISO, hasPermission, nlDate, maintenanceContractStatusText, maintenanceContractStatusBadgeColor } from '@/Utilities/Utilities'
+import {
+    formatLocalDateAsISO, hasPermission, nlCurrency, nlDate,
+    maintenanceContractStatusText, maintenanceContractStatusBadgeColor,
+} from '@/Utilities/Utilities'
 import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
@@ -257,7 +279,12 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     contractIntervalOptions: { type: Array, default: () => [] },
     firstStageName: { type: String, default: null },
+    priceFormulas: { type: Array, default: () => [] },
+    priceFormula: { type: Object, default: null },
 })
+
+/** With a formula the price is worked out, so it is shown but not typed. */
+const hasFormula = computed(() => props.maintenanceContract.price_formula_version_id != null || Boolean(exampleFormula.value))
 
 const canUpdate = computed(() => hasPermission('maintenancecontract.update'))
 /** Making werkbonnen from a contract, by hand or on a schedule, takes the right to create them. */
@@ -299,7 +326,23 @@ function exampleServiceOrders() {
     }))
 }
 
+/** Shown by the rondleiding on a contract without a formula, so there is something to point at; never saved. */
+const exampleFormula = ref(null)
+
 useTour('contract', {
+    showExampleFormula: () => {
+        if (props.priceFormula) return null
+        exampleFormula.value = {
+            formula_id: null,
+            name: 'Airco standaard',
+            version: 2,
+            inputs: [{ id: 'voorbeeld', name: 'Extra bezoeken per jaar', default: 0, value: 2 }],
+            result: { periodic: 245, one_time: 150, unpriced: [] },
+            newer: { version: 3, result: { periodic: 255, one_time: 150, unpriced: [] } },
+        }
+
+        return () => { exampleFormula.value = null }
+    },
     showExampleOrders: () => {
         if (shownServiceOrders.value.length) return null
         exampleOrders.value = exampleServiceOrders()
@@ -421,6 +464,15 @@ const form = useForm({
     manage_frequency_per_asset: props.maintenanceContract.manage_frequency_per_asset,
     frequency: props.maintenanceContract.frequency,
     frequency_days: props.maintenanceContract.frequency_days,
+})
+
+/**
+ * A formula reprices the contract on the server whenever a machine comes or goes,
+ * while this page stays as it is; the price shown has to follow it there.
+ */
+watch(() => props.maintenanceContract.price, price => {
+    form.defaults('price', price)
+    form.price = price
 })
 
 function patch(...fields) {

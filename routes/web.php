@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\StandardAttachmentController;
 use App\Http\Controllers\Admin\StandardEmailController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssistantController;
+use App\Http\Controllers\AssistantTranscriptionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CatalogImportController;
@@ -34,6 +35,7 @@ use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\InternalAnnouncementController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
+use App\Http\Controllers\MaintenanceContractPriceFormulaController;
 use App\Http\Controllers\MaintenanceContractTemplateController;
 use App\Http\Controllers\MaterialCategoryController;
 use App\Http\Controllers\MaterialController;
@@ -43,6 +45,7 @@ use App\Http\Controllers\NotificationMuteController;
 use App\Http\Controllers\NotificationSubscriptionController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlannerController;
+use App\Http\Controllers\PriceFormulaController;
 use App\Http\Controllers\ProductableController;
 use App\Http\Controllers\ProductAttributeController;
 use App\Http\Controllers\ProductAttributeProductTypeController;
@@ -112,6 +115,12 @@ Route::group(
         Route::post('assistant/ask', [AssistantController::class, 'ask'])
             ->middleware('throttle:20,1')
             ->name('assistant.ask')
+            ->middleware('tenant.module:assistant');
+
+        /** Throttled for the same reason: every recording is paid for by the minute. */
+        Route::post('assistant/transcribe', AssistantTranscriptionController::class)
+            ->middleware('throttle:10,1')
+            ->name('assistant.transcribe')
             ->middleware('tenant.module:assistant');
 
         /**
@@ -203,6 +212,20 @@ Route::group(
         )->name('maintenancecontracts.generateServiceOrders');
         Route::resource('maintenancecontracttemplates', MaintenanceContractTemplateController::class)
             ->except(['create', 'edit']);
+        Route::put(
+            'maintenancecontracts/{maintenancecontract}/price-formula',
+            [MaintenanceContractPriceFormulaController::class, 'update']
+        )->name('maintenancecontracts.priceFormula');
+        Route::post('priceformulas/preview', [PriceFormulaController::class, 'preview'])
+            ->middleware('throttle:240,1')
+            ->name('priceformulas.preview');
+        Route::resource('priceformulas', PriceFormulaController::class)->except(['create', 'edit']);
+        Route::put('priceformulas/{priceformula}/graph', [PriceFormulaController::class, 'updateGraph'])
+            ->name('priceformulas.graph');
+        Route::post(
+            'priceformulas/{priceformula}/upgrade-contracts',
+            [PriceFormulaController::class, 'upgradeContracts']
+        )->name('priceformulas.upgradeContracts');
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
         Route::resource('locations', LocationController::class)

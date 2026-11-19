@@ -1,0 +1,40 @@
+{
+    "tour": "prijsformules",
+    "chapter": "lijst",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "lijst.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Een prijsformule rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Bijvoorbeeld: vijftig euro per airco, en vijfendertig euro voorrijkosten per adres. Je kiest een formule op een contract, of op een sjabloon.",
+            "hash": "d072f7a7e0b793f0cbae0b8993c04ea7178a04e6",
+            "start": 0,
+            "end": 14.474
+        },
+        {
+            "text": "Per formule zie je de naam en de omschrijving. Klik op de naam om de formule te openen.",
+            "hash": "5a51c0b7d7bb78d833bf1fa043e7620612b81f0c",
+            "start": 15.474,
+            "end": 19.921
+        },
+        {
+            "text": "Dit is de nieuwste versie. Contracten houden hun versie, en dus hun prijs, tot je ze bijwerkt.",
+            "hash": "b76fb122b749e018c70977fdd485ccda5a2594a2",
+            "start": 20.921,
+            "end": 26.023
+        },
+        {
+            "text": "Hier zie je hoeveel contracten de formule gebruiken. Staan er nog contracten op een oudere versie, dan staat dat er in het geel bij.",
+            "hash": "ade37074ab49f90bd9538fbb1951905da8e7e1d3",
+            "start": 27.023,
+            "end": 34.169
+        },
+        {
+            "text": "Hier staan de sjablonen die deze formule gebruiken.",
+            "hash": "e951ab07fc9941446b0b8cd1f7f1d30d2270b0cb",
+            "start": 35.169,
+            "end": 38.2
+        }
+    ]
+}

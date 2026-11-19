@@ -1,7 +1,7 @@
 {
     "tour": "contracten",
     "chapter": "nieuw",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "nieuw.mp3",
     "gap": 1,

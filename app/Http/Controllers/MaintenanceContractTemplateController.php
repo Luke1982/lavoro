@@ -8,6 +8,7 @@ use App\Http\Requests\MaintenanceContractTemplateReadRequest;
 use App\Http\Requests\MaintenanceContractTemplateStoreRequest;
 use App\Http\Requests\MaintenanceContractTemplateUpdateRequest;
 use App\Models\MaintenanceContractTemplate;
+use App\Models\PriceFormula;
 use App\Traits\OffersContractTemplates;
 
 class MaintenanceContractTemplateController extends Controller
@@ -26,13 +27,16 @@ class MaintenanceContractTemplateController extends Controller
         MaintenanceContractTemplateReadRequest $request,
         MaintenanceContractTemplate $maintenancecontracttemplate
     ) {
-        if ($request->user()->can('seeFinancials', MaintenanceContractTemplate::class)) {
+        $sees_financials = $request->user()->can('seeFinancials', MaintenanceContractTemplate::class);
+
+        if ($sees_financials) {
             $maintenancecontracttemplate->makeVisible(MaintenanceContractTemplate::FINANCIAL_ATTRIBUTES);
         }
 
         return inertia('MaintenanceContractTemplates/ShowPage', [
             'template' => $maintenancecontracttemplate,
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
+            'priceFormulas' => $sees_financials ? PriceFormula::orderBy('name')->get(['id', 'name']) : [],
         ]);
     }
 

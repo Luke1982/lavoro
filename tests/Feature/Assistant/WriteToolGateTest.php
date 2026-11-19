@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Assistant;
 
+use App\Actions\Pricing\CreatePriceFormulaAction;
 use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Planning\Clock;
@@ -14,6 +15,7 @@ use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Event;
 use App\Models\EventType;
+use App\Models\MaintenanceContract;
 use App\Models\Product;
 use App\Models\Remark;
 use App\Models\ServiceOrder;
@@ -199,7 +201,7 @@ class WriteToolGateTest extends TestCase
             $this->assertStringContainsString('nog niets gewijzigd', $result->content['note'] ?? '');
         }
 
-        $this->assertSame(11, $proposed, 'a write tool was added or lost without this test noticing');
+        $this->assertSame(13, $proposed, 'a write tool was added or lost without this test noticing');
     }
 
     /**
@@ -264,6 +266,20 @@ class WriteToolGateTest extends TestCase
                 'macro_id' => ServiceOrderMacro::create(['title' => 'Opmerking', 'definition' => ['steps' => [
                     ['id' => 'opmerking', 'type' => 'add_remark', 'text' => 'Sleutel bij de buren', 'internal' => false],
                 ]]])->id,
+            ],
+            'save_price_formula' => [
+                'name' => 'Per machine ' . Str::random(8),
+                'blocks' => [
+                    ['id' => 'machines', 'type' => 'machines'],
+                    ['id' => 'count', 'type' => 'count'],
+                    ['id' => 'price', 'type' => 'tiers', 'settings' => ['amount' => 50]],
+                    ['id' => 'result', 'type' => 'output_periodic'],
+                ],
+                'wires' => ['machines.machines -> count.machines', 'count.value -> price.quantity', 'price.value -> result.value'],
+            ],
+            'apply_price_formula' => [
+                'formula_id' => app(CreatePriceFormulaAction::class)->execute('Gate ' . Str::random(8), null, null, null)->id,
+                'contract_ids' => [MaintenanceContract::factory()->create(['customer_id' => $customer->id])->id],
             ],
             default => [],
         };

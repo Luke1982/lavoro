@@ -1,0 +1,34 @@
+{
+    "tour": "prijsformule",
+    "chapter": "bronnen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "bronnen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Het blok \"machines\" geeft alle machines die op het contract staan. Bijna elke formule begint hier. Staan er acht machines op het contract, dan komen er hier acht uit.",
+            "hash": "bd77202e29d5acf5eaec2a83ed1822673ea20d76",
+            "start": 0,
+            "end": 9.311
+        },
+        {
+            "text": "Het blok \"bedrag of getal\" is één vast getal dat je zelf invult. Hier is het honderdvijftig euro aan opstartkosten, die elke klant één keer betaalt. Je kunt het ook gebruiken voor een vaste basisprijs per jaar.",
+            "hash": "685a1f87ad88b427f302185c163ba2674711f7a1",
+            "start": 10.311,
+            "end": 23.493
+        },
+        {
+            "text": "Het blok \"invoer per contract\" is een getal dat per klant verschilt, en dat je op het contract zelf invult. Hier is dat het aantal extra bezoeken per jaar. Elk extra bezoek kost zestig euro. Spreek je er twee af, dan komt er honderdtwintig euro bij. De naam van het blok staat op het contract boven het invulveld.",
+            "hash": "b38f5ffed476434b1b84265d3af0935ad67f5628",
+            "start": 24.493,
+            "end": 44.094
+        },
+        {
+            "text": "Het blok \"contract\" geeft twee gegevens van het contract zelf: hoe vaak per jaar de klant betaalt, en hoe lang het contract loopt. Zo maak je van een jaarprijs een maandprijs: zeshonderd euro per jaar, gedeeld door twaalf betalingen per jaar, is vijftig euro per maand.",
+            "hash": "94a2bc374886e4d05965d54ee4d41f6fe53f5e4d",
+            "start": 45.094,
+            "end": 59.994
+        }
+    ]
+}

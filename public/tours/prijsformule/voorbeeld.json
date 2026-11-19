@@ -1,0 +1,64 @@
+{
+    "tour": "prijsformule",
+    "chapter": "voorbeeld",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "voorbeeld.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Tot slot een complete formule, helemaal uitgerekend. Je leest hem van links naar rechts: links komen de machines binnen, rechts komt de prijs eruit. De voorbeeldklant heeft acht machines, op twee adressen. Op het eerste adres staan vier machines van het ene type, en één van het andere type. Op het tweede adres staan twee machines van het ene type, en één van het andere.",
+            "hash": "3f107ee22228b9394cdd827d625843d09fda47d8",
+            "start": 0,
+            "end": 21.428
+        },
+        {
+            "text": "Eerst zoekt de formule combinaties: één machine van elk type, op hetzelfde adres. Op elk adres is dat één combinatie, dus twee in totaal. Twee pakketten van honderdtwintig euro is samen tweehonderdveertig euro. De overige vier machines gaan verder.",
+            "hash": "273ae269ba89a92051da02707596a1e7a2161bc7",
+            "start": 22.428,
+            "end": 36.812
+        },
+        {
+            "text": "Het filter verdeelt de overige machines. Ze zijn alle vier van dit type, want de twee machines van het andere type zitten al in de pakketten. Voor het andere type staat een aparte prijs klaar, maar daar komt nu niets binnen.",
+            "hash": "0eb4b5c0d013ee35d740283b668003ef62880d5b",
+            "start": 37.812,
+            "end": 51.45
+        },
+        {
+            "text": "Hier worden aantallen bedragen. De eerste twee machines kosten vijftig euro per stuk, de volgende twee veertig euro. Samen honderdtachtig euro.",
+            "hash": "e91d9579958ead94fb44a6d9dd467c93a05b38ff",
+            "start": 52.45,
+            "end": 61.257
+        },
+        {
+            "text": "Daaronder staan de voorrijkosten: twee adressen keer vijfendertig euro is zeventig euro. En de extra bezoeken, die je per contract invult. Die zijn er hier niet.",
+            "hash": "6589831af2beaab2e692b9fd64872b2bdc139bb6",
+            "start": 62.257,
+            "end": 71.528
+        },
+        {
+            "text": "Het blok \"optellen\" zet alle bedragen bij elkaar: tweehonderdveertig euro voor de pakketten, plus honderdtachtig euro voor de losse machines, plus zeventig euro voorrijkosten. Samen vierhonderdnegentig euro.",
+            "hash": "54ad9e0a86f6e9b51595b8ab27eb18d8d38509d0",
+            "start": 72.528,
+            "end": 85.2
+        },
+        {
+            "text": "Dan gaat er vijf procent korting af. Dat wordt vierhonderdvijfenzestig euro vijftig. Het wordt nooit minder dan honderd euro, maar dat speelt hier niet. Tot slot wordt het afgerond op vijf euro naar boven: vierhonderdzeventig euro.",
+            "hash": "b8ee24cc63cbdce6f709549e702138e2427b8750",
+            "start": 86.2,
+            "end": 98.965
+        },
+        {
+            "text": "Dat is de prijs per periode: vierhonderdzeventig euro. Daaronder staan de opstartkosten van honderdvijftig euro, als eenmalige kosten.",
+            "hash": "66fda88ac6e1128c3d3d138bec0a0a81f32659d1",
+            "start": 99.965,
+            "end": 107.884
+        },
+        {
+            "text": "Linksboven staat wat deze formule de voorbeeldklant kost. Nu ben jij aan de beurt. Je eigen formule staat er zo weer.",
+            "hash": "cc555d73e1169eca0557ac2e8d93fac2ee74ee4d",
+            "start": 108.884,
+            "end": 115.442
+        }
+    ]
+}

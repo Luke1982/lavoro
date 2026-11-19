@@ -50,7 +50,7 @@ class MaintenanceContractServiceOrderGenerator
 
         foreach ($contract->assets as $asset) {
             $pivot = $asset->pivot;
-            [$frequency, $frequency_days] = $this->effectiveFrequency($contract, $pivot);
+            [$frequency, $frequency_days] = $contract->effectiveFrequency($pivot);
 
             if (!$frequency) {
                 continue;
@@ -151,28 +151,6 @@ class MaintenanceContractServiceOrderGenerator
         Signals::dispatch(new ContractServiceOrderGenerated($contract, $service_order, $activity_verb, $labels));
 
         return $service_order;
-    }
-
-    /**
-     * @return array{0: ?string, 1: ?int}
-     */
-    private function effectiveFrequency(MaintenanceContract $contract, $pivot): array
-    {
-        if ($contract->auto_generate_interval) {
-            $interval = $contract->auto_generate_interval instanceof ContractInterval
-                ? $contract->auto_generate_interval->value
-                : $contract->auto_generate_interval;
-
-            return [$interval, $contract->auto_generate_interval_days];
-        }
-
-        if ($contract->manage_frequency_per_asset) {
-            return [$pivot->frequency, $pivot->frequency_days];
-        }
-
-        $frequency = $contract->frequency instanceof ContractInterval ? $contract->frequency->value : $contract->frequency;
-
-        return [$frequency, $contract->frequency_days];
     }
 
     private function nextDueDate(Carbon $anchor, string $frequency, ?int $frequency_days): Carbon

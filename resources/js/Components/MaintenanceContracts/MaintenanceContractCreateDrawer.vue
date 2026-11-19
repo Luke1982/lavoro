@@ -46,7 +46,11 @@
             <div data-tour="contracts.new.price" class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4 sm:px-6 py-4 sm:items-center">
                 <label class="text-sm font-bold text-gray-900 dark:text-slate-200">Prijs</label>
                 <div class="sm:col-span-2">
-                    <CurrencyInput v-model="form.price"
+                    <p v-if="appliedTemplate?.has_price_formula" class="text-sm text-gray-700 dark:text-slate-300">
+                        Wordt berekend met de prijsformule {{ appliedTemplate.price_formula?.name ?? 'van het sjabloon' }}, in de
+                        nieuwste versie. De prijs staat er zodra er machines op het contract staan.
+                    </p>
+                    <CurrencyInput v-else v-model="form.price"
                         :hasError="Boolean(form.errors.price)" :errorMessage="form.errors.price" />
                 </div>
             </div>
@@ -184,6 +188,7 @@ const templatedDefaults = {
 }
 
 const form = useForm({
+    maintenance_contract_template_id: null,
     customer_id: props.customer?.id ?? null,
     start_date: '',
     end_date: '',
@@ -279,6 +284,7 @@ watch(templateId, () => {
     endDateEditedByHand.value = false
 
     const template = appliedTemplate.value
+    form.maintenance_contract_template_id = template?.id ?? null
     if (!template) return
 
     Object.assign(form, contractValuesFrom(template))

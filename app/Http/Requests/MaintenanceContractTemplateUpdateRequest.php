@@ -58,6 +58,7 @@ class MaintenanceContractTemplateUpdateRequest extends FormRequest
             'price' => ['sometimes', 'nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'price_interval' => ['sometimes', 'nullable', 'string', 'in:' . ContractInterval::validationString()],
             'price_interval_days' => ['sometimes', 'nullable', 'integer', 'min:1', DbRange::int(unsigned: true)],
+            'price_formula_id' => ['sometimes', 'nullable', 'integer', 'exists:price_formulas,id'],
         ];
     }
 }

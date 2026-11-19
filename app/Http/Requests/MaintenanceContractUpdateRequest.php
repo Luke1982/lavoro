@@ -51,7 +51,8 @@ class MaintenanceContractUpdateRequest extends FormRequest
 
     /**
      * Only from whoever may see them: anyone else's form loaded them empty, and
-     * saving it back would wipe the real values.
+     * saving it back would wipe the real values. A contract with a price formula
+     * takes its price from the formula, never from the field.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -61,8 +62,13 @@ class MaintenanceContractUpdateRequest extends FormRequest
             return [];
         }
 
+        $has_price_formula = $this->route('maintenancecontract')->price_formula_version_id !== null;
+
         return [
-            'price' => ['sometimes', 'required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'price' => [
+                'sometimes', Rule::prohibitedIf($has_price_formula),
+                'required', 'numeric', 'min:0', DbRange::decimal(10, 2),
+            ],
             'price_interval' => ['sometimes', 'required', 'string', 'in:' . ContractInterval::validationString()],
             'price_interval_days' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ];
@@ -117,6 +123,7 @@ class MaintenanceContractUpdateRequest extends FormRequest
             'asset_strategy.required' => 'Geef aan wat er met de machines van dit contract moet gebeuren.',
             'asset_strategy.in' => 'Ongeldige keuze voor de machines van dit contract.',
             'location_map.*.exists' => 'De gekozen locatie hoort niet bij de nieuwe klant.',
+            'price.prohibited' => 'Deze prijs wordt berekend met de prijsformule. Pas de formule aan om de prijs te wijzigen.',
         ];
     }
 }

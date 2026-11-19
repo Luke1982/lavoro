@@ -1,0 +1,28 @@
+{
+    "tour": "prijsformule",
+    "chapter": "resultaat",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "resultaat.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Wat in het blok \"prijs per periode\" terechtkomt, is wat het contract kost per prijsinterval: per maand, per halfjaar of per jaar, net wat er op het contract staat. Komt er driehonderdvijfenzeventig euro binnen en betaalt de klant per jaar, dan kost het contract driehonderdvijfenzeventig euro per jaar. Een formule heeft maar één zo'n blok.",
+            "hash": "adf7b5e8b6fb1dfc8b7b9a3b144460c318bdfa07",
+            "start": 0,
+            "end": 19.997
+        },
+        {
+            "text": "Het blok \"eenmalige kosten\" staat los van de prijs per periode. Denk aan honderdvijftig euro opstartkosten, die de klant maar één keer betaalt. Op het contract staan ze onder de prijs.",
+            "hash": "f8ed444f2845a1c9636a28a36cffc25ef05ba553",
+            "start": 20.997,
+            "end": 31.725
+        },
+        {
+            "text": "Een blok dat niet in een resultaatblok terechtkomt, telt niet mee in de prijs. Handig om iets uit te proberen, maar vergeet het daarna niet aan te sluiten.",
+            "hash": "c5d945f5ea4c96f6322cb31ea32c065314cfed69",
+            "start": 32.725,
+            "end": 40.838
+        }
+    ]
+}

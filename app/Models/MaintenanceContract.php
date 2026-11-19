@@ -27,6 +27,8 @@ class MaintenanceContract extends Model
         'price',
         'price_interval',
         'price_interval_days',
+        'one_time_price',
+        'price_formula_inputs',
     ];
 
     protected array $activity_labels = [
@@ -37,6 +39,7 @@ class MaintenanceContract extends Model
         'price' => 'Prijs',
         'price_interval' => 'Prijsinterval',
         'price_interval_days' => 'Prijsinterval (dagen)',
+        'one_time_price' => 'Eenmalige kosten',
         'frequency' => 'Frequentie',
         'frequency_days' => 'Frequentie (dagen)',
         'auto_generate' => 'Automatisch genereren',
@@ -53,6 +56,9 @@ class MaintenanceContract extends Model
         'customer_id',
         'auto_generate',
         'manage_frequency_per_asset',
+        'one_time_price',
+        'price_formula_version_id',
+        'price_formula_inputs',
     ];
 
     protected array $activity_relations = [
@@ -64,6 +70,7 @@ class MaintenanceContract extends Model
         'price' => 'maintenancecontract.see_financials',
         'price_interval' => 'maintenancecontract.see_financials',
         'price_interval_days' => 'maintenancecontract.see_financials',
+        'one_time_price' => 'maintenancecontract.see_financials',
     ];
 
     protected $fillable = [
@@ -93,6 +100,8 @@ class MaintenanceContract extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'price' => 'decimal:2',
+        'one_time_price' => 'decimal:2',
+        'price_formula_inputs' => 'array',
         'price_interval' => ContractInterval::class,
         'manage_frequency_per_asset' => 'boolean',
         'frequency' => ContractInterval::class,
@@ -122,6 +131,15 @@ class MaintenanceContract extends Model
                     ->delete();
             }
         });
+    }
+
+    /**
+     * The version of a price formula this contract is priced by. While there is
+     * one, it sets the price; the contract stays on it until moved to a newer one.
+     */
+    public function priceFormulaVersion()
+    {
+        return $this->belongsTo(PriceFormulaVersion::class);
     }
 
     public function customer()
@@ -158,6 +176,49 @@ class MaintenanceContract extends Model
         return $query->whereNull($query->qualifyColumn('cancelled_at'))
             ->where($query->qualifyColumn('start_date'), '<=', $today)
             ->where(fn ($q) => $q->whereNull($end_date)->orWhere($end_date, '>=', $today));
+    }
+
+    /**
+     * Not cancelled and not past its end date: running now or still to start.
+     * An ended contract keeps the price it ended with.
+     */
+    public function scopeNotEnded(Builder $query): Builder
+    {
+        $end_date = $query->qualifyColumn('end_date');
+
+        return $query->whereNull($query->qualifyColumn('cancelled_at'))
+            ->where(fn ($q) => $q->whereNull($end_date)->orWhere($end_date, '>=', now()->toDateString()));
+    }
+
+    public function hasEnded(): bool
+    {
+        return in_array($this->status, ['geannuleerd', 'verlopen'], true);
+    }
+
+    /**
+     * How often a machine on this contract really gets a visit: the interval
+     * werkbonnen are generated at when one is set, else the machine's own
+     * frequency or the contract's. Generating and pricing both go by this.
+     *
+     * @return array{0: ?string, 1: ?int}
+     */
+    public function effectiveFrequency(?object $pivot = null): array
+    {
+        if ($this->auto_generate_interval) {
+            $interval = $this->auto_generate_interval instanceof ContractInterval
+                ? $this->auto_generate_interval->value
+                : $this->auto_generate_interval;
+
+            return [$interval, $this->auto_generate_interval_days];
+        }
+
+        if ($this->manage_frequency_per_asset && $pivot !== null) {
+            return [$pivot->frequency, $pivot->frequency_days];
+        }
+
+        $frequency = $this->frequency instanceof ContractInterval ? $this->frequency->value : $this->frequency;
+
+        return [$frequency, $this->frequency_days];
     }
 
     public function generatedServiceOrders()

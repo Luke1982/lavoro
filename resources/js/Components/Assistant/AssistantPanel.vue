@@ -305,8 +305,8 @@
             </div>
         </ChaptersComponent>
 
-        <template v-if="chapter === CHAT">
-            <div v-if="pending_images.length || pending_files.length || attachment_error"
+        <div v-show="chapter === CHAT" class="contents">
+            <div v-if="pending_images.length || pending_files.length || attachment_error || spoken"
                 class="space-y-1.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 px-3 py-2">
                 <div v-if="pending_images.length || pending_files.length" class="flex flex-wrap items-center gap-1.5">
                     <button v-for="(image, imageIndex) in pending_images" :key="'i' + imageIndex" type="button"
@@ -323,6 +323,9 @@
                     <p class="text-[11px] text-slate-500 dark:text-slate-400">Gaat mee met je volgende vraag.</p>
                 </div>
                 <p v-if="attachment_error" class="text-[11px] font-medium text-red-600 dark:text-red-400">{{ attachment_error }}</p>
+                <p v-else-if="spoken" class="text-[11px] text-slate-600 dark:text-slate-300">
+                    Dit is je opname, omgezet in tekst. Lees het na, verbeter wat niet klopt, en verstuur.
+                </p>
             </div>
 
             <div v-if="asking_about_photos"
@@ -381,14 +384,16 @@
                             </button>
                             <input ref="imageInputRef" type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                                 multiple class="hidden" @change="addAttachments">
-                            <button type="button" title="Pdf of tekstbestand meesturen"
+                            <button type="button" title="Pdf, tekstbestand of geluidsopname meesturen"
                                 class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-300 hover:ring-violet-300 dark:hover:ring-violet-700"
                                 @click="fileInputRef?.click()">
                                 <PaperClipIcon class="size-4 text-violet-600 dark:text-violet-400" />
                                 Bestand
                             </button>
-                            <input ref="fileInputRef" type="file" accept="application/pdf,text/plain,text/csv" multiple
+                            <input ref="fileInputRef" type="file" accept="application/pdf,text/plain,text/csv,audio/*" multiple
                                 class="hidden" @change="addAttachments">
+                            <AssistantVoiceButton ref="voiceRef" @text="insertSpoken"
+                                @error="message => { attachment_error = message; spoken = false }" />
                             <button v-if="exchanges.length" type="button" :disabled="reporting || !!reported"
                                 class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-300 hover:ring-amber-300 dark:hover:ring-amber-700 disabled:opacity-50"
                                 @click="startReport">
@@ -410,7 +415,7 @@
                     </div>
                 </div>
             </div>
-        </template>
+        </div>
 
         <div class="border-t border-slate-100 dark:border-slate-800 px-3 py-1.5">
             <p v-if="costingMore" class="mb-1 rounded-lg bg-amber-50 dark:bg-amber-900/20 px-2 py-1 text-[11px] font-medium text-amber-800 dark:text-amber-200">
@@ -457,6 +462,7 @@ import { PaperAirplaneIcon, PlayIcon } from '@heroicons/vue/24/solid'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AssistantPromptForm from '@/Components/Assistant/AssistantPromptForm.vue'
+import AssistantVoiceButton from '@/Components/Assistant/AssistantVoiceButton.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
@@ -669,6 +675,13 @@ const READABLE = ['application/pdf', 'text/plain', 'text/csv']
  */
 function readFiles(files) {
     for (const file of Array.from(files || [])) {
+        if (isRecording(file)) {
+            attachment_error.value = ''
+            voiceRef.value?.transcribe(file, file.name)
+
+            continue
+        }
+
         if (file.type?.startsWith('image/')) {
             if (pending_images.value.length >= MAX_IMAGES) continue
 
@@ -682,7 +695,7 @@ function readFiles(files) {
         if (!READABLE.includes(file.type) || pending_files.value.length >= MAX_FILES) {
             /** Said out loud rather than dropped: a file that vanishes reads as one that was read. */
             if (!READABLE.includes(file.type)) {
-                attachment_error.value = 'Alleen foto\'s, pdf- en tekstbestanden kunnen mee. '
+                attachment_error.value = 'Alleen foto\'s, pdf\'s, tekstbestanden en geluidsopnames kunnen mee. '
                     + 'Sla een Word- of Excel-bestand op als pdf.'
             }
 
@@ -696,6 +709,24 @@ function readFiles(files) {
         reader.readAsDataURL(file)
     }
 }
+
+/** A voice memo is written out, not attached: the assistant reads, it does not listen. */
+function isRecording(file) {
+    return file.type?.startsWith('audio/') || /\.(m4a|mp3|wav|ogg|oga|webm|aac|flac)$/i.test(file.name ?? '')
+}
+
+const voiceRef = ref(null)
+const spoken = ref(false)
+
+/** What was said lands in the box after whatever was typed, to be read and sent. */
+function insertSpoken(text) {
+    attachment_error.value = ''
+    question.value = question.value.trim() ? question.value.trim() + '\n' + text : text
+    spoken.value = true
+    nextTick(() => inputRef.value?.focus())
+}
+
+watch(question, value => { if (!value.trim()) spoken.value = false })
 
 function addAttachments(event) {
     readFiles(event.target.files)

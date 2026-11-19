@@ -14,6 +14,7 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\MaintenanceContract;
+use App\Models\PriceFormula;
 use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
@@ -56,6 +57,7 @@ class SearchActivityTool implements Tool
         'klant' => Customer::class,
         'onderhoudscontract' => MaintenanceContract::class,
         'project' => Project::class,
+        'prijsformule' => PriceFormula::class,
     ];
 
     public static function name(): string
@@ -296,6 +298,10 @@ class SearchActivityTool implements Tool
 
                     if ($user->can('list', Project::class)) {
                         $outer->orWhere('activityables.activityable_type', Project::class);
+                    }
+
+                    if ($user->can('viewAny', PriceFormula::class)) {
+                        $outer->orWhere('activityables.activityable_type', PriceFormula::class);
                     }
                 });
         });

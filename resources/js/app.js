@@ -8,6 +8,7 @@ import "floating-vue/dist/style.css";
 import "@imengyu/vue3-context-menu/lib/vue3-context-menu.css";
 import axios from "axios";
 import { refreshRestoredPages } from "@/Utilities/refreshRestoredPages";
+import { installHistoryGuard } from "@/Utilities/historyGuard";
 
 /**
  * Een verlopen sessie: de server weigert een opslag met 419, omdat het
@@ -43,6 +44,8 @@ const applyTitle = (page) => {
     currentTitle = page?.props?.title ?? currentTitle;
     document.title = currentTitle;
 };
+
+installHistoryGuard();
 
 createInertiaApp({
     title: (title) => title || currentTitle,

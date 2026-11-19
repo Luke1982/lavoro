@@ -1,0 +1,158 @@
+<template>
+    <div class="space-y-4 text-sm">
+        <div>
+            <p class="font-semibold text-gray-900 dark:text-white">{{ definition.label }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">{{ definition.description }}</p>
+        </div>
+
+        <TextInput id="setting-title" data-formula-field="title" :model-value="node.data?.title ?? ''" type="text" label="Naam op het blok"
+            :placeholder="definition.label" :disabled="readonly" @update:model-value="value => set('title', value || null)" />
+
+        <div v-for="field in definition.fields" :key="field.key" :data-formula-field="field.type" :data-formula-field-key="field.key">
+            <template v-if="field.type === 'number' || field.type === 'text'">
+                <TextInput :id="'setting-' + field.key" :model-value="node.data?.[field.key] ?? ''"
+                    :type="field.type === 'number' ? 'number' : 'text'" step="any" :label="field.label"
+                    :placeholder="field.default == null ? '' : String(field.default)" :disabled="readonly"
+                    @update:model-value="v => set(field.key, field.type === 'number' ? toNumber(v) : v)" />
+            </template>
+
+            <template v-else-if="field.type === 'select'">
+                <label :for="'setting-' + field.key" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">
+                    {{ field.label }}
+                </label>
+                <select :id="'setting-' + field.key" :value="value(field)" :disabled="readonly"
+                    :class="'mt-2 ' + SELECT_CLASS"
+                    @change="event => set(field.key, event.target.value)">
+                    <option v-for="(label, key) in field.options" :key="key" :value="key">{{ label }}</option>
+                </select>
+            </template>
+
+            <ComboBox v-else-if="field.type === 'product_type'" :label="field.label" :options="productTypes"
+                :model-value="value(field)" placeholder="Kies een producttype" :disabled="readonly"
+                @update:model-value="v => set(field.key, v)" />
+
+            <ComboBox v-else-if="field.type === 'product'" :label="field.label" :options="modelOptions"
+                :model-value="value(field)" placeholder="Kies een model" :disabled="readonly"
+                :has-external-searching="productsUseAjax" :searching="searching" @change="search"
+                @update:model-value="v => set(field.key, v)" />
+
+            <ComboBox v-else-if="field.type === 'brand'" :label="field.label" :options="brands"
+                :model-value="value(field)" placeholder="Kies een merk" :disabled="readonly"
+                @update:model-value="v => set(field.key, v)" />
+
+            <ComboBox v-else-if="field.type === 'attribute'" :label="field.label" :options="attributes"
+                :model-value="value(field)" placeholder="Kies een kenmerk" :disabled="readonly"
+                @update:model-value="v => set(field.key, v)" />
+
+            <div v-else-if="field.type === 'tiers'">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-300">{{ field.label }}</p>
+                <div v-for="(step, index) in list(field)" :key="index" class="mt-2 flex items-end gap-2">
+                    <div class="w-24">
+                        <TextInput :id="'setting-step-from-' + index" :model-value="step.from" type="number" min="2"
+                            label="Vanaf stuk" :disabled="readonly"
+                            @update:model-value="v => setItem(field, index, 'from', toNumber(v))" />
+                    </div>
+                    <div class="flex-1">
+                        <TextInput :id="'setting-step-amount-' + index" :model-value="step.amount" type="number" step="any"
+                            label="Per stuk" :disabled="readonly"
+                            @update:model-value="v => setItem(field, index, 'amount', toNumber(v))" />
+                    </div>
+                    <button v-if="!readonly" type="button" class="pb-2 text-gray-400 hover:text-red-600" title="Stap verwijderen"
+                        @click="removeItem(field, index)">
+                        <XMarkIcon class="size-4" />
+                    </button>
+                </div>
+                <button v-if="!readonly" type="button" class="mt-2 text-sm font-medium text-lavoro-blue hover:underline dark:text-blue-400"
+                    @click="addStep(field)">
+                    + Stap
+                </button>
+            </div>
+
+            <div v-else-if="field.type === 'components'">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-300">{{ field.label }}</p>
+                <div v-for="(component, index) in list(field)" :key="index"
+                    class="mt-2 space-y-2 rounded-md border border-gray-200 p-2 dark:border-slate-600">
+                    <div class="flex items-center gap-2">
+                        <div class="w-20">
+                            <TextInput :model-value="component.quantity" type="number" min="1" :disabled="readonly"
+                                @update:model-value="v => setItem(field, index, 'quantity', toNumber(v))" />
+                        </div>
+                        <span class="text-gray-500">×</span>
+                        <span class="flex-1" />
+                        <button v-if="!readonly" type="button" class="text-gray-400 hover:text-red-600" title="Onderdeel verwijderen"
+                            @click="removeItem(field, index)">
+                            <XMarkIcon class="size-4" />
+                        </button>
+                    </div>
+                    <MachinePicker :product-type-id="component.product_type_id" :product-id="component.product_id"
+                        :product-types="productTypes" :product-options="productOptions"
+                        :products-use-ajax="productsUseAjax" all-label="Kies een producttype" stacked :disabled="readonly"
+                        @update:product-type-id="v => setItem(field, index, 'product_type_id', v)"
+                        @update:product-id="v => setItem(field, index, 'product_id', v)" />
+                </div>
+                <button v-if="!readonly" type="button" class="mt-2 text-sm font-medium text-lavoro-blue hover:underline dark:text-blue-400"
+                    @click="addComponent(field)">
+                    + Onderdeel
+                </button>
+            </div>
+        </div>
+
+        <button v-if="!readonly" type="button" class="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:underline"
+            data-formula-remove @click="$emit('remove')">
+            <TrashIcon class="size-4" /> Blok verwijderen
+        </button>
+    </div>
+</template>
+
+<script setup>
+import { TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import TextInput from '@/Components/UI/TextInput.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
+import MachinePicker from '@/Components/PriceFormulas/MachinePicker.vue'
+import { useModelOptions } from './useModelOptions'
+import { SELECT_CLASS, settingOf } from './formulaEditor'
+
+/** The settings of the block selected on the canvas; every change goes back to the canvas at once. */
+const props = defineProps({
+    node: { type: Object, required: true },
+    definition: { type: Object, required: true },
+    productTypes: { type: Array, default: () => [] },
+    brands: { type: Array, default: () => [] },
+    attributes: { type: Array, default: () => [] },
+    productOptions: { type: Array, default: () => [] },
+    productsUseAjax: { type: Boolean, default: false },
+    readonly: { type: Boolean, default: false },
+})
+
+const emit = defineEmits(['remove', 'change'])
+
+const { options: modelOptions, searching, search } =
+    useModelOptions(props.productOptions, props.productsUseAjax, () => props.node.data?.product_id)
+
+const value = field => settingOf(props.node, props.definition, field.key)
+const list = field => value(field) ?? []
+
+const toNumber = v => (v === '' || v === null || v === undefined ? null : Number(v))
+
+function set(key, v) {
+    emit('change', { ...(props.node.data ?? {}), [key]: v })
+}
+
+function setItem(field, index, key, v) {
+    const items = list(field).map((item, i) => (i === index ? { ...item, [key]: v } : item))
+    set(field.key, items)
+}
+
+function removeItem(field, index) {
+    set(field.key, list(field).filter((_, i) => i !== index))
+}
+
+function addStep(field) {
+    const last = list(field).at(-1)
+    set(field.key, [...list(field), { from: last ? Number(last.from) + 5 : 6, amount: last?.amount ?? value({ key: 'amount' }) ?? 0 }])
+}
+
+function addComponent(field) {
+    set(field.key, [...list(field), { product_type_id: null, product_id: null, quantity: 1 }])
+}
+</script>

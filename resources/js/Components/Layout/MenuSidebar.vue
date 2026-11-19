@@ -157,6 +157,7 @@ const ACCENTS = {
     relaties: 'var(--color-nav-relaties)',
     organisatie: 'var(--color-nav-organisatie)',
     lijsten: 'var(--color-nav-lijsten)',
+    prijzen: 'var(--color-nav-prijzen)',
 }
 
 const accentColor = (accent) => ACCENTS[accent] ?? 'var(--color-sidebar-border)'

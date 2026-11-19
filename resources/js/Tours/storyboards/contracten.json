@@ -65,7 +65,7 @@
         },
         {
             "id": "nieuw",
-            "version": 1,
+            "version": 2,
             "title": "Een contract toevoegen",
             "summary": "Een nieuw contract invullen, met of zonder sjabloon.",
             "requires": {
@@ -113,7 +113,7 @@
                     "spot": "contracts.new.price",
                     "action": "openCreate",
                     "title": "Prijs",
-                    "text": "Vul de **prijs** in en hoe vaak je die rekent: per maand, per half jaar, per jaar of elk aantal dagen.",
+                    "text": "Vul de **prijs** in en hoe vaak je die rekent: per maand, per half jaar, per jaar of elk aantal dagen. Kies je een sjabloon met een **prijsformule**, dan staat hier geen prijsveld: het contract rekent zijn prijs zelf uit zodra er machines op staan.",
                     "say": "Vul de prijs in, en hoe vaak je die rekent.",
                     "marks": [
                         {

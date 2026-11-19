@@ -1,0 +1,34 @@
+{
+    "tour": "prijsformules",
+    "chapter": "nieuw",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "nieuw.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met de knop \"nieuwe formule\" maak je er een aan.",
+            "hash": "b3e6496d0fd8173ba222f06c7bc9657006007a83",
+            "start": 0,
+            "end": 3.051
+        },
+        {
+            "text": "Geef de formule een naam die je collega's herkennen, zoals \"Airco standaard\".",
+            "hash": "5e83bf37b3d6626290a11d18c7f67e2409eae020",
+            "start": 4.051,
+            "end": 8.479
+        },
+        {
+            "text": "Een omschrijving is niet verplicht, maar helpt een collega de goede formule te kiezen.",
+            "hash": "5c0508fbc2182e97466297ea2f4930e87cc9c228",
+            "start": 9.479,
+            "end": 13.786
+        },
+        {
+            "text": "Met \"aanmaken\" open je de nieuwe formule. Die begint eenvoudig, met vijftig euro per machine. Op die pagina zit een eigen rondleiding.",
+            "hash": "fe2d7f9b083cadd5977981d93c74fe6e43664548",
+            "start": 14.786,
+            "end": 23.411
+        }
+    ]
+}

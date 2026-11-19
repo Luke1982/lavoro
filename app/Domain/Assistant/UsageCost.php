@@ -68,6 +68,27 @@ final class UsageCost
         );
     }
 
+    /**
+     * A recording written out, priced by the minute at the transcribing supplier's
+     * rate. No tokens: the words it produced are counted again when they are asked.
+     */
+    public static function forTranscription(string $model, float $seconds, float $usd_per_minute): self
+    {
+        $eur_per_usd = (float) config('assistant.eur_per_usd');
+        $usd_micros = (int) round($seconds / 60 * $usd_per_minute * self::MICROS_PER_EURO);
+
+        return new self(
+            model: $model,
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_write_tokens: 0,
+            cache_read_tokens: 0,
+            cost_usd_micros: $usd_micros,
+            cost_micros: (int) round($usd_micros * $eur_per_usd),
+            eur_per_usd: $eur_per_usd,
+        );
+    }
+
     public function euros(): float
     {
         return $this->cost_micros / self::MICROS_PER_EURO;

@@ -1,0 +1,40 @@
+{
+    "tour": "prijsformule",
+    "chapter": "tellen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "tellen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Het blok \"aantal\" telt de machines die binnenkomen: zes machines worden het getal zes. Dat getal gaat meestal door naar het blok \"prijs per stuk\", dat er een bedrag van maakt.",
+            "hash": "a59f551084bf2aaddb7331ca8189e24ffb3b0283",
+            "start": 0,
+            "end": 10.946
+        },
+        {
+            "text": "Het blok \"aantal adressen\" telt op hoeveel verschillende adressen de machines staan. Dat aantal wordt hier vermenigvuldigd met vijfendertig euro: dat zijn de voorrijkosten. Staan de machines op twee adressen, dan is dat zeventig euro.",
+            "hash": "11e01ff9332d9222a9f51019619a0c876961cc7c",
+            "start": 11.946,
+            "end": 25.894
+        },
+        {
+            "text": "Het blok \"catalogusprijs\" telt de catalogusprijzen van de machines bij elkaar op. Daarvan reken je een percentage. Hier is dat acht procent per jaar: voor tienduizend euro aan machines betaalt de klant achthonderd euro per jaar.",
+            "hash": "3b34dea2cb3d5318565ad53089c2c8cb0a4536e5",
+            "start": 26.894,
+            "end": 40.914
+        },
+        {
+            "text": "Het blok \"onderhoudsbeurten per jaar\" telt hoe vaak alle machines samen onderhoud krijgen. Acht machines die twee keer per jaar onderhoud krijgen, zijn zestien beurten. Kost dat vijfenveertig euro per beurt, dan is het zevenhonderdtwintig euro per jaar. En gedeeld door twaalf, het aantal betalingen per jaar bij maandelijks betalen, is dat zestig euro per maand.",
+            "hash": "ada9e1bdc2004ea4729985c7f9c26c01fcbbcc72",
+            "start": 41.914,
+            "end": 62.18
+        },
+        {
+            "text": "Komt een machine bij geen enkel blok uit de groep \"tellen\" aan, dan rekent de formule er niets voor. Hier is het blok \"machines\" nog nergens op aangesloten, dus kosten alle machines niets. Dat zie je in het geel bij het proberen.",
+            "hash": "60e4a52ede4dca8d2679393dbff754940cd8bf5b",
+            "start": 63.18,
+            "end": 75.703
+        }
+    ]
+}

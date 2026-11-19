@@ -53,8 +53,12 @@ class ToolSchemaBudgetTest extends TestCase
      * 37000 for the rondleidingen that followed the planner's: the projects,
      * the maintenance contracts, the werkbonnen, the checklists and the macros,
      * each one more name and its chapters in what offer_tour can start.
+     *
+     * 41000 for price formulas: reading them, trying a draft on example
+     * machines, saving one, and putting one on contracts, so somebody can say
+     * or type how they want to charge and have the assistant build it.
      */
-    private const ROOM_FOR = 37000;
+    private const ROOM_FOR = 41000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

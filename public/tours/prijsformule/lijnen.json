@@ -1,0 +1,52 @@
+{
+    "tour": "prijsformule",
+    "chapter": "lijnen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "lijnen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Elk blok heeft een gekleurde balk met zijn naam. Links zitten de ingangen, rechts de uitgangen. Het blok \"aantal\" krijgt bijvoorbeeld links machines binnen, en geeft rechts een getal: hoeveel machines het zijn.",
+            "hash": "5f06a8c413fa91b254fcccdd4613b65024b43437",
+            "start": 0,
+            "end": 12.341
+        },
+        {
+            "text": "Er lopen twee soorten dingen over de lijnen. Een blauw rondje is voor machines, zoals alle airco's van een klant. Een grijs blokje is voor een getal: een aantal, zoals zes, of een bedrag, zoals driehonderd euro.",
+            "hash": "c5082d7c18bc982cd95cf15f77bb385afdf96a39",
+            "start": 13.341,
+            "end": 25.863
+        },
+        {
+            "text": "Je verbindt twee blokken door van een uitgang naar een ingang te slepen. Kijk: de machines gaan nu naar het blok \"aantal\", en dat telt ze.",
+            "hash": "d05d1b032b3f2fc7c584cefc6d758bc77a6d2db0",
+            "start": 26.863,
+            "end": 34.976
+        },
+        {
+            "text": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt. Heeft de voorbeeldklant acht machines, dan staat er bij \"aantal\" het getal acht. Bij \"prijs per stuk\" staat dan vierhonderd euro, want acht keer vijftig euro is vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
+            "hash": "1a2dd629769105bb40e41a4ded15ad943c0ec1c6",
+            "start": 35.976,
+            "end": 53.804
+        },
+        {
+            "text": "Een lijn verbindt alleen dingen van dezelfde soort: machines met machines, en getallen met getallen. Komen er meerdere lijnen op één ingang, dan worden getallen opgeteld. Komt er driehonderd euro binnen en zestig euro, dan wordt dat driehonderdzestig euro.",
+            "hash": "5e32760a8b6e550f302c7353fc3b2258ebb062e2",
+            "start": 54.804,
+            "end": 69.561
+        },
+        {
+            "text": "Klik op een blok, en rechts verschijnen zijn instellingen. Bovenaan geef je het een eigen naam, zoals \"airco per stuk\". Onderaan haal je het blok weg.",
+            "hash": "a49ad9e00938de1e0175f91b429b56837a551f71",
+            "start": 70.561,
+            "end": 79.076
+        },
+        {
+            "text": "Een blok toevoegen doe je door het uit de lijst naar het canvas te slepen. Klik je er alleen op, dan komt het in het midden te staan.",
+            "hash": "7ccc2b78f46c72a0855d3a090cee9a8ee769cf88",
+            "start": 80.076,
+            "end": 87.522
+        }
+    ]
+}

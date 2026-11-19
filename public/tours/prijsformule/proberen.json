@@ -1,0 +1,46 @@
+{
+    "tour": "prijsformule",
+    "chapter": "proberen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "proberen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Op het tabblad \"proberen\" reken je de formule uit terwijl je bouwt. Er wordt niets opgeslagen, en geen enkel contract verandert.",
+            "hash": "6ee1a76a7fd8e293cb3eeff956801aef348fe883",
+            "start": 0,
+            "end": 8.252
+        },
+        {
+            "text": "Vul in welke machines een voorbeeldklant heeft: hoeveel, van welk type of model, en op welk adres. Bijvoorbeeld vier machines van dit type op adres één, en twee op adres twee. Regels met hetzelfde adresnummer staan op hetzelfde adres. Dat maakt uit voor combinaties en voorrijkosten.",
+            "hash": "e0f4ec67e93de6162e8765dabbff5d5560692813",
+            "start": 9.252,
+            "end": 26.82
+        },
+        {
+            "text": "Kies hoe vaak de voorbeeldklant betaalt, en hoe vaak er onderhoud is. Bij maandelijks betalen zijn er twaalf prijsperiodes per jaar. Halfjaarlijks onderhoud aan acht machines is zestien beurten.",
+            "hash": "09a0462800eca442a49b41de230c11eb134ae330",
+            "start": 27.82,
+            "end": 37.687
+        },
+        {
+            "text": "Heeft de formule invoer per contract, dan vul je die hier in. Hier zijn twee extra bezoeken ingevuld: de prijs gaat honderdtwintig euro omhoog, van driehonderdzestig naar vierhonderdtachtig euro. Laat je het veld leeg, dan geldt de standaardwaarde.",
+            "hash": "d2f525314e2c25c9b59bc9251f2b6c34811fa321",
+            "start": 38.687,
+            "end": 53.028
+        },
+        {
+            "text": "Hier staat wat het contract zou kosten, per periode en eenmalig. Ontbreekt er nog iets, bijvoorbeeld een type in een filter, dan staat hier wat.",
+            "hash": "2a190e3a2c968ebbde3533d994ee01849bf3287c",
+            "start": 54.028,
+            "end": 62.902
+        },
+        {
+            "text": "Met \"bestaand contract\" reken je met een echt contract, met zijn eigen machines. Zo zie je wat een wijziging voor die klant betekent, voordat je iets opslaat.",
+            "hash": "830834e495ae208ac360ece16ed4de876b9fd3d4",
+            "start": 63.902,
+            "end": 73.388
+        }
+    ]
+}

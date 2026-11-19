@@ -1,0 +1,34 @@
+{
+    "tour": "prijsformule",
+    "chapter": "combinatie",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "combinatie.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Het blok \"combinatie\" zoekt machines die samen op één adres staan, zoals een compressor met een droger. Rechts geef je aan waaruit één combinatie bestaat. Hier is dat één machine van dit type, en één van het andere type.",
+            "hash": "90b2e65cf48d092e35643e5bee5f458e261e582d",
+            "start": 0,
+            "end": 13.084
+        },
+        {
+            "text": "Er komen drie dingen uit: het aantal combinaties, de machines in een combinatie, en de overige machines. Stel: op het eerste adres staan vier machines van dit type, en één van het andere type. Op het tweede adres staan er twee van dit type, en één van het andere. Dan zijn er twee combinaties, één op elk adres, en blijven er vier machines over. Machines op verschillende adressen vormen samen nooit een combinatie.",
+            "hash": "70ab5871e1843b40d9d034e1c42ee7c5e68aa6ae",
+            "start": 14.084,
+            "end": 39.925
+        },
+        {
+            "text": "Het aantal combinaties gaat naar het blok \"vermenigvuldigen\": keer honderdtwintig euro. Dat is de pakketprijs. Twee combinaties kosten dus tweehonderdveertig euro. De machines in een combinatie krijgen geen eigen prijs meer.",
+            "hash": "812fd2391e6a942aca9dc09dff08a07e069c6ac3",
+            "start": 40.925,
+            "end": 53.403
+        },
+        {
+            "text": "De overige machines gaan door naar het filter, en krijgen daar een prijs per stuk. Zo reken je voor elke machine precies één keer: in een pakket, of los.",
+            "hash": "264b31c027894b4e87d81a82776dd54f4024d222",
+            "start": 54.403,
+            "end": 62.958
+        }
+    ]
+}

@@ -1,0 +1,34 @@
+{
+    "tour": "prijsformule",
+    "chapter": "contracten",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "contracten.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Hier staan alle contracten die deze formule gebruiken, met hun versie en hun huidige prijs.",
+            "hash": "193a015eb64ccb5e071019555c3f8b1d1bf40d71",
+            "start": 0,
+            "end": 4.893
+        },
+        {
+            "text": "Staan er contracten op een oudere versie, dan zie je hier wat ze samen nu kosten, en wat ze met de nieuwste versie gaan kosten. Met \"alles bijwerken\" zet je ze allemaal over.",
+            "hash": "765361b2177de04b58ec5d87b94a9a83c285462b",
+            "start": 5.893,
+            "end": 15.821
+        },
+        {
+            "text": "Per contract zie je de prijs nu, en de prijs met de nieuwste versie. Met \"bijwerken\" zet je alleen dat ene contract over. De nieuwe prijs komt op de tijdlijn van het contract. Een afgelopen contract houdt de prijs waarmee het is geëindigd.",
+            "hash": "a3fa53033eb7da1dd5b5202d882af2937c06e94f",
+            "start": 16.821,
+            "end": 30.796
+        },
+        {
+            "text": "Hier staan de sjablonen die deze formule gebruiken. Een nieuw contract uit zo'n sjabloon gebruikt meteen de nieuwste versie.",
+            "hash": "2f7af4db4089c12a73a3775e48ae9c9b6c15590e",
+            "start": 31.796,
+            "end": 38.49
+        }
+    ]
+}

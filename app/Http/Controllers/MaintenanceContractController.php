@@ -6,6 +6,7 @@ use App\Actions\Contracts\AttachContractAssetAction;
 use App\Actions\Contracts\CreateMaintenanceContractAction;
 use App\Actions\Contracts\DetachContractAssetAction;
 use App\Domain\Contracts\ContractLabels;
+use App\Domain\Pricing\ContractPricing;
 use App\Domain\Signals\Contracts\ContractAssetFrequencyChanged;
 use App\Domain\Signals\Contracts\ContractAutoGenerationDisabled;
 use App\Domain\Signals\Contracts\ContractAutoGenerationEnabled;
@@ -28,11 +29,14 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
+use App\Models\PriceFormula;
 use App\Models\ServiceOrderStage;
 use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
+use App\Support\Money;
 use App\Traits\OffersContractTemplates;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -120,7 +124,9 @@ class MaintenanceContractController extends Controller
             'generatedServiceOrders.serviceJobs.asset.product.brand',
         ]);
 
-        if ($request->user()->can('seeFinancials', MaintenanceContract::class)) {
+        $sees_financials = $request->user()->can('seeFinancials', MaintenanceContract::class);
+
+        if ($sees_financials) {
             $maintenancecontract->makeVisible(MaintenanceContract::FINANCIAL_ATTRIBUTES);
         }
 
@@ -146,7 +152,39 @@ class MaintenanceContractController extends Controller
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
             'documentCategories' => DocumentCategory::forPicker(),
             'firstStageName' => ServiceOrderStage::orderBy('order')->value('name'),
+            ...($sees_financials ? $this->priceFormulaProps($maintenancecontract) : []),
         ]);
+    }
+
+    /**
+     * The formula the contract is priced by, what it comes to, what the formula's
+     * newest version would make of it, and every formula to pick from.
+     *
+     * @return array<string, mixed>
+     */
+    private function priceFormulaProps(MaintenanceContract $maintenancecontract): array
+    {
+        $pricing = app(ContractPricing::class);
+        $version = $maintenancecontract->priceFormulaVersion()->with('formula.latestVersion')->first();
+        $latest = $version?->formula?->latestVersion;
+        $inputs = $maintenancecontract->price_formula_inputs ?? [];
+
+        return [
+            'priceFormulas' => PriceFormula::orderBy('name')->get(['id', 'name']),
+            'priceFormula' => $version === null ? null : [
+                'formula_id' => $version->price_formula_id,
+                'name' => $version->formula?->name,
+                'version' => $version->number,
+                'inputs' => array_map(fn (array $field) => $field + [
+                    'value' => $inputs[$field['id']] ?? null,
+                ], ContractPricing::inputsOf($version->graph)),
+                'result' => Arr::except($pricing->evaluate($maintenancecontract, $version), 'nodes'),
+                'newer' => $latest && $latest->number > $version->number ? [
+                    'version' => $latest->number,
+                    'result' => Arr::except($pricing->evaluate($maintenancecontract, $latest), 'nodes'),
+                ] : null,
+            ],
+        ];
     }
 
     public function store(MaintenanceContractStoreRequest $request)
@@ -342,6 +380,8 @@ class MaintenanceContractController extends Controller
     ) {
         $validated = $request->validated();
 
+        $price_before = $maintenancecontract->price;
+
         app(AttachContractAssetAction::class)->execute(
             $maintenancecontract,
             $asset,
@@ -349,7 +389,10 @@ class MaintenanceContractController extends Controller
             $validated['frequency_days'] ?? null,
         );
 
-        return redirect()->back()->with('success', 'Machine gekoppeld aan het contract.');
+        return redirect()->back()->with(
+            'success',
+            'Machine gekoppeld aan het contract.' . $this->priceFeedback($maintenancecontract, $price_before)
+        );
     }
 
     public function updateAssetable(
@@ -380,8 +423,35 @@ class MaintenanceContractController extends Controller
         MaintenanceContract $maintenancecontract,
         string $assetable_id
     ) {
+        $price_before = $maintenancecontract->price;
+
         app(DetachContractAssetAction::class)->execute($maintenancecontract, (int) $assetable_id);
 
-        return redirect()->back()->with('success', 'Machine losgekoppeld van het contract.');
+        return redirect()->back()->with(
+            'success',
+            'Machine losgekoppeld van het contract.' . $this->priceFeedback($maintenancecontract, $price_before)
+        );
+    }
+
+    /**
+     * A contract with a price formula reprices itself when a machine comes or
+     * goes; whoever did it hears what that did to the price, if they may see it.
+     */
+    private function priceFeedback(MaintenanceContract $maintenancecontract, mixed $price_before): string
+    {
+        if (
+            $maintenancecontract->price_formula_version_id === null
+            || !request()->user()->can('seeFinancials', MaintenanceContract::class)
+        ) {
+            return '';
+        }
+
+        $price_after = $maintenancecontract->fresh()->price;
+
+        if ((string) $price_after === (string) $price_before) {
+            return ' De prijs blijft ' . Money::euros($price_after) . '.';
+        }
+
+        return ' De prijs gaat van ' . Money::euros($price_before) . ' naar ' . Money::euros($price_after) . '.';
     }
 }

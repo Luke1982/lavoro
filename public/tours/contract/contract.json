@@ -1,7 +1,7 @@
 {
     "tour": "contract",
     "chapter": "contract",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "contract.mp3",
     "gap": 1,

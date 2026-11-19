@@ -126,6 +126,14 @@
             ]
         },
         {
+            "id": "prijzen",
+            "label": "Prijzen",
+            "accent": "prijzen",
+            "items": [
+                { "id": "prijsformules", "label": "Prijsformules", "icon": "Calculator", "href": "/priceformulas", "permission": "priceformula.read" }
+            ]
+        },
+        {
             "id": "organisatie",
             "label": "Organisatie",
             "accent": "organisatie",

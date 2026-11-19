@@ -1,0 +1,58 @@
+{
+    "tour": "contract",
+    "chapter": "prijsformule",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "prijsformule.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "In het blok \"prijsformule\" laat je de prijs berekenen met een formule, op basis van de machines op dit contract.",
+            "hash": "46e5a64b4b98953cfbb43696fb9615b2e41655d9",
+            "start": 0,
+            "end": 6.101
+        },
+        {
+            "text": "Kies hier een formule, en de prijs wordt meteen berekend. Klik je de gekozen formule nog eens aan, dan haal je hem eraf, en vul je de prijs weer zelf in.",
+            "hash": "d10668f31d633db3b74e49a96d492f20bd1828f8",
+            "start": 7.101,
+            "end": 15.266
+        },
+        {
+            "text": "Hier zie je welke versie van de formule dit contract gebruikt. Met \"bekijk de berekening\" zie je de formule, uitgerekend voor dit contract.",
+            "hash": "17f9b4534e8334d835fbc9b87dd4d9b2e859f7a4",
+            "start": 16.266,
+            "end": 23.751
+        },
+        {
+            "text": "Is de formule sindsdien gewijzigd, dan zie je hier wat de prijs met de nieuwe versie wordt. Het contract houdt zijn prijs, tot je op \"bijwerken\" klikt.",
+            "hash": "a08d37267e378cfc532470e5ffdfd75b7e8a4333",
+            "start": 24.751,
+            "end": 33.639
+        },
+        {
+            "text": "Vraagt de formule om invoer, zoals het aantal extra bezoeken, dan vul je die hier in. Daarna wordt de prijs opnieuw berekend.",
+            "hash": "0418806d3ff2f2e7752ee72bd75d16f84c144a4f",
+            "start": 34.639,
+            "end": 41.856
+        },
+        {
+            "text": "Hier staat wat het contract kost, per periode en eenmalig. Rekent de formule een machine niet mee, dan staat die machine in het geel.",
+            "hash": "c2ace92c25633cdea047352e73ea439239b53aac",
+            "start": 42.856,
+            "end": 50.604
+        },
+        {
+            "text": "Met een formule wordt het veld \"prijs\" bovenaan door de formule ingevuld. Zelf aanpassen kan dan niet.",
+            "hash": "197cba0a3711a4eed102fde648c08e47169b9504",
+            "start": 51.604,
+            "end": 57.489
+        },
+        {
+            "text": "Koppel je een machine aan het contract, of haal je er een af, dan wordt de prijs opnieuw berekend. De melding zegt van welke prijs naar welke prijs het gaat.",
+            "hash": "85a2725a486e19df0b2f844bc04078b907cc1b72",
+            "start": 58.489,
+            "end": 67.118
+        }
+    ]
+}

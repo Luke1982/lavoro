@@ -22,6 +22,7 @@ class MaintenanceContractTemplate extends Model
         'price',
         'price_interval',
         'price_interval_days',
+        'price_formula_id',
         'manage_frequency_per_asset',
         'frequency',
         'frequency_days',
@@ -46,4 +47,13 @@ class MaintenanceContractTemplate extends Model
         'auto_generate' => 'boolean',
         'auto_generate_interval' => ContractInterval::class,
     ];
+
+    /**
+     * The price formula a contract made from this template is priced by: the
+     * newest version at the moment the contract is made.
+     */
+    public function priceFormula()
+    {
+        return $this->belongsTo(PriceFormula::class);
+    }
 }
