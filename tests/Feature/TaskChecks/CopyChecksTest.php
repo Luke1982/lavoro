@@ -136,7 +136,7 @@ class CopyChecksTest extends TestCase
 
     public function test_a_task_with_required_checks_cannot_be_created_complete(): void
     {
-        $user = $this->userWithPermissions('serviceordertaskinstance.create');
+        $user = $this->userWithPermissions('serviceordertaskinstance.create', 'serviceorder.read');
 
         $this->actingAs($user)->post('/serviceordertaskinstances', [
             'service_order_id' => $this->order()->id,
@@ -149,7 +149,7 @@ class CopyChecksTest extends TestCase
 
     public function test_the_form_creates_the_task_with_its_checks(): void
     {
-        $user = $this->userWithPermissions('serviceordertaskinstance.create');
+        $user = $this->userWithPermissions('serviceordertaskinstance.create', 'serviceorder.read');
 
         $this->actingAs($user)->post('/serviceordertaskinstances', [
             'service_order_id' => $this->order()->id,

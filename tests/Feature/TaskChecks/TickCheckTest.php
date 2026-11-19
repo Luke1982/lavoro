@@ -36,7 +36,7 @@ class TickCheckTest extends TestCase
 
     private function tick(ServiceOrderTaskInstanceCheck $check, bool $is_done = true, ?array $permissions = null)
     {
-        $user = $this->userWithPermissions(...($permissions ?? ['serviceordertaskinstance.open_close']));
+        $user = $this->userWithPermissions(...($permissions ?? ['serviceordertaskinstance.open_close', 'serviceorder.read']));
 
         return $this->actingAs($user)->patchJson(
             "/api/serviceordertaskinstancechecks/{$check->id}",

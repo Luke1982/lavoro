@@ -6,6 +6,7 @@ use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
 use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
+use App\Domain\ServiceOrders\BulkStageMove;
 use App\Domain\Signals\Projects\ServiceOrderMovedBetweenProjects;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
@@ -21,6 +22,8 @@ use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
 use App\Http\Requests\ServiceOrderIndexRequest;
+use App\Http\Requests\ServiceOrderSendToSnelStartRequest;
+use App\Http\Requests\ServiceOrderShowRequest;
 use App\Http\Requests\ServiceOrderStoreRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
@@ -176,7 +179,7 @@ class ServiceOrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ServiceOrderEventWidget $event_widget, string $id)
+    public function show(ServiceOrderShowRequest $request, ServiceOrderEventWidget $event_widget, string $id)
     {
         $service_order = ServiceOrder::with([
             'serviceOrderStage',
@@ -415,8 +418,7 @@ class ServiceOrderController extends Controller
         $previous_project = $serviceorder->project;
         $previous_contract_title = $serviceorder->maintenanceContract?->display_title;
 
-        $stage_requested = array_key_exists('service_order_stage_id', $data);
-        $requested_stage_id = $data['service_order_stage_id'] ?? null;
+        $requested_stage = array_key_exists('service_order_stage_id', $data) ? $request->requestedStage() : null;
         unset($data['service_order_stage_id']);
 
         $serviceorder->update($data);
@@ -460,10 +462,8 @@ class ServiceOrderController extends Controller
             Signals::dispatch(new ServiceOrderSigned($serviceorder, $previous_signed_by, $serviceorder->signed_by));
         }
 
-        if ($stage_requested) {
-            $serviceorder->moveToStage(
-                $requested_stage_id === null ? null : ServiceOrderStage::find($requested_stage_id)
-            );
+        if ($requested_stage) {
+            $serviceorder->moveToStage($requested_stage);
         }
 
         return redirect()->back()->with('success', 'Werkbon succesvol bijgewerkt.');
@@ -571,8 +571,11 @@ class ServiceOrderController extends Controller
     /**
      * Sends a service order to SnelStart as a sales order.
      */
-    public function sendToSnelStart(ServiceOrder $serviceorder, SnelStartClient $client)
-    {
+    public function sendToSnelStart(
+        ServiceOrderSendToSnelStartRequest $request,
+        ServiceOrder $serviceorder,
+        SnelStartClient $client,
+    ) {
         if ($serviceorder->sent_to_administration) {
             return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
         }
@@ -957,16 +960,22 @@ class ServiceOrderController extends Controller
 
             return redirect()->back()->with(
                 'success',
-                count($order_ids) . ' werkbonnen worden op de achtergrond bijgewerkt. '
-                    . 'Ververs over een moment om het resultaat te zien.'
+                count($order_ids) . ' werkbonnen worden op de achtergrond bijgewerkt. Werkbonnen die '
+                    . 'nog niet naar die fase mogen, blijven staan. Ververs over een moment om het resultaat te zien.'
             );
         }
 
-        $stage = ServiceOrderStage::find($stage_id);
+        $stayed = app(BulkStageMove::class)->move(
+            $request->user(),
+            ServiceOrder::whereIn('id', $order_ids)->get(),
+            ServiceOrderStage::find($stage_id),
+        );
 
-        ServiceOrder::whereIn('id', $order_ids)
-            ->get()
-            ->each(fn (ServiceOrder $order) => $order->moveToStage($stage));
+        if ($stayed) {
+            $moved = count($stayed) < count($order_ids) ? 'Fase bijgewerkt voor de andere werkbonnen. ' : '';
+
+            return redirect()->back()->with('error', $moved . BulkStageMove::summary($stayed));
+        }
 
         return redirect()->back()->with('success', 'Fase bijgewerkt.');
     }

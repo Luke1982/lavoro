@@ -502,6 +502,30 @@ class ServiceOrder extends Model
         return true;
     }
 
+    /**
+     * Where this werkbon goes back to when it is reopened: the last open fase it
+     * was in, read from its fase changes, or the first open fase when they do not
+     * say. A werkbon is never reopened into no fase at all.
+     */
+    public function reopenStage(): ?ServiceOrderStage
+    {
+        $open_stages = ServiceOrderStage::orderBy('order')->get()
+            ->reject(fn (ServiceOrderStage $stage) => $stage->closesOrder())
+            ->keyBy('id');
+
+        $reached = $this->activities()
+            ->where('event_key', ServiceOrderStageChanged::key())
+            ->orderByDesc('activities.id')
+            ->pluck('metadata')
+            ->flatMap(fn (?array $change) => [$change['new_stage_id'] ?? null, $change['previous_stage_id'] ?? null])
+            ->filter()
+            ->map(fn ($stage_id) => (int) $stage_id);
+
+        $last_open = $reached->first(fn (int $stage_id) => $open_stages->has($stage_id));
+
+        return $last_open !== null ? $open_stages->get($last_open) : $open_stages->first();
+    }
+
     /** Whether a visit is planned on this werkbon: an appointment that goes ahead. */
     public function hasAppointment(): bool
     {

@@ -2,15 +2,15 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ServiceOrderTaskInstanceDeleteRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('serviceordertaskinstance.delete'));
+        return Gate::inspect('delete', $this->route('serviceordertaskinstance'));
     }
 
     public function rules(): array

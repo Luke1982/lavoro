@@ -2,21 +2,21 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ServiceOrderTaskInstanceSignRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('serviceordertaskinstance.open_close'));
+        return Gate::inspect('sign', $this->route('serviceordertaskinstance'));
     }
 
     public function rules(): array
     {
         return [
-            'signed_by'        => ['required', 'string', 'max:255'],
+            'signed_by' => ['required', 'string', 'max:255'],
             'signature_base64' => ['required', 'string'],
         ];
     }

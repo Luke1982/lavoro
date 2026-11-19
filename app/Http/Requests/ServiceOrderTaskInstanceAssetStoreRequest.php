@@ -5,19 +5,16 @@ namespace App\Http\Requests;
 use App\Models\Product;
 use App\Rules\UniqueSerialForProduct;
 use App\Services\TaskInstanceSerialSlotService;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class ServiceOrderTaskInstanceAssetStoreRequest extends FormRequest
 {
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        $user = Auth::user();
-
-        return $user && ($user->isAdmin()
-            || $user->hasPermission('serviceordertaskinstance.open_close')
-            || $user->hasPermission('serviceordertaskinstance.update'));
+        return Gate::inspect('registerAssets', $this->route('serviceordertaskinstance'));
     }
 
     /**

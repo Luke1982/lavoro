@@ -37,7 +37,7 @@ class CompletionGuardTest extends TestCase
 
     private function complete(ServiceOrderTaskInstance $instance)
     {
-        return $this->actingAs($this->userWithPermissions('serviceordertaskinstance.open_close'))
+        return $this->actingAs($this->userWithPermissions('serviceordertaskinstance.open_close', 'serviceorder.read'))
             ->patch("/serviceordertaskinstances/{$instance->id}/toggle", ['is_complete' => true]);
     }
 

@@ -3,14 +3,15 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
+/**
+ * @method \App\Models\User user()
+ */
 class ServiceOrderExportPdfRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && $user->hasPermission('serviceorder.export_pdf');
+        return $this->user()->can('exportPdf', $this->route('serviceorder'));
     }
 
     public function rules(): array

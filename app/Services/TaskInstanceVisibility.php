@@ -37,6 +37,14 @@ class TaskInstanceVisibility
             ->values();
     }
 
+    /** Whether this person gets to see this one task, by the same rule as the list. */
+    public function canSee(ServiceOrderTaskInstance $instance, User $user): bool
+    {
+        $instance->loadMissing(['serviceOrder.events', 'userRoles']);
+
+        return ($this->sees($instance->serviceOrder, $user))($instance);
+    }
+
     /**
      * Beide vragen zijn dezelfde vraag, één keer bevestigend en één keer ontkennend
      * gesteld. Ze delen daarom dit oordeel, en de rollen worden er één keer per vraag

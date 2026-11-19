@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\ServiceOrders\ClosingRequirements;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
 use App\Domain\Signals\Signals;
 use App\Enums\ServiceOrderTypes;
 use App\Models\Asset;
-use App\Models\GeneralSetting;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTaskInstance;
@@ -140,82 +140,61 @@ class ServiceOrderUpdateRequest extends FormRequest
         $this->guardWorkCompleted($validator);
 
         $validator->after(function ($validator) {
-            $new_stage = ServiceOrderStage::find($this->input('service_order_stage_id'));
-
-            if (!$new_stage) {
+            if (!$this->has('service_order_stage_id')) {
                 return;
             }
 
             $serviceorder = $this->route('serviceorder');
+            $new_stage = $this->requestedStage();
 
-            if ($new_stage->id === $serviceorder->service_order_stage_id) {
+            if ($new_stage === null && $serviceorder->is_closed) {
+                $validator->errors()->add('service_order_stage_id', 'Er is geen open fase om de werkbon in te heropenen.');
+
+                return;
+            }
+
+            if ($new_stage === null || $new_stage->id === $serviceorder->service_order_stage_id) {
                 return;
             }
 
             if (!$this->user()->can('updateStage', [$serviceorder, $new_stage])) {
-                $validator->errors()->add(
-                    'service_order_stage_id',
-                    'Je hebt geen toestemming om de werkbon naar deze fase te verplaatsen.'
-                );
+                $validator->errors()->add('service_order_stage_id', $serviceorder->is_closed && !$new_stage->closesOrder()
+                    ? 'Je hebt geen toestemming om een gesloten werkbon te heropenen.'
+                    : 'Je hebt geen toestemming om de werkbon naar deze fase te verplaatsen.');
 
                 return;
             }
 
-            /**
-             * De eisen hieronder gelden voor iedere fase die de bon sluit, ook de
-             * gefactureerde: anders sluit een sprong naar factureren de bon alsnog
-             * met open taken. Een bon die al gesloten is doorstond ze bij het
-             * sluiten en wordt er niet opnieuw op afgerekend.
-             */
-            if (!$new_stage->closesOrder() || $serviceorder->is_closed) {
-                return;
+            $requirements = app(ClosingRequirements::class);
+            $unmet = $requirements->unmetFor($serviceorder, $new_stage);
+
+            foreach ($unmet as $problem) {
+                $validator->errors()->add($problem['field'], $problem['message']);
             }
 
-            $this->guardOpenTaskInstances($validator, $serviceorder);
-
-            $min = (int) GeneralSetting::get('serviceorder_min_images', 0);
-            if ($min > 0) {
-                $count = $serviceorder->images()->count();
-                if ($count < $min) {
-                    $message = "Er zijn minimaal {$min} foto's vereist om de werkbon te sluiten."
-                        . " Er zijn er {$count} toegevoegd.";
-                    $validator->errors()->add('service_order_stage_id', $message);
-                }
-            }
-
-            if (blank($serviceorder->signed_by) || blank($serviceorder->signature_base64)) {
-                $validator->errors()->add(
-                    'service_order_stage_id',
-                    'De werkbon moet ondertekend zijn door de klant voordat deze gesloten kan worden.'
-                );
+            if (collect($unmet)->contains('field', 'open_task_instances')) {
+                $this->announceHiddenBlockers($serviceorder, $requirements->openTasks($serviceorder));
             }
         });
     }
 
     /**
-     * Een bon met openstaande taken gaat niet dicht. De weigering krijgt een eigen sleutel
-     * omdat het scherm er meer mee doet dan een regel tonen: het benoemt de taken, ook de
-     * taken die de lezer zelf niet in zijn lijst heeft staan.
+     * The fase this request moves the werkbon to. An empty one is how a closed
+     * werkbon is reopened: back to its last open fase, never into no fase at all.
+     * On an open werkbon an empty fase changes nothing.
      */
-    private function guardOpenTaskInstances($validator, ServiceOrder $serviceorder): void
+    public function requestedStage(): ?ServiceOrderStage
     {
-        $serviceorder->loadMissing(['taskInstances.userRoles', 'taskInstances.serviceOrderTask', 'events']);
+        return once(function () {
+            $serviceorder = $this->route('serviceorder');
+            $stage_id = $this->input('service_order_stage_id');
 
-        $open = $serviceorder->taskInstances
-            ->where('is_complete', false)
-            ->where('is_cancelled', false);
+            if ($stage_id === null) {
+                return $serviceorder->is_closed ? $serviceorder->reopenStage() : null;
+            }
 
-        if ($open->isEmpty()) {
-            return;
-        }
-
-        $validator->errors()->add('open_task_instances', $open->count() === 1
-            ? 'Er is nog 1 taak niet afgerond of geannuleerd. Rond hem af of annuleer hem '
-                . 'voordat je de werkbon sluit.'
-            : 'Er zijn nog ' . $open->count() . ' taken niet afgerond of geannuleerd. Rond ze '
-                . 'af of annuleer ze voordat je de werkbon sluit.');
-
-        $this->announceHiddenBlockers($serviceorder, $open);
+            return ServiceOrderStage::find($stage_id);
+        });
     }
 
     /**

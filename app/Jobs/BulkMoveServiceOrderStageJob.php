@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Domain\ServiceOrders\BulkStageMove;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
@@ -34,25 +35,31 @@ class BulkMoveServiceOrderStageJob implements ShouldQueue
         public ?int $actor_id = null,
     ) {}
 
+    /**
+     * Each werkbon is held to the same rules as in the request that asked for the
+     * move, as the person who asked: without them there is nobody to ask for, so
+     * nothing moves.
+     */
     public function handle(): void
     {
         $stage = $this->service_order_stage_id === null
             ? null
             : ServiceOrderStage::find($this->service_order_stage_id);
+        $actor = $this->actor_id === null ? null : User::find($this->actor_id);
+
+        if ($stage === null || $actor === null) {
+            return;
+        }
 
         /**
          * The signals raised below read the actor from the session, which a queue
          * worker does not have. Restoring it keeps the history naming the person
          * who asked for the move rather than the system.
          */
-        if ($this->actor_id !== null && ($actor = User::find($this->actor_id))) {
-            Auth::setUser($actor);
-        }
+        Auth::setUser($actor);
 
         try {
-            ServiceOrder::whereIn('id', $this->service_order_ids)
-                ->get()
-                ->each(fn (ServiceOrder $order) => $order->moveToStage($stage));
+            app(BulkStageMove::class)->move($actor, ServiceOrder::whereIn('id', $this->service_order_ids)->get(), $stage);
         } finally {
             Auth::forgetUser();
         }

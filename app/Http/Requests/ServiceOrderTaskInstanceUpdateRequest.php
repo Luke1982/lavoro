@@ -10,8 +10,9 @@ use App\Services\TaskChecks\TaskCheckExtras;
 use App\Services\TaskChecks\TaskCheckUnits;
 use App\Services\TaskChecks\TaskInstanceChecks;
 use App\Services\TaskInstanceBundleService;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
@@ -19,11 +20,9 @@ class ServiceOrderTaskInstanceUpdateRequest extends FormRequest
     use ReadsTaskInstanceForm;
     use ValidatesFlexQuantities;
 
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        $user = Auth::user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('serviceordertaskinstance.update'));
+        return Gate::inspect('update', $this->route('serviceordertaskinstance'));
     }
 
     public function rules(): array

@@ -3,23 +3,22 @@
 namespace App\Http\Requests;
 
 use App\Rules\UniqueSerialForProduct;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ServiceOrderTaskInstanceAssetUpdateRequest extends FormRequest
 {
-    public function authorize(): bool
+    /** The machine has to belong to the task in the address, whoever asks. */
+    public function authorize(): Response
     {
-        $user = Auth::user();
+        $task = $this->route('serviceordertaskinstance');
 
-        if (!$user || !($user->isAdmin()
-            || $user->hasPermission('serviceordertaskinstance.open_close')
-            || $user->hasPermission('serviceordertaskinstance.update'))) {
-            return false;
+        if ($this->route('asset')->service_order_task_instance_id !== $task->id) {
+            return Response::deny();
         }
 
-        return $this->route('asset')->service_order_task_instance_id
-            === $this->route('serviceordertaskinstance')->id;
+        return Gate::inspect('registerAssets', $task);
     }
 
     /**

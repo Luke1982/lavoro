@@ -92,7 +92,7 @@ class LinkMachinesTest extends TestCase
     {
         $instance = $this->task();
 
-        $this->actingAs($this->userWithPermissions('serviceordertaskinstance.open_close'))
+        $this->actingAs($this->userWithPermissions('serviceordertaskinstance.open_close', 'serviceorder.read'))
             ->post("/serviceordertaskinstances/{$instance->id}/assets", [
                 'assets' => [[
                     'product_id' => $this->product->id,

@@ -51,7 +51,7 @@ class EditTaskChecksTest extends TestCase
 
     private function edit(ServiceOrderTaskInstance $instance, array $data)
     {
-        return $this->actingAs($this->userWithPermissions('serviceordertaskinstance.update'))
+        return $this->actingAs($this->userWithPermissions('serviceordertaskinstance.update', 'serviceorder.read'))
             ->patch("/serviceordertaskinstances/{$instance->id}", $data);
     }
 

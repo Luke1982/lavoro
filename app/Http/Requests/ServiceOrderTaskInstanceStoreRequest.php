@@ -5,21 +5,26 @@ namespace App\Http\Requests;
 use App\Http\Requests\Concerns\ReadsTaskInstanceForm;
 use App\Http\Requests\Concerns\ValidatesFlexQuantities;
 use App\Models\Product;
+use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTask;
 use App\Services\TaskChecks\TaskCheckCatalogue;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ServiceOrderTaskInstanceStoreRequest extends FormRequest
 {
     use ReadsTaskInstanceForm;
     use ValidatesFlexQuantities;
 
-    public function authorize(): bool
+    /** A werkbon that does not exist is left to the validation, which says so. */
+    public function authorize(): Response
     {
-        $user = Auth::user();
+        $service_order = ServiceOrder::find($this->input('service_order_id'));
 
-        return $user && ($user->isAdmin() || $user->hasPermission('serviceordertaskinstance.create'));
+        return $service_order
+            ? Gate::inspect('addTaskTo', $service_order)
+            : Gate::inspect('addTask', ServiceOrder::class);
     }
 
     public function rules(): array
