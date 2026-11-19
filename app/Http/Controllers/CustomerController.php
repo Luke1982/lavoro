@@ -10,6 +10,7 @@ use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Models\Customer;
+use App\Models\Project;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Services\SnelStartClient;
@@ -105,7 +106,7 @@ class CustomerController extends Controller
             'serviceOrders.events.owners:id,name',
             'projects.projectManager',
             'projects.serviceOrders.customer:id,name,city',
-            'projects.serviceOrders.project:id,location',
+            ...Project::relationsForAddress('projects.serviceOrders.project'),
             'projects.serviceOrders.executingUsers:id,name',
             'projects.serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
             'projects.serviceOrders.events.executingUsers:id,name',

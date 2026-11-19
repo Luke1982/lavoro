@@ -10,6 +10,7 @@ use App\Models\GeneralSetting;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTaskInstance;
+use App\Rules\ProjectAcceptsWork;
 use App\Services\TaskInstanceVisibility;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Http\FormRequest;
@@ -64,7 +65,11 @@ class ServiceOrderUpdateRequest extends FormRequest
                 'nullable',
                 Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
             ],
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => [
+                'nullable',
+                'exists:projects,id',
+                new ProjectAcceptsWork($this->route('serviceorder')->project_id),
+            ],
             'order_date' => 'nullable|date',
             'closed_on' => 'nullable|date',
             'external_purchaseorder_no' => 'nullable|string|max:255',

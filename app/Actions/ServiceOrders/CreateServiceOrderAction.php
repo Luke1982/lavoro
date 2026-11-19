@@ -2,9 +2,12 @@
 
 namespace App\Actions\ServiceOrders;
 
+use App\Domain\Signals\Projects\ServiceOrderMovedBetweenProjects;
 use App\Domain\Signals\ServiceOrders\TicketAttachedToOrder;
 use App\Domain\Signals\Signals;
+use App\Exceptions\Refusal;
 use App\Models\Asset;
+use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +27,13 @@ class CreateServiceOrderAction
 {
     public function execute(NewServiceOrder $order): ServiceOrder
     {
-        return DB::transaction(function () use ($order) {
+        $project = $order->project_id ? Project::findOrFail($order->project_id) : null;
+
+        if ($refusal = $project?->refusesNewWork()) {
+            throw new Refusal($refusal);
+        }
+
+        return DB::transaction(function () use ($order, $project) {
             $service_order = ServiceOrder::create([
                 'customer_id' => $order->customer_id,
                 'project_id' => $order->project_id,
@@ -32,6 +41,10 @@ class CreateServiceOrderAction
                 'description' => $order->description,
                 'type' => $order->type?->value,
             ]);
+
+            if ($project) {
+                Signals::dispatch(new ServiceOrderMovedBetweenProjects($service_order, null, $project));
+            }
 
             $this->attachTickets($service_order, $order->ticket_ids);
             $this->attachAssets($service_order, $order->asset_ids);

@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  *   2. the werkbon's linked location           (still an explicit link)
  *   3. the appointment's free-text location    (a snapshot)
  *   4. the werkbon's free-text location
- *   5. the project's location
+ *   5. the project's location: the customer location picked for it, else its free text
  *   6. the customer's own address
  *
  * Explicit links always beat free text.
@@ -37,6 +37,7 @@ class EventLocationResolver
         return array_map(fn ($relation) => $prefix . $relation, [
             'serviceOrders.customer',
             'serviceOrders.project',
+            'serviceOrders.project.linkedLocation',
             'customers',
         ]);
     }
@@ -111,7 +112,15 @@ class EventLocationResolver
             return null;
         }
 
-        if (!empty($order?->execution_location) || !empty($order?->project?->location)) {
+        if (!empty($order?->execution_location)) {
+            return null;
+        }
+
+        if ($order?->project?->linkedLocation) {
+            return $this->withCoordinates($order->project->linkedLocation);
+        }
+
+        if (!empty($order?->project?->location)) {
             return null;
         }
 
@@ -147,8 +156,8 @@ class EventLocationResolver
             return $this->rung($order->execution_location, 'execution_location');
         }
 
-        if (!empty($order?->project?->location)) {
-            return $this->rung($order->project->location, 'project');
+        if (filled($order?->project?->addressLine())) {
+            return $this->rung($order->project->addressLine(), 'project');
         }
 
         return $this->rung($this->customerAddress($event), 'customer');

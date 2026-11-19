@@ -2,10 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesMilestoneFields;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * A milestone stays on the project it was made on: its history is that project's.
+ */
 class ProjectMilestoneUpdateRequest extends FormRequest
 {
+    use ValidatesMilestoneFields;
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('projectmilestone'));
@@ -14,12 +20,8 @@ class ProjectMilestoneUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id'       => ['sometimes', 'exists:projects,id'],
-            'title'            => ['sometimes', 'string', 'max:255'],
-            'description'      => ['nullable', 'string'],
-            'projected_date'   => ['nullable', 'date'],
-            'actual_date'      => ['nullable', 'date'],
-            'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'title' => ['sometimes', 'string', 'max:255'],
+            ...$this->milestoneFieldRules($this->route('projectmilestone')->project_id),
         ];
     }
 }

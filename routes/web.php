@@ -55,6 +55,7 @@ use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectMilestoneController;
+use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
@@ -517,9 +518,13 @@ Route::group(
             'internalannouncements/{internalannouncement}/acknowledge',
             [InternalAnnouncementController::class, 'acknowledge']
         )->name('internalannouncements.acknowledge');
-        Route::resource('projects', ProjectController::class);
+        Route::resource('projects', ProjectController::class)->except(['create', 'edit']);
         Route::get('projects/{project}/timeline', [ProjectController::class, 'timeline'])
             ->name('projects.timeline');
+        Route::post('projects/{project}/milestones/from-template', [ProjectMilestoneController::class, 'fromTemplate'])
+            ->name('projects.milestonesFromTemplate');
+        Route::resource('projecttemplates', ProjectTemplateController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
         Route::get('projects/{project}/export', ProjectExportController::class)
             ->name('projects.export');
         Route::resource('projectmilestones', ProjectMilestoneController::class)

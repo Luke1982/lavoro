@@ -45,8 +45,8 @@ class ProjectApiController extends Controller
         $end = $request->input('end');
 
         $projects = Project::query()
-            ->whereNotNull('start_date', 'and')
-            ->whereNotNull('end_date', 'and')
+            ->scheduled()
+            ->active()
             ->when($start && $end, function ($q) use ($start, $end) {
                 $q->where('start_date', '<=', $end)
                     ->where('end_date', '>=', $start);
@@ -92,6 +92,7 @@ class ProjectApiController extends Controller
                     $end_date,
                 ]);
             })
+            ->whereHas('project', fn ($query) => $query->active())
             ->with('project:id,title')
             ->get([
                 'id',

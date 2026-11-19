@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Projects\CreateProject;
+use App\Actions\Projects\DeleteProject;
+use App\Actions\Projects\UpdateProject;
+use App\Domain\Planning\Clock;
+use App\Domain\Search\SearchTerm;
 use App\Enums\ProjectStatuses;
 use App\Http\Requests\ProjectDestroyRequest;
 use App\Http\Requests\ProjectReadRequest;
@@ -11,52 +16,64 @@ use App\Http\Requests\ProjectUpdateRequest;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Project;
+use App\Models\ProjectTemplate;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
+use App\Services\ProjectFigures;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProjectController extends Controller
 {
     public function index(ProjectReadRequest $request)
     {
-        $search = trim((string) $request->input('search', ''));
+        $list = $request->listQuery();
 
-        $query = Project::with(['customer', 'projectManager']);
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search) {
-                        $cq->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('projectManager', function ($uq) use ($search) {
-                        $uq->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
+        $projects = Project::query()
+            ->with(['customer:id,name', 'projectManager:id,name'])
+            ->withCount([
+                'serviceOrders',
+                'serviceOrders as closed_service_orders_count' => fn (Builder $query) => $query
+                    ->whereHas('serviceOrderStage', fn (Builder $stage) => $stage->closesOrder()),
+                'milestones',
+                'milestones as reached_milestones_count' => fn (Builder $query) => $query->whereNotNull('actual_date'),
+                'milestones as overdue_milestones_count' => fn (Builder $query) => $query
+                    ->whereNull('actual_date')
+                    ->whereDate('projected_date', '<', Clock::today()),
+            ])
+            ->tap(fn (Builder $query) => $this->filter($query, $list))
+            ->tap(fn (Builder $query) => $this->sort($query, $list['sort'], $list['direction']))
+            ->paginate(20)
+            ->withQueryString();
 
         return inertia('Projects/IndexPage', [
-            'projects' => $query->orderBy('created_at', 'desc')->paginate(20)->appends(['search' => $search]),
-            'customers' => Customer::orderBy('name')->get(['id', 'name']),
+            'projects' => $projects,
+            ...$this->customerPicker($list['customer']),
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
             'statuses' => ProjectStatuses::comboBoxArray(),
-            'search' => $search,
+            'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
+            'list' => $list,
         ]);
     }
 
-    public function show(ProjectReadRequest $request, Project $project)
+    public function show(ProjectReadRequest $request, Project $project, ProjectFigures $figures)
     {
         $project->load([
             'customer',
             'projectManager',
+            'contact',
+            'linkedLocation',
             'milestones.assignedUser',
             'serviceOrders.customer:id,name,city',
-            'serviceOrders.project:id,location',
+            ...Project::relationsForAddress('serviceOrders.project'),
             'serviceOrders.executingUsers:id,name',
             'serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
             'serviceOrders.events.executingUsers:id,name',
             'documents.category',
             'documents.user:id,name',
             'images' => fn ($query) => $query->withExists('shares as is_shared'),
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at'),
         ]);
 
         if ($request->user()->can('manageFinancials', $project)) {
@@ -65,6 +82,10 @@ class ProjectController extends Controller
 
         return inertia('Projects/ShowPage', [
             'project' => $project,
+            'progress' => $figures->summary($project, $request->user()),
+            'contacts' => $project->customer?->contacts()->orderBy('first_name')->get()
+                ->map(fn ($contact) => ['id' => $contact->id, 'name' => $contact->full_name]) ?? [],
+            'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
             'documentCategories' => DocumentCategory::forPicker(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
             'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
@@ -73,26 +94,27 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function store(ProjectStoreRequest $request)
+    public function store(ProjectStoreRequest $request, CreateProject $create)
     {
-        $project = Project::create($request->validated());
+        $project = $create->execute($request->validated());
 
         return redirect()
-            ->route('projects.index')
-            ->with('success', 'Project aangemaakt.')
-            ->with('extra', $project->load(['customer', 'projectManager']));
+            ->route('projects.show', $project)
+            ->with('success', 'Project ' . $project->number . ' aangemaakt.');
     }
 
-    public function update(ProjectUpdateRequest $request, Project $project)
+    public function update(ProjectUpdateRequest $request, Project $project, UpdateProject $update)
     {
-        $project->update($request->validated());
+        $warning = $update->execute($project, $request->validated());
 
-        return redirect()->back()->with('success', 'Project bijgewerkt.');
+        return $warning
+            ? redirect()->back()->with('warning', $warning)
+            : redirect()->back()->with('success', 'Project bijgewerkt.');
     }
 
-    public function destroy(ProjectDestroyRequest $request, Project $project)
+    public function destroy(ProjectDestroyRequest $request, Project $project, DeleteProject $delete)
     {
-        $project->delete();
+        $delete->execute($project);
 
         return redirect()
             ->route('projects.index')
@@ -169,5 +191,57 @@ class ProjectController extends Controller
                 ]),
             ]),
         ]);
+    }
+
+    /** @param array{search: string, status: string, manager: ?int, customer: ?int} $list */
+    private function filter(Builder $query, array $list): void
+    {
+        match ($list['status']) {
+            ProjectReadRequest::RUNNING => $query->active(),
+            ProjectReadRequest::EVERY_STATUS => null,
+            default => $query->where('status', $list['status']),
+        };
+
+        $query
+            ->when($list['search'] !== '', fn (Builder $q) => $q->matchesSearch(SearchTerm::like($list['search'])))
+            ->when($list['manager'], fn (Builder $q, int $id) => $q->where('project_manager_id', $id))
+            ->when($list['customer'], fn (Builder $q, int $id) => $q->where('customer_id', $id));
+    }
+
+    private function sort(Builder $query, ?string $column, string $direction): void
+    {
+        match ($column) {
+            null => $query->inNumberOrder(),
+            'number' => $query->inNumberOrder($direction),
+            'customer' => $query->orderBy(
+                Customer::select('name')->whereColumn('customers.id', 'projects.customer_id'),
+                $direction,
+            ),
+            default => $query->orderBy($column, $direction),
+        };
+
+        $query->orderByDesc('id');
+    }
+
+    /**
+     * Past the threshold the customer pickers search instead of holding every
+     * customer; only the one being filtered on still travels along, or the filter
+     * would show a blank where its name goes.
+     *
+     * @return array{customers: array<int, array<string, mixed>>, customersUseAjax: bool}
+     */
+    private function customerPicker(?int $filtered_customer_id): array
+    {
+        $use_ajax = Customer::count() > Customer::COMBO_AJAX_THRESHOLD;
+
+        return [
+            'customers' => Customer::query()
+                ->when($use_ajax, fn (Builder $query) => $query->whereKey($filtered_customer_id))
+                ->orderBy('name')
+                ->get(['id', 'name', 'city'])
+                ->map->toComboOption()
+                ->all(),
+            'customersUseAjax' => $use_ajax,
+        ];
     }
 }

@@ -107,7 +107,7 @@
                                                 :is="hasPermission('project.read') ? Link : 'span'"
                                                 :href="`/projects/${selectedProject.id}`" :class="{
                                                     'underline text-lavoro-blue dark:text-blue-400': hasPermission('project.read')
-                                                }">{{ selectedProject.title }}</component>
+                                                }">{{ projectLabel(selectedProject) }}</component>
                                             <span v-else class="text-gray-400">—</span>
                                         </template>
                                     </EditableTextField>
@@ -673,7 +673,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { nlDate, nlTime, hasPermission, hasAnyPermission, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
+import { nlDate, nlTime, hasPermission, hasAnyPermission, projectLabel, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
 import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
@@ -779,7 +779,7 @@ const internalCustomers = computed(() =>
 );
 
 const internalProjects = computed(() =>
-    props.projects.map(p => ({ id: p.id, name: p.title }))
+    props.projects.map(p => ({ id: p.id, name: projectLabel(p) }))
 );
 
 const selectedProject = computed(() =>

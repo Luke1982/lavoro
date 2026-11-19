@@ -51,6 +51,7 @@ class ServiceOrder extends Model
         'customer_id' => 'Klant',
         'location_id' => 'Locatie',
         'project_id' => 'Project',
+        'project_milestone_id' => 'Mijlpaal',
         'maintenance_contract_id' => 'Contract',
         'description' => 'Omschrijving',
         'order_date' => 'Datum opdracht',
@@ -82,6 +83,7 @@ class ServiceOrder extends Model
         'service_order_stage_id',
         'closed_on',
         'sent_to_administration',
+        'project_milestone_id',
     ];
 
     /** Fields whose entries are gated behind a permission. */
@@ -95,6 +97,7 @@ class ServiceOrder extends Model
         'customer_id',
         'location_id',
         'project_id',
+        'project_milestone_id',
         'maintenance_contract_id',
         'closed_on',
         'signed_by',
@@ -313,7 +316,9 @@ class ServiceOrder extends Model
             ->orWhere(fn ($pq) => $pq
                 ->whereNull('location_id')
                 ->where(fn ($nq) => $nq->whereNull('execution_location')->orWhere('execution_location', ''))
-                ->whereHas('project', fn ($prq) => $prq->where('location', 'like', $like))));
+                ->whereHas('project', fn ($prq) => $prq
+                    ->where('location', 'like', $like)
+                    ->orWhereHas('linkedLocation', fn ($lq) => $lq->matchesText($like)))));
     }
 
     /**
@@ -367,7 +372,7 @@ class ServiceOrder extends Model
             return ['address' => $this->execution_location, 'source' => 'execution_location'];
         }
 
-        $project_location = $this->relationLoaded('project') ? $this->project?->location : null;
+        $project_location = $this->relationLoaded('project') ? $this->project?->addressLine() : null;
 
         return !empty($project_location)
             ? ['address' => $project_location, 'source' => 'project']
@@ -392,6 +397,12 @@ class ServiceOrder extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /** The project step this werkbon counts towards; closing all of them reaches it. */
+    public function projectMilestone()
+    {
+        return $this->belongsTo(ProjectMilestone::class);
     }
 
     public function maintenanceContract()

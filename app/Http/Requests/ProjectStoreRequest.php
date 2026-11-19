@@ -3,12 +3,14 @@
 namespace App\Http\Requests;
 
 use App\Enums\ProjectStatuses;
+use App\Http\Requests\Concerns\ValidatesProjectFields;
 use App\Models\Project;
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProjectStoreRequest extends FormRequest
 {
+    use ValidatesProjectFields;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', Project::class);
@@ -17,23 +19,19 @@ class ProjectStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title'              => ['required', 'string', 'max:255'],
-            'description'        => ['nullable', 'string'],
-            'location'           => ['nullable', 'string', 'max:255'],
-            'start_date'         => ['nullable', 'date'],
-            'end_date'           => ['nullable', 'date', 'after_or_equal:start_date'],
-            'customer_id'        => ['required', 'exists:customers,id'],
-            'project_manager_id' => [
-                'required',
-                'exists:users,id',
-                function ($attribute, $value, $fail) {
-                    $can_lead_project = User::query()->canLeadProjects()->whereKey($value)->exists();
-                    if (!$can_lead_project) {
-                        $fail('De geselecteerde projectleider mag geen projecten leiden.');
-                    }
-                },
-            ],
-            'status'             => ['required', 'in:' . ProjectStatuses::validationString()],
+            ...$this->projectFieldRules($this->integer('customer_id') ?: null, $this->mayManageFinancials()),
+            'title' => ['required', 'string', 'max:255'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'customer_id' => ['required', 'exists:customers,id'],
+            'project_manager_id' => ['required', 'exists:users,id', $this->projectLeaderRule()],
+            'status' => ['required', 'in:' . ProjectStatuses::validationString()],
+            'project_template_id' => ['nullable', 'exists:project_templates,id'],
         ];
+    }
+
+    public function messages(): array
+    {
+        return $this->projectFieldMessages();
     }
 }

@@ -38,10 +38,14 @@ final class DropTarget
             ?? throw new Refusal('Deze machine kun je niet openen.');
     }
 
-    /** A project to put a werkbon under for this customer: its own, or one that has none. */
+    /** A running project to put a werkbon under for this customer: its own, or one that has none. */
     public static function projectFor(Paste $paste, Customer $customer): Project
     {
         $project = self::viewable($paste, Project::find($paste->target['id']), 'Dit project kun je niet openen.');
+
+        if ($refusal = $project->refusesNewWork()) {
+            throw new Refusal($refusal);
+        }
 
         if ($project->customer_id && (int) $project->customer_id !== $customer->id) {
             throw new Refusal($paste->these('hoort', 'horen') . ' bij ' . $customer->name

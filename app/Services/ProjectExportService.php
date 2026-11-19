@@ -6,8 +6,6 @@ use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\TicketStatusses;
 use App\Models\Asset;
-use App\Models\Event;
-use App\Models\FreeformMaterial;
 use App\Models\Material;
 use App\Models\Project;
 use App\Models\ProjectMilestone;
@@ -19,7 +17,6 @@ use App\Models\User;
 use App\Support\Spreadsheets\AppointmentHours;
 use App\Support\Spreadsheets\SheetWriter;
 use App\Support\Spreadsheets\SpreadsheetSnapshot;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -41,12 +38,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  */
 class ProjectExportService
 {
-    private const MATERIAL = 'Materiaal';
-
-    private const SERVICE = 'Dienst';
-
-    private const FREEFORM = 'Vrije regel';
-
     private const REACHED = 'Behaald';
 
     private const REACHED_LATE = 'Te laat behaald';
@@ -54,6 +45,13 @@ class ProjectExportService
     private const OVERDUE = 'Over datum';
 
     private const OPEN = 'Open';
+
+    private const MILESTONE_STATES = [
+        ProjectMilestone::REACHED => self::REACHED,
+        ProjectMilestone::REACHED_LATE => self::REACHED_LATE,
+        ProjectMilestone::OVERDUE => self::OVERDUE,
+        ProjectMilestone::OPEN => self::OPEN,
+    ];
 
     private const HOUR_COLUMNS = [
         'Geplande uren' => SheetWriter::HOURS,
@@ -77,6 +75,7 @@ class ProjectExportService
     public function __construct(
         private EventLocationResolver $location_resolver,
         private TaskInstanceVisibility $task_visibility,
+        private ProjectFigures $figures,
     ) {}
 
     public function build(Project $project, User $viewer, string $timezone): Spreadsheet
@@ -88,11 +87,11 @@ class ProjectExportService
         $today = Carbon::parse(Carbon::now($timezone)->toDateString());
 
         $orders = $project->serviceOrders->sortBy('id')->values();
-        $appointments = $this->appointments($orders, $timezone);
+        $appointments = $this->figures->appointments($orders, $timezone);
         $visible_tasks = $orders->mapWithKeys(fn (ServiceOrder $order) => [
             $order->id => $this->task_visibility->visibleTo($order, $viewer),
         ]);
-        $materials = $this->materialLines($orders, $visible_tasks->flatten(1)->pluck('id'));
+        $materials = $this->figures->materialLines($orders, $visible_tasks->flatten(1)->pluck('id'));
         $orders->each(fn (ServiceOrder $order) => $order->setRelation('taskInstances', $visible_tasks[$order->id]));
         $milestones = $project->milestones->map(fn (ProjectMilestone $item) => $this->milestone($item, $today));
 
@@ -132,6 +131,8 @@ class ProjectExportService
         $project->load([
             'customer',
             'projectManager',
+            'contact',
+            'linkedLocation',
             'milestones.assignedUser',
             'serviceOrders' => fn ($query) => $query->visibleTo($viewer),
             'serviceOrders.customer',
@@ -157,132 +158,6 @@ class ProjectExportService
     }
 
     /**
-     * One line per monteur per appointment; an appointment that is cancelled or
-     * has no monteurs is a line without hours. An appointment on two werkbonnen
-     * of the project is one appointment.
-     *
-     * @param  Collection<int, ServiceOrder>  $orders
-     * @return Collection<int, array{event: Event, orders: Collection, member: ?User, hours: ?AppointmentHours}>
-     */
-    private function appointments(Collection $orders, string $timezone): Collection
-    {
-        $events = $orders->flatMap->events->unique('id')->sortBy(fn (Event $event) => $event->start->getTimestamp());
-
-        return $events->flatMap(function (Event $event) use ($orders, $timezone) {
-            $line = [
-                'event' => $event,
-                'orders' => $orders->filter(fn (ServiceOrder $order) => $order->events->contains($event)),
-                'member' => null,
-                'hours' => null,
-            ];
-
-            if ($event->isCancelled() || $event->executingUsers->isEmpty()) {
-                return [$line];
-            }
-
-            return $event->executingUsers->sortBy('name')->map(fn (User $member) => [
-                ...$line,
-                'member' => $member,
-                'hours' => AppointmentHours::for($event, $member, $timezone),
-            ]);
-        })->values();
-    }
-
-    /**
-     * Every line on the project's werkbonnen and their tasks, by the headers of
-     * the Materialen tab. As on the werkbon, the lines of every task count, so
-     * what was billed reads the same for everyone; a line names its task only
-     * when the viewer may see that task. Read them before the tasks are narrowed.
-     *
-     * @param  Collection<int, ServiceOrder>  $orders
-     * @param  Collection<int, int>  $visible_task_ids
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function materialLines(Collection $orders, Collection $visible_task_ids): Collection
-    {
-        $task = fn (Model $line) => $line->task_instance && $visible_task_ids->contains($line->task_instance->id)
-            ? $line->task_instance->timelineTitle()
-            : null;
-
-        return $orders->flatMap(fn (ServiceOrder $order) => $order->allMaterials()
-            ->map(fn (Material $material) => $this->materialLine($order, $material, $task($material)))
-            ->concat($order->allFreeformMaterials()->map(fn (FreeformMaterial $line) => [
-                'Werkbon' => $order->number,
-                'Taak' => $task($line),
-                'Soort' => self::FREEFORM,
-                'Omschrijving' => $line->description,
-                'Aantal' => (float) $line->quantity,
-                'Onvoorzien' => (bool) $line->unforseen,
-            ])))->values();
-    }
-
-    private function materialLine(ServiceOrder $order, Material $material, ?string $task): array
-    {
-        $quantity = (float) $material->pivot->quantity;
-        $sale = round($quantity * (float) $material->price, 2);
-        $cost = round($quantity * (float) $material->cost_price, 2);
-
-        return [
-            'Werkbon' => $order->number,
-            'Taak' => $task,
-            'Soort' => $material->is_service ? self::SERVICE : self::MATERIAL,
-            'Code' => $material->code,
-            'Omschrijving' => $material->name,
-            'Categorie' => $material->category?->name,
-            'Eenheid' => $material->usageUnit?->name,
-            'Aantal' => $quantity,
-            'Prijs per eenheid' => (float) $material->price,
-            'Verkoopwaarde' => $sale,
-            'Onvoorzien' => (bool) $material->pivot->unforseen,
-            'Kostprijs per eenheid' => (float) $material->cost_price,
-            'Kostprijs' => $cost,
-            'Marge' => round($sale - $cost, 2),
-        ];
-    }
-
-    /**
-     * @param  Collection<int, AppointmentHours>  $hours
-     * @return array<string, int|float> by the headers of HOUR_COLUMNS
-     */
-    private function hourTotals(Collection $hours): array
-    {
-        $registered = $hours->filter->isRegistered();
-        $unregistered = $hours->reject->isRegistered();
-        $worked = $registered->sum('worked_hours');
-        $planned_for_worked = $registered->sum('planned_hours');
-
-        return [
-            'Geplande uren' => round($hours->sum('planned_hours'), 2),
-            'Gewerkte uren' => round($worked, 2),
-            'Gepland voor wat geregistreerd is' => round($planned_for_worked, 2),
-            'Meer (+) of minder (-) dan gepland' => round($worked - $planned_for_worked, 2),
-            'Nog niet geregistreerd (afspraken)' => $unregistered->count(),
-            'Nog niet geregistreerd (geplande uren)' => round($unregistered->sum('planned_hours'), 2),
-            'Reistijd (uren)' => round($hours->sum('travel_hours'), 2),
-            'Pauze (uren)' => round($registered->sum->breakHours(), 2),
-        ];
-    }
-
-    /**
-     * @param  Collection<int, array<string, mixed>>  $lines
-     * @return array<string, float|null> by the headers of MONEY_COLUMNS
-     */
-    private function moneyTotals(Collection $lines): array
-    {
-        $priced = $lines->whereNotNull('Verkoopwaarde');
-        $sale = round($priced->sum('Verkoopwaarde'), 2);
-        $cost = round($priced->sum('Kostprijs'), 2);
-
-        return [
-            'Verkoopwaarde' => $sale,
-            'Waarvan onvoorzien' => round($priced->where('Onvoorzien', true)->sum('Verkoopwaarde'), 2),
-            'Kostprijs' => $cost,
-            'Marge' => round($sale - $cost, 2),
-            'Marge %' => $sale > 0 ? ($sale - $cost) / $sale : null,
-        ];
-    }
-
-    /**
      * @return array<string, string|null>
      */
     private function moneyColumns(bool $with_money, bool $with_costs): array
@@ -296,16 +171,25 @@ class ProjectExportService
     private function projectFacts(SheetWriter $overview, Project $project, User $viewer): void
     {
         $overview->facts('Project', [
+            'Projectnummer' => $project->number,
             'Naam' => $project->title,
             'Klant' => $project->customer?->name,
+            'Contactpersoon' => $project->contact?->full_name,
             'Projectleider' => $project->projectManager?->name,
             'Status' => $project->status,
-            'Locatie' => $project->location,
+            'Locatie' => $project->addressLine(),
             'Startdatum' => $this->date($project->start_date),
             'Einddatum' => $this->date($project->end_date),
+            'Begrote uren' => $project->budget_hours,
+            ...($viewer->can('manageFinancials', $project) ? ['Begroot bedrag' => $project->budget_amount] : []),
             'Geëxporteerd op' => Carbon::now(),
             'Geëxporteerd door' => $viewer->name,
-        ], ['Startdatum' => SheetWriter::DATE, 'Einddatum' => SheetWriter::DATE]);
+        ], [
+            'Startdatum' => SheetWriter::DATE,
+            'Einddatum' => SheetWriter::DATE,
+            'Begrote uren' => SheetWriter::HOURS,
+            'Begroot bedrag' => SheetWriter::EURO,
+        ]);
     }
 
     private function orderFacts(SheetWriter $overview, Collection $orders): void
@@ -339,7 +223,7 @@ class ProjectExportService
     {
         $overview->facts('Uren (alle monteurs samen)', [
             'Monteurs ingezet' => $appointments->pluck('member')->filter()->unique('id')->count(),
-            ...$this->hourTotals($appointments->pluck('hours')->filter()),
+            ...$this->figures->hourTotals($appointments->pluck('hours')->filter()),
         ], self::HOUR_COLUMNS, 'Geannuleerde afspraken tellen niet mee. Een afspraak is geregistreerd'
             . ' als de monteur begin en eind heeft ingevuld.');
     }
@@ -355,12 +239,12 @@ class ProjectExportService
         $overview->facts('Materialen en diensten', [
             'Regels' => $materials->count(),
             'Onvoorziene regels' => $materials->where('Onvoorzien', true)->count(),
-            'Vrije regels' => $materials->where('Soort', self::FREEFORM)->count(),
+            'Vrije regels' => $materials->where('Soort', ProjectFigures::FREEFORM)->count(),
             ...($with_money ? [
-                'Verkoopwaarde materialen' => round($priced->where('Soort', self::MATERIAL)->sum('Verkoopwaarde'), 2),
-                'Verkoopwaarde diensten' => round($priced->where('Soort', self::SERVICE)->sum('Verkoopwaarde'), 2),
+                'Verkoopwaarde materialen' => round($priced->where('Soort', ProjectFigures::MATERIAL)->sum('Verkoopwaarde'), 2),
+                'Verkoopwaarde diensten' => round($priced->where('Soort', ProjectFigures::SERVICE)->sum('Verkoopwaarde'), 2),
             ] : []),
-            ...array_intersect_key($this->moneyTotals($materials), $this->moneyColumns($with_money, $with_costs)),
+            ...array_intersect_key($this->figures->moneyTotals($materials), $this->moneyColumns($with_money, $with_costs)),
         ], [
             'Verkoopwaarde materialen' => SheetWriter::EURO,
             'Verkoopwaarde diensten' => SheetWriter::EURO,
@@ -418,7 +302,7 @@ class ProjectExportService
         $row = fn (string $name, Collection $lines) => [
             'Monteur' => $name,
             'Afspraken' => $lines->count(),
-            ...$this->hourTotals($lines->pluck('hours')),
+            ...$this->figures->hourTotals($lines->pluck('hours')),
         ];
 
         $per_member = $staffed
@@ -469,8 +353,8 @@ class ProjectExportService
                 'Afgesloten op' => $this->date($order->closed_on),
                 'Monteurs' => $order->executingUsers->pluck('name')->join(', '),
                 'Afspraken' => $order->events->reject->isCancelled()->count(),
-                ...$this->hourTotals($hours),
-                ...$this->moneyTotals($materials_per_order->get($order->number, collect())),
+                ...$this->figures->hourTotals($hours),
+                ...$this->figures->moneyTotals($materials_per_order->get($order->number, collect())),
                 'Taken afgerond' => $tasks->filter->is_complete->count(),
                 'Taken totaal' => $tasks->count(),
                 'Storingen' => $order->tickets->count(),
@@ -533,28 +417,16 @@ class ProjectExportService
      */
     private function milestone(ProjectMilestone $milestone, Carbon $today): array
     {
-        $planned = $this->date($milestone->projected_date);
-        $reached = $this->date($milestone->actual_date);
-
-        $days_late = match (true) {
-            $planned === null => null,
-            $reached !== null => max(0, (int) $planned->diffInDays($reached, false)),
-            $planned->lt($today) => (int) $planned->diffInDays($today, false),
-            default => null,
-        };
+        $lateness = $milestone->lateness($today);
 
         return [
             'Mijlpaal' => $milestone->title,
             'Omschrijving' => $milestone->description,
             'Verantwoordelijke' => $milestone->assignedUser?->name,
-            'Geplande datum' => $planned,
-            'Werkelijke datum' => $reached,
-            'Dagen te laat' => $days_late,
-            'Status' => match (true) {
-                $reached !== null => $days_late ? self::REACHED_LATE : self::REACHED,
-                $days_late !== null => self::OVERDUE,
-                default => self::OPEN,
-            },
+            'Geplande datum' => $this->date($milestone->projected_date),
+            'Werkelijke datum' => $this->date($milestone->actual_date),
+            'Dagen te laat' => $lateness['days_late'],
+            'Status' => self::MILESTONE_STATES[$lateness['state']],
         ];
     }
 

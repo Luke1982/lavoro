@@ -45,7 +45,10 @@
                     "label": "Projecten",
                     "icon": "FolderKanban",
                     "href": "/projects",
-                    "permission": "project.read"
+                    "permission": "project.read",
+                    "children": [
+                        { "id": "projectsjablonen", "label": "Sjablonen", "href": "/projecttemplates", "permission": "projecttemplate.manage" }
+                    ]
                 }
             ]
         },

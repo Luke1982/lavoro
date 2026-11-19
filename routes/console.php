@@ -5,6 +5,7 @@ use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
 use App\Jobs\NotifyMissingExecutionTimesJob;
+use App\Jobs\NotifyOverdueMilestonesJob;
 use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
@@ -68,6 +69,9 @@ Schedule::call(fn () => $forEachTenant(fn () => DeleteOrphanedImagesJob::dispatc
 
 Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::dispatch()))
     ->dailyAt('07:00')->name('notifications-missing-times')->withoutOverlapping();
+
+Schedule::call(fn () => $forEachTenant(fn () => NotifyOverdueMilestonesJob::dispatch()))
+    ->dailyAt('07:05')->name('notifications-overdue-milestones')->withoutOverlapping();
 
 /**
  * Every five minutes, so a reminder set for an hour lands between 55 and 60

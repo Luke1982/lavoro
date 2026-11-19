@@ -45,8 +45,12 @@ class ToolSchemaBudgetTest extends TestCase
      *
      * 35300 for the rondleidingen: one tool that puts a button under the answer
      * to show somebody how the planner works instead of telling them.
+     *
+     * 36800 for projects: finding one by its number and saying how it stands,
+     * milestones and hours included, where before the assistant could only guess
+     * at a project from its werkbonnen.
      */
-    private const ROOM_FOR = 35300;
+    private const ROOM_FOR = 36800;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

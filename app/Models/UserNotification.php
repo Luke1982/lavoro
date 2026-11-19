@@ -76,6 +76,7 @@ class UserNotification extends Model
             Ticket::class => '/tickets/' . $this->notificationable_id,
             ServiceOrder::class => '/serviceorders/' . $this->notificationable_id,
             Customer::class => '/customers/' . $this->notificationable_id,
+            Project::class => '/projects/' . $this->notificationable_id,
 
             Event::class => $this->eventPath(),
             default => null,

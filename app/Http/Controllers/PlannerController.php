@@ -76,6 +76,7 @@ class PlannerController extends Controller
                     ServiceOrderLocationResolver::city($order),
                 )),
             'projects' => Project::scheduled()
+                ->active()
                 ->with([
                     'customer:id,name',
                     'serviceOrders' => fn ($q) => $q

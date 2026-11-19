@@ -136,6 +136,9 @@
                 @if ($serviceOrder->serviceOrderStage)
                     <div><span class="muted">Status:</span> {{ $serviceOrder->serviceOrderStage->name }}</div>
                 @endif
+                @if ($serviceOrder->project)
+                    <div><span class="muted">Project:</span> {{ $serviceOrder->project->label() }}</div>
+                @endif
                 @if ($serviceOrder->external_purchaseorder_no)
                     <div><span class="muted">Externe referentie:</span> {{ $serviceOrder->external_purchaseorder_no }}</div>
                 @endif

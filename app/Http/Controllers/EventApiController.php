@@ -22,6 +22,7 @@ use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
 use App\Mail\AppointmentConfirmationMail;
 use App\Models\Event;
+use App\Models\Project;
 use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
@@ -58,7 +59,7 @@ class EventApiController extends Controller
         $events = $base
             ->with([
                 ...$this->baseEventRelations(),
-                'serviceOrders.project:id,title,location',
+                ...Project::relationsForAddress('serviceOrders.project'),
                 'serviceOrders.taskInstances.serviceOrderTask',
                 'serviceOrders.taskInstances.product.brand',
                 'serviceOrders.taskInstances.product.productAttributeValueables.productAttribute',
@@ -110,7 +111,9 @@ class EventApiController extends Controller
                             ->orWhereHas('customer', fn ($cq) => $this->matchCustomer($cq, $q, $address_like))
                             ->orWhereHas('project', function ($pq) use ($q, $is_numeric_q, $address_like) {
                                 $pq->where('title', 'like', "%{$q}%")
-                                    ->orWhereRaw($this->addressMatchSql('projects.location'), [$address_like]);
+                                    ->orWhere('number', 'like', "%{$q}%")
+                                    ->orWhereRaw($this->addressMatchSql('projects.location'), [$address_like])
+                                    ->orWhereHas('linkedLocation', fn ($lq) => $this->matchLocation($lq, $q, $address_like));
                                 if ($is_numeric_q) {
                                     $pq->orWhere('id', $q);
                                 }
@@ -122,7 +125,7 @@ class EventApiController extends Controller
         $events = $base
             ->with([
                 ...$this->baseEventRelations(),
-                'serviceOrders.project:id,title',
+                ...Project::relationsForAddress('serviceOrders.project'),
                 'executingUsers:id,name',
             ])
             ->orderByDesc('start')
@@ -224,7 +227,7 @@ class EventApiController extends Controller
         );
 
         $event->load([
-            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+            'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
             'executingUsers', 'executions', 'customers',
         ]);
 
@@ -249,7 +252,7 @@ class EventApiController extends Controller
         );
 
         $event->load([
-            'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+            'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
             'executingUsers', 'executions', 'customers',
         ]);
 
@@ -306,7 +309,7 @@ class EventApiController extends Controller
             }
 
             $new_event->load([
-                'eventType', 'serviceOrders.customer', 'serviceOrders.project:id,title,location',
+                'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
                 'executingUsers', 'executions',
             ]);
             $new_events[] = $this->withUserRoles($new_event);

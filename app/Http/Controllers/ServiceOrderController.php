@@ -6,6 +6,7 @@ use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
 use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
+use App\Domain\Signals\Projects\ServiceOrderMovedBetweenProjects;
 use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
@@ -89,7 +90,7 @@ class ServiceOrderController extends Controller
         $user = Auth::user();
         $query = ServiceOrder::with([
             'customer',
-            'project:id,location',
+            ...Project::relationsForAddress('project'),
             'serviceOrderStage',
             'events' => fn ($q) => $q->orderBy('start'),
             'events.executingUsers:id,name',
@@ -207,7 +208,7 @@ class ServiceOrderController extends Controller
             'taskInstances.productables',
             'taskInstances.assets',
             'taskInstances.checks.checkedBy:id,name',
-            'project:id,title,location',
+            ...Project::relationsForAddress('project'),
             'documents.category',
             'documents.user:id,name',
             'internalDocuments.category',
@@ -347,7 +348,10 @@ class ServiceOrderController extends Controller
                     ])
                 : [],
             'macroLocations' => $service_order->customer?->locations()->get(['id', 'title']) ?? [],
-            'projects' => Project::orderBy('title')->get(['id', 'title']),
+            'projects' => Project::query()
+                ->where(fn ($query) => $query->active()->orWhere('id', $service_order->project_id))
+                ->inNumberOrder()
+                ->get(['id', 'number', 'title']),
             'snelStartEnabled' => SnelStartClient::isConfigured(),
             'products' => Product::withAttributeData()
                 ->orderBy('model')
@@ -408,6 +412,7 @@ class ServiceOrderController extends Controller
 
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
+        $previous_project = $serviceorder->project;
         $previous_contract_title = $serviceorder->maintenanceContract?->display_title;
 
         $stage_requested = array_key_exists('service_order_stage_id', $data);
@@ -415,6 +420,7 @@ class ServiceOrderController extends Controller
         unset($data['service_order_stage_id']);
 
         $serviceorder->update($data);
+        $project_changed = $serviceorder->wasChanged('project_id');
 
         if ($transfer_roots->isNotEmpty()) {
             app(AssetTransferService::class)->transfer(
@@ -440,6 +446,14 @@ class ServiceOrderController extends Controller
             && blank($previous_external_invoice_no)
         ) {
             Signals::dispatch(new ServiceOrderInvoiceRecorded($serviceorder, $data['external_invoice_no']));
+        }
+
+        if ($project_changed) {
+            Signals::dispatch(new ServiceOrderMovedBetweenProjects(
+                $serviceorder,
+                $previous_project,
+                $serviceorder->project()->first(),
+            ));
         }
 
         if ($serviceorder->wasChanged(['signed_by', 'signature_base64'])) {

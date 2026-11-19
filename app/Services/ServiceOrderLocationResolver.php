@@ -22,7 +22,7 @@ class ServiceOrderLocationResolver
      */
     public static function relations(string $prefix = ''): array
     {
-        return array_map(fn ($relation) => $prefix . $relation, ['customer', 'project']);
+        return array_map(fn ($relation) => $prefix . $relation, ['customer', 'project', 'project.linkedLocation']);
     }
 
     /**
@@ -60,6 +60,8 @@ class ServiceOrderLocationResolver
         return match ($location['source']) {
             'location' => trim((string) $service_order->linkedLocation?->city) ?: null,
             'customer' => trim((string) $service_order->customer?->city) ?: null,
+            'project' => trim((string) $service_order->project?->linkedLocation?->city)
+                ?: AddressFormatter::city($location['address']),
             default => AddressFormatter::city($location['address']),
         };
     }

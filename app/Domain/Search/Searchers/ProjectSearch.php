@@ -17,25 +17,22 @@ class ProjectSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        if (!$user->isAdmin() && !$user->hasPermission('project.read')) {
-            return [];
-        }
-
         $like = SearchTerm::like($term);
 
         return Project::query()
+            ->visibleTo($user)
             ->where(fn ($q) => $q
-                ->where('title', 'like', $like)
+                ->matchesSearch($like)
                 ->orWhere('description', 'like', $like)
                 ->orWhere('location', 'like', $like)
-                ->orWhereHas('customer', fn ($cq) => $cq->where('name', 'like', $like)))
+                ->orWhereHas('linkedLocation', fn ($lq) => $lq->matchesText($like)))
             ->with('customer:id,name')
-            ->orderBy('title')
+            ->inNumberOrder()
             ->limit($limit)
-            ->get(['id', 'title', 'status', 'customer_id'])
+            ->get(['id', 'number', 'title', 'status', 'customer_id'])
             ->map(fn (Project $project) => new SearchHit(
                 $this->group(),
-                $project->title,
+                $project->label(),
                 collect([$project->customer?->name, $project->status])->filter()->implode(' · '),
                 '/projects/' . $project->id,
             ))

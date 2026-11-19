@@ -226,6 +226,9 @@ export const eventStatusBadgeClass = (status) => {
     }
 };
 
+/** How a project is named wherever it is picked or linked: its number, then its title. */
+export const projectLabel = (project) => [project?.number, project?.title].filter(Boolean).join(' ')
+
 export const projectStatusClass = (status) => {
     const map = {
         "Niet gestart": "text-gray-500 dark:text-slate-400",
@@ -358,6 +361,7 @@ const _currencyFormatter = new Intl.NumberFormat('nl-NL', { style: 'currency', c
 export const nlCurrency = (value) => _currencyFormatter.format(Number(value) || 0);
 
 const _oneDecimal = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 });
+export const nlDecimal = (value) => _oneDecimal.format(Number(value) || 0);
 
 /**
  * Byte count as "245 KB" / "1,2 MB". Whole units below a megabyte, because a

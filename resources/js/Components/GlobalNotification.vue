@@ -8,13 +8,15 @@
                 leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100"
                 leave-to-class="opacity-0">
                 <div v-if="localFlashMessage"
-                    :class="[type === 'error' ? 'bg-red-600' : 'bg-green-600', 'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-opacity-5']">
+                    :class="[backgrounds[type], 'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-opacity-5']">
                     <div class="p-4">
                         <div class="flex items-start">
                             <div class="flex-shrink-0">
                                 <CheckCircleIcon v-if="type === 'success'" class="h-6 w-6 text-white"
                                     aria-hidden="true" />
                                 <XCircleIcon v-else-if="type === 'error'" class="h-6 w-6 text-white"
+                                    aria-hidden="true" />
+                                <ExclamationTriangleIcon v-else-if="type === 'warning'" class="h-6 w-6 text-white"
                                     aria-hidden="true" />
                             </div>
                             <div class="ml-3 w-0 flex-1 pt-0.5">
@@ -43,13 +45,16 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 import { XMarkIcon as SolidXMarkIcon } from '@heroicons/vue/20/solid'
 
 const page = usePage()
 
 const flashSuccess = computed(() => page.props.flash.success)
 const flashError = computed(() => page.props.flash.error)
+const flashWarning = computed(() => page.props.flash.warning)
+
+const backgrounds = { success: 'bg-green-600', error: 'bg-red-600', warning: 'bg-amber-600' }
 const pageErrors = computed(() => page.props.errors)
 
 const localFlashMessage = ref(null)
@@ -57,10 +62,15 @@ const type = ref('success')
 const title = ref('')
 let notificationTimer = null
 
-watch([flashSuccess, flashError], ([newSuccess, newError]) => {
+watch([flashSuccess, flashError, flashWarning], ([newSuccess, newError, newWarning]) => {
     clearTimeout(notificationTimer)
 
-    if (newSuccess) {
+    if (newWarning) {
+        localFlashMessage.value = newWarning
+        type.value = 'warning'
+        title.value = 'Let op'
+        startAutoClear(12000)
+    } else if (newSuccess) {
         localFlashMessage.value = newSuccess
         type.value = 'success'
         title.value = 'Gelukt'
@@ -88,16 +98,17 @@ watch(pageErrors, (errors) => {
     startAutoClear()
 })
 
-function startAutoClear() {
+function startAutoClear(after = 5000) {
     notificationTimer = setTimeout(() => {
         closeNotification()
-    }, 5000)
+    }, after)
 }
 
 function closeNotification() {
     localFlashMessage.value = null
     page.props.flash.success = null
     page.props.flash.error = null
+    page.props.flash.warning = null
     clearTimeout(notificationTimer)
 }
 </script>

@@ -10,6 +10,7 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Enums\ServiceOrderTypes;
+use App\Exceptions\Refusal;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
@@ -202,15 +203,19 @@ class CreateServiceOrderTool implements Confirmable, Tool
             return ToolResult::failed('Die locatie hoort niet bij ' . $customer->name . '.');
         }
 
-        $order = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
-            customer_id: $customer->id,
-            project_id: $call->integerArgument('project_id'),
-            location_id: $location_id,
-            description: $call->stringArgument('description'),
-            asset_ids: $assets->pluck('id')->all(),
-            ticket_ids: $tickets->pluck('id')->all(),
-            type: $type,
-        ));
+        try {
+            $order = app(CreateServiceOrderAction::class)->execute(new NewServiceOrder(
+                customer_id: $customer->id,
+                project_id: $call->integerArgument('project_id'),
+                location_id: $location_id,
+                description: $call->stringArgument('description'),
+                asset_ids: $assets->pluck('id')->all(),
+                ticket_ids: $tickets->pluck('id')->all(),
+                type: $type,
+            ));
+        } catch (Refusal $refusal) {
+            return ToolResult::failed($refusal->getMessage());
+        }
 
         return ToolResult::ok(
             [

@@ -9,6 +9,7 @@ use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
 use App\Domain\Tools\Read\FindPlaceholderRecordsTool;
 use App\Domain\Tools\Read\FindProductTool;
+use App\Domain\Tools\Read\FindProjectTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\ListMacrosTool;
 use App\Domain\Tools\Read\NoteFileTool;
@@ -21,6 +22,7 @@ use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
 use App\Domain\Tools\Read\SearchServiceOrderTool;
 use App\Domain\Tools\Read\SummarizeCustomerTool;
+use App\Domain\Tools\Read\SummarizeProjectTool;
 use App\Domain\Tools\Read\ViewImagesTool;
 use App\Domain\Tools\Write\AddServiceOrderTaskTool;
 use App\Domain\Tools\Write\CreateAssetTool;
@@ -84,6 +86,8 @@ return [
         NoteFileTool::class,
         ReadFileTool::class,
         OfferTourTool::class,
+        FindProjectTool::class,
+        SummarizeProjectTool::class,
     ],
 
     /*

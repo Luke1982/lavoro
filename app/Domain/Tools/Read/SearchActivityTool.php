@@ -14,6 +14,7 @@ use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\MaintenanceContract;
+use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
@@ -40,15 +41,6 @@ class SearchActivityTool implements Tool
     use ReportsTheWholeCount;
 
     /**
-     * The names a person uses for the things history is kept about, mapped to the
-     * classes stored in subject_type.
-     *
-     * Only subjects with a settled visibility rule appear here. Tickets and
-     * projects are deliberately absent: neither has a scope that answers "which
-     * of these may this user see", and guessing one would leak the very records
-     * the guess was meant to protect.
-     */
-    /**
      * The vocabulary the model uses, and the records it maps onto.
      *
      * These are the things an entry is *attached* to. History is linked through
@@ -63,6 +55,7 @@ class SearchActivityTool implements Tool
         'afspraak' => Event::class,
         'klant' => Customer::class,
         'onderhoudscontract' => MaintenanceContract::class,
+        'project' => Project::class,
     ];
 
     public static function name(): string
@@ -299,6 +292,10 @@ class SearchActivityTool implements Tool
 
                     if ($user->can('list', Customer::class)) {
                         $outer->orWhere('activityables.activityable_type', Customer::class);
+                    }
+
+                    if ($user->can('list', Project::class)) {
+                        $outer->orWhere('activityables.activityable_type', Project::class);
                     }
                 });
         });

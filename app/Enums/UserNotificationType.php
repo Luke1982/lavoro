@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Domain\Signals\Appointments\AppointmentRescheduled;
 use App\Domain\Signals\Appointments\AppointmentUnassigned;
+use App\Domain\Signals\Projects\MilestoneOverdue;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
@@ -14,9 +15,11 @@ use App\Domain\Signals\Tickets\CustomerInfoUploaded;
 use App\Domain\Signals\Tickets\TicketPriorityChanged;
 use App\Domain\Signals\Tickets\TicketStatusChanged;
 use App\Models\Event;
+use App\Models\Project;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -87,6 +90,12 @@ enum UserNotificationType: string
      */
     case appointment_reminder = 'appointment.reminder';
 
+    /**
+     * Over je eigen werk, dus geen abonnement: wie verantwoordelijk is voor de
+     * mijlpaal en wie het project leidt horen het, de rest niet.
+     */
+    case milestone_overdue = 'project.milestone_overdue';
+
     public function label(): string
     {
         return match ($this) {
@@ -106,6 +115,7 @@ enum UserNotificationType: string
             self::removed_from_appointment => 'Van afspraak afgehaald',
             self::assigned_to_serviceorder => 'Werkbon toegewezen',
             self::appointment_reminder => 'Afspraakherinnering',
+            self::milestone_overdue => 'Mijlpaal over datum',
         };
     }
 
@@ -131,6 +141,8 @@ enum UserNotificationType: string
             self::assigned_to_serviceorder => 'Als je op een werkbon wordt gezet.',
             self::appointment_reminder => 'Vlak voor elke afspraak waarop jij staat, met de route en het nummer'
                 . ' van de klant.',
+            self::milestone_overdue => 'Als een mijlpaal waarvoor jij verantwoordelijk bent, of van een project'
+                . ' dat jij leidt, over datum raakt.',
         };
     }
 
@@ -145,7 +157,7 @@ enum UserNotificationType: string
     {
         return match ($this) {
             self::execution_times_missing, self::own_appointment_moved, self::removed_from_appointment,
-            self::assigned_to_serviceorder, self::appointment_reminder => false,
+            self::assigned_to_serviceorder, self::appointment_reminder, self::milestone_overdue => false,
             default => true,
         };
     }
@@ -218,6 +230,7 @@ enum UserNotificationType: string
             $signal instanceof AppointmentRescheduled && $signal->moved_in_time => [self::own_appointment_moved],
             $signal instanceof AppointmentUnassigned && $signal->removed_user_ids !== [] => [self::removed_from_appointment],
             $signal instanceof ServiceOrderAssigned && $signal->newly_assigned_user_ids !== [] => [self::assigned_to_serviceorder],
+            $signal instanceof MilestoneOverdue => [self::milestone_overdue],
             default => [],
         };
     }
@@ -250,6 +263,17 @@ enum UserNotificationType: string
             /** Van het signaal, want de tabel weet niet meer wie er net bij kwam. */
             self::assigned_to_serviceorder => $signal instanceof ServiceOrderAssigned
                 ? self::existingUsers($signal->newly_assigned_user_ids)
+                : collect(),
+
+            /** Only who can open the project: a link to a page they may not see helps nobody. */
+            self::milestone_overdue => $signal instanceof MilestoneOverdue
+                ? User::whereKey(array_filter([
+                    $signal->milestone->assigned_user_id,
+                    $signal->project->project_manager_id,
+                ]))->get()
+                    ->filter(fn (User $user) => $user->can('list', Project::class))
+                    ->map(fn (User $user) => (int) $user->id)
+                    ->values()
                 : collect(),
 
             default => collect(),
@@ -301,6 +325,8 @@ enum UserNotificationType: string
             /** Over je eigen uren en je eigen dag hoef je niets extra's te mogen. */
             self::execution_times_missing, self::own_appointment_moved, self::removed_from_appointment,
             self::assigned_to_serviceorder, self::appointment_reminder => [],
+
+            self::milestone_overdue => ['project.read'],
         };
     }
 
@@ -339,6 +365,7 @@ enum UserNotificationType: string
             self::removed_from_appointment => 'CalendarX',
             self::assigned_to_serviceorder => 'ClipboardList',
             self::appointment_reminder => 'AlarmClock',
+            self::milestone_overdue => 'Flag',
         };
     }
 
@@ -358,6 +385,7 @@ enum UserNotificationType: string
             self::removed_from_appointment => 'red',
             self::assigned_to_serviceorder => 'blue',
             self::appointment_reminder => 'blue',
+            self::milestone_overdue => 'red',
         };
     }
 
@@ -386,6 +414,7 @@ enum UserNotificationType: string
             self::removed_from_appointment => 'Van afspraak afgehaald',
             self::assigned_to_serviceorder => 'Werkbon toegewezen',
             self::appointment_reminder => 'Afspraakherinnering',
+            self::milestone_overdue => 'Mijlpaal over datum',
         };
     }
 
@@ -406,6 +435,7 @@ enum UserNotificationType: string
             self::removed_from_appointment => $this->removedFromAppointmentBody($signal),
             self::assigned_to_serviceorder => $this->assignedToServiceOrderBody($signal),
             self::appointment_reminder => 'Je afspraak begint bijna.',
+            self::milestone_overdue => $this->milestoneOverdueBody($signal),
         };
     }
 
@@ -430,6 +460,9 @@ enum UserNotificationType: string
 
             /** Nieuw werk voor jou, maar het werk zelf staat nog niet vandaag op de stoep. */
             self::assigned_to_serviceorder => UserNotificationPriority::normaal,
+
+            /** Er loopt iets uit waar jij over gaat; dat wil je weten voordat de klant belt. */
+            self::milestone_overdue => UserNotificationPriority::normaal,
             default => UserNotificationPriority::laag,
         };
     }
@@ -629,6 +662,21 @@ enum UserNotificationType: string
                 ? ' staat nog open en valt'
                 : ' staan nog open en vallen')
             . ' buiten de rollen waarin diegene deze bon uitvoert.';
+    }
+
+    /** Welke stap, van welk project, en sinds wanneer: genoeg om te weten of je moet bellen. */
+    private function milestoneOverdueBody(Signal $signal): string
+    {
+        if (!$signal instanceof MilestoneOverdue) {
+            return 'Een mijlpaal is over datum.';
+        }
+
+        $planned = $signal->milestone->projected_date
+            ? Carbon::parse($signal->milestone->projected_date)->format('d-m-Y')
+            : null;
+
+        return "'" . $signal->milestone->title . "' van project " . $signal->project->label()
+            . ($planned ? ' stond gepland op ' . $planned . ' en' : '') . ' is nog niet behaald.';
     }
 
     private function customerBody(Signal $signal): string

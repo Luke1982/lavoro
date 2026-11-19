@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Asset;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
+use App\Rules\ProjectAcceptsWork;
 use App\Support\AssetOwnership;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,7 +22,7 @@ class ServiceOrderStoreRequest extends FormRequest
     {
         return [
             'customer_id' => ['required', 'exists:customers,id'],
-            'project_id' => ['nullable', 'exists:projects,id'],
+            'project_id' => ['nullable', 'exists:projects,id', new ProjectAcceptsWork],
             'location_id' => [
                 'nullable',
                 Rule::exists('locations', 'id')->where('customer_id', $this->input('customer_id')),
