@@ -222,11 +222,6 @@ class CreateProductTool implements Confirmable, Tool
     }
 
     /** @return array<string, string> */
-    private function existingAttribute(string $name): ?ProductAttribute
-    {
-        return ProductAttribute::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
-    }
-
     private function attributesIn(ToolCall $call): array
     {
         $given = $call->argument('attributes');
@@ -247,6 +242,11 @@ class CreateProductTool implements Confirmable, Tool
         }
 
         return $attributes;
+    }
+
+    private function existingAttribute(string $name): ?ProductAttribute
+    {
+        return ProductAttribute::query()->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
     }
 
     private function existingBrand(?string $name): ?Brand
