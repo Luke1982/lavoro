@@ -1,0 +1,58 @@
+{
+    "tour": "werkbon",
+    "chapter": "taakknoppen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "taakknoppen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Achter elke taak staan een label en een paar knopjes. We lopen ze langs bij een voorbeeldtaak.",
+            "hash": "b69ba989236cab47de4b1edf2a6564ceb335616b",
+            "start": 0,
+            "end": 5.256
+        },
+        {
+            "text": "Het pakketje is \"materialen\". Daarmee boek je materiaal op deze taak.",
+            "hash": "1ee0516683c308c891598ffa600cd5ca9c5abb20",
+            "start": 6.256,
+            "end": 10.871
+        },
+        {
+            "text": "Hier boek je materiaal op deze taak. Op de werkbon staat bij die regel dan de naam van de taak. Op de PDF staat er \"gebruikt voor\" achter, met de naam van de taak.",
+            "hash": "23419ca62974a4c25e2f60a79b8d90c99117c3e1",
+            "start": 11.871,
+            "end": 21.755
+        },
+        {
+            "text": "Het rode verbodsteken is \"annuleer taak\". Je geeft er een reden bij. Een geannuleerde taak kun je niet terugzetten.",
+            "hash": "8e310a5f89fd56b0c922054dbc1846dec49a3368",
+            "start": 22.755,
+            "end": 29.921
+        },
+        {
+            "text": "De drie puntjes zijn \"bewerk taak\". Daarmee pas je de titel, het product of de checks aan.",
+            "hash": "3387c14cfa074ac753f8554ffb7ea3e63db9e4b0",
+            "start": 30.921,
+            "end": 35.756
+        },
+        {
+            "text": "De prullenbak is \"verwijder taak\". Daarmee haal je de taak van de werkbon.",
+            "hash": "fd4a6f07e43b5884bbfc1ed6ed516f50499d6b68",
+            "start": 36.756,
+            "end": 40.417
+        },
+        {
+            "text": "Is de taak voltooid? Dan verschijnt er een pennetje. Met \"laten ondertekenen\" tekent de klant voor deze ene taak.",
+            "hash": "50838f9a7bae4b67636c4b00a2436ed6691ffa0d",
+            "start": 41.417,
+            "end": 48.041
+        },
+        {
+            "text": "Heeft de klant getekend? Dan staat er een groen vinkje. Klik op \"ondertekend\" en je ziet de handtekening.",
+            "hash": "b5172284cf83f9335323d594bce1a830ddf3a0ec",
+            "start": 49.041,
+            "end": 54.84
+        }
+    ]
+}

@@ -7,13 +7,15 @@
                     v-if="serviceOrder.order_date"> van {{ nlDate(serviceOrder.order_date) }}</template>
                 voor {{ serviceOrder.customer.name }}</span>
         </div>
-        <div class="flex items-end gap-4 sm:items-stretch">
-            <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto">
+        <div class="flex w-full sm:w-auto items-end gap-4 sm:items-stretch">
+            <div v-if="hasPermission('serviceorder.change_type') && !serviceOrder.is_closed" class="w-full sm:w-auto"
+                data-tour="werkbon.type">
                 <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Type werkbon</span>
                 <SelectMenuComponent v-model="form.type" :options="typeOptions" label="Type" class="w-full sm:w-auto" />
             </div>
-            <ButtonGroup>
-                <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
+            <TourButton tour="werkbon" class="shrink-0" />
+            <ButtonGroup class="shrink-0">
+                <RunMacroMenu :service-order-id="serviceOrder.id" :macros="shownMacros" :locations="macroLocations" />
                 <AssistantButton />
                 <PillButton v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                     title="Werkbon verwijderen" class="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700"
@@ -23,7 +25,7 @@
             </ButtonGroup>
         </div>
     </div>
-    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2"
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2" data-tour="werkbon.top"
         :class="isMonteurView ? 'mx-auto mb-4 max-w-3xl' : 'my-4'">
         <template v-if="!isMonteurView">
             <h1 class="text-2xl font-bold">
@@ -42,9 +44,12 @@
             </BadgeComponent>
             <PlanInPlannerButton :serviceorder="serviceOrder" variant="button" />
         </template>
-        <SegmentedToggle v-model="view" :options="viewOptions" class="w-full sm:w-auto sm:ml-auto" />
+        <div class="flex w-full sm:w-auto sm:ml-auto items-stretch gap-2">
+            <TourButton v-if="isMonteurView" tour="werkbon" />
+            <SegmentedToggle v-model="view" :options="viewOptions" class="flex-1 sm:flex-none" data-tour="werkbon.view" />
+        </div>
     </div>
-    <MechanicView v-if="isMonteurView" :service-order="serviceOrder" :events="eventWidgetEvents"
+    <MechanicView v-if="isMonteurView" :service-order="shownServiceOrder" :events="eventWidgetEvents"
         :map-location="mapLocation" :materials="combinedMaterials" :freeform-materials="combinedFreeformMaterials"
         :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
         :material-usage-units="materialUsageUnits" :hidden-task-count="hiddenTaskCount" :is-signed="isSigned"
@@ -52,13 +57,13 @@
         @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
         @close-service-order="closeViaStage">
         <template #work-actions>
-            <RunMacroMenu :service-order-id="serviceOrder.id" :macros="runnableMacros" :locations="macroLocations" />
+            <RunMacroMenu :service-order-id="serviceOrder.id" :macros="shownMacros" :locations="macroLocations" />
         </template>
     </MechanicView>
-    <ChaptersComponent v-else>
+    <ChaptersComponent v-else v-model="chapter">
         <template v-if="chapterHeaders.length > 1">
             <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
-            <ChapterHeaders>
+            <ChapterHeaders data-tour="werkbon.chapters">
                 <ChapterHeader v-for="(header, index) in chapterHeaders" :key="index" :index="index">
                     {{ header }}
                 </ChapterHeader>
@@ -69,19 +74,19 @@
                 <TwoThirdsOneThird>
                     <template #main>
                         <BoxComponent class="mb-4 hidden sm:block">
-                            <div v-if="stages.length > 1" class="mb-4"
+                            <div v-if="stages.length > 1" class="mb-4" data-tour="werkbon.stages"
                                 :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
                                 <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
                                     @update:modelValue="onStageChange" />
                             </div>
                         </BoxComponent>
-                        <div v-if="stages.length > 1" class="mb-4 block sm:hidden"
+                        <div v-if="stages.length > 1" class="mb-4 block sm:hidden" data-tour="werkbon.stages"
                             :class="{ 'pointer-events-none opacity-60': serviceOrder.is_closed && !hasPermission('serviceorder.reopen') }">
                             <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Fase</span>
                             <StepsProgressBar :steps="stages" :model-value="serviceOrder.service_order_stage_id"
                                 @update:modelValue="onStageChange" />
                         </div>
-                        <BoxComponent>
+                        <BoxComponent data-tour="werkbon.details">
                             <SectionHeader :icon="DocumentTextIcon" title="Details"
                                 subtitle="Klant, project en referenties van deze werkbon." chapter="details" />
                             <div class="grid grid-cols-1 md:grid-cols-2">
@@ -151,8 +156,8 @@
                                 </div>
                             </div>
                         </BoxComponent>
-                        <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')"
-                            :service-order-id="serviceOrder.id" :instances="serviceOrder.task_instances"
+                        <TaskInstancesWidget v-if="hasPermission('serviceordertaskinstance.read')" data-tour="werkbon.tasks"
+                            :service-order-id="serviceOrder.id" :instances="shownServiceOrder.task_instances"
                             :available-tasks="availableTasks" :task-checks="taskChecks" :task-checklists="taskChecklists"
                             :products="products" :user-roles="userRoles"
                             :is-closed="serviceOrder.is_closed" :type="serviceOrder.type"
@@ -160,7 +165,7 @@
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
                             :bundle-parts-by-product="bundlePartsByProduct" :hidden-count="hiddenTaskCount"
                             class="my-4" />
-                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4"
+                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4" data-tour="werkbon.inspections"
                             v-tray-drop="{ accepts: ['asset'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'een keuring op deze werkbon te zetten' }">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
@@ -190,7 +195,7 @@
                             </div>
                             <ServiceJobsTable :servicejobs="serviceOrder.servicejobs" class="mt-4" />
                         </BoxComponent>
-                        <BoxComponent class="my-4"
+                        <BoxComponent class="my-4" data-tour="werkbon.tickets"
                             v-if="serviceOrder.tickets.length > 0 || hasPermission('ticket.add_to_serviceorder')"
                             v-tray-drop="{ accepts: ['ticket'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'op deze werkbon te zetten' }">
                             <SectionHeader :icon="ExclamationTriangleIcon" title="Storingen"
@@ -290,7 +295,7 @@
                             </div>
                         </BoxComponent>
                         <BoxComponent
-                            v-if="canSeeMaterials"
+                            v-if="canSeeMaterials" data-tour="werkbon.materials"
                             class="mb-4 sm:mb-0">
                             <MaterialsWidget :service-order-id="serviceOrder.id" :materials="combinedMaterials"
                                 :freeform-materials="combinedFreeformMaterials" :all-materials="allMaterials"
@@ -310,38 +315,38 @@
                                 subtitle="Alles wat er op deze werkbon gebeurd is, op volgorde." chapter="timeline" />
                             <TimelineComponent :activities="timelineItems" />
                         </BoxComponent>
-                        <BoxComponent v-if="eventWidgetEvents.length" class="mt-6">
+                        <BoxComponent v-if="eventWidgetEvents.length" class="mt-6" data-tour="werkbon.events">
                             <SectionHeader :icon="CalendarDaysIcon" title="Afspraken"
                                 subtitle="Ingeplande momenten voor deze werkbon." chapter="events" />
                             <EventsWidget :service-order-id="serviceOrder.id" :events="eventWidgetEvents"
                                 :user-roles="userRoles" :leading-color="defaultLeadingColor"
                                 @times-updated="missingTimes = $event" />
                         </BoxComponent>
-                        <BoxComponent class="mt-6"
+                        <BoxComponent class="mt-6" data-tour="werkbon.remarks"
                             v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.remarks.length > 0)">
                             <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.remarks" />
                         </BoxComponent>
-                        <BoxComponent class="mt-6"
+                        <BoxComponent class="mt-6" data-tour="werkbon.remarks.internal"
                             v-if="!serviceOrder.is_closed || (serviceOrder.is_closed && serviceOrder.internal_remarks.length > 0)">
                             <RemarksComponent :remarkable-type="'App\\Models\\ServiceOrder'"
                                 :disabled="serviceOrder.is_closed" :remarkable-id="serviceOrder.id"
                                 :comments="serviceOrder.internal_remarks" :internal="true" />
                         </BoxComponent>
                         <DocumentUploadComponent :existing="serviceOrder.documents" :documentable-id="serviceOrder.id"
-                            documentable-type="\App\Models\ServiceOrder" class="mt-6" />
-                        <BoxComponent class="mt-6">
+                            documentable-type="\App\Models\ServiceOrder" class="mt-6" data-tour="werkbon.documents" />
+                        <BoxComponent class="mt-6" data-tour="werkbon.images">
                             <ImageUploadComponent :existing="serviceOrder.images" :imageable-id="serviceOrder.id"
                                 imageable-type="App\Models\ServiceOrder" title="Foto's van het werk" />
                         </BoxComponent>
-                        <BoxComponent class="mt-6">
+                        <BoxComponent class="mt-6" data-tour="werkbon.images.internal">
                             <ImageUploadComponent :existing="serviceOrder.internal_images"
                                 :shared="serviceOrder.shared_images"
                                 :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder"
                                 title="Foto's van het werk" :internal="true" />
                         </BoxComponent>
-                        <BoxComponent class="mt-6">
+                        <BoxComponent class="mt-6" data-tour="werkbon.signoff">
                             <SectionHeader :icon="Signature" title="Afronding en handtekening"
                                 subtitle="Rond de werkbon af en laat de klant tekenen." chapter="signoff" />
                             <div class="py-2">
@@ -390,14 +395,14 @@
                                 Handtekening en naam wissen
                             </button>
                             <button v-if="hasPermission('serviceorder.close') || serviceOrder.is_closed"
-                                @click="showCloseModal = true"
+                                data-tour="werkbon.signoff.open" @click="showCloseModal = true"
                                 class="mt-4 w-full p-3 rounded-md ring-1 ring-gray-200 dark:ring-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
                                 <Signature class="w-5 h-5" />
                                 {{ isSigned ? 'Bekijk overzicht' : 'Bekijk & onderteken' }}
                             </button>
                             <button
                                 v-if="closedStageId !== null && isSigned && !serviceOrder.is_closed && hasPermission('serviceorder.close')"
-                                @click="closeViaStage"
+                                data-tour="werkbon.close" @click="closeViaStage"
                                 class="mt-4 w-full p-3 rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer font-semibold text-sm flex items-center justify-center gap-2">
                                 <Check class="w-5 h-5" />
                                 Werkbon afsluiten
@@ -424,7 +429,7 @@
                             class="mb-4 p-3 rounded border border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm font-semibold">
                             Deze order is naar de administratie verzonden. Materialen kunnen niet meer worden aangepast.
                         </div>
-                        <BoxComponent>
+                        <BoxComponent data-tour="werkbon.administration">
                             <SectionHeader :icon="Package" title="Materialen"
                                 subtitle="Overzicht van gebruikte materialen voor deze bon." chapter="materials" />
                             <MaterialsFinancialOverview :materials="combinedMaterials"
@@ -493,7 +498,7 @@
                     v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf'])"
                     class="mt-5 sm:mt-0">
                     <template #narrow>
-                        <BoxComponent>
+                        <BoxComponent data-tour="werkbon.export">
                             <div class="flex flex-col gap-1.5">
                                 <button v-if="hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf'])"
                                     @click="selectExportItem('werkbon')"
@@ -681,7 +686,7 @@ import { Check, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import StepsProgressBar from '@/Components/UI/StepsProgressBar.vue'
 import RemarksComponent from '@/Components/RemarksComponent.vue';
@@ -711,6 +716,9 @@ import MechanicView from '@/Components/ServiceOrders/Mechanic/MechanicView.vue';
 import { useServiceOrderView } from '@/Composables/useServiceOrderView.js';
 import { useMaterialPermissions } from '@/Composables/useMaterialLines.js';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
+import TourButton from '@/Components/Tour/TourButton.vue';
+import { useTour, announceTourPage, leaveTourPage, onceIntoChapter } from '@/Composables/useTour';
+import { exampleTaskInstance, exampleTaskCompleted, exampleTaskSigned, exampleMacro } from '@/Tours/examples';
 
 const props = defineProps({
     customerAssets: { type: Array, default: () => [] },
@@ -758,7 +766,7 @@ const props = defineProps({
     viewerExecutes: { type: Boolean, default: false },
 });
 
-const { view } = useServiceOrderView(() => props.viewerExecutes);
+const { view, preview } = useServiceOrderView(() => props.viewerExecutes);
 const isMonteurView = computed(() => view.value === 'monteur');
 const runnableMacros = computed(() => (props.serviceOrder.is_closed ? [] : props.macros));
 const { canSee: canSeeMaterials } = useMaterialPermissions();
@@ -1304,6 +1312,96 @@ const chapterHeaders = computed(() => [
     ...(canExport.value ? ['Exporteren'] : []),
 ])
 const exportSlot = computed(() => `chapter-${canSeeFinancials.value ? 2 : 1}`)
+const chapter = ref(0);
+
+/** Opens the tab called `header`, and says how to go back to the one that was open. */
+function showChapter(header) {
+    const index = chapterHeaders.value.indexOf(header);
+    if (index < 0 || chapter.value === index) return null;
+    const before = chapter.value;
+    chapter.value = index;
+
+    return () => { chapter.value = before; };
+}
+
+/**
+ * The werkbon is a rondleiding page in both views, while its button moves with the
+ * view: the page says so itself, so switching views never ends a rondleiding.
+ */
+onMounted(() => announceTourPage('werkbon'));
+onBeforeUnmount(() => leaveTourPage('werkbon'));
+
+/** The werkbon as both views show it: with the rondleiding's example task after its own tasks, if any. */
+const exampleTask = ref(null);
+const shownServiceOrder = computed(() => (exampleTask.value
+    ? { ...props.serviceOrder, task_instances: [...(props.serviceOrder.task_instances ?? []), exampleTask.value] }
+    : props.serviceOrder));
+
+/** The macros the button offers: the rondleiding's example when there is none to run yet. */
+const shownExampleMacro = ref(null);
+const shownMacros = computed(() => (shownExampleMacro.value ? [shownExampleMacro.value] : runnableMacros.value));
+
+/** Puts the example task on the werkbon, when `wanted` and it is not there yet. */
+function placeExampleTask(wanted) {
+    if (exampleTask.value || !wanted) return null;
+    exampleTask.value = exampleTaskInstance(props.serviceOrder.id);
+
+    return () => { exampleTask.value = null; };
+}
+
+/** Moves the example task on, so the buttons that come with that state show. */
+function advanceExampleTask(advance) {
+    const before = exampleTask.value;
+    if (!before) return null;
+    exampleTask.value = advance(before);
+
+    return () => { if (exampleTask.value) exampleTask.value = before; };
+}
+
+/**
+ * Turns the switch to the monteursweergave while the light is on it: once the
+ * voice is a third into the first step, or at once when the rondleiding has
+ * already gone past that step.
+ */
+function switchToMechanicView() {
+    let undo = null;
+    const stop = onceIntoChapter(0.3, () => { undo = preview('monteur'); });
+
+    return () => {
+        stop();
+        return undo?.();
+    };
+}
+
+/**
+ * The werkbon rondleiding shows both ways of looking at a werkbon without making
+ * either the remembered choice, an example task and macro where there are none,
+ * the window for signing, and the tabs.
+ */
+useTour('werkbon', {
+    showExampleTask: () => placeExampleTask(!props.serviceOrder.task_instances?.length),
+    addExampleTask: () => placeExampleTask(!props.serviceOrder.is_closed),
+    completeExampleTask: () => advanceExampleTask(exampleTaskCompleted),
+    signExampleTask: () => advanceExampleTask(exampleTaskSigned),
+    showExampleMacro: () => {
+        if (shownExampleMacro.value || runnableMacros.value.length || props.serviceOrder.is_closed
+            || !hasPermission('serviceordermacro.manage')) return null;
+        shownExampleMacro.value = exampleMacro();
+
+        return () => { shownExampleMacro.value = null; };
+    },
+    showStandardView: () => preview('standaard'),
+    showMechanicView: () => preview('monteur'),
+    switchToMechanicView,
+    openSignoff: () => {
+        if (showCloseModal.value) return null;
+        showCloseModal.value = true;
+
+        return () => { showCloseModal.value = false; };
+    },
+    openAdministration: () => showChapter('Administratie'),
+    openExport: () => showChapter('Exporteren'),
+});
 
 const showFinancialUi = computed(() => canSeeFinancials.value && showFinancial.value);
 

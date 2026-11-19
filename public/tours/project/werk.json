@@ -1,46 +1,82 @@
 {
     "tour": "project",
     "chapter": "werk",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
     "audio": "werk.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "De tijdlijn zet alles van dit project in de tijd. Klik op een blok voor de details.",
-            "hash": "77522428e0b50d31e0e715846f6bfcc07f656ee5",
+            "text": "De tijdlijn zet alles van dit project in de tijd. Mijlpalen, werkbonnen en storingen staan er samen op.",
+            "hash": "472aab5e16a42166f4c23ffb7da0516c774083df",
             "start": 0,
-            "end": 4.313
+            "end": 6.121
+        },
+        {
+            "text": "Met \"Maanden\" en \"Weken\" kies je de indeling. Bij \"Weken\" krijgt elke week een eigen kolom.",
+            "hash": "8d2cb41df3f8936c5b605518a93d7201e4967838",
+            "start": 7.121,
+            "end": 12.685
+        },
+        {
+            "text": "Klik op \"Vandaag\" en de tijdlijn schuift naar vandaag. Daar staat een blauwe streep met de datum.",
+            "hash": "79cf29bfd5c775503a4e0b404bc0f3fb6eb6ec3f",
+            "start": 13.685,
+            "end": 19.337
+        },
+        {
+            "text": "Met de schuif bij het vergrootglas zoom je in de tijd. Naar rechts krijgt elke dag meer ruimte. Zo zie je een korte periode in detail.",
+            "hash": "02edffd585005c3437c10fb0b6358d25ed00d1d5",
+            "start": 20.337,
+            "end": 28.946
+        },
+        {
+            "text": "Met de schuif links maak je de rijen hoger. Dan toont elk blok meer details.",
+            "hash": "6ad66ce0941cd71f88846637b85e3c239803e078",
+            "start": 29.946,
+            "end": 34.094
+        },
+        {
+            "text": "Klik op een blok en je ziet de details in een ballon. Met de knop daarin open je de werkbon.",
+            "hash": "da932db40ead6ea76bc83bc1552e93341cfdaab5",
+            "start": 35.094,
+            "end": 40.694
+        },
+        {
+            "text": "Met de rechtermuisknop op een blok krijg je een menu. Kies \"Details\" voor de ballon. Of kies \"Werkbon openen\" om erheen te gaan, ook in een nieuw tabblad.",
+            "hash": "5f038d0ee1453bd8cda163cc83050dff37622eb7",
+            "start": 41.694,
+            "end": 49.814
         },
         {
             "text": "Hier staan de werkbonnen van dit project, met hun fase en monteurs.",
             "hash": "4395ea7c63f3c873616dc28144310ab6897b4582",
-            "start": 5.313,
-            "end": 9.214
+            "start": 50.814,
+            "end": 54.715
         },
         {
             "text": "Ligt er een storing of machine op het bakje? Plak hem hier. Dan komt er een nieuwe werkbon onder dit project.",
             "hash": "92b5da4633e1f0e1bcce608b5d3a3c38c8f529c7",
-            "start": 10.214,
-            "end": 16.268
+            "start": 55.715,
+            "end": 61.769
         },
         {
             "text": "Bij documenten zet je bestanden bij het project, zoals tekeningen of een offerte.",
             "hash": "47ee153b32d22ad80b47bf41e46de4280cc28678",
-            "start": 17.268,
-            "end": 21.574
+            "start": 62.769,
+            "end": 67.075
         },
         {
             "text": "Een foto van het project deel je met al zijn werkbonnen. Ook met werkbonnen die later nog komen.",
             "hash": "ac6cf1d0df26bb0036a2ea09853f2f625f4cb34b",
-            "start": 22.574,
-            "end": 27.995
+            "start": 68.075,
+            "end": 73.496
         },
         {
             "text": "Onderaan staat de geschiedenis van het project. Je ziet wie wat veranderde, en wanneer.",
             "hash": "913db47c8fd1c65291b0d216861508062ad1ef40",
-            "start": 28.995,
-            "end": 33.12
+            "start": 74.496,
+            "end": 78.621
         }
     ]
 }

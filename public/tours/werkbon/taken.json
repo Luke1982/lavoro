@@ -1,0 +1,70 @@
+{
+    "tour": "werkbon",
+    "chapter": "taken",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "taken.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Een taak is werk dat op deze werkbon moet gebeuren. Per taak zie je hoeveel machines en checks er af zijn.",
+            "hash": "e21dbe1ca2ddef409ce3f7b15ce446d1e69770bf",
+            "start": 0,
+            "end": 5.796
+        },
+        {
+            "text": "Met \"taak toevoegen\" zet je een taak op de werkbon.",
+            "hash": "eb4d15399ce697ee0f13e9e8ac21a6b3f2fc3ba3",
+            "start": 6.796,
+            "end": 9.802
+        },
+        {
+            "text": "Kies een bestaande taak. Dan komen de titel en de checks van die taak mee. Een losse taak kan ook.",
+            "hash": "958e736ff19b53ee103088fa834647bd3954d62b",
+            "start": 10.802,
+            "end": 16.118
+        },
+        {
+            "text": "Hoort er een product bij de taak, omdat je dat product bijvoorbeeld gaat installeren? Kies het dan, met het aantal machines. Bij het uitvoeren komt er per machine een serienummer.",
+            "hash": "1af6fe7906b47b03bb61e071dfc35c598d591e73",
+            "start": 17.118,
+            "end": 27.087
+        },
+        {
+            "text": "Hier kies je of de checks per machine worden afgevinkt. Je kunt ook extra checks toevoegen. Die zijn altijd optioneel.",
+            "hash": "ffd59cfc58682c0a564132a0e1a7aae509763360",
+            "start": 28.087,
+            "end": 34.795
+        },
+        {
+            "text": "Kies je een rol? Dan ziet alleen wie in die rol op de afspraak staat de taak. Zonder rol ziet iedereen hem.",
+            "hash": "3eae7b4032dd0759b6ec080b004490f907c745c8",
+            "start": 35.795,
+            "end": 41.679
+        },
+        {
+            "text": "Is een taak klaar? Vink hem dan af. Moet er nog iets worden ingevuld? Dan opent eerst \"taak uitvoeren\".",
+            "hash": "b66252601e5cb264c383e505901e6bec6624918d",
+            "start": 42.679,
+            "end": 48.605
+        },
+        {
+            "text": "Hier registreer je per machine het serienummer. Typ het in of scan het. Elke machine wordt los bewaard.",
+            "hash": "e9d88e770aeb6b16cdc35229ae7c7a880ccfe8c3",
+            "start": 49.605,
+            "end": 55.196
+        },
+        {
+            "text": "Daaronder staan de checks. Een rood sterretje betekent verplicht. Elk vinkje wordt meteen bewaard.",
+            "hash": "fb8ca229b38ff075fc82631affb94308879241be",
+            "start": 56.196,
+            "end": 61.247
+        },
+        {
+            "text": "Met \"taak voltooien\" is de taak klaar. Eronder staat wat er nog mist.",
+            "hash": "4f6aa0ea522c93bf39dc76ef614395fd5ad157c6",
+            "start": 62.247,
+            "end": 66.439
+        }
+    ]
+}

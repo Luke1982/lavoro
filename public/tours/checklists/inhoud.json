@@ -1,0 +1,28 @@
+{
+    "tour": "checklists",
+    "chapter": "inhoud",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "inhoud.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met het pijltje zie je wat er in een kaart zit. Sleep een regel om de volgorde te veranderen.",
+            "hash": "bf4011f1797f9a5e11a650973539b2818e6846aa",
+            "start": 0,
+            "end": 5.102
+        },
+        {
+            "text": "Onder de drie puntjes kun je een kaart hernoemen of verwijderen.",
+            "hash": "de3abee18dadb12b2f2126641cc261b1fb71a1e1",
+            "start": 6.102,
+            "end": 9.616
+        },
+        {
+            "text": "Een taak op een werkbon krijgt de checks van dat moment mee. Pas je hier later iets aan? Dan veranderen bestaande werkbonnen niet.",
+            "hash": "6b346f3d1297a4ee39465d96e09d0b7f188203c8",
+            "start": 10.616,
+            "end": 18.062
+        }
+    ]
+}

@@ -3,7 +3,7 @@
         <SectionHeader v-if="!compact" :icon="ClipboardListIcon" title="Werkbontaken"
             subtitle="De taken die op deze werkbon uitgevoerd moeten worden." chapter="serviceorders">
             <template v-if="canCreate" #actions>
-                <button type="button" @click="addDrawerOpen = true"
+                <button type="button" data-tour="werkbon.tasks.add" @click="addDrawerOpen = true"
                     class="inline-flex items-center gap-1.5 text-sm font-medium text-lavoro-blue dark:text-blue-400 hover:opacity-80 transition-opacity ml-2 sm:ml-0 justify-center py-3 sm:pt-2 px-3 sm:px-0 border-1 border-gray-200 dark:border-slate-700 rounded-lavoro-sm sm:border-0 cursor-pointer">
                     <PlusIcon class="w-4 h-4" />
                     <span class="hidden sm:inline">Taak toevoegen</span>
@@ -21,8 +21,14 @@
             </span>
         </p>
 
+        <p v-if="hasExample" class="text-xs italic text-amber-700 dark:text-amber-400"
+            :class="compact ? 'pb-1' : 'pt-2'">
+            Voorbeeld uit de rondleiding: zo staat een taak met checks op de werkbon.
+        </p>
+
         <div v-if="compact" class="flex flex-col gap-2" v-auto-animate>
-            <div v-for="instance in internalInstances" :key="instance.id">
+            <div v-for="instance in internalInstances" :key="instance.id"
+                :data-tour="openInstanceId === null || openInstanceId === instance.id ? 'mechanic.task' : null">
                 <WorkItemRow :icon="ListChecksIcon" tone="green" :title="taskInstanceTitle(instance)"
                     :subtitle="taskInstanceDescription(instance) || productLine(instance)"
                     :action-label="actionLabel(instance)" :action-icon="summaries[instance.id].hasWork ? PlayIcon : CheckIcon"
@@ -34,7 +40,7 @@
                 <div class="grid transition-[grid-template-rows] duration-200 ease-out"
                     :class="openInstanceId === instance.id ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
                     <div class="overflow-hidden" :inert="openInstanceId !== instance.id">
-                        <TaskWorkPanel v-if="unfolded.has(instance.id)" :instance="instance" :can-toggle="canToggle"
+                        <TaskWorkPanel v-if="unfolded.has(instance.id)" :instance="instance" :can-toggle="canToggle && instance.id > 0"
                             class="mt-2 rounded-lavoro-sm border border-gray-200 bg-gray-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40"
                             @complete="completeInline(instance)" @reopen="toggleComplete(instance, false)" />
                     </div>
@@ -45,10 +51,10 @@
             <div v-if="internalInstances.length === 0" class="text-sm text-gray-400 dark:text-slate-500 py-2">
                 {{ hiddenCount > 0 ? 'Verder staan er geen taken op deze bon.' : 'Nog geen taken toegevoegd.' }}
             </div>
-            <div v-for="instance in internalInstances" :key="instance.id"
+            <div v-for="instance in internalInstances" :key="instance.id" data-tour="werkbon.task"
                 class="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-slate-800/60 last:border-0">
                 <CheckboxComponent :key="`cb-${instance.id}-${checkboxResetKeys[instance.id] ?? 0}`"
-                    :model-value="instance.is_complete" :disabled="!canToggle || instance.is_cancelled"
+                    :model-value="instance.is_complete" :disabled="!canToggle || instance.is_cancelled || instance.id < 0"
                     @update:modelValue="toggleComplete(instance, $event)" />
                 <div class="flex flex-col sm:flex-row justify-between flex-grow gap-y-3">
                     <div class="flex-1 min-w-0">
@@ -79,7 +85,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="flex justify-end gap-x-3 sm:gap-x-1 sm:justify-start items-start">
+                    <div class="flex justify-end gap-x-3 sm:gap-x-1 sm:justify-start items-start" :data-tour="instance.id < 0 ? 'task.example.actions' : 'werkbon.task.actions'" :inert="instance.id < 0">
                         <div class="flex flex-col items-end gap-2 flex-none">
                             <BadgeComponent
                                 :color="instance.is_cancelled ? 'red' : instance.is_complete ? 'green' : 'gray'"
@@ -92,12 +98,12 @@
                                 {{ instance.cancellation_reason }}
                             </span>
                         </div>
-                        <button v-if="instance.signed_by" type="button"
+                        <button v-if="instance.signed_by" type="button" :data-tour="instance.id < 0 ? 'task.icon.signed' : null"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openViewModal(instance)" v-tooltip="'Ondertekend'">
                             <BadgeCheckIcon class="w-4 h-4 text-green-500" />
                         </button>
-                        <button v-if="canManageMaterials" type="button"
+                        <button v-if="canManageMaterials" type="button" :data-tour="instance.id < 0 ? 'task.icon.materials' : null"
                             class="relative flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openMaterialsModal(instance)" v-tooltip="'Materialen voor deze taak'">
                             <PackageIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
@@ -107,21 +113,21 @@
                             </span>
                         </button>
                         <button v-if="canSign && instance.is_complete && !instance.signed_by" type="button"
-                            class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            :data-tour="instance.id < 0 ? 'task.icon.sign' : null" class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openSignModal(instance)" v-tooltip="'Laten ondertekenen'">
                             <PenLineIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
                         </button>
                         <button v-if="canCancel && !instance.is_cancelled && !instance.is_complete" type="button"
-                            class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
+                            :data-tour="instance.id < 0 ? 'task.icon.cancel' : null" class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openCancelModal(instance)" v-tooltip="'Annuleer taak'">
                             <BanIcon class="w-4 h-4 text-red-500" />
                         </button>
-                        <button v-if="canEdit" type="button"
+                        <button v-if="canEdit" type="button" :data-tour="instance.id < 0 ? 'task.icon.edit' : null"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="openEditDrawer(instance)" v-tooltip="'Bewerk taak'">
                             <EllipsisVerticalIcon class="w-4 h-4 text-gray-500 dark:text-slate-400" />
                         </button>
-                        <button v-if="canDelete" type="button"
+                        <button v-if="canDelete" type="button" :data-tour="instance.id < 0 ? 'task.icon.delete' : null"
                             class="flex-none p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700"
                             @click="deleteInstance(instance.id)" v-tooltip="'Verwijder taak'">
                             <TrashIcon class="w-4 h-4 text-red-500" />
@@ -134,7 +140,7 @@
         <!-- Add drawer -->
         <DrawerComponent v-model="addDrawerOpen" title="Taak toevoegen">
             <div class="p-4 sm:p-6 flex flex-col gap-4">
-                <ComboBox :options="taskOptions" v-model="newTaskId" label="Bestaande taak (optioneel)"
+                <ComboBox :options="taskOptions" v-model="newTaskId" label="Bestaande taak (optioneel)" data-tour="task.new.template"
                     placeholder="Zoek een taak..." @update:modelValue="onNewTaskSelected" />
                 <TextInput v-model="newTitle" label="Titel" placeholder="Laat leeg om de taaknaam te gebruiken" />
                 <div>
@@ -143,7 +149,7 @@
                     <textarea v-model="newDescription" rows="3" placeholder="Omschrijving (optioneel)"
                         class="w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 ring-1 ring-inset ring-gray-300 dark:ring-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-slate-900 sm:text-sm sm:leading-6 resize-y" />
                 </div>
-                <ComboBox :options="productOptions" v-model="newProductId" label="Product (optioneel)"
+                <ComboBox :options="productOptions" v-model="newProductId" label="Product (optioneel)" data-tour="task.new.product"
                     placeholder="Zoek een product...">
                     <template #option="{ option, active }">
                         <div>
@@ -164,9 +170,9 @@
                 <FlexPartsFieldset v-if="newFlexParts.length" :parts="newFlexParts" :quantities="newFlexQuantities"
                     :error="addForm.errors.flex_parts" :bundle-count="newQuantity"
                     @change="(id, value) => newFlexQuantities[id] = value" />
-                <TaskCheckOptions v-model:per-unit="newChecksPerUnit" v-model:extras="newExtras"
+                <TaskCheckOptions v-model:per-unit="newChecksPerUnit" v-model:extras="newExtras" data-tour="task.new.checks"
                     :quantity="newProductId ? newQuantity : 0" :checks="taskChecks" :checklists="taskChecklists" />
-                <div v-if="userRoles.length">
+                <div v-if="userRoles.length" data-tour="task.new.roles">
                     <label
                         class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300 mb-2">Rollen (optioneel)</label>
                     <div class="flex gap-2 flex-wrap">
@@ -268,7 +274,7 @@
         <DrawerComponent v-model="serialDrawerOpen" title="Taak uitvoeren"
             :subtitle="serialInstance ? taskInstanceTitle(serialInstance) : ''" max-width-class="max-w-lg">
             <TaskWorkPanel v-if="serialInstance" :key="serialInstance.id" :instance="serialInstance"
-                :can-toggle="canToggle" class="p-4 sm:p-6" @complete="completeFromPanel(serialInstance)"
+                :can-toggle="canToggle && serialInstance.id > 0" class="p-4 sm:p-6" @complete="completeFromPanel(serialInstance)"
                 @reopen="serialDrawerOpen = false; toggleComplete(serialInstance, false)" />
             <template #footer>
                 <div class="flex justify-end">
@@ -288,7 +294,11 @@
                 class="absolute top-4 right-4 z-10 flex-shrink-0 w-9 h-9 border border-gray-200 dark:border-gray-700 rounded-xl hidden sm:flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors">
                 <XIcon class="h-5 w-5" />
             </button>
-            <MaterialsWidget v-if="materialsInstance" :service-order-id="serviceOrderId"
+            <p v-if="materialsInstance?.id < 0" class="mb-3 text-xs italic text-amber-700 dark:text-amber-400">
+                Voorbeeld uit de rondleiding: hier wordt niets geboekt.
+            </p>
+            <MaterialsWidget v-if="materialsInstance" :service-order-id="serviceOrderId" data-tour="task.materials"
+                :inert="materialsInstance.id < 0"
                 :endpoint-base="`/serviceordertaskinstances/${materialsInstance.id}`"
                 :task-instance-id="materialsInstance.id" :materials="materialsInstance.materials ?? []"
                 :freeform-materials="materialsInstance.freeform_materials ?? []" :all-materials="allMaterials"
@@ -464,6 +474,7 @@ import TaskProgressBadges from '@/Components/ServiceOrders/Tasks/TaskProgressBad
 import TaskCheckOptions from '@/Components/ServiceOrders/Tasks/TaskCheckOptions.vue'
 import { serialCounts, bundleParts } from '@/Components/ServiceOrders/Tasks/taskSerials.js'
 import { checkCounts, extrasOf } from '@/Components/ServiceOrders/Tasks/taskChecks.js'
+import { useTour } from '@/Composables/useTour'
 
 const props = defineProps({
     serviceOrderId: { type: Number, required: true },
@@ -1035,7 +1046,7 @@ function submitCancel() {
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 function deleteInstance(id) {
-    if (!canDelete.value) return
+    if (!canDelete.value || id < 0) return
     if (!confirm('Weet je zeker dat je deze taak wilt verwijderen?')) return
     useForm({}).delete(`/serviceordertaskinstances/${id}`, {
         preserveScroll: true,
@@ -1046,4 +1057,54 @@ function deleteInstance(id) {
     })
 }
 
+/**
+ * How long a task takes to fold shut in the monteursweergave, a little over its
+ * transition: the rondleiding waits for it, or the next spot it lights moves up
+ * out of sight as the task closes above it.
+ */
+const FOLD_MILLISECONDS = 260
+
+/** Whether the rondleiding put its example task on this werkbon; that one is shown, never changed. */
+const hasExample = computed(() => internalInstances.value.some(instance => instance.id < 0))
+
+/**
+ * The werkbon rondleiding opens the drawer for a new task, and the work of a task
+ * with machines or checks, one with checks first: in a drawer here, folded open in
+ * place in the monteursweergave. It also opens the materials of a task, the
+ * example's first. Nothing is saved by opening any of them.
+ */
+useTour('werkbon', {
+    openAddTask: () => {
+        if (!canCreate.value || addDrawerOpen.value) return null
+        addDrawerOpen.value = true
+
+        return () => { addDrawerOpen.value = false }
+    },
+    openTaskWork: () => {
+        const open = internalInstances.value.filter((candidate) => summaries.value[candidate.id].hasWork && !candidate.is_cancelled)
+        const instance = open.find((candidate) => summaries.value[candidate.id].checks.total > 0) ?? open[0]
+        if (!instance) return null
+        if (props.compact) {
+            const previous = openInstanceId.value
+            if (previous === instance.id) return null
+            toggleOpen(instance)
+
+            return async () => {
+                if (openInstanceId.value === instance.id) openInstanceId.value = previous
+                await new Promise((resolve) => setTimeout(resolve, FOLD_MILLISECONDS))
+            }
+        }
+        if (serialDrawerOpen.value) return null
+        openSerialDrawer(instance)
+
+        return () => { serialDrawerOpen.value = false }
+    },
+    openTaskMaterials: () => {
+        const instance = internalInstances.value.find((candidate) => candidate.id < 0) ?? internalInstances.value[0]
+        if (!canManageMaterials.value || !instance || materialsModalOpen.value) return null
+        openMaterialsModal(instance)
+
+        return () => { materialsModalOpen.value = false }
+    },
+})
 </script>

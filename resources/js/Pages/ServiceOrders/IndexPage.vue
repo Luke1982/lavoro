@@ -1,8 +1,11 @@
 <template>
-    <IndexHeaderComponent title="Werkbonnen" subtitle="Overzicht van alle werkbonnen" search-url="/serviceorders"
+    <IndexHeaderComponent ref="header" title="Werkbonnen" subtitle="Overzicht van alle werkbonnen" search-url="/serviceorders"
         search-label="Zoek binnen werkbonnen"
         search-placeholder="Zoek op klant, plaats, beschrijving, fase, factuurnr., inkoopordernr. of uitvoerder"
         :search-other-params="filterParams" :paginator="false" :has-active-filters="activeFilters.length > 0">
+        <template #actions>
+            <TourButton tour="werkbonnen" />
+        </template>
         <template #filters>
             <div class="flex flex-col sm:flex-row gap-y-4 sm:gap-y-0">
                 <div class="flex-grow">
@@ -14,7 +17,7 @@
                     <RotateCcwIcon class="h-5 w-5 mr-1" />Wis filters
                 </div>
             </div>
-            <div class="flex flex-col mt-4">
+            <div class="flex flex-col mt-4" data-tour="serviceorders.needs-closing">
                 <div class="flex items-center gap-3">
                     <SwitchComponent v-model="needsClosingFilter" />
                     <span class="text-sm font-bold text-gray-900 dark:text-slate-200">Alleen te sluiten</span>
@@ -66,9 +69,9 @@
                 </div>
             </div>
             <div v-auto-animate>
-                <div v-for="so in serviceOrders.data" :key="so.id" role="row"
+                <div v-for="so in serviceOrders.data" :key="so.id" role="row" data-tour="serviceorders.row"
                     class="flex items-center text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
-                    <div class="w-10 flex-none flex items-center justify-center self-stretch">
+                    <div class="w-10 flex-none flex items-center justify-center self-stretch" data-cell="check">
                         <AnimatedCheckbox :model-value="selectedIds.includes(so.id)"
                             @update:model-value="toggleSelectServiceOrder(so.id)" />
                     </div>
@@ -102,7 +105,7 @@
                             class="col-span-1 items-center hidden sm:flex pr-2 whitespace-nowrap text-slate-700 dark:text-slate-300">
                             {{ so.order_date ? nlDate(so.order_date) : '—' }}
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
+                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300" data-cell="description">
                             <EditableTextField type="input" :decoration="false" :model-value="so.description"
                                 placeholder="—" @update="(val) => updateDescription(so, val)">
                                 <template #display>
@@ -110,7 +113,7 @@
                                 </template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                        <div class="col-span-2 items-center hidden sm:flex pr-2" data-cell="stage">
                             <EditableTextField type="combobox" :model-value="so.service_order_stage_id"
                                 :options="stages" :decoration="false" @update="(val) => patchServiceOrderStage(so, val)">
                                 <template #display>
@@ -120,11 +123,11 @@
                                 </template>
                             </EditableTextField>
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300">
+                        <div class="col-span-2 items-center hidden sm:flex pr-2 text-slate-700 dark:text-slate-300" data-cell="invoice">
                             <EditableTextField type="input" :decoration="false" :model-value="so.external_invoice_no"
                                 placeholder="—" @update="(val) => updateInvoiceNo(so, val)" />
                         </div>
-                        <div class="col-span-2 items-center hidden sm:flex pr-2">
+                        <div class="col-span-2 items-center hidden sm:flex pr-2" data-cell="sent">
                             <BadgeComponent :color="badgeColorFor(so)" :has-dot="false">
                                 {{ serviceOrderPillText(so) }}
                             </BadgeComponent>
@@ -150,7 +153,7 @@
                             </div>
                             <span v-if="!so.events?.length" class="text-xs text-slate-400">—</span>
                         </div>
-                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2">
+                        <div class="col-span-2 sm:col-span-1 items-center flex justify-end gap-2" data-cell="actions">
                             <PlanInPlannerButton :serviceorder="so" variant="circle" />
                             <div class="border-1 border-lavoro-darkergray dark:border-slate-600 rounded-full p-2 flex">
                                 <Link :href="`/serviceorders/${so.id}`" class="text-sm text-lavoro-darkerblue">
@@ -189,7 +192,7 @@
                     Vink de velden aan die je wilt aanpassen. Niet-aangevinkte velden worden niet gewijzigd.
                 </p>
             </div>
-            <div class="flex items-start gap-3 px-4 sm:px-6 py-4">
+            <div class="flex items-start gap-3 px-4 sm:px-6 py-4" data-tour="serviceorders.bulk.stage">
                 <AnimatedCheckbox v-model="bulkEditChecked['_stage_']" class="mt-0.5 flex-shrink-0" />
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center flex-wrap gap-2 mb-2">
@@ -215,7 +218,7 @@
     </DrawerComponent>
 
     <SelectionBar :count="selectedIds.length" noun="werkbonnen" @clear="selectedIds = []">
-        <button type="button" @click="openBulkEditDrawer"
+        <button type="button" data-tour="serviceorders.bulk" @click="openBulkEditDrawer"
             class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
             Bewerken
         </button>
@@ -237,10 +240,12 @@ import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.v
 import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import { nlDate, nlTime, initials, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 import { patchServiceOrderStage } from '@/Utilities/serviceOrders'
+import { useTour } from '@/Composables/useTour'
 
 const { serviceOrders, stages, perPage } = defineProps({
     serviceOrders: { type: Object, required: true },
@@ -406,4 +411,39 @@ function badgeColorFor(so) {
             return 'gray'
     }
 }
+
+const header = ref(null)
+const firstRow = () => document.querySelector('[data-tour="serviceorders.row"]')
+const cellOfFirstRow = name => () => firstRow()?.querySelector(`[data-cell=${name}]`) ?? null
+
+/**
+ * The werkbonnen rondleiding opens the filters, ticks the first werkbon and opens
+ * the drawer for changing them together, and puts all of it back. It saves nothing.
+ */
+useTour('werkbonnen', {
+    openFilters: () => header.value?.openFilters() ?? null,
+    selectFirst: () => {
+        const first = serviceOrders.data[0]
+        if (!first || selectedIds.value.includes(first.id)) return null
+        const previous = [...selectedIds.value]
+        selectedIds.value = [...previous, first.id]
+
+        return () => { selectedIds.value = previous }
+    },
+    openBulkEdit: () => {
+        if (bulkEditOpen.value) return null
+        openBulkEditDrawer()
+
+        return () => { bulkEditOpen.value = false }
+    },
+}, {
+    spots: {
+        'serviceorders.check': cellOfFirstRow('check'),
+        'serviceorders.description': cellOfFirstRow('description'),
+        'serviceorders.stage': cellOfFirstRow('stage'),
+        'serviceorders.invoice': cellOfFirstRow('invoice'),
+        'serviceorders.sent': cellOfFirstRow('sent'),
+        'serviceorders.actions': cellOfFirstRow('actions'),
+    },
+})
 </script>

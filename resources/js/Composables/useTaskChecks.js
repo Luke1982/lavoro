@@ -31,7 +31,7 @@ export function useTaskChecks(instance) {
     const openRequired = computed(() => checkCounts(instance.value.checks).openRequired)
 
     async function tick(check, value) {
-        if (pending.has(check.id)) return
+        if (check.id < 0 || pending.has(check.id)) return
 
         const before = { is_done: check.is_done, checked_at: check.checked_at, checked_by: check.checked_by }
         check.is_done = value

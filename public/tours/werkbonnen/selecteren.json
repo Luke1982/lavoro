@@ -1,0 +1,28 @@
+{
+    "tour": "werkbonnen",
+    "chapter": "selecteren",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "selecteren.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Vink de werkbonnen aan die je samen wilt aanpassen.",
+            "hash": "51b7bd7172c1ffb9f68f15aa2696be57306f0387",
+            "start": 0,
+            "end": 3.006
+        },
+        {
+            "text": "Onderin verschijnt een balk. Met \"bewerken\" geef je ze allemaal tegelijk een andere fase.",
+            "hash": "b6c389901dfd7b2535c408044996b2f46ee3aa56",
+            "start": 4.006,
+            "end": 9.425
+        },
+        {
+            "text": "Vink \"fase\" aan en kies de nieuwe fase. Met \"opslaan\" gaan ze er allemaal heen.",
+            "hash": "a2f6d2e3f8c01d9b5544609dea82baab8291b4aa",
+            "start": 10.425,
+            "end": 15.048
+        }
+    ]
+}

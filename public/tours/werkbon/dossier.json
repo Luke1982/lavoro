@@ -1,0 +1,34 @@
+{
+    "tour": "werkbon",
+    "chapter": "dossier",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "dossier.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Onder afspraken zie je wanneer er iemand langskomt, en wie er gaat.",
+            "hash": "d7feb9945ba79380984ba98fa67ded10865e1a9e",
+            "start": 0,
+            "end": 4.189
+        },
+        {
+            "text": "Er zijn externe en interne opmerkingen. Een externe opmerking ziet de klant op de werkbon. Een interne opmerking blijft bij jullie.",
+            "hash": "eac69fd81bc86b74e39407715f7903f0301f13d4",
+            "start": 5.189,
+            "end": 13.491
+        },
+        {
+            "text": "Ook foto's zijn er extern en intern. Alleen de externe foto's komen op de werkbon voor de klant.",
+            "hash": "b59b19717b559b6ebeda653ccd61f2ebcccdae8f",
+            "start": 14.491,
+            "end": 19.956
+        },
+        {
+            "text": "Bij documenten zet je bestanden bij de werkbon.",
+            "hash": "1dd7e6427f527dfba3bedf7fc18e16b2e80dfe9e",
+            "start": 20.956,
+            "end": 23.848
+        }
+    ]
+}

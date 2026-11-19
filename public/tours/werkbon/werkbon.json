@@ -1,0 +1,40 @@
+{
+    "tour": "werkbon",
+    "chapter": "werkbon",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "werkbon.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan staan het nummer van de werkbon en zijn fase. Staat hij klaar om te plannen? Dan brengt \"inplannen\" je naar de planner.",
+            "hash": "247783ec46b85dae2e71a741777965e83736aa89",
+            "start": 0,
+            "end": 6.819
+        },
+        {
+            "text": "Met deze schakelaar kies je tussen \"standaard\" en \"monteur\". Je keuze geldt daarna voor elke werkbon, op dit apparaat.",
+            "hash": "c3d42e9bdc9610142ab6b6b237816f1a55a2948c",
+            "start": 7.819,
+            "end": 14.55
+        },
+        {
+            "text": "De fase zegt waar de werkbon staat. Klik op een fase om hem daarheen te zetten. Komt er een afspraak op? Dan schuift hij vanzelf door naar de ingeplande fase.",
+            "hash": "e2075840b0e71150beb1936d2b21022b49d25586",
+            "start": 15.55,
+            "end": 24.13
+        },
+        {
+            "text": "Hier kies je het soort werk. Dat is \"installatie\", \"service\" of \"gemengd\". Bij installatie en gemengd kun je materiaal als onvoorzien boeken. En de assistent kijkt ernaar als hij een monteur zoekt.",
+            "hash": "2c083a2be19feda73bad51b1f390583f8da40d0b",
+            "start": 25.13,
+            "end": 36.959
+        },
+        {
+            "text": "Hier staan de klant, het project en de locatie. Klik op een gegeven om het te wijzigen. Het wordt meteen bewaard.",
+            "hash": "fa80b665de2398b250df65e0fc243ee385fcfc51",
+            "start": 37.959,
+            "end": 44.068
+        }
+    ]
+}

@@ -24,7 +24,7 @@
                     <p v-else class="mt-1 text-sm text-gray-400 dark:text-slate-500">Geen adres bekend</p>
                 </div>
             </div>
-            <div v-if="address || customerPhone" class="flex flex-none gap-2">
+            <div v-if="address || customerPhone" class="flex flex-none gap-2" data-tour="mechanic.go">
                 <a v-if="address" :href="mapsLinkFromAddress(address)" target="_blank" rel="noopener"
                     :class="QUICK_ACTION">
                     <Navigation class="size-4" />
@@ -38,7 +38,7 @@
             </div>
         </div>
 
-        <div class="mt-4 rounded-lavoro-sm bg-gray-50 p-3 dark:bg-slate-800/60">
+        <div class="mt-4 rounded-lavoro-sm bg-gray-50 p-3 dark:bg-slate-800/60" data-tour="mechanic.appointment">
             <div ref="slideEl" class="relative touch-pan-y select-none overflow-hidden" @pointerdown.capture="onPointerDown"
                 @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
                 @click.capture="onClickCapture">

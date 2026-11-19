@@ -1,10 +1,10 @@
 <template>
     <div class="mx-auto flex max-w-3xl flex-col gap-4">
-        <VisitCard :service-order-id="serviceOrder.id" :customer="serviceOrder.customer"
+        <VisitCard data-tour="mechanic.visit" :service-order-id="serviceOrder.id" :customer="serviceOrder.customer"
             :initial-events="events" :fallback-location="mapLocation"
             @times-updated="$emit('times-updated', $event)" />
 
-        <WorkToDo :service-order-id="serviceOrder.id" :servicejobs="serviceOrder.servicejobs"
+        <WorkToDo data-tour="mechanic.work" :service-order-id="serviceOrder.id" :servicejobs="serviceOrder.servicejobs"
             :tickets="serviceOrder.tickets" :task-instances="serviceOrder.task_instances"
             :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed" :type="serviceOrder.type">
             <template #actions>
@@ -12,13 +12,13 @@
             </template>
         </WorkToDo>
 
-        <MaterialsCompact :service-order-id="serviceOrder.id" :materials="materials"
+        <MaterialsCompact data-tour="mechanic.materials" :service-order-id="serviceOrder.id" :materials="materials"
             :freeform-materials="freeformMaterials" :all-materials="allMaterials"
             :materials-use-ajax="materialsUseAjax" :categories="materialCategories" :usage-units="materialUsageUnits"
             :is-closed="serviceOrder.is_closed" :sent-to-administration="serviceOrder.sent_to_administration"
             :type="serviceOrder.type" />
 
-        <AudienceBox title="Opmerkingen" :icon="MessageSquare" chapter="remarks"
+        <AudienceBox data-tour="mechanic.remarks" title="Opmerkingen" :icon="MessageSquare" chapter="remarks"
             :internal-count="serviceOrder.internal_remarks.length" :external-count="serviceOrder.remarks.length">
             <template #default="{ internal }">
                 <RemarksComponent :key="side(internal)" bare remarkable-type="App\Models\ServiceOrder"
@@ -29,7 +29,7 @@
             </template>
         </AudienceBox>
 
-        <AudienceBox title="Foto's" :icon="Camera" chapter="photos" initial="external"
+        <AudienceBox data-tour="mechanic.photos" title="Foto's" :icon="Camera" chapter="photos" initial="external"
             :internal-count="serviceOrder.internal_images.length + serviceOrder.shared_images.length" :external-count="serviceOrder.images.length">
             <template #default="{ internal }">
                 <ImageUploadComponent :key="side(internal)" bare :existing="images(internal)"
@@ -43,7 +43,7 @@
 
         <div v-if="finish" class="h-20" aria-hidden="true" />
 
-        <FinishBar v-if="finish" :label="finish.label" :icon="finish.icon" :tone="finish.tone"
+        <FinishBar v-if="finish" data-tour="mechanic.finish" :label="finish.label" :icon="finish.icon" :tone="finish.tone"
             @click="$emit(finish.emits)" />
     </div>
 </template>

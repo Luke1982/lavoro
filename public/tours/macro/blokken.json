@@ -1,0 +1,52 @@
+{
+    "tour": "macro",
+    "chapter": "blokken",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "blokken.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "\"Taken toevoegen\" zet een taak op de werkbon. Je kiest er een product en een aantal bij.",
+            "hash": "f0d12bafe054a7372ed2d9843c68109be0e74f4e",
+            "start": 0,
+            "end": 4.734
+        },
+        {
+            "text": "Verschilt het aantal per werkbon? Zet dan \"vragen bij uitvoeren\" aan. Dan wordt het gevraagd als de macro loopt.",
+            "hash": "e8934bb8beea7bcd88272264c743fb4a825682fc",
+            "start": 5.734,
+            "end": 12.08
+        },
+        {
+            "text": "\"Vraag ja/nee\" splitst de macro in twee banen. Daarna loopt alleen de baan van het antwoord.",
+            "hash": "3f0dd4c06a6b0cacb925f602eab4c62016783f8d",
+            "start": 13.08,
+            "end": 18.731
+        },
+        {
+            "text": "\"Document uploaden\" vraagt om een bestand als de macro loopt.",
+            "hash": "6c991409433966b2b9930b17da4965c3ce28f0a9",
+            "start": 19.731,
+            "end": 22.907
+        },
+        {
+            "text": "\"Opmerking plaatsen\" zet een opmerking op de werkbon. Die mag ook intern zijn.",
+            "hash": "f0d1d8a78d275db9c262115897dcfb101e071f16",
+            "start": 23.907,
+            "end": 28.119
+        },
+        {
+            "text": "\"Keuringen toevoegen\" zet keuringen voor de machines van de klant op de werkbon. Je kunt ook om een locatie laten vragen.",
+            "hash": "b88ef229232473d535d14894a8822e280a46d8ae",
+            "start": 29.119,
+            "end": 35.253
+        },
+        {
+            "text": "Klik op een blok om het te openen of dicht te klappen. Met de pijltjes zet je het hoger of lager.",
+            "hash": "045b3e5b5ae70cd1b7aafbfbccccc833e6fb47a5",
+            "start": 36.253,
+            "end": 41.81
+        }
+    ]
+}

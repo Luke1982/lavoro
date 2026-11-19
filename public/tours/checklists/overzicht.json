@@ -1,0 +1,34 @@
+{
+    "tour": "checklists",
+    "chapter": "overzicht",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "overzicht.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Links staan de checks. Een check is één ding dat de monteur afvinkt.",
+            "hash": "a017059604521c975b66390fbbfda061509bc653",
+            "start": 0,
+            "end": 4.194
+        },
+        {
+            "text": "In het midden staan de checklists. Dat zijn vaste rijtjes checks.",
+            "hash": "eaf6408eb4e3c7eeb487bfb3262942d33cdd4248",
+            "start": 5.194,
+            "end": 8.692
+        },
+        {
+            "text": "Rechts staan de taken. Hier geef je een taak zijn checks en checklists.",
+            "hash": "a0cd6d512124ef8fd46b2b548cc4b9d4bb11caa6",
+            "start": 9.692,
+            "end": 14.12
+        },
+        {
+            "text": "Typ een nieuwe check in het veld \"nieuwe check\". Druk dan op enter.",
+            "hash": "aa1501b0172d94be4cc46c302ecd173fef06fe63",
+            "start": 15.12,
+            "end": 19.238
+        }
+    ]
+}

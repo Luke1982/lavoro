@@ -123,15 +123,102 @@
         },
         {
             "id": "werk",
-            "version": 1,
+            "version": 2,
             "title": "Tijdlijn en werkbonnen",
-            "summary": "De tijdlijn, de werkbonnen, plakken vanaf het bakje, documenten, foto's delen en de geschiedenis.",
+            "summary": "De tijdlijn en hoe je erin zoomt, de werkbonnen, plakken vanaf het bakje, documenten, foto's delen en de geschiedenis.",
             "steps": [
                 {
                     "spot": "project.timeline",
                     "title": "Tijdlijn",
-                    "text": "De **tijdlijn** zet de mijlpalen, werkbonnen, afspraken, taken en storingen van het project in de tijd. Met **Maanden** en **Weken** kies je de indeling, en **Vandaag** springt naar vandaag. Klik op een blok voor de details.",
-                    "say": "De tijdlijn zet alles van dit project in de tijd. Klik op een blok voor de details."
+                    "text": "De **tijdlijn** zet de mijlpalen, werkbonnen, afspraken, taken en storingen van het project in de tijd. Is er veel, dan scroll je erdoorheen. De maanden en de namen blijven daarbij staan.",
+                    "say": "De tijdlijn zet alles van dit project in de tijd. Mijlpalen, werkbonnen en storingen staan er samen op."
+                },
+                {
+                    "spot": "project.timeline.content",
+                    "skipIfMissing": true,
+                    "action": "showTimelineWeeks",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.view",
+                            "when": "Maanden"
+                        }
+                    ],
+                    "title": "Maanden en weken",
+                    "text": "Met **Maanden** en **Weken** kies je de indeling. Bij **Weken** krijgt elke week een eigen kolom, met het weeknummer erboven.",
+                    "say": "Met \"Maanden\" en \"Weken\" kies je de indeling. Bij \"Weken\" krijgt elke week een eigen kolom."
+                },
+                {
+                    "spot": "project.timeline.content",
+                    "skipIfMissing": true,
+                    "action": "showTimelineToday",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.today",
+                            "when": "Vandaag"
+                        }
+                    ],
+                    "title": "Vandaag",
+                    "text": "**Vandaag** schuift de tijdlijn naar vandaag. Daar staat een blauwe streep met de datum.",
+                    "say": "Klik op \"Vandaag\" en de tijdlijn schuift naar vandaag. Daar staat een blauwe streep met de datum."
+                },
+                {
+                    "spot": "project.timeline.content",
+                    "skipIfMissing": true,
+                    "action": "zoomTimelineIn",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.zoom",
+                            "when": "vergrootglas"
+                        }
+                    ],
+                    "title": "Inzoomen",
+                    "text": "Met de schuif bij het **vergrootglas** zoom je in de tijd. Naar rechts krijgt elke dag meer ruimte en zie je een korte periode in detail. Naar links zie je meer tegelijk.",
+                    "say": "Met de schuif bij het vergrootglas zoom je in de tijd. Naar rechts krijgt elke dag meer ruimte. Zo zie je een korte periode in detail."
+                },
+                {
+                    "spot": "project.timeline.content",
+                    "skipIfMissing": true,
+                    "action": "raiseTimelineRows",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.rows",
+                            "when": "schuif links"
+                        }
+                    ],
+                    "title": "Hogere rijen",
+                    "text": "Met de schuif links maak je de rijen hoger. Dan toont elk blok meer details, zoals de fase, de monteurs en hoeveel taken klaar zijn.",
+                    "say": "Met de schuif links maak je de rijen hoger. Dan toont elk blok meer details."
+                },
+                {
+                    "spot": "project.timeline.bubble",
+                    "skipIfMissing": true,
+                    "action": "openTimelineBubble",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.order",
+                            "when": "blok"
+                        }
+                    ],
+                    "title": "Een blok bekijken",
+                    "text": "Klik op een blok voor een **ballon** met de details. Met de knop daarin open je de werkbon of de storing. Nog eens klikken, ergens anders klikken of **Esc** sluit de ballon.",
+                    "say": "Klik op een blok en je ziet de details in een ballon. Met de knop daarin open je de werkbon."
+                },
+                {
+                    "spot": "project.timeline.menu",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": "openTimelineMenu",
+                    "marks": [
+                        {
+                            "spot": "project.timeline.order",
+                            "when": "op een blok"
+                        }
+                    ],
+                    "title": "Rechtermuisknop",
+                    "text": "Met de **rechtermuisknop** op een blok krijg je een menu. **Details** opent de ballon. Daaronder open je de werkbon, hier of in een nieuw tabblad. Bij een afspraak is dat de werkbon van die afspraak.",
+                    "say": "Met de rechtermuisknop op een blok krijg je een menu. Kies \"Details\" voor de ballon. Of kies \"Werkbon openen\" om erheen te gaan, ook in een nieuw tabblad."
                 },
                 {
                     "spot": "project.orders",

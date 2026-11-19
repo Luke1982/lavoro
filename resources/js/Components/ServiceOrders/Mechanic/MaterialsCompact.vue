@@ -2,7 +2,7 @@
     <BoxComponent v-if="canSee" padding="p-4 sm:p-5">
         <SectionHeader :icon="Package" title="Materialen" chapter="materials">
             <template v-if="canAdd" #actions>
-                <button type="button" :aria-expanded="adding" @click="adding = !adding"
+                <button type="button" data-tour="mechanic.materials.add" :aria-expanded="adding" @click="adding = !adding"
                     class="inline-flex items-center gap-1.5 rounded-lavoro-sm px-3 py-2 text-sm font-semibold ring-1 transition-colors"
                     :class="adding
                         ? 'bg-lavoro-blue text-white ring-lavoro-blue'
@@ -31,7 +31,7 @@
         </p>
 
         <ul v-if="rows.length" class="divide-y divide-gray-200/70 rounded-lavoro-sm ring-1 ring-gray-200/70 dark:divide-slate-700 dark:ring-slate-700">
-            <li v-for="row in rows" :key="row.key" v-auto-animate>
+            <li v-for="row in rows" :key="row.key" v-auto-animate data-tour="mechanic.material">
                 <button type="button" class="flex w-full items-center gap-3 px-3 py-2.5 text-left"
                     :aria-expanded="openKey === row.key" @click="toggle(row)">
                     <span class="flex size-8 flex-none items-center justify-center rounded-md transition-colors"

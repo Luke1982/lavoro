@@ -45,7 +45,7 @@
             </button>
         </div>
         <div v-else-if="!instance.is_complete && !instance.is_cancelled" class="flex flex-col items-end gap-1.5">
-            <button type="button" :disabled="!canSubmit" @click="submit"
+            <button type="button" data-tour="task.work.submit" :disabled="!canSubmit" @click="submit"
                 class="px-4 py-2 rounded-lavoro-sm text-sm font-semibold bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
                 {{ primaryLabel }}
             </button>

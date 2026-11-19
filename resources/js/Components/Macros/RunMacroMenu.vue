@@ -1,8 +1,9 @@
 <template>
-    <DropdownMenu v-if="macros.length" placement="bottom-end" width-class="w-72" title="Macro uitvoeren"
+    <DropdownMenu v-if="macros.length" placement="bottom-end" width-class="w-72" title="Macro uitvoeren" data-tour="werkbon.macro"
+        class="flex"
         :button-class="`${pill} text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-700`">
         <template #button>
-            <WorkflowIcon class="size-4" />
+            <WorkflowIcon class="size-5" />
             <span class="hidden sm:inline">Macro</span>
         </template>
         <MenuItem v-for="macro in macros" :key="macro.id" v-slot="{ active }">
@@ -15,7 +16,10 @@
 
     <ModalDialog :open="!!running" :title="running ? running.title : ''" max-width-class="w-full sm:max-w-lg"
         @update:open="value => { if (!value) running = null }">
-        <div v-if="running" class="space-y-4">
+        <div v-if="running" class="space-y-4" data-tour="macro.question">
+            <p v-if="isExample" class="text-xs italic text-amber-700 dark:text-amber-400">
+                Voorbeeld uit de rondleiding: deze macro kun je niet uitvoeren.
+            </p>
             <p class="text-xs text-gray-500 dark:text-slate-400">
                 {{ questions.length ? `Vraag ${position + 1} van ${questions.length}` : 'Deze macro stelt geen vragen.' }}
             </p>
@@ -52,11 +56,11 @@
             <div class="flex justify-between gap-3">
                 <button type="button" :disabled="position === 0" @click="position--"
                     class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 disabled:invisible">Vorige</button>
-                <button v-if="!isLast" type="button" :disabled="!answered" @click="next"
+                <button v-if="!isLast" type="button" data-tour="macro.next" :disabled="!answered" @click="next"
                     class="rounded-md bg-lavoro-blue px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                     Volgende
                 </button>
-                <button v-else type="button" :disabled="!answered || form.processing" @click="run"
+                <button v-else type="button" data-tour="macro.next" :disabled="!answered || form.processing || isExample" @click="run"
                     class="rounded-md bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50">
                     Uitvoeren
                 </button>
@@ -73,6 +77,7 @@ import { Workflow as WorkflowIcon } from '@lucide/vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import { usePillButton } from '@/Composables/useButtonGroup.js'
+import { useTour } from '@/Composables/useTour'
 
 /**
  * Running a macro on the werkbon: it asks its questions one at a time, only those
@@ -128,6 +133,8 @@ const current = computed(() => questions.value[position.value] ?? null)
 const answered = computed(() => !current.value || ![undefined, null, ''].includes(valueOf(current.value)))
 const isLast = computed(() => position.value >= questions.value.length - 1 && !(current.value?.kind === 'yes_no' && !answered.value))
 const errorMessages = computed(() => [...new Set(Object.values(form.errors))])
+/** The rondleiding's made-up macro: its questions can be answered, but it never runs. */
+const isExample = computed(() => (running.value?.id ?? 0) < 0)
 
 function start(macro) {
     running.value = macro
@@ -141,10 +148,22 @@ function next() {
 }
 
 function run() {
+    if (isExample.value) return
+
     form.post(`/serviceorders/${props.serviceOrderId}/macros/${running.value.id}/run`, {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => { running.value = null },
     })
 }
+
+/** The werkbon rondleiding opens the questions of the first macro, and closes them unanswered. */
+useTour('werkbon', {
+    openMacro: () => {
+        if (!props.macros.length || running.value) return null
+        start(props.macros[0])
+
+        return () => { running.value = null }
+    },
+})
 </script>

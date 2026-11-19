@@ -2,7 +2,7 @@
     <div>
         <div class="mb-1 flex items-center justify-between gap-3">
             <span class="text-sm font-medium">{{ label }}</span>
-            <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400">
+            <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400" data-tour="macro.askable">
                 Vragen bij uitvoeren
                 <SwitchComponent :model-value="asked" @update:model-value="toggle" />
             </label>

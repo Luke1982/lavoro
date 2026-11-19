@@ -25,11 +25,11 @@
                     :type="serviceOrder.type" />
             </div>
 
-            <div>
+            <div data-tour="signoff.summary">
                 <TaskInstancesSummary :instances="allTaskInstances" />
             </div>
 
-            <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+            <div class="border-t border-gray-200 dark:border-slate-700 pt-4" data-tour="signoff.done">
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <h3 class="font-bold text-gray-900 dark:text-slate-100">Werkzaamheden gereed</h3>
@@ -44,7 +44,7 @@
                 </div>
             </div>
 
-            <div class="border-t border-gray-200 dark:border-slate-700 pt-4">
+            <div class="border-t border-gray-200 dark:border-slate-700 pt-4" data-tour="signoff.signature">
                 <h3 class="font-bold text-gray-900 dark:text-slate-100 mb-3">Handtekening</h3>
 
                 <div v-if="isSigned && !isResigning">

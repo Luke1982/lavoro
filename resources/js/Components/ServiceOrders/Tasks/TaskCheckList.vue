@@ -1,5 +1,5 @@
 <template>
-    <ul class="space-y-1.5">
+    <ul class="space-y-1.5" data-tour="task.work.checks">
         <template v-for="(check, i) in checks" :key="check.id">
             <li v-if="headings[i]" class="pt-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
                 {{ headings[i] }}

@@ -1,0 +1,744 @@
+{
+    "id": "werkbon",
+    "title": "Rondleiding door een werkbon",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "assistant": false,
+    "chapters": [
+        {
+            "id": "werkbon",
+            "version": 1,
+            "title": "De werkbon",
+            "summary": "Wat bovenaan staat, standaard of monteur, de fases en de details.",
+            "actions": [
+                "showStandardView"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.top",
+                    "title": "Bovenaan",
+                    "text": "Bovenaan staan het nummer van de werkbon en zijn **fase**. Komt hij uit een onderhoudscontract? Dan staat dat er paars bij. Een oranje label noemt wie zijn tijden nog niet invulde. Staat de werkbon klaar om te plannen? Dan brengt **Inplannen** je naar de planner.",
+                    "say": "Bovenaan staan het nummer van de werkbon en zijn fase. Staat hij klaar om te plannen? Dan brengt \"inplannen\" je naar de planner."
+                },
+                {
+                    "spot": "werkbon.view",
+                    "title": "Standaard of monteur",
+                    "text": "Met deze schakelaar kies je hoe je de werkbon ziet. **Standaard** toont alles. **Monteur** toont wat je op locatie nodig hebt. Wie de werkbon uitvoert, ziet eerst de monteursweergave. Je keuze geldt daarna voor elke werkbon, op dit apparaat.",
+                    "say": "Met deze schakelaar kies je tussen \"standaard\" en \"monteur\". Je keuze geldt daarna voor elke werkbon, op dit apparaat."
+                },
+                {
+                    "spot": "werkbon.stages",
+                    "skipIfMissing": true,
+                    "title": "Fases",
+                    "text": "De **fase** zegt waar de werkbon staat. Mag je de werkbon wijzigen? Klik dan op een fase om hem daarheen te zetten. Bij elke fase staat wie hem bereikte en wanneer. Een paar dingen gaan vanzelf. Komt er een afspraak op, dan schuift hij door naar de ingeplande fase. Verdwijnt de afspraak, dan gaat hij naar planning vervallen. Vul je een extern factuurnummer in, dan gaat hij naar gefactureerd.",
+                    "say": "De fase zegt waar de werkbon staat. Klik op een fase om hem daarheen te zetten. Komt er een afspraak op? Dan schuift hij vanzelf door naar de ingeplande fase."
+                },
+                {
+                    "spot": "werkbon.type",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.change_type"
+                        ]
+                    },
+                    "title": "Het soort werk",
+                    "text": "Hier kies je **het soort werk**: **Installatie**, **Service** of **Gemengd**. Dat bepaalt twee dingen. Bij installatie en gemengd kun je materiaal als **onvoorzien** boeken: materiaal dat er onverwacht bij kwam. Op de PDF staat dat apart als extra materiaal. En zoekt de assistent een monteur voor deze werkbon, dan weegt hij ervaring mee naar het soort werk: bij installatie vooral wie zulke machines plaatste, bij service wie ze onderhield.",
+                    "say": "Hier kies je het soort werk. Dat is \"installatie\", \"service\" of \"gemengd\". Bij installatie en gemengd kun je materiaal als onvoorzien boeken. En de assistent kijkt ernaar als hij een monteur zoekt."
+                },
+                {
+                    "spot": "werkbon.details",
+                    "title": "Details",
+                    "text": "Hier staan de klant, het project, de locatie en de datum van de opdracht. Ook staan er een externe referentie en een extern factuurnummer. Klik op een gegeven om het te wijzigen. Het wordt meteen bewaard. Op een gesloten werkbon ligt dit vast, behalve het factuurnummer.",
+                    "say": "Hier staan de klant, het project en de locatie. Klik op een gegeven om het te wijzigen. Het wordt meteen bewaard."
+                }
+            ]
+        },
+        {
+            "id": "monteur",
+            "version": 1,
+            "title": "De monteursweergave",
+            "summary": "Het bezoek, het werk, materialen, opmerkingen en foto's, en afronden, zoals een monteur het ziet.",
+            "actions": [
+                "switchToMechanicView",
+                "showExampleTask"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.view",
+                    "title": "Monteur",
+                    "text": "De schakelaar gaat nu naar **Monteur**. Dit is de **monteursweergave**: wat je op locatie nodig hebt, van boven naar beneden. Op een telefoon is dit de handigste weergave. De rondleiding zet de schakelaar straks weer terug.",
+                    "say": "De schakelaar gaat nu naar \"monteur\". Dit is de monteursweergave. Je ziet wat je op locatie nodig hebt, van boven naar beneden."
+                },
+                {
+                    "spot": "mechanic.visit",
+                    "title": "Het bezoek",
+                    "text": "Bovenaan staan de klant en het adres. Met **Navigeer** opent Google Maps. Met **Bel klant** bel je meteen.",
+                    "say": "Bovenaan staan de klant en het adres. Met \"navigeer\" opent Google Maps, en met \"bel klant\" bel je meteen.",
+                    "marks": [
+                        {
+                            "spot": "mechanic.go",
+                            "when": "navigeer"
+                        }
+                    ]
+                },
+                {
+                    "spot": "mechanic.appointment",
+                    "title": "De afspraak",
+                    "text": "Hier staat de afspraak van vandaag, of anders de eerstvolgende. Heeft de werkbon er meer? Blader dan met de pijltjes, of veeg opzij.",
+                    "say": "Hier staat de afspraak van vandaag, of de eerstvolgende. Zijn er meer? Blader dan met de pijltjes."
+                },
+                {
+                    "spot": "planner.execution.times",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "event.execute"
+                        ]
+                    },
+                    "title": "Tijden invullen",
+                    "text": "Sta jij op de afspraak? Dan vul je met **Tijden invullen** je begin, eind, reistijd en pauze in. De klant tekent erbij. Klik eerst op **Handtekening opslaan**, dan kun je opslaan.",
+                    "say": "Sta jij op de afspraak? Dan vul je met \"tijden invullen\" je uren in. De klant tekent erbij."
+                },
+                {
+                    "spot": "mechanic.work",
+                    "title": "Wat moet er gebeuren?",
+                    "text": "Hier staat al het werk. Een keuring open je met **Uitvoeren**, een storing met **Oplossen**. Daaronder staan de taken.",
+                    "say": "Hier staat al het werk. Een keuring open je met \"uitvoeren\", een storing met \"oplossen\". Daaronder staan de taken."
+                },
+                {
+                    "spot": "mechanic.task",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Een taak uitvoeren",
+                    "text": "Een taak zonder machines of checks vink je af met **Afvinken**. Heeft hij die wel? Dan klapt **Uitvoeren** de taak open, op dezelfde plek. Daar registreer je de machines en vink je de checks af. Met **Sluiten** klap je hem weer in.",
+                    "say": "Heeft een taak machines of checks? Dan klapt \"uitvoeren\" hem open, op dezelfde plek. Daar vink je de checks af."
+                },
+                {
+                    "spot": "mechanic.materials",
+                    "skipIfMissing": true,
+                    "title": "Materialen",
+                    "text": "Tik op een materiaal om het open te klappen. Daar pas je het aantal aan, of haal je het weg. Met **Toevoegen** boek je iets nieuws, uit de catalogus of als vrije regel. Prijzen staan hier niet.",
+                    "say": "Tik op een materiaal om het aantal aan te passen. Met \"toevoegen\" boek je iets nieuws."
+                },
+                {
+                    "spot": "mechanic.remarks",
+                    "title": "Opmerkingen en foto's",
+                    "text": "Opmerkingen en foto's hebben een kant **Intern** en een kant **Extern (klant)**. Alleen wat extern staat, komt op de werkbon voor de klant. Het getal laat zien hoeveel er aan elke kant staat.",
+                    "say": "Opmerkingen en foto's hebben een interne en een externe kant. Alleen de externe kant komt op de werkbon voor de klant.",
+                    "marks": [
+                        {
+                            "spot": "mechanic.photos",
+                            "when": "foto's"
+                        }
+                    ]
+                },
+                {
+                    "spot": "mechanic.finish",
+                    "skipIfMissing": true,
+                    "title": "Afronden",
+                    "text": "Onderaan staat steeds de volgende stap. Eerst **Vraag handtekening aan de klant**, daarna **Werkbon afronden**. Staat er later nog een afspraak? Dan waarschuwt de knop in het oranje. Is de werkbon gesloten, dan staat er **Bekijk overzicht**.",
+                    "say": "Onderaan staat steeds de volgende stap. Eerst laat je de klant tekenen. Daarna rond je de werkbon af."
+                }
+            ]
+        },
+        {
+            "id": "taken",
+            "version": 1,
+            "title": "Taken",
+            "summary": "Een taak toevoegen, afvinken en uitvoeren.",
+            "requires": {
+                "permissions": [
+                    "serviceordertaskinstance.read"
+                ]
+            },
+            "actions": [
+                "showStandardView",
+                "showExampleTask"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.tasks",
+                    "title": "Werkbontaken",
+                    "text": "Een **taak** is werk dat op deze werkbon moet gebeuren. Een taak komt uit de lijst onder Werkbonnen bij **Taken**, of je maakt hem hier los aan. Per taak zie je hoeveel machines er geregistreerd zijn en hoeveel checks er af zijn. Staan er nog geen taken op de werkbon? Dan laat de rondleiding een voorbeeldtaak zien. Die wordt niet bewaard.",
+                    "say": "Een taak is werk dat op deze werkbon moet gebeuren. Per taak zie je hoeveel machines en checks er af zijn."
+                },
+                {
+                    "spot": "werkbon.tasks.add",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.create"
+                        ]
+                    },
+                    "title": "Taak toevoegen",
+                    "text": "Met **Taak toevoegen** zet je een taak op de werkbon.",
+                    "say": "Met \"taak toevoegen\" zet je een taak op de werkbon."
+                },
+                {
+                    "spot": "task.new.template",
+                    "skipIfMissing": true,
+                    "action": "openAddTask",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.create"
+                        ]
+                    },
+                    "title": "Een bestaande taak",
+                    "text": "Kies een **bestaande taak**. Dan staan de titel en de omschrijving al ingevuld, en komen de checks van die taak mee. Een losse taak kan ook. Geef hem dan een titel en een omschrijving.",
+                    "say": "Kies een bestaande taak. Dan komen de titel en de checks van die taak mee. Een losse taak kan ook."
+                },
+                {
+                    "spot": "task.new.product",
+                    "skipIfMissing": true,
+                    "action": "openAddTask",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.create"
+                        ]
+                    },
+                    "title": "Product en aantal",
+                    "text": "Hoort er een **product** bij de taak, omdat je dat product bijvoorbeeld gaat installeren? Kies het dan, met het aantal machines. Bij het uitvoeren komt er per machine een serienummer.",
+                    "say": "Hoort er een product bij de taak, omdat je dat product bijvoorbeeld gaat installeren? Kies het dan, met het aantal machines. Bij het uitvoeren komt er per machine een serienummer."
+                },
+                {
+                    "spot": "task.new.checks",
+                    "skipIfMissing": true,
+                    "action": "openAddTask",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.create"
+                        ]
+                    },
+                    "title": "Checks",
+                    "text": "Bij meer dan één machine kies je of de checks **per machine** worden afgevinkt, of één keer voor alle machines samen. Met **Extra checks** zet je er losse checks of een hele checklist bij. Die zijn altijd optioneel.",
+                    "say": "Hier kies je of de checks per machine worden afgevinkt. Je kunt ook extra checks toevoegen. Die zijn altijd optioneel."
+                },
+                {
+                    "spot": "task.new.roles",
+                    "skipIfMissing": true,
+                    "action": "openAddTask",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.create"
+                        ]
+                    },
+                    "title": "Rollen",
+                    "text": "Kies je een **rol**? Dan ziet alleen wie de werkbon in die rol uitvoert de taak. Zonder rol ziet iedereen hem. Staan er taken op die jij niet ziet? Dan zegt de werkbon dat erbij.",
+                    "say": "Kies je een rol? Dan ziet alleen wie in die rol op de afspraak staat de taak. Zonder rol ziet iedereen hem."
+                },
+                {
+                    "spot": "werkbon.task",
+                    "skipIfMissing": true,
+                    "title": "Afvinken",
+                    "text": "Is een taak klaar? Vink hem dan af. Moeten er nog machines of verplichte checks worden ingevuld? Dan opent eerst **Taak uitvoeren**.",
+                    "say": "Is een taak klaar? Vink hem dan af. Moet er nog iets worden ingevuld? Dan opent eerst \"taak uitvoeren\"."
+                },
+                {
+                    "spot": "task.work.serials",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Machines registreren",
+                    "text": "In **Taak uitvoeren** registreer je per machine het serienummer. Typ het in of scan het. Elke machine wordt los bewaard, dus je kunt tussendoor stoppen.",
+                    "say": "Hier registreer je per machine het serienummer. Typ het in of scan het. Elke machine wordt los bewaard."
+                },
+                {
+                    "spot": "task.work.checks",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Checks afvinken",
+                    "text": "Daaronder staan de **checks**. Een rood sterretje betekent verplicht. Elk vinkje wordt meteen bewaard, met de tijd en wie het zette.",
+                    "say": "Daaronder staan de checks. Een rood sterretje betekent verplicht. Elk vinkje wordt meteen bewaard."
+                },
+                {
+                    "spot": "task.work.submit",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Taak voltooien",
+                    "text": "Met **Taak voltooien** is de taak klaar. Zolang er machines of verplichte checks open staan, kan dat nog niet. Eronder staat wat er nog mist.",
+                    "say": "Met \"taak voltooien\" is de taak klaar. Eronder staat wat er nog mist."
+                }
+            ]
+        },
+        {
+            "id": "taakknoppen",
+            "version": 1,
+            "title": "De knopjes bij een taak",
+            "summary": "Wat elk knopje achter een taak doet, en materiaal boeken op een taak.",
+            "requires": {
+                "permissions": [
+                    "serviceordertaskinstance.read"
+                ]
+            },
+            "actions": [
+                "showStandardView",
+                "addExampleTask"
+            ],
+            "steps": [
+                {
+                    "title": "Knopjes achter een taak",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "text": "Achter elke taak staan een label en een paar knopjes. Het label zegt of de taak **In uitvoering**, **Voltooid** of **Geannuleerd** is. Welke knopjes er staan, hangt af van de taak en je rechten.",
+                    "say": "Achter elke taak staan een label en een paar knopjes. We lopen ze langs bij een voorbeeldtaak."
+                },
+                {
+                    "title": "Materialen",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "anyPermissions": [
+                            "material.read.serviceorder",
+                            "materiable.create.serviceorder",
+                            "materiable.update.serviceorder",
+                            "materiable.delete.serviceorder",
+                            "freeformmaterial.read",
+                            "freeformmaterial.create",
+                            "freeformmaterial.update",
+                            "freeformmaterial.delete"
+                        ]
+                    },
+                    "marks": [
+                        {
+                            "spot": "task.icon.materials",
+                            "when": "materialen"
+                        }
+                    ],
+                    "text": "Met het pakketje, **Materialen voor deze taak**, boek je materiaal op de taak. Het getal erop zegt hoeveel regels er al op staan.",
+                    "say": "Het pakketje is \"materialen\". Daarmee boek je materiaal op deze taak."
+                },
+                {
+                    "title": "Materiaal op een taak",
+                    "spot": "task.materials",
+                    "skipIfMissing": true,
+                    "action": "openTaskMaterials",
+                    "requires": {
+                        "anyPermissions": [
+                            "material.read.serviceorder",
+                            "materiable.create.serviceorder",
+                            "materiable.update.serviceorder",
+                            "materiable.delete.serviceorder",
+                            "freeformmaterial.read",
+                            "freeformmaterial.create",
+                            "freeformmaterial.update",
+                            "freeformmaterial.delete"
+                        ]
+                    },
+                    "text": "Hier boek je materiaal op deze ene taak, net als onder **Materialen** op de werkbon. In de lijst op de werkbon staat bij zo'n regel dan de naam van de taak. Op de PDF staat erachter tussen haakjes **gebruikt voor**, met de naam van de taak. Bij de voorbeeldtaak wordt niets geboekt.",
+                    "say": "Hier boek je materiaal op deze taak. Op de werkbon staat bij die regel dan de naam van de taak. Op de PDF staat er \"gebruikt voor\" achter, met de naam van de taak."
+                },
+                {
+                    "title": "Annuleren",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.cancel"
+                        ]
+                    },
+                    "marks": [
+                        {
+                            "spot": "task.icon.cancel",
+                            "when": "annuleer taak"
+                        }
+                    ],
+                    "text": "Met het rode verbodsteken, **Annuleer taak**, annuleer je de taak. Je geeft er een reden bij, die bij de taak blijft staan. Een geannuleerde taak kun je niet terugzetten. Bij het sluiten van de werkbon telt hij als afgehandeld.",
+                    "say": "Het rode verbodsteken is \"annuleer taak\". Je geeft er een reden bij. Een geannuleerde taak kun je niet terugzetten."
+                },
+                {
+                    "title": "Bewerken",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.update"
+                        ]
+                    },
+                    "marks": [
+                        {
+                            "spot": "task.icon.edit",
+                            "when": "bewerk taak"
+                        }
+                    ],
+                    "text": "Met de drie puntjes, **Bewerk taak**, pas je de titel, de omschrijving, het product en het aantal aan. Ook de checks en de rollen stel je daar opnieuw in. Is er al een check afgevinkt? Dan ligt de keuze voor checks per machine vast.",
+                    "say": "De drie puntjes zijn \"bewerk taak\". Daarmee pas je de titel, het product of de checks aan."
+                },
+                {
+                    "title": "Verwijderen",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.delete"
+                        ]
+                    },
+                    "marks": [
+                        {
+                            "spot": "task.icon.delete",
+                            "when": "verwijder taak"
+                        }
+                    ],
+                    "text": "Met de prullenbak, **Verwijder taak**, haal je de taak van de werkbon. Eerst vraagt Lavoro of je het zeker weet.",
+                    "say": "De prullenbak is \"verwijder taak\". Daarmee haal je de taak van de werkbon."
+                },
+                {
+                    "title": "Laten ondertekenen",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "action": "completeExampleTask",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertaskinstance.open_close"
+                        ]
+                    },
+                    "marks": [
+                        {
+                            "spot": "task.icon.sign",
+                            "when": "laten ondertekenen"
+                        }
+                    ],
+                    "text": "Is de taak voltooid? Dan verschijnt het pennetje **Laten ondertekenen**. Daarmee tekent de klant voor alleen deze taak, met zijn naam erbij. Het verbodsteken is dan weg: een voltooide taak annuleer je niet meer.",
+                    "say": "Is de taak voltooid? Dan verschijnt er een pennetje. Met \"laten ondertekenen\" tekent de klant voor deze ene taak."
+                },
+                {
+                    "title": "Ondertekend",
+                    "spot": "task.example.actions",
+                    "skipIfMissing": true,
+                    "action": "signExampleTask",
+                    "marks": [
+                        {
+                            "spot": "task.icon.signed",
+                            "when": "ondertekend"
+                        }
+                    ],
+                    "text": "Heeft de klant getekend? Dan staat er een groen vinkje, **Ondertekend**. Klik erop en je ziet wie er tekende en wanneer, met de handtekening. Met het juiste recht haal je de handtekening daar ook weer weg.",
+                    "say": "Heeft de klant getekend? Dan staat er een groen vinkje. Klik op \"ondertekend\" en je ziet de handtekening."
+                }
+            ]
+        },
+        {
+            "id": "checks",
+            "version": 1,
+            "title": "Checks en checklists",
+            "summary": "Waar de checks van een taak vandaan komen, verplicht of optioneel, en per machine.",
+            "requires": {
+                "permissions": [
+                    "serviceordertaskinstance.read"
+                ]
+            },
+            "actions": [
+                "showStandardView",
+                "showExampleTask"
+            ],
+            "steps": [
+                {
+                    "spot": "task.work.checks",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Waar checks vandaan komen",
+                    "text": "Een **check** is een vinkje bij een taak. De checks komen van de taak in de lijst onder Werkbonnen bij **Taken**: uit de checklists die aan die taak hangen, en uit losse checks die je rechtstreeks aan de taak koppelt. Ze worden gekopieerd zodra de taak op de werkbon komt. Pas je later iets aan? Dan blijft deze werkbon zoals hij was.",
+                    "say": "Een check is een vinkje bij een taak. De checks komen van de taak: uit zijn checklists, of als losse check. Ze worden gekopieerd als de taak op de werkbon komt."
+                },
+                {
+                    "spot": "task.work.checks",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Verplicht of optioneel",
+                    "text": "Een check met een rood sterretje is **verplicht**. Zonder dat vinkje kun je de taak niet voltooien. De andere checks zijn optioneel. Extra checks die je zelf toevoegt, zijn altijd optioneel.",
+                    "say": "Een check met een sterretje is verplicht. Zonder dat vinkje kun je de taak niet voltooien."
+                },
+                {
+                    "spot": "task.work.checks",
+                    "skipIfMissing": true,
+                    "action": "openTaskWork",
+                    "title": "Per machine",
+                    "text": "Heeft een taak meer machines? Dan kunnen de checks **per machine** gaan. Elke machine krijgt dan een eigen blok met zijn eigen checks. Dat stel je in bij het toevoegen van de taak. Zodra er één check is afgevinkt, ligt die keuze vast.",
+                    "say": "Bij meer machines kunnen de checks per machine gaan. Dan heeft elke machine een eigen blok."
+                },
+                {
+                    "requires": {
+                        "device": "desktop",
+                        "permissions": [
+                            "serviceordertask.read"
+                        ]
+                    },
+                    "title": "Checklists beheren",
+                    "text": "Checks en checklists beheer je in het menu onder Werkbonnen bij **Checklists**. Daar sleep je een check op een checklist, of rechtstreeks op een taak. Een checklist sleep je op een taak. Dat gaat op een groot scherm.",
+                    "say": "Checklists beheer je in het menu onder werkbonnen, bij \"checklists\". Daar sleep je een check op een checklist, of rechtstreeks op een taak.",
+                    "cta": {
+                        "label": "Naar de checklists",
+                        "href": "/serviceordertaskchecks",
+                        "tour": "checklists"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "werk",
+            "version": 1,
+            "title": "Keuringen, storingen en materialen",
+            "summary": "Machines keuren, storingen koppelen en materiaal boeken.",
+            "actions": [
+                "showStandardView"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.inspections",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "servicejob.read"
+                        ]
+                    },
+                    "title": "Keuringen",
+                    "text": "Onder **Keuringen** staan de machines die op deze werkbon gekeurd worden. Kies een machine en klik op **+ Keuring toevoegen**. Met **Meerdere machines** zet je in één keer alle actieve machines van de klant erop, of die van één locatie. Een machine van het bakje kun je hier ook neerleggen.",
+                    "say": "Onder keuringen staan de machines die gekeurd worden. Met \"meerdere machines\" zet je er in één keer meer op."
+                },
+                {
+                    "spot": "werkbon.tickets",
+                    "skipIfMissing": true,
+                    "title": "Storingen",
+                    "text": "Onder **Storingen** koppel je een storing van deze klant aan de werkbon. Kies een bestaande storing, of maak er met **Nieuwe storing aanmaken** een bij. Een storing van het bakje kun je hier ook neerleggen.",
+                    "say": "Onder storingen koppel je een storing aan de werkbon. Kies een bestaande storing of maak een nieuwe."
+                },
+                {
+                    "spot": "werkbon.materials",
+                    "skipIfMissing": true,
+                    "title": "Materialen",
+                    "text": "Onder **Materialen** boek je wat er gebruikt is. Op de werkbon voor de klant staan de materialen met hun prijs.",
+                    "say": "Onder materialen boek je wat er gebruikt is."
+                }
+            ]
+        },
+        {
+            "id": "dossier",
+            "version": 1,
+            "title": "Afspraken, opmerkingen en foto's",
+            "summary": "Wanneer er iemand komt, wat de klant wel en niet ziet, en documenten.",
+            "actions": [
+                "showStandardView"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.events",
+                    "skipIfMissing": true,
+                    "title": "Afspraken",
+                    "text": "Onder **Afspraken** staan de ingeplande momenten voor deze werkbon, met wie er gaat. In je eigen rij vul je je tijden in.",
+                    "say": "Onder afspraken zie je wanneer er iemand langskomt, en wie er gaat."
+                },
+                {
+                    "spot": "werkbon.remarks",
+                    "skipIfMissing": true,
+                    "title": "Opmerkingen",
+                    "text": "Er zijn twee soorten **opmerkingen**. Een externe opmerking komt op de werkbon voor de klant. Een interne opmerking blijft bij jullie.",
+                    "say": "Er zijn externe en interne opmerkingen. Een externe opmerking ziet de klant op de werkbon. Een interne opmerking blijft bij jullie.",
+                    "marks": [
+                        {
+                            "spot": "werkbon.remarks.internal",
+                            "when": "interne opmerking"
+                        }
+                    ]
+                },
+                {
+                    "spot": "werkbon.images",
+                    "title": "Foto's",
+                    "text": "Ook **foto's** zijn er extern en intern. Alleen de externe foto's komen op de werkbon voor de klant. Bij de interne foto's staan ook foto's die vanaf het project zijn gedeeld.",
+                    "say": "Ook foto's zijn er extern en intern. Alleen de externe foto's komen op de werkbon voor de klant.",
+                    "marks": [
+                        {
+                            "spot": "werkbon.images.internal",
+                            "when": "intern."
+                        }
+                    ]
+                },
+                {
+                    "spot": "werkbon.documents",
+                    "skipIfMissing": true,
+                    "title": "Documenten",
+                    "text": "Bij **documenten** zet je bestanden bij de werkbon.",
+                    "say": "Bij documenten zet je bestanden bij de werkbon."
+                }
+            ]
+        },
+        {
+            "id": "afronden",
+            "version": 1,
+            "title": "Afronden",
+            "summary": "Wat er gedaan is, de klant laten tekenen, en wat sluiten tegenhoudt.",
+            "actions": [
+                "showStandardView"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.signoff",
+                    "title": "Afronding en handtekening",
+                    "text": "Onder **Eventuele opmerkingen** schrijf je wat er gedaan is. Dat komt op de werkbon voor de klant, als uitgevoerde werkzaamheden. Daaronder staan de aankomsttijd en de vertrektijd.",
+                    "say": "Hier schrijf je wat er gedaan is. Dat komt op de werkbon voor de klant. Daaronder staan de aankomsttijd en de vertrektijd."
+                },
+                {
+                    "spot": "werkbon.signoff.open",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.close"
+                        ]
+                    },
+                    "title": "Bekijk en onderteken",
+                    "text": "Met **Bekijk & onderteken** opent het overzicht voor de klant.",
+                    "say": "Met \"bekijk en onderteken\" opent het overzicht voor de klant."
+                },
+                {
+                    "spot": "signoff.summary",
+                    "skipIfMissing": true,
+                    "action": "openSignoff",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.close"
+                        ]
+                    },
+                    "title": "Het overzicht",
+                    "text": "Hier ziet de klant de opmerkingen, de foto's, de materialen en de uitgevoerde taken op een rij.",
+                    "say": "Hier ziet de klant wat er gedaan is, met de foto's en de materialen."
+                },
+                {
+                    "spot": "signoff.done",
+                    "skipIfMissing": true,
+                    "action": "openSignoff",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.close"
+                        ]
+                    },
+                    "title": "Werkzaamheden gereed",
+                    "text": "Is er op locatie nog werk te doen? Zet **Werkzaamheden gereed** dan uit. Dat staat ook op de werkbon voor de klant.",
+                    "say": "Is er nog werk te doen? Zet \"werkzaamheden gereed\" dan uit."
+                },
+                {
+                    "spot": "signoff.signature",
+                    "skipIfMissing": true,
+                    "action": "openSignoff",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.close"
+                        ]
+                    },
+                    "title": "De handtekening",
+                    "text": "Hier tekent de klant, met zijn naam erbij. Klik op **Handtekening opslaan** en daarna op **Akkoord**. De werkbon is dan getekend, maar nog niet gesloten. De rondleiding bewaart niets.",
+                    "say": "Hier tekent de klant, met zijn naam erbij. Daarna klik je op \"akkoord\". De werkbon is dan getekend, maar nog niet gesloten."
+                },
+                {
+                    "spot": "werkbon.signoff",
+                    "title": "Wat sluiten tegenhoudt",
+                    "text": "Een werkbon sluit pas als alle taken voltooid of geannuleerd zijn en de klant heeft getekend. Hebben jullie een minimum aantal foto's ingesteld? Dan moeten er zoveel externe foto's op staan. Na het tekenen sluit je hem met **Werkbon afsluiten**. Een gesloten werkbon kun je met het juiste recht weer **heropenen**. Met **Werkbon als onvolledig markeren** geef je aan dat het werk niet af is.",
+                    "say": "Een werkbon sluit pas als alle taken af zijn en de klant heeft getekend. Daarna sluit je hem met \"werkbon afsluiten\"."
+                }
+            ]
+        },
+        {
+            "id": "macros",
+            "version": 1,
+            "title": "Macro's",
+            "summary": "Een paar vaste stappen in één keer, met vragen vooraf.",
+            "actions": [
+                "showStandardView",
+                "showExampleMacro"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.macro",
+                    "skipIfMissing": true,
+                    "title": "Een macro",
+                    "text": "Een **macro** doet een paar vaste stappen in één keer, zoals taken toevoegen, keuringen erop zetten, een opmerking plaatsen of om een document vragen. Met **Macro** kies je er een. Je ziet alleen macro's die jij helemaal mag uitvoeren, en alleen op een open werkbon. Is er nog geen macro? Dan laat de rondleiding er een als **voorbeeld** zien. Die voert niets uit.",
+                    "say": "Een macro doet een paar vaste stappen in één keer. Met \"macro\" kies je er een."
+                },
+                {
+                    "spot": "macro.question",
+                    "skipIfMissing": true,
+                    "action": "openMacro",
+                    "title": "Vragen",
+                    "text": "Een macro kan vooraf vragen stellen, bijvoorbeeld hoeveel machines het zijn of of er een offerte is. De vragen komen één voor één. Een ja of nee brengt je meteen verder.",
+                    "say": "Een macro stelt zijn vragen één voor één. Een ja of nee brengt je meteen verder."
+                },
+                {
+                    "spot": "macro.next",
+                    "skipIfMissing": true,
+                    "action": "openMacro",
+                    "title": "Uitvoeren",
+                    "text": "Met **Volgende** ga je naar de volgende vraag. Na de laatste vraag staat daar **Uitvoeren**. Alles gebeurt dan in één keer, en het komt in de tijdlijn. Terugdraaien kan niet. De rondleiding voert niets uit.",
+                    "say": "Met \"volgende\" ga je verder. Na de laatste vraag klik je op \"uitvoeren\". Alles gebeurt dan in één keer."
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "serviceordermacro.manage"
+                        ]
+                    },
+                    "title": "Macro's maken",
+                    "text": "Macro's maak je in het menu onder Werkbonnen bij **Macro's**. Daar zet je blokken onder elkaar, zoals een vraag met een ja- en een nee-kant. De knop hieronder brengt je erheen, met de rondleiding door de macro's.",
+                    "say": "Macro's maak je in het menu onder werkbonnen, bij \"macro's\". Daar zet je blokken onder elkaar.",
+                    "cta": {
+                        "label": "Naar de macro's",
+                        "href": "/serviceordermacros",
+                        "tour": "macros",
+                        "chapter": "lijst"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "administratie",
+            "version": 1,
+            "title": "Administratie en exporteren",
+            "summary": "Prijzen en totalen, en de werkbon als PDF bekijken of mailen.",
+            "requires": {
+                "anyPermissions": [
+                    "serviceorder.see_financials",
+                    "serviceorder.export_pdf",
+                    "serviceorder.email_pdf",
+                    "servicejob.export_pdf",
+                    "servicejob.mail_pdf"
+                ]
+            },
+            "actions": [
+                "showStandardView"
+            ],
+            "steps": [
+                {
+                    "spot": "werkbon.chapters",
+                    "skipIfMissing": true,
+                    "title": "Tabbladen",
+                    "text": "Bovenaan de werkbon staan tabbladen: **Details**, en voor wie het mag **Administratie** en **Exporteren**.",
+                    "say": "Bovenaan staan de tabbladen \"details\", \"administratie\" en \"exporteren\"."
+                },
+                {
+                    "spot": "werkbon.administration",
+                    "skipIfMissing": true,
+                    "action": "openAdministration",
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.see_financials"
+                        ]
+                    },
+                    "title": "Administratie",
+                    "text": "Onder **Administratie** staan de materialen met hun prijzen en het financieel commentaar. De totalen zie je pas als je op het oogje klikt. Is SnelStart gekoppeld? Dan verstuur je de werkbon hier naar de administratie.",
+                    "say": "Onder \"administratie\" staan de materialen met hun prijzen. De totalen zie je als je op het oogje klikt."
+                },
+                {
+                    "spot": "werkbon.export",
+                    "skipIfMissing": true,
+                    "action": "openExport",
+                    "requires": {
+                        "anyPermissions": [
+                            "serviceorder.export_pdf",
+                            "serviceorder.email_pdf",
+                            "servicejob.export_pdf",
+                            "servicejob.mail_pdf"
+                        ]
+                    },
+                    "title": "Exporteren",
+                    "text": "Onder **Exporteren** kies je links de werkbon of een keuring. Rechts zie je dan de PDF. Met **PDF Genereer** open je hem, met **E-mail PDF** stuur je hem naar de klant. De werkbon zelf mail je pas als hij gesloten is.",
+                    "say": "Onder \"exporteren\" kies je de werkbon of een keuring. Je ziet dan de PDF, en je kunt hem mailen."
+                }
+            ]
+        }
+    ]
+}

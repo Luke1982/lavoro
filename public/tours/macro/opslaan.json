@@ -1,0 +1,22 @@
+{
+    "tour": "macro",
+    "chapter": "opslaan",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "opslaan.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met \"opslaan\" bewaar je de macro. Een blok met een rood uitroepteken mist nog iets.",
+            "hash": "3621509bbe773b1fcc4c0d601fee55e41bd44bc3",
+            "start": 0,
+            "end": 4.625
+        },
+        {
+            "text": "Op een open werkbon staat de knop \"Macro\". Je beantwoordt de vragen één voor één. Daarna gebeurt alles in één keer.",
+            "hash": "971fa592468ae9e9ed2d0fc491475b0c3ebe149c",
+            "start": 5.625,
+            "end": 12.394
+        }
+    ]
+}

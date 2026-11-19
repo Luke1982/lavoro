@@ -1,0 +1,53 @@
+{
+    "id": "macros",
+    "title": "Rondleiding door de macro's",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/serviceordermacros",
+    "autoStart": true,
+    "requires": {
+        "permissions": [
+            "serviceordermacro.manage"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "Macro's",
+            "summary": "Wat een macro is, een nieuwe maken en er een uitvoeren.",
+            "steps": [
+                {
+                    "spot": "list.add",
+                    "title": "Een nieuwe macro",
+                    "text": "Een **macro** zet in één klik taken, opmerkingen, documenten en keuringen op een werkbon. Onderweg stelt hij de vragen die per werkbon verschillen. Met **Nieuwe macro** maak je er een.",
+                    "say": "Een macro zet in één klik een vast rijtje dingen op een werkbon. Bijvoorbeeld taken of keuringen. Met \"nieuwe macro\" maak je er een."
+                },
+                {
+                    "spot": "macros.card",
+                    "skipIfMissing": true,
+                    "title": "Een macro",
+                    "text": "Elke macro staat hier met zijn stappen in gewone zinnen. Klik op een macro om hem te openen. Je ziet dan zijn blokken onder elkaar, van **Start** tot **Klaar**. Daar pas je hem aan. Is er nog geen macro? Dan staat hier een **voorbeeld**. Dat wordt niet bewaard.",
+                    "say": "Elke macro staat hier met zijn stappen in gewone zinnen. Klik erop en je ziet zijn blokken onder elkaar. Daar pas je hem aan."
+                },
+                {
+                    "title": "Uitvoeren op een werkbon",
+                    "text": "Op een open werkbon staat de knop **Macro**, als er een macro is die jij mag uitvoeren. Kies een macro en beantwoord de vragen, één voor één. Met **Uitvoeren** gebeurt alles in één keer. Ongedaan maken kan niet. Wat de macro deed, staat daarna in de tijdlijn van de werkbon.",
+                    "say": "Op een open werkbon staat de knop \"Macro\". Je beantwoordt de vragen één voor één. Daarna gebeurt alles in één keer."
+                },
+                {
+                    "title": "Een macro maken",
+                    "cta": {
+                        "label": "Een nieuwe macro",
+                        "href": "/serviceordermacros/create",
+                        "tour": "macro"
+                    },
+                    "text": "Wil je zien hoe je een macro opbouwt? Met de knop hieronder open je een nieuwe macro, met een rondleiding door de blokken. Er staat dan een voorbeeld in. Er wordt niets bewaard tot je zelf op **Opslaan** klikt.",
+                    "say": "Wil je zien hoe je een macro opbouwt? Open dan een nieuwe macro. De rondleiding laat er een voorbeeld in zien."
+                }
+            ],
+            "actions": [
+                "showExampleMacro"
+            ]
+        }
+    ]
+}

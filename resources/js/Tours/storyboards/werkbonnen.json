@@ -1,0 +1,136 @@
+{
+    "id": "werkbonnen",
+    "title": "Rondleiding door de werkbonnen",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/serviceorders",
+    "autoStart": true,
+    "requires": {
+        "anyPermissions": [
+            "serviceorder.read",
+            "serviceorder.read_own"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De werkbonnenlijst",
+            "summary": "Zoeken, filteren, wat je per werkbon ziet en wat je meteen aanpast.",
+            "steps": [
+                {
+                    "spot": "list.search",
+                    "title": "Zoeken",
+                    "text": "Zoek op **klant**, **plaats**, **beschrijving**, **fase**, factuurnummer, inkoopordernummer of **uitvoerder**. Een werkbonnummer werkt ook, zoals 272, #272 of WB-0272.",
+                    "say": "Je zoekt op klant, plaats of beschrijving. Ook een werkbonnummer of de naam van een monteur werkt."
+                },
+                {
+                    "spot": "list.filter-panel",
+                    "action": "openFilters",
+                    "title": "Filters",
+                    "text": "Onder **Filters** kies je één of meer **fases**. Met **Alleen te sluiten** zie je de werkbonnen waarvan alle afspraken voorbij zijn, maar die nog niet gesloten of gefactureerd zijn. Je browser onthoudt je keuze.",
+                    "say": "Onder \"Filters\" kies je één of meer fases. Met \"alleen te sluiten\" zie je wat nog dicht moet. Je browser onthoudt die keuze.",
+                    "marks": [
+                        {
+                            "spot": "list.filters",
+                            "when": "filters"
+                        },
+                        {
+                            "spot": "serviceorders.needs-closing",
+                            "when": "alleen te sluiten"
+                        }
+                    ]
+                },
+                {
+                    "spot": "serviceorders.row",
+                    "skipIfMissing": true,
+                    "title": "Een werkbon in de lijst",
+                    "text": "Per werkbon zie je de klant met het adres en de **fase**. Op een groot scherm staan er ook de datum, de beschrijving, het factuurnummer, de verzending en de afspraken met de monteurs bij. Een paars label betekent dat de werkbon uit een onderhoudscontract komt. De nieuwste werkbon staat bovenaan.",
+                    "say": "Per werkbon zie je de klant met het adres en de fase. De nieuwste werkbon staat bovenaan."
+                },
+                {
+                    "spot": "serviceorders.stage",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.update"
+                        ]
+                    },
+                    "title": "Meteen aanpassen",
+                    "text": "De **beschrijving**, de **fase** en het **externe factuurnummer** pas je hier meteen aan: klik erop. Vul je voor het eerst een factuurnummer in? Dan gaat de werkbon vanzelf naar de gefactureerde fase.",
+                    "say": "Klik op de beschrijving, de fase of het factuurnummer om het meteen aan te passen. Met een factuurnummer gaat de werkbon vanzelf naar \"gefactureerd\".",
+                    "marks": [
+                        {
+                            "spot": "serviceorders.description",
+                            "when": "beschrijving"
+                        },
+                        {
+                            "spot": "serviceorders.invoice",
+                            "when": "factuurnummer"
+                        }
+                    ]
+                },
+                {
+                    "spot": "serviceorders.sent",
+                    "skipIfMissing": true,
+                    "title": "Verzending",
+                    "text": "Onder **Verzending** zie je of de werkbon al naar de klant is gemaild, of naar de administratie is gestuurd.",
+                    "say": "Hier zie je of de werkbon al naar de klant of naar de administratie is gestuurd."
+                },
+                {
+                    "spot": "serviceorders.actions",
+                    "skipIfMissing": true,
+                    "title": "Openen en inplannen",
+                    "text": "Met het **oogje** open je de werkbon. Staat hij in een fase om in te plannen? Dan staat er ook een knop die de planner opent, met deze werkbon erin. Met het prullenbakje verwijder je een werkbon die nog niet naar de administratie is gestuurd.",
+                    "say": "Met het oogje open je de werkbon. Moet hij nog worden ingepland? Dan brengt een knop je naar de planner."
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Een nieuwe werkbon",
+                    "text": "Een nieuwe werkbon maak je niet in deze lijst. Klik op **Nieuw** op het dashboard, of op de plusknop op je telefoon. Het kan ook vanaf een klant, een project, een onderhoudscontract, de aankomende keuringen of bij een afspraak in de planner.",
+                    "say": "Een nieuwe werkbon maak je met \"Nieuw\" op het dashboard. Of vanaf een klant, een project of een contract."
+                }
+            ]
+        },
+        {
+            "id": "selecteren",
+            "version": 1,
+            "title": "Meer werkbonnen tegelijk",
+            "summary": "Werkbonnen aanvinken en ze samen een andere fase geven.",
+            "requires": {
+                "permissions": [
+                    "serviceorder.update"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "serviceorders.check",
+                    "action": "selectFirst",
+                    "title": "Aanvinken",
+                    "text": "Vink de werkbonnen aan die je samen wilt aanpassen. Op een groot scherm kies je met het vinkje bovenaan de hele pagina.",
+                    "say": "Vink de werkbonnen aan die je samen wilt aanpassen."
+                },
+                {
+                    "spot": "serviceorders.bulk",
+                    "action": "selectFirst",
+                    "title": "Bewerken",
+                    "text": "Onderin verschijnt een balk. Met **Bewerken** geef je alle aangevinkte werkbonnen tegelijk een andere fase.",
+                    "say": "Onderin verschijnt een balk. Met \"bewerken\" geef je ze allemaal tegelijk een andere fase."
+                },
+                {
+                    "spot": "serviceorders.bulk.stage",
+                    "action": [
+                        "selectFirst",
+                        "openBulkEdit"
+                    ],
+                    "title": "Een andere fase",
+                    "text": "Vink **Fase** aan en kies de nieuwe fase. Wat je niet aanvinkt, blijft zoals het is. Met **Opslaan** gaan alle werkbonnen naar die fase. Zijn het er veel, dan gebeurt dat op de achtergrond. De rondleiding slaat niets op.",
+                    "say": "Vink \"fase\" aan en kies de nieuwe fase. Met \"opslaan\" gaan ze er allemaal heen."
+                }
+            ]
+        }
+    ]
+}

@@ -1,19 +1,23 @@
 <template>
     <IndexHeaderComponent :title="macro ? 'Macro bewerken' : 'Nieuwe macro'"
-        subtitle="Zet blokken op de plussen; een vraag splitst in een ja- en een nee-baan." :show-search="false" />
+        subtitle="Zet blokken op de plussen; een vraag splitst in een ja- en een nee-baan." :show-search="false">
+        <template #actions>
+            <TourButton tour="macro" />
+        </template>
+    </IndexHeaderComponent>
 
     <BoxComponent class="mb-4">
         <div class="grid gap-4 md:grid-cols-[1fr_2fr_auto] md:items-end">
-            <TextInput v-model="form.title" label="Naam" placeholder="Bijvoorbeeld: Airco installatie met offerte"
+            <TextInput v-model="form.title" label="Naam" data-tour="macro.name" placeholder="Bijvoorbeeld: Airco installatie met offerte"
                 :has-error="!!form.errors.title" :error-message="form.errors.title" />
-            <TextInput v-model="form.description" label="Omschrijving (optioneel)"
+            <TextInput v-model="form.description" label="Omschrijving (optioneel)" data-tour="macro.description"
                 :has-error="!!form.errors.description" :error-message="form.errors.description" />
             <div class="flex gap-3">
                 <button v-if="macro" type="button" @click="confirmDelete = true"
                     class="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950">
                     Verwijderen
                 </button>
-                <button type="button" :disabled="form.processing" @click="save"
+                <button type="button" data-tour="macro.save" :disabled="form.processing" @click="save"
                     class="rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                     Opslaan
                 </button>
@@ -26,7 +30,7 @@
 
     <BoxComponent padding="p-0" extra-classes="overflow-hidden">
         <div class="flex flex-col md:min-h-[32rem] md:flex-row">
-            <aside class="flex-none border-b border-gray-200 bg-white p-3 md:w-52 md:border-b-0 md:border-r dark:border-slate-700 dark:bg-slate-900">
+            <aside data-tour="macro.blocks" class="flex-none border-b border-gray-200 bg-white p-3 md:w-52 md:border-b-0 md:border-r dark:border-slate-700 dark:bg-slate-900">
                 <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">Blokken</p>
                 <div class="mt-2 flex flex-wrap gap-2 md:flex-col">
                     <div v-for="(block, type) in BLOCKS" :key="type" draggable="true"
@@ -45,7 +49,7 @@
                     </span>
                 </p>
             </aside>
-            <div class="flex-1 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] p-3 md:p-6 dark:bg-[radial-gradient(#334155_1px,transparent_1px)]">
+            <div data-tour="macro.flow" class="flex-1 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] p-3 md:p-6 dark:bg-[radial-gradient(#334155_1px,transparent_1px)]">
                 <div class="flex flex-col items-center md:min-w-max">
                     <span class="rounded-full bg-slate-900 px-5 py-1.5 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900">Start</span>
                     <MacroLane :steps="editor.root" />
@@ -84,6 +88,9 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import MacroLane from '@/Components/Macros/MacroLane.vue'
 import { BLOCKS } from '@/Components/Macros/macroBlocks.js'
 import { provideMacroEditor } from '@/Composables/useMacroEditor.js'
+import { newStep } from '@/Components/Macros/macroBlocks.js'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { useTour } from '@/Composables/useTour'
 
 /**
  * Building a macro: blocks dragged or tapped into a flow that runs top to bottom,
@@ -154,4 +161,76 @@ function save() {
     if (props.macro) form.patch(`/serviceordermacros/${props.macro.id}`, { preserveScroll: true })
     else form.post('/serviceordermacros')
 }
+
+/** The first block of a type anywhere in the macro, lanes of a question included. */
+function firstOfType(type, lane = editor.root) {
+    for (const step of lane) {
+        if (step.type === type) return step
+        const inner = step.type === 'question' ? firstOfType(type, step.yes) ?? firstOfType(type, step.no) : null
+        if (inner) return inner
+    }
+
+    return null
+}
+
+/** Opens the first block of a type, as clicking it would, and closes it again. */
+const openFirst = type => () => {
+    const step = firstOfType(type)
+    if (!step || editor.selectedId.value === step.id) return null
+    const previous = editor.selectedId.value
+    editor.selectedId.value = step.id
+
+    return () => { if (editor.selectedId.value === step.id) editor.selectedId.value = previous }
+}
+
+/**
+ * An empty macro gets an example to show every kind of block, in memory only: it
+ * is taken out again before anything can be saved, and an existing macro is
+ * never touched.
+ */
+function exampleSteps() {
+    const step = (type, fields) => ({ ...newStep(type), ...fields })
+
+    return [
+        step('add_task', { service_order_task_id: props.tasks[0]?.id ?? null, quantity: { ask: 'Hoeveel binnendelen?' } }),
+        step('question', {
+            question: 'Is er een offerte?',
+            yes: [step('upload_document', { prompt: 'Upload de getekende offerte' })],
+            no: [step('add_remark', { text: 'Offerte nog opvragen bij de klant' })],
+        }),
+        step('add_service_jobs', {}),
+    ]
+}
+
+/** Every block id in a lane, those inside a question's lanes included. */
+const idsIn = lane => lane.flatMap(step => [step.id, ...(step.type === 'question' ? [...idsIn(step.yes), ...idsIn(step.no)] : [])])
+
+useTour('macro', {
+    showExample: () => {
+        if (editor.root.length) return null
+        const examples = exampleSteps()
+        editor.root.push(...examples)
+
+        return () => {
+            const shown = idsIn(examples)
+            editor.root.splice(0, editor.root.length, ...editor.root.filter(step => !shown.includes(step.id)))
+            if (shown.includes(editor.selectedId.value)) editor.selectedId.value = null
+        }
+    },
+    openTask: openFirst('add_task'),
+    openQuestion: openFirst('question'),
+    openUpload: openFirst('upload_document'),
+    openRemark: openFirst('add_remark'),
+    openJobs: openFirst('add_service_jobs'),
+}, {
+    spots: {
+        'macro.plus': () => document.querySelector('[data-tour="macro.flow"] [title="Blok toevoegen"]'),
+        'macro.block.task': () => document.querySelector('[data-block="add_task"]'),
+        'macro.block.question': () => document.querySelector('[data-block="question"]'),
+        'macro.block.upload': () => document.querySelector('[data-block="upload_document"]'),
+        'macro.block.remark': () => document.querySelector('[data-block="add_remark"]'),
+        'macro.block.jobs': () => document.querySelector('[data-block="add_service_jobs"]'),
+        'macro.askable.task': () => document.querySelector('[data-block="add_task"] [data-tour="macro.askable"]'),
+    },
+})
 </script>

@@ -1,0 +1,138 @@
+{
+    "id": "macro",
+    "title": "Rondleiding door een macro",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "assistant": false,
+    "requires": {
+        "permissions": [
+            "serviceordermacro.manage"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "basis",
+            "version": 1,
+            "title": "De macro",
+            "summary": "De naam, de blokken en de weg van Start naar Klaar.",
+            "steps": [
+                {
+                    "spot": "macro.name",
+                    "title": "Naam",
+                    "text": "Geef de macro een **naam** die zegt wat hij doet, zoals *Airco installatie met offerte*. Een **omschrijving** mag erbij.",
+                    "say": "Geef de macro een naam die zegt wat hij doet. Een omschrijving mag erbij.",
+                    "marks": [
+                        {
+                            "spot": "macro.description",
+                            "when": "omschrijving"
+                        }
+                    ]
+                },
+                {
+                    "spot": "macro.blocks",
+                    "title": "Blokken",
+                    "text": "Links staan de **blokken** waar een macro uit bestaat: taken, een vraag, een document, een opmerking en keuringen.",
+                    "say": "Links staan de blokken waar een macro uit bestaat."
+                },
+                {
+                    "spot": "macro.flow",
+                    "title": "Van Start tot Klaar",
+                    "text": "Rechts staat de macro zelf. Hij loopt van **Start** naar **Klaar**, van boven naar beneden.",
+                    "say": "Rechts staat de macro zelf. Hij loopt van \"Start\" naar \"Klaar\", van boven naar beneden."
+                },
+                {
+                    "spot": "macro.plus",
+                    "title": "Een blok toevoegen",
+                    "text": "Sleep een blok op een **plus**. Of klik op een plus en kies een blok. Klik je links op een blok, dan komt het onderaan. Op een telefoon tik je in plaats van te slepen.",
+                    "say": "Sleep een blok op een plus. Of klik op een plus en kies er een."
+                }
+            ]
+        },
+        {
+            "id": "blokken",
+            "version": 1,
+            "title": "De blokken",
+            "summary": "Wat elk blok doet, en vragen bij het uitvoeren.",
+            "actions": [
+                "showExample"
+            ],
+            "steps": [
+                {
+                    "spot": "macro.block.task",
+                    "skipIfMissing": true,
+                    "action": "openTask",
+                    "title": "Taken toevoegen",
+                    "text": "**Taken toevoegen** zet een taak op de werkbon, uit de lijst onder Werkbonnen bij Taken. Je kiest er een product en een aantal bij, en extra checks als je wilt. Is de macro nog leeg, dan laat de rondleiding een voorbeeld zien. Dat wordt niet bewaard.",
+                    "say": "\"Taken toevoegen\" zet een taak op de werkbon. Je kiest er een product en een aantal bij."
+                },
+                {
+                    "spot": "macro.askable.task",
+                    "skipIfMissing": true,
+                    "action": "openTask",
+                    "title": "Vragen bij uitvoeren",
+                    "text": "Verschilt iets per werkbon, zoals het aantal? Zet dan **Vragen bij uitvoeren** aan en typ de vraag. Wie de macro uitvoert, vult het antwoord in.",
+                    "say": "Verschilt het aantal per werkbon? Zet dan \"vragen bij uitvoeren\" aan. Dan wordt het gevraagd als de macro loopt."
+                },
+                {
+                    "spot": "macro.block.question",
+                    "skipIfMissing": true,
+                    "action": "openQuestion",
+                    "title": "Vraag ja/nee",
+                    "text": "**Vraag ja/nee** splitst de macro in een **Ja**-baan en een **Nee**-baan. Wie de macro uitvoert, kiest het antwoord. Daarna loopt alleen die baan.",
+                    "say": "\"Vraag ja/nee\" splitst de macro in twee banen. Daarna loopt alleen de baan van het antwoord."
+                },
+                {
+                    "spot": "macro.block.upload",
+                    "skipIfMissing": true,
+                    "action": "openUpload",
+                    "title": "Document uploaden",
+                    "text": "**Document uploaden** vraagt om een bestand als de macro loopt. Je typt wat er geüpload moet worden, en kiest eventueel een categorie.",
+                    "say": "\"Document uploaden\" vraagt om een bestand als de macro loopt."
+                },
+                {
+                    "spot": "macro.block.remark",
+                    "skipIfMissing": true,
+                    "action": "openRemark",
+                    "title": "Opmerking plaatsen",
+                    "text": "**Opmerking plaatsen** zet een opmerking op de werkbon: een vaste, of een die je laat vragen. Met **Alleen intern** wordt het een interne opmerking.",
+                    "say": "\"Opmerking plaatsen\" zet een opmerking op de werkbon. Die mag ook intern zijn."
+                },
+                {
+                    "spot": "macro.block.jobs",
+                    "skipIfMissing": true,
+                    "action": "openJobs",
+                    "title": "Keuringen toevoegen",
+                    "text": "**Keuringen toevoegen** zet keuringen op de werkbon voor alle actieve machines van de klant. Zet je **Vragen bij uitvoeren** aan, dan kies je bij het uitvoeren een locatie.",
+                    "say": "\"Keuringen toevoegen\" zet keuringen voor de machines van de klant op de werkbon. Je kunt ook om een locatie laten vragen."
+                },
+                {
+                    "spot": "macro.block.controls",
+                    "skipIfMissing": true,
+                    "action": "openTask",
+                    "title": "Openen, verplaatsen en weghalen",
+                    "text": "Klik op een blok om de instellingen te openen. Klik nog een keer om hem dicht te klappen. Met de pijltjes zet je hem hoger of lager, of je sleept hem naar een andere plus. Met **Blok verwijderen** haal je hem weg.",
+                    "say": "Klik op een blok om het te openen of dicht te klappen. Met de pijltjes zet je het hoger of lager."
+                }
+            ]
+        },
+        {
+            "id": "opslaan",
+            "version": 1,
+            "title": "Opslaan en uitvoeren",
+            "summary": "Bewaren, wat er nog mist, en een macro uitvoeren op een werkbon.",
+            "steps": [
+                {
+                    "spot": "macro.save",
+                    "title": "Opslaan",
+                    "text": "Met **Opslaan** bewaar je de macro. Mist er iets in een blok, dan krijgt dat blok een rood uitroepteken met wat er mist. De rondleiding slaat niets op.",
+                    "say": "Met \"opslaan\" bewaar je de macro. Een blok met een rood uitroepteken mist nog iets."
+                },
+                {
+                    "title": "Uitvoeren op een werkbon",
+                    "text": "Op een open werkbon staat de knop **Macro**, als er een macro is die jij mag uitvoeren. Kies een macro en beantwoord de vragen, één voor één. Met **Uitvoeren** gebeurt alles in één keer. Ongedaan maken kan niet. Wat de macro deed, staat daarna in de tijdlijn van de werkbon.",
+                    "say": "Op een open werkbon staat de knop \"Macro\". Je beantwoordt de vragen één voor één. Daarna gebeurt alles in één keer."
+                }
+            ]
+        }
+    ]
+}

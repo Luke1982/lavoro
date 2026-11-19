@@ -49,8 +49,12 @@ class ToolSchemaBudgetTest extends TestCase
      * 36800 for projects: finding one by its number and saying how it stands,
      * milestones and hours included, where before the assistant could only guess
      * at a project from its werkbonnen.
+     *
+     * 37000 for the rondleidingen that followed the planner's: the projects,
+     * the maintenance contracts, the werkbonnen, the checklists and the macros,
+     * each one more name and its chapters in what offer_tour can start.
      */
-    private const ROOM_FOR = 36800;
+    private const ROOM_FOR = 37000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

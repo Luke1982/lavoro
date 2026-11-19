@@ -1,0 +1,144 @@
+{
+    "id": "checklists",
+    "title": "Rondleiding door de checklists",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/serviceordertaskchecks",
+    "autoStart": true,
+    "requires": {
+        "device": "desktop",
+        "permissions": [
+            "serviceordertask.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "overzicht",
+            "version": 1,
+            "title": "Checks, checklists en taken",
+            "summary": "De drie kolommen, en een nieuwe check maken.",
+            "actions": [
+                "showExample"
+            ],
+            "steps": [
+                {
+                    "spot": "checklists.checks",
+                    "title": "Checks",
+                    "text": "Links staan de **checks**. Een check is één ding dat de monteur afvinkt, zoals *Filters gereinigd*. Elke kolom heeft een eigen zoekveld. Heb je nog geen checks, checklists of taken? Dan zet de rondleiding er voorbeelden bij. Die worden niet bewaard.",
+                    "say": "Links staan de checks. Een check is één ding dat de monteur afvinkt."
+                },
+                {
+                    "spot": "checklists.lists",
+                    "title": "Checklists",
+                    "text": "In het midden staan de **checklists**: vaste rijtjes checks, die je op meer taken kunt zetten.",
+                    "say": "In het midden staan de checklists. Dat zijn vaste rijtjes checks."
+                },
+                {
+                    "spot": "checklists.tasks",
+                    "title": "Taken",
+                    "text": "Rechts staan de **taken**. Die maak je onder Werkbonnen bij **Taken**. Hier geef je een taak zijn checks en checklists.",
+                    "say": "Rechts staan de taken. Hier geef je een taak zijn checks en checklists."
+                },
+                {
+                    "spot": "checklists.new",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertask.update"
+                        ]
+                    },
+                    "title": "Een nieuwe check",
+                    "text": "Typ een nieuwe check bij **+ Nieuwe check** en druk op Enter. Een checklist maak je net zo in de middelste kolom.",
+                    "say": "Typ een nieuwe check in het veld \"nieuwe check\". Druk dan op enter."
+                }
+            ]
+        },
+        {
+            "id": "koppelen",
+            "version": 1,
+            "title": "Koppelen",
+            "summary": "Slepen om te koppelen, verplicht of optioneel, en een lijn aanpassen.",
+            "actions": [
+                "showExample"
+            ],
+            "steps": [
+                {
+                    "spot": "checklists.card.check",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertask.update"
+                        ]
+                    },
+                    "title": "Slepen om te koppelen",
+                    "text": "Sleep een check op een checklist. Of sleep hem rechtstreeks op een taak: dan hoort hij bij die taak, zonder checklist. Een checklist sleep je op een taak. Een check die je zo koppelt, is eerst verplicht.",
+                    "say": "Sleep een check op een checklist. Of sleep hem rechtstreeks op een taak, zonder checklist.",
+                    "marks": [
+                        {
+                            "spot": "checklists.card.list",
+                            "when": "checklist"
+                        },
+                        {
+                            "spot": "checklists.card.task",
+                            "when": "taak"
+                        }
+                    ]
+                },
+                {
+                    "spot": "checklists.board",
+                    "action": "selectTask",
+                    "title": "Lijnen",
+                    "text": "De lijnen laten zien wat aan elkaar vastzit. Bij een doorgetrokken lijn is de check **verplicht**: zonder dat vinkje kan de taak niet af. Bij een stippellijn is de check **optioneel**. Loopt de lijn van een checklist naar een taak? Dan geldt dat voor alle checks in die checklist. Klik op een kaart om alleen zijn lijnen te zien. Klik nog een keer om weer alles te zien.",
+                    "say": "Bij een doorgetrokken lijn is de check verplicht. Bij een stippellijn is hij optioneel. Klik op een kaart om alleen zijn lijnen te zien."
+                },
+                {
+                    "spot": "checklists.popover",
+                    "skipIfMissing": true,
+                    "action": "openLine",
+                    "requires": {
+                        "permissions": [
+                            "serviceordertask.update"
+                        ]
+                    },
+                    "title": "Een lijn aanpassen",
+                    "text": "Klik op een lijn en kies **Verplicht** of **Optioneel** voor de check. Op een lijn van een checklist naar een taak geldt je keuze voor alle checks in die checklist. Met **Ontkoppelen** haal je de koppeling weg.",
+                    "say": "Klik op een lijn om de check \"verplicht\" of \"optioneel\" te maken. Met \"ontkoppelen\" haal je hem weg."
+                }
+            ]
+        },
+        {
+            "id": "inhoud",
+            "version": 1,
+            "title": "Wat erin zit",
+            "summary": "De inhoud van een kaart, hernoemen en verwijderen, en wat een werkbon meekrijgt.",
+            "actions": [
+                "showExample"
+            ],
+            "steps": [
+                {
+                    "spot": "checklists.card.task",
+                    "skipIfMissing": true,
+                    "action": "openTaskCard",
+                    "title": "Een kaart openklappen",
+                    "text": "Met het pijltje op een kaart zie je wat erin zit, in de volgorde die de monteur ziet. Bij een taak staan de checklists en de losse checks apart. Sleep een regel aan het handvat om de volgorde te veranderen. Klik op **verplicht** of **optioneel** om dat om te zetten.",
+                    "say": "Met het pijltje zie je wat er in een kaart zit. Sleep een regel om de volgorde te veranderen."
+                },
+                {
+                    "spot": "checklists.menu",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "serviceordertask.update"
+                        ]
+                    },
+                    "title": "Hernoemen en verwijderen",
+                    "text": "Onder de drie puntjes van een kaart staan **Hernoemen** en **Verwijderen**. Bij verwijderen zie je eerst hoeveel taken hem gebruiken.",
+                    "say": "Onder de drie puntjes kun je een kaart hernoemen of verwijderen."
+                },
+                {
+                    "title": "Op de werkbon",
+                    "text": "Zet iemand een taak op een werkbon, dan krijgt die taak de checks van dat moment mee: eerst de checklists, op volgorde, dan de losse checks. Pas je hier later iets aan, dan blijven werkbonnen die er al zijn zoals ze waren. De monteur vinkt de checks af als hij de taak uitvoert.",
+                    "say": "Een taak op een werkbon krijgt de checks van dat moment mee. Pas je hier later iets aan? Dan veranderen bestaande werkbonnen niet."
+                }
+            ]
+        }
+    ]
+}

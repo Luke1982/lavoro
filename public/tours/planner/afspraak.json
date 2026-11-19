@@ -19,52 +19,52 @@
             "end": 9.25
         },
         {
-            "text": "Kies de soort afspraak. Die bepaalt meestal de kleur van de afspraak.",
-            "hash": "df0f84963112860eba2dc97cca9f0e784dbad26a",
+            "text": "Kies het soort afspraak. Dat bepaalt meestal de kleur van de afspraak.",
+            "hash": "a9f56c0df3395e54a31b60ce02a9e3b1f8287fda",
             "start": 10.25,
-            "end": 13.64
+            "end": 14.123
         },
         {
             "text": "Kies daarna de klant.",
             "hash": "a813c0821d986d226f42f850429c85a7ebe1bbcc",
-            "start": 14.64,
-            "end": 15.884
+            "start": 15.123,
+            "end": 16.367
         },
         {
             "text": "Koppel een werkbon van die klant. Of laat er meteen een nieuwe werkbon bij maken. Is er geen werkbon nodig? Dan vink je dat aan.",
             "hash": "b93d547d98bd7a105bcfba1e08f8dde111fd30e1",
-            "start": 16.884,
-            "end": 23.734
+            "start": 17.367,
+            "end": 24.217
         },
         {
             "text": "De locatie komt vanzelf van de werkbon of de klant. Je kunt ook een andere locatie kiezen. Of je typt zelf een adres.",
             "hash": "47135ac2f14604279b96ee25fb8100e0ff43d555",
-            "start": 24.734,
-            "end": 31.722
+            "start": 25.217,
+            "end": 32.205
         },
         {
             "text": "Hier staan de monteurs. Ieder heeft een eigen pauze. Zo nodig krijgt iemand ook eigen tijden en een planrol. De planrol kan de kleur van de afspraak bepalen.",
             "hash": "47a8c34b6013556d386b0f830eec5fd40e207f31",
-            "start": 32.722,
-            "end": 42.275
+            "start": 33.205,
+            "end": 42.758
         },
         {
             "text": "Weet je het nog niet zeker? Vink dan \"voorlopig\" aan. In de planner staat er dan een waarschuwing bij.",
             "hash": "d8c7d2614b15abe661f45236be5e0aeda83b51dd",
-            "start": 43.275,
-            "end": 48.362
+            "start": 43.758,
+            "end": 48.845
         },
         {
             "text": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek aan de zijkant om hem langer of korter te maken.",
             "hash": "0ca91c80d03a024b6d54d1b837ebe5efaf3472c9",
-            "start": 49.362,
-            "end": 57.268
+            "start": 49.845,
+            "end": 57.751
         },
         {
-            "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
-            "hash": "0ec05eaa22cad469e123e764b977008f3abd5285",
-            "start": 58.268,
-            "end": 64.989
+            "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel het soort of de monteurs.",
+            "hash": "214792c0e74a39128ce31f40e341c098367b2f96",
+            "start": 58.751,
+            "end": 66.16
         }
     ]
 }

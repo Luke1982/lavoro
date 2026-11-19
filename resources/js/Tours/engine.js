@@ -1,4 +1,4 @@
-import { reactive, markRaw, nextTick, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { reactive, markRaw, nextTick, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
 import axios from 'axios'
 import { router, usePage } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
@@ -612,6 +612,26 @@ export function markMoment(say, when) {
     const index = when ? say.toLowerCase().indexOf(when.toLowerCase()) : -1
 
     return index > 0 ? index / say.length : 0
+}
+
+/**
+ * Runs `play` once the voice is `fraction` of the way into the first step of the
+ * chapter, or at once when the rondleiding is further on: for a chapter action the
+ * viewer should see happen under the light, not before it. Hands back how to stop
+ * waiting.
+ */
+export function onceIntoChapter(fraction, play) {
+    let played = false
+
+    return watch(
+        () => tourState.run && (tourState.run.stepIndex > 0 || (tourState.phase === 'step' && tourState.caption.progress >= fraction)),
+        (due) => {
+            if (!due || played) return
+            played = true
+            play()
+        },
+        { immediate: true },
+    )
 }
 
 function narrate(token, step) {

@@ -1,5 +1,5 @@
 <template>
-    <div ref="root" :class="['w-full scroll-mb-28 rounded-lavoro-sm border-2 shadow-sm md:w-80 lg:scroll-mb-0', block.tone, selected ? 'ring-2 ring-lavoro-blue ring-offset-2 dark:ring-offset-slate-900' : '']">
+    <div ref="root" :data-block="step.type" :class="['w-full scroll-mb-28 rounded-lavoro-sm border-2 shadow-sm md:w-80 lg:scroll-mb-0', block.tone, selected ? 'ring-2 ring-lavoro-blue ring-offset-2 dark:ring-offset-slate-900' : '']">
         <div class="flex cursor-grab items-start gap-2 px-3 py-2 active:cursor-grabbing" draggable="true"
             @dragstart="start" @click="editor.select(step.id)">
             <GripVerticalIcon class="mt-0.5 size-4 flex-none opacity-40" />
@@ -13,7 +13,7 @@
             @click.stop>
             <MacroBlockSettings :step-id="step.id" />
             <p v-for="message in errors" :key="message" class="text-xs text-red-600 dark:text-red-400">{{ message }}</p>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between" data-tour="macro.block.controls">
                 <div class="flex gap-1">
                     <button type="button" title="Omhoog" :disabled="isFirst" :class="MOVE_BUTTON"
                         @click="editor.shift(step.id, -1)">

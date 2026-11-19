@@ -1,0 +1,34 @@
+{
+    "tour": "werkbon",
+    "chapter": "macros",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "macros.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Een macro doet een paar vaste stappen in één keer. Met \"macro\" kies je er een.",
+            "hash": "3e61cea04ceb57c32210e14526af536ec1c2e5bf",
+            "start": 0,
+            "end": 4.412
+        },
+        {
+            "text": "Een macro stelt zijn vragen één voor één. Een ja of nee brengt je meteen verder.",
+            "hash": "3e84fc8f2e62a6c6b4f53a5909f279ba7c5310ed",
+            "start": 5.412,
+            "end": 10.374
+        },
+        {
+            "text": "Met \"volgende\" ga je verder. Na de laatste vraag klik je op \"uitvoeren\". Alles gebeurt dan in één keer.",
+            "hash": "e66011ff34217799afc9abacde441b6c4aa91561",
+            "start": 11.374,
+            "end": 17.984
+        },
+        {
+            "text": "Macro's maak je in het menu onder werkbonnen, bij \"macro's\". Daar zet je blokken onder elkaar.",
+            "hash": "3503b3a774d8203a666371485f1f933338649591",
+            "start": 18.984,
+            "end": 24.207
+        }
+    ]
+}

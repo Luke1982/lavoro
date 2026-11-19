@@ -12,9 +12,9 @@
             Nog niets om op de tijdlijn te tonen.
         </div>
 
-        <div v-else>
+        <div v-else data-tour="project.timeline.content">
             <div class="flex items-center gap-3 mb-3 flex-wrap">
-                <div class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-xs">
+                <div class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-xs" data-tour="project.timeline.view">
                     <button type="button" class="px-2.5 py-1 transition-colors"
                         :class="viewMode === 'month' ? 'bg-lavoro-blue text-white' : 'hover:bg-gray-50 dark:hover:bg-slate-800'"
                         @click="viewMode = 'month'">
@@ -32,18 +32,19 @@
                     scrollTo/scrollBy JS involved — scroll-padding-left on the scroller keeps it
                     clear of the sticky sidebar, scroll-margin-inline on the target adds air.
                 -->
-                <a href="#tl-today"
+                <a href="#tl-today" data-tour="project.timeline.today"
                     class="rounded-md border border-gray-300 dark:border-slate-700 px-2.5 py-1 text-xs hover:bg-gray-50 dark:hover:bg-slate-800">
                     Vandaag
                 </a>
-                <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400" title="Horizontaal zoomen — tijdsperiode">
+                <label class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400" title="Horizontaal zoomen — tijdsperiode"
+                    data-tour="project.timeline.zoom">
                     <MagnifyingGlassIcon class="size-3.5 shrink-0" />
-                    <input type="range" :min="minZoomColPx" max="2000" step="1" v-model.number="zoomColPx" class="accent-lavoro-blue" />
+                    <input type="range" :min="minZoomColPx" :max="ZOOM_MAX_COL_PX" step="1" v-model.number="zoomColPx" class="accent-lavoro-blue" />
                 </label>
             </div>
 
             <div class="flex gap-2">
-                <label class="tl-vslider-wrap shrink-0" title="Verticaal zoomen — detail per vak">
+                <label class="tl-vslider-wrap shrink-0" title="Verticaal zoomen — detail per vak" data-tour="project.timeline.rows">
                     <input type="range" :min="LANE_HEIGHT_MIN" :max="LANE_HEIGHT_MAX" step="1" v-model.number="LANE_HEIGHT"
                         class="tl-vslider accent-lavoro-blue" />
                 </label>
@@ -214,7 +215,7 @@
 
                                 <template v-if="serviceOrders.length">
                                     <div class="relative" :style="{ height: soGroupPx + 'px' }">
-                                        <button v-for="(chip, idx) in soChips" :key="'so-' + chip.so.id" type="button" data-tl-item
+                                        <button v-for="(chip, idx) in soChips" :key="'so-' + chip.so.id" type="button" data-tl-item :data-tl-order="idx"
                                             class="absolute rounded-md border px-2 py-1 text-left cursor-pointer hover:brightness-95 dark:hover:brightness-125 shadow-sm tl-chip"
                                             :class="{ 'ring-2 ring-lavoro-blue': isSelected('serviceorder', chip.so) }"
                                             :style="soChipStyle(chip, soPacked.lanes[idx])"
@@ -357,7 +358,7 @@
         <Teleport to="body">
             <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95"
                 leave-active-class="transition duration-75 ease-in" leave-to-class="opacity-0">
-                <div v-if="bubbleOpen && selected" ref="bubbleRef" role="dialog" :aria-label="bubbleTitle" :style="bubbleStyle"
+                <div v-if="bubbleOpen && selected" ref="bubbleRef" role="dialog" :aria-label="bubbleTitle" :style="bubbleStyle" data-tour="project.timeline.bubble"
                     class="flex flex-col w-80 max-w-[calc(100vw-1rem)] max-h-96 overflow-hidden rounded-lavoro-sm bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-slate-600 text-sm text-gray-800 dark:text-slate-100">
                     <div class="shrink-0 px-4 pt-3 pb-2 font-semibold leading-snug">{{ bubbleTitle }}</div>
 
@@ -458,6 +459,8 @@ import {
 } from '@heroicons/vue/24/outline'
 import { nlDate, nlTime, initials } from '@/Utilities/Utilities'
 import { showContextMenu } from '@/Utilities/contextMenu'
+import { useTimelineTour } from '@/Composables/useTimelineTour'
+import { isInsideTourLayer } from '@/Tours/layer'
 
 const LEFT_COL_PX = 224
 const MAX_HEIGHT_PX = 600
@@ -466,6 +469,7 @@ const MILESTONE_MIN_GAP_DAYS = 10
 const LANE_HEIGHT_MIN = 72
 const LANE_HEIGHT_MAX = 140
 const LANE_HEIGHT_DEFAULT = 80
+const ZOOM_MAX_COL_PX = 2000
 
 // Last-used zoom level is remembered per browser session (sessionStorage), horizontal and
 // vertical tracked separately, shared across every project timeline you open this session.
@@ -710,7 +714,8 @@ const axisTicks = computed(() => {
     const ticks = []
     if (viewMode.value === 'week') {
         for (let i = 0; i < weekCount.value; i++) {
-            const d = new Date(weekStartBase.value.getTime() + i * 7 * 86400000)
+            const d = new Date(weekStartBase.value)
+            d.setDate(d.getDate() + i * 7)
             ticks.push({ key: 'w' + i, label: `Wk ${isoWeekNumber(d)} · ${shortDate(d)}`, pct: i * colWidthPct.value })
         }
     } else {
@@ -1007,18 +1012,21 @@ function toggleBubble(type, item, event) {
 
 function onItemContextMenu(event, type, item) {
     event.preventDefault()
-    const anchor = pointAnchor(event.currentTarget, event.clientX)
+    showItemMenu(type, item, pointAnchor(event.currentTarget, event.clientX), event.clientX, event.clientY)
+}
+
+function showItemMenu(type, item, anchor, x, y) {
     const links = itemLinks(type, item)
 
     if (!links.length) {
         openBubble(type, item, anchor)
-        return
+        return null
     }
 
     closeBubble()
-    showContextMenu({
-        x: event.clientX,
-        y: event.clientY,
+    return showContextMenu({
+        x,
+        y,
         items: [
             { label: itemTitle(type, item), disabled: true },
             { label: 'Details', divided: true, onClick: () => openBubble(type, item, anchor) },
@@ -1057,6 +1065,7 @@ function closeBubbleOnOutsidePointer(event) {
     if (!bubbleOpen.value) return
     if (bubbleRef.value?.contains(event.target)) return
     if (event.target.closest?.('[data-tl-item]')) return
+    if (isInsideTourLayer(event.target)) return
     closeBubble()
 }
 
@@ -1074,6 +1083,11 @@ onUnmounted(() => {
     stopBubbleTracking?.()
     document.removeEventListener('pointerdown', closeBubbleOnOutsidePointer, true)
     document.removeEventListener('keydown', closeBubbleOnEscape)
+})
+
+useTimelineTour({
+    scrollerRef, viewMode, zoomColPx, LANE_HEIGHT, LANE_HEIGHT_MIN, LANE_HEIGHT_MAX, ZOOM_MAX_COL_PX, minZoomColPx,
+    LEFT_COL_PX, ZOOM_H_STORAGE_KEY, ZOOM_V_STORAGE_KEY, soChips, openBubble, closeBubble, showItemMenu, pointAnchor,
 })
 </script>
 

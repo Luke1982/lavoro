@@ -1,4 +1,4 @@
-import { ref, toValue, watch } from 'vue'
+import { nextTick, ref, toValue, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
 /**
@@ -25,8 +25,10 @@ export function useServiceOrderView(viewerExecutes) {
     }
 
     const view = ref(readChoice() ?? (toValue(viewerExecutes) ? 'monteur' : 'standaard'))
+    let remembering = true
 
     watch(view, (chosen) => {
+        if (!remembering) return
         try {
             localStorage.setItem(key, chosen)
         } catch {
@@ -34,5 +36,22 @@ export function useServiceOrderView(viewerExecutes) {
         }
     })
 
-    return { view }
+    /**
+     * Voor een rondleiding: toont `chosen` zonder het als keuze te onthouden, en
+     * zegt hoe het terug moet. Null als die weergave er al staat.
+     */
+    function preview(chosen) {
+        if (view.value === chosen) return null
+        const before = view.value
+        remembering = false
+        view.value = chosen
+
+        return async () => {
+            view.value = before
+            await nextTick()
+            remembering = true
+        }
+    }
+
+    return { view, preview }
 }

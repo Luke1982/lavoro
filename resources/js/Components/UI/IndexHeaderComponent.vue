@@ -8,7 +8,7 @@
             <span class="text-xs">{{ subtitle }}</span>
         </div>
         <div class="flex w-full sm:w-auto justify-end gap-x-2 sm:gap-x-4">
-            <div class="hidden sm:block" data-tour="list.search">
+            <div v-if="showSearch" class="hidden sm:block" data-tour="list.search">
                 <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
                     :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
             </div>
@@ -25,7 +25,7 @@
             </button>
         </div>
     </div>
-    <div class="my-2 block sm:hidden" data-tour="list.search">
+    <div v-if="showSearch" class="my-2 block sm:hidden" data-tour="list.search">
         <SearchComponent :url="searchUrl" :param="searchParam" :placeholder="searchPlaceholder"
             :other-params="searchOtherParams" :local-storage-key="localStorageKey" :input-id="inputId" />
     </div>

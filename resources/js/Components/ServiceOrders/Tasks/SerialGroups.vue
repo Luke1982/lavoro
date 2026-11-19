@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-4">
+    <div class="space-y-4" data-tour="task.work.serials">
         <div v-for="group in groups" :key="group.key">
             <p v-if="group.label" class="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
                 {{ group.label }}

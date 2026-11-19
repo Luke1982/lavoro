@@ -51,7 +51,7 @@
                 {
                     "spot": "machines.row",
                     "title": "Een machine in de lijst",
-                    "text": "Per machine zie je merk en model met de soort en de klant. Ook zie je het **serienummer**, sinds wanneer hij in gebruik is en de **volgende keuring**. Is die datum rood? Dan is de keuring al verlopen. Rechts zie je hoeveel storingen er **open**, **lopend** en **gesloten** zijn. Klik op een regel om de machine te openen.",
+                    "text": "Per machine zie je merk en model met het soort apparaat en de klant. Ook zie je het **serienummer**, sinds wanneer hij in gebruik is en de **volgende keuring**. Is die datum rood? Dan is de keuring al verlopen. Rechts zie je hoeveel storingen er **open**, **lopend** en **gesloten** zijn. Klik op een regel om de machine te openen.",
                     "say": "Per machine zie je het merk, het model en de klant. Ook het serienummer en de volgende keuring staan erbij. Is die datum rood? Dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
                     "marks": [
                         {
@@ -77,7 +77,7 @@
                         "device": "phone"
                     },
                     "title": "Een machine in de lijst",
-                    "text": "Per machine zie je merk en model met de soort en de klant. Rechts staan de status en de **volgende keuring**. Tik op een regel om de machine te openen. Daar vind je ook het serienummer en de storingen.",
+                    "text": "Per machine zie je merk en model met het soort apparaat en de klant. Rechts staan de status en de **volgende keuring**. Tik op een regel om de machine te openen. Daar vind je ook het serienummer en de storingen.",
                     "say": "Per machine zie je het merk, het model en de klant. Rechts staan de status en de volgende keuring. Tik op een regel om de machine te openen."
                 }
             ]

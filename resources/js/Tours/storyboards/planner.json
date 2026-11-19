@@ -448,8 +448,8 @@
                     "spot": "planner.appointment.type",
                     "action": "openNewAppointment",
                     "title": "Soort afspraak",
-                    "text": "De soort geeft de afspraak zijn kleur. Staat de leidende kleur in de instellingen op **monteurrol**? Dan telt de kleur van de planrol van de monteur. De soort telt dan alleen als hij geen planrol heeft. Daarnaast staat de status.",
-                    "say": "Kies de soort afspraak. Die bepaalt meestal de kleur van de afspraak.",
+                    "text": "Het soort afspraak bepaalt de kleur. Staat de leidende kleur in de instellingen op **monteurrol**? Dan telt de kleur van de planrol van de monteur. Het soort telt dan alleen als hij geen planrol heeft. Daarnaast staat de status.",
+                    "say": "Kies het soort afspraak. Dat bepaalt meestal de kleur van de afspraak.",
                     "marks": [
                         {
                             "spot": "planner.appointment.type.field",
@@ -560,8 +560,8 @@
                 {
                     "spot": "planner.event",
                     "title": "Bevestiging naar de klant",
-                    "text": "Hangt er een werkbon aan de afspraak? Dan stuur je met de rechtermuisknop een **afspraakbevestiging** naar de klant. In hetzelfde menu wijzig je de soort, de monteurs of voorlopig.",
-                    "say": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel de soort of de monteurs.",
+                    "text": "Hangt er een werkbon aan de afspraak? Dan stuur je met de rechtermuisknop een **afspraakbevestiging** naar de klant. In hetzelfde menu wijzig je het soort, de monteurs of voorlopig.",
+                    "say": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je snel het soort of de monteurs.",
                     "aid": {
                         "type": "picture",
                         "scene": "event-menu",

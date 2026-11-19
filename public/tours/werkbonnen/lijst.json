@@ -1,0 +1,52 @@
+{
+    "tour": "werkbonnen",
+    "chapter": "lijst",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "audio": "lijst.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Je zoekt op klant, plaats of beschrijving. Ook een werkbonnummer of de naam van een monteur werkt.",
+            "hash": "fd201287919c1fc0441026c4b1ff8f6b16474de2",
+            "start": 0,
+            "end": 5.478
+        },
+        {
+            "text": "Onder \"Filters\" kies je één of meer fases. Met \"alleen te sluiten\" zie je wat nog dicht moet. Je browser onthoudt die keuze.",
+            "hash": "4cf85e5a9a0166d214859553edb83abba2a7c18f",
+            "start": 6.478,
+            "end": 13.806
+        },
+        {
+            "text": "Per werkbon zie je de klant met het adres en de fase. De nieuwste werkbon staat bovenaan.",
+            "hash": "bf0831d555625623acbc8f8d2d31e4afc7b35499",
+            "start": 14.806,
+            "end": 19.857
+        },
+        {
+            "text": "Klik op de beschrijving, de fase of het factuurnummer om het meteen aan te passen. Met een factuurnummer gaat de werkbon vanzelf naar \"gefactureerd\".",
+            "hash": "2fdda10f6d4e5fdd81220fba9e0849865a8cc86b",
+            "start": 20.857,
+            "end": 29.512
+        },
+        {
+            "text": "Hier zie je of de werkbon al naar de klant of naar de administratie is gestuurd.",
+            "hash": "196df79d4c9182902e3a59724ebefbc4dbc048a9",
+            "start": 30.512,
+            "end": 34.963
+        },
+        {
+            "text": "Met het oogje open je de werkbon. Moet hij nog worden ingepland? Dan brengt een knop je naar de planner.",
+            "hash": "307e239ffc3a17b17bb3ed70fba7b2c18519c231",
+            "start": 35.963,
+            "end": 41.986
+        },
+        {
+            "text": "Een nieuwe werkbon maak je met \"Nieuw\" op het dashboard. Of vanaf een klant, een project of een contract.",
+            "hash": "6232a111d9aae21b7152ecafe2ff691a7b48084b",
+            "start": 42.986,
+            "end": 48.962
+        }
+    ]
+}
