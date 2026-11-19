@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\DeleteOrphanedImagesJob;
+use App\Jobs\ExpireQuotesJob;
 use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
@@ -72,6 +73,13 @@ Schedule::call(fn () => $forEachTenant(fn () => NotifyMissingExecutionTimesJob::
 
 Schedule::call(fn () => $forEachTenant(fn () => NotifyOverdueMilestonesJob::dispatch()))
     ->dailyAt('07:05')->name('notifications-overdue-milestones')->withoutOverlapping();
+
+/** Only where the customer has the quotes module: without it there is nothing to lapse. */
+Schedule::call(fn () => $forEachTenant(function () {
+    if (tenancy()->tenant->hasModule('quotes')) {
+        ExpireQuotesJob::dispatch();
+    }
+}))->dailyAt('06:30')->name('quotes-expire')->withoutOverlapping();
 
 /**
  * Every five minutes, so a reminder set for an hour lands between 55 and 60

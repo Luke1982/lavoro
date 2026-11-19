@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Products\SetProductAttributeValuesAction;
+use App\Enums\DefaultMaterialPrompts;
 use App\Http\Requests\ProductBulkUpdateRequest;
 use App\Http\Requests\ProductCreateRequest;
 use App\Http\Requests\ProductIndexRequest;
@@ -14,9 +15,12 @@ use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Product;
 use App\Models\ProductAttribute;
+use App\Models\ProductMaterialDefault;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
+use App\Models\Quote;
 use App\Models\Supplier;
+use App\Policies\QuotePolicy;
 use App\Services\ProductableService;
 use App\Traits\ReadsPerPage;
 use Illuminate\Http\JsonResponse;
@@ -215,7 +219,29 @@ class ProductController extends Controller
             ])->values()->all(),
             'allSuppliers' => $all_suppliers,
             'suppliersUseAjax' => $supplier_count > 50,
+            'materialDefaults' => $this->materialDefaults($request, $product),
+            'materialDefaultPrompts' => DefaultMaterialPrompts::comboBoxArray(),
         ]);
+    }
+
+    /**
+     * The materials that come along when this product is offered on a quote.
+     * Null rather than empty for whoever may not set them, so the page leaves
+     * the chapter out instead of showing an empty one. The licence is asked
+     * apart from the policy: a super admin passes every policy, also for a
+     * customer without the module, and would get a chapter whose routes refuse.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function materialDefaults(ProductReadRequest $request, Product $product): ?array
+    {
+        if (!QuotePolicy::licensed() || !$request->user()->can('manageDefaults', Quote::class)) {
+            return null;
+        }
+
+        return $product->materialDefaults()->with('material.usageUnit')->get()
+            ->map(fn (ProductMaterialDefault $default) => $default->toOption())
+            ->all();
     }
 
     /**

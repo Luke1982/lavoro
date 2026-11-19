@@ -529,6 +529,12 @@
                     </BoxComponent>
                 </div>
             </template>
+
+            <!-- Chapter 5: Offerte (alleen met de module offertes) -->
+            <template v-if="materialDefaults" #chapter-5>
+                <ProductMaterialDefaults :product-id="product.id" :defaults="materialDefaults"
+                    :prompts="materialDefaultPrompts" />
+            </template>
         </ChapterContents>
     </ChaptersComponent>
 
@@ -592,6 +598,7 @@ import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
+import ProductMaterialDefaults from '@/Components/Products/ProductMaterialDefaults.vue';
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue';
 import { CubeIcon, PuzzlePieceIcon, InformationCircleIcon, LinkIcon, TrashIcon, PlusIcon, PencilIcon, MagnifyingGlassIcon, FingerPrintIcon, BuildingOfficeIcon, TagIcon } from '@heroicons/vue/24/outline';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
@@ -639,6 +646,9 @@ const props = defineProps({
     productSuppliers: { type: Array, default: () => [] },
     allSuppliers: { type: Array, default: () => [] },
     suppliersUseAjax: { type: Boolean, default: false },
+    /** Null without the quotes module or the right to set them; the chapter is then left out. */
+    materialDefaults: { type: Array, default: null },
+    materialDefaultPrompts: { type: Array, default: () => [] },
     machineOption: { type: Object, required: true },
 });
 
@@ -669,6 +679,7 @@ const chapters = [
     `Gerelateerde producten (${props.product.child_products.length})`,
     `Documenten (${props.product.documents.length})`,
     `Leveranciers (${props.productSuppliers.length})`,
+    ...(props.materialDefaults ? [`Offerte (${props.materialDefaults.length})`] : []),
 ]
 watch([
     () => form.model,

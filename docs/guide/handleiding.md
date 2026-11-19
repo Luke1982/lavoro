@@ -550,6 +550,30 @@ Geannuleerde afspraken tellen niet mee in de uren. De prijzen komen uit de mater
 
 Het bestand laat zien wat je op de werkbonnen zelf ook ziet. Mag je niet alle werkbonnen lezen, zoals een monteur, dan staan alleen je eigen werkbonnen erin, met hun afspraken, uren en materialen. Taken die bij een rol horen die je niet hebt, staan er niet in; de materialen van zo'n taak tellen wel mee, alleen zonder de naam van de taak. Bedragen (verkoopwaarde, onvoorzien in euro's) en de financiële opmerkingen staan er alleen in voor wie de financiële gegevens van werkbonnen mag zien. Kostprijs en marge vragen daarnaast het recht om de kostprijs van materialen te zien. Het tabblad Financiële notities krijg je alleen met het recht op projectfinanciën. Zonder die rechten ontbreken die kolommen en tabbladen helemaal.
 
+## Offertes
+
+Offertes zijn een **extra module** die apart wordt afgenomen. Heeft je bedrijf de module niet, dan staat **Verkoop → Offertes** niet in het menu en ook het tabblad **Offerte** op een product niet. De module aanzetten loopt via Lavoro (MajorLabel), niet via een instelling in je eigen omgeving.
+
+Een offerte heeft een **offertenummer** (OF-2026-014: het jaar waarin hij gemaakt is en een teller die elk jaar opnieuw begint), een titel, een klant, een offertedatum en een **geldig tot**-datum. Laat je die leeg, dan is de offerte een maand geldig. Daarnaast kies je een locatie, een contactpersoon en een project van de klant, en schrijf je een openingstekst en een slottekst.
+
+**Statussen.** Een offerte begint als **Concept**. Alleen een concept pas je aan. Met **Markeer als verzonden** gaat hij naar **Verzonden**; dat kan pas als er een regel met een bedrag op staat. Daarna zet je hem op **Geaccepteerd**, **Afgewezen** of **Vervallen**. Wil je een verzonden offerte nog veranderen, kies dan **Terug naar concept**; de geschiedenis houdt bij dat dat gebeurde. Elke ochtend gaat een verzonden offerte waarvan de geldigheid verstreken is vanzelf naar Vervallen, met de reden in de geschiedenis. Een offerte die verzonden is geweest kun je niet verwijderen; wijs hem af of laat hem vervallen.
+
+**Regels.** In het veld **Product of materiaal** zoek je op merk, model, artikelnummer, naam of code. Je ziet producten en materialen in één lijst, met hun verkoopprijs. Kies, vul het aantal in en klik **Toevoegen**. Met **Eigen regel** voeg je iets toe dat niet in de catalogus staat, zoals montage-uren of voorrijkosten; met **Tekst** een kop of alinea zonder bedrag. Je past omschrijving, aantal, eenheid, prijs, korting en btw (21%, 9% of 0%) direct op de regel aan; het wordt opgeslagen zodra je het veld verlaat. Een regel neemt de prijs over uit de catalogus op het moment van toevoegen: verander je later de prijs in de catalogus, dan blijft de offerte zoals hij was. Met het lijstje-icoon maak je een regel **optioneel**: die telt niet mee in het totaal, maar staat apart als optioneel bedrag.
+
+**Standaardmaterialen bij een product.** Op de productpagina staat het tabblad **Offerte**. Daar zet je de materialen die meekomen als je het product aanbiedt, met een aantal **per stuk** van het product, en hoe het meekomt:
+
+- **Altijd meenemen**: het materiaal komt zonder vragen onder het product op de offerte.
+- **Vragen, standaard aan**: bij het toevoegen van het product verschijnt een vraag met dit materiaal aangevinkt; je past het aantal aan of vinkt het uit.
+- **Voorstellen, standaard uit**: het staat in dezelfde vraag, maar uitgevinkt.
+
+Een airco-unit kan bijvoorbeeld altijd een muurbeugel meenemen, vragen hoeveel meter leidingwerk erbij moet en een condenspomp voorstellen. De materialen staan op de offerte ingesprongen onder het product. Verwijder je het product, dan gaan ze mee. Verander je het aantal van het product, dan veranderen de materialen die nog op het standaardaantal staan mee (drie units, drie beugels); een aantal dat je zelf hebt aangepast blijft staan. Een standaardmateriaal weghalen of aanpassen verandert niets aan offertes die er al mee gemaakt zijn.
+
+**Totaal.** Rechts staan het totaal exclusief btw, de btw per tarief, het totaal inclusief btw en het optionele bedrag. Wie het recht **Inkoopprijzen en marges op offertes zien** heeft, ziet ook per regel de inkoopprijs en onder het totaal de inkoop en de marge. Zonder dat recht zijn inkoopprijzen nergens te zien en kun je ze ook niet invullen.
+
+**Geschiedenis.** Onderaan staat alles wat er met de offerte gebeurde: regels die werden toegevoegd, gewijzigd (met de waarde ervoor en erna) of verwijderd, materialen die vanzelf meekwamen of meegingen met het aantal, en elke statuswijziging. Statuswijzigingen staan ook in de geschiedenis van de klant en het project. De assistent leest dezelfde geschiedenis.
+
+**Rechten.** Offertes bekijken, aanmaken, wijzigen en versturen, verwijderen, inkoopprijzen en marges zien, en standaardmaterialen bij producten instellen zijn zes losse rechten. Wie offertes mag wijzigen, ziet bij het zoeken de verkoopprijzen van de catalogus, ook zonder het recht om producten te bekijken. Standaardmaterialen instellen vraagt daarnaast het recht om materialen te bekijken: het zoekveld op het tabblad Offerte zoekt in de materialenlijst.
+
 ## Documenten, foto's en opmerkingen
 
 Aan vrijwel elk record (werkbon, storing, project, onderhoudscontract, klant, machine, product…) kunnen bijlagen hangen:

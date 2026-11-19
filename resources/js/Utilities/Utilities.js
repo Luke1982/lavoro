@@ -239,6 +239,17 @@ export const projectStatusClass = (status) => {
     return map[status] || "";
 };
 
+export const quoteStatusClass = (status) => {
+    const map = {
+        Concept: "text-gray-500 dark:text-slate-400",
+        Verzonden: "text-blue-600 dark:text-blue-400",
+        Geaccepteerd: "text-green-600 dark:text-green-400",
+        Afgewezen: "text-red-600 dark:text-red-400",
+        Vervallen: "text-amber-600 dark:text-amber-400",
+    };
+    return map[status] || "";
+};
+
 // Single source of truth for maintenance-contract status presentation.
 // `label`, `badge` (BadgeComponent color) and `color` (svg/dot hex) all derive
 // from here. The raw tailwind classes below stay literal because the JIT
@@ -362,6 +373,10 @@ export const nlCurrency = (value) => _currencyFormatter.format(Number(value) || 
 
 const _oneDecimal = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 1 });
 export const nlDecimal = (value) => _oneDecimal.format(Number(value) || 0);
+
+/** A quantity as the server keeps it: at most two decimals, no trailing zeros (2, 2,5, 0,33). */
+const _quantity = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 2 });
+export const nlQuantity = (value) => _quantity.format(Number(value) || 0);
 
 /**
  * Byte count as "245 KB" / "1,2 MB". Whole units below a megabyte, because a

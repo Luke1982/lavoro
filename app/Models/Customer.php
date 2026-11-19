@@ -246,6 +246,11 @@ class Customer extends Model
         return $this->hasMany(Project::class)->orderBy('start_date');
     }
 
+    public function quotes()
+    {
+        return $this->hasMany(Quote::class)->orderByDesc('quote_date');
+    }
+
     public function billingCustomer()
     {
         return $this->belongsTo(self::class, 'billing_customer_id');

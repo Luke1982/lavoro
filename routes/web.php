@@ -52,6 +52,7 @@ use App\Http\Controllers\ProductAttributeProductTypeController;
 use App\Http\Controllers\ProductAttributeValueableController;
 use App\Http\Controllers\ProductAttributeValueController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductMaterialDefaultController;
 use App\Http\Controllers\ProductRelationController;
 use App\Http\Controllers\ProductSupplierController;
 use App\Http\Controllers\ProductTypeController;
@@ -60,6 +61,9 @@ use App\Http\Controllers\ProjectExportController;
 use App\Http\Controllers\ProjectMilestoneController;
 use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\QuoteCatalogController;
+use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\QuoteLineController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoutePlanController;
@@ -226,6 +230,38 @@ Route::group(
             'priceformulas/{priceformula}/upgrade-contracts',
             [PriceFormulaController::class, 'upgradeContracts']
         )->name('priceformulas.upgradeContracts');
+
+        /**
+         * Offertes, the paid module 'quotes'. The middleware turns the whole
+         * chapter away for a customer without it; QuotePolicy asks the same
+         * question again for every path that does not come through here.
+         */
+        Route::middleware('tenant.module:quotes')->group(function () {
+            Route::resource('quotes', QuoteController::class)->except(['create', 'edit']);
+            Route::patch('quotes/{quote}/status', [QuoteController::class, 'status'])->name('quotes.status');
+            Route::get('quotes/{quote}/catalog', QuoteCatalogController::class)
+                ->middleware('throttle:120,1')
+                ->name('quotes.catalog');
+            Route::post('quotes/{quote}/products', [QuoteLineController::class, 'storeProduct'])
+                ->name('quotes.products.store');
+            Route::scopeBindings()->group(function () {
+                Route::post('quotes/{quote}/lines', [QuoteLineController::class, 'store'])->name('quotes.lines.store');
+                Route::patch('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'update'])
+                    ->name('quotes.lines.update');
+                Route::delete('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'destroy'])
+                    ->name('quotes.lines.destroy');
+                Route::post('products/{product}/material-defaults', [ProductMaterialDefaultController::class, 'store'])
+                    ->name('products.materialDefaults.store');
+                Route::patch(
+                    'products/{product}/material-defaults/{materialDefault}',
+                    [ProductMaterialDefaultController::class, 'update']
+                )->name('products.materialDefaults.update');
+                Route::delete(
+                    'products/{product}/material-defaults/{materialDefault}',
+                    [ProductMaterialDefaultController::class, 'destroy']
+                )->name('products.materialDefaults.destroy');
+            });
+        });
         Route::resource('customers', CustomerController::class)
             ->only(['index', 'show', 'update', 'store', 'edit']);
         Route::resource('locations', LocationController::class)

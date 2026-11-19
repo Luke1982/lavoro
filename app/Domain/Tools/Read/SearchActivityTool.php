@@ -18,6 +18,7 @@ use App\Models\PriceFormula;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\Project;
+use App\Models\Quote;
 use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
@@ -60,6 +61,7 @@ class SearchActivityTool implements Tool
         'onderhoudscontract' => MaintenanceContract::class,
         'project' => Project::class,
         'prijsformule' => PriceFormula::class,
+        'offerte' => Quote::class,
         'product' => Product::class,
         'kenmerk' => ProductAttribute::class,
     ];
@@ -306,6 +308,10 @@ class SearchActivityTool implements Tool
 
                     if ($user->can('viewAny', PriceFormula::class)) {
                         $outer->orWhere('activityables.activityable_type', PriceFormula::class);
+                    }
+
+                    if ($user->can('viewAny', Quote::class)) {
+                        $outer->orWhere('activityables.activityable_type', Quote::class);
                     }
 
                     if ($user->can('viewAny', Product::class)) {

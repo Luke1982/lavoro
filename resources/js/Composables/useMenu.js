@@ -85,8 +85,12 @@ export function useMenu() {
      * vragen stellen: de eerste laat alleen beheerders toe, de tweede juist
      * alleen wie het recht met zoveel woorden gekregen heeft — beheerder zijn is
      * daar niet genoeg, zoals bij technisch beheer.
+     *
+     * module gaat aan alles vooraf: een betaalde module die de klant niet heeft
+     * staat voor niemand in het menu, ook niet voor een beheerder.
      */
     const maySee = (item) => {
+        if (item.module && !(page.props.tenant?.modules ?? []).includes(item.module)) return false
         if (item.superadminOnly) return isSuperAdmin.value
         if (item.adminOnly) return isAdmin.value
         if (item.explicitPermission) return (page.props.auth?.permissions || []).includes(item.explicitPermission)

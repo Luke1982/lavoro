@@ -164,6 +164,15 @@ class Product extends Model
             ->where('productable_type', Product::class);
     }
 
+    /**
+     * The materials that come along when this product is put on a quote, and
+     * whether each one comes without asking, is asked, or is only suggested.
+     */
+    public function materialDefaults()
+    {
+        return $this->hasMany(ProductMaterialDefault::class)->orderBy('position')->orderBy('id');
+    }
+
     public function suppliers()
     {
         return $this->morphToMany(Supplier::class, 'suppliable')

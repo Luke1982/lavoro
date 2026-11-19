@@ -20,10 +20,13 @@ use App\Models\ProjectTemplate;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Services\ProjectFigures;
+use App\Traits\OffersCustomerPicker;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProjectController extends Controller
 {
+    use OffersCustomerPicker;
+
     public function index(ProjectReadRequest $request)
     {
         $list = $request->listQuery();
@@ -221,27 +224,5 @@ class ProjectController extends Controller
         };
 
         $query->orderByDesc('id');
-    }
-
-    /**
-     * Past the threshold the customer pickers search instead of holding every
-     * customer; only the one being filtered on still travels along, or the filter
-     * would show a blank where its name goes.
-     *
-     * @return array{customers: array<int, array<string, mixed>>, customersUseAjax: bool}
-     */
-    private function customerPicker(?int $filtered_customer_id): array
-    {
-        $use_ajax = Customer::count() > Customer::COMBO_AJAX_THRESHOLD;
-
-        return [
-            'customers' => Customer::query()
-                ->when($use_ajax, fn (Builder $query) => $query->whereKey($filtered_customer_id))
-                ->orderBy('name')
-                ->get(['id', 'name', 'city'])
-                ->map->toComboOption()
-                ->all(),
-            'customersUseAjax' => $use_ajax,
-        ];
     }
 }

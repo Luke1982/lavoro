@@ -126,6 +126,14 @@
             ]
         },
         {
+            "id": "verkoop",
+            "label": "Verkoop",
+            "accent": "verkoop",
+            "items": [
+                { "id": "offertes", "label": "Offertes", "icon": "FilePen", "href": "/quotes", "permission": "quote.read", "module": "quotes" }
+            ]
+        },
+        {
             "id": "prijzen",
             "label": "Prijzen",
             "accent": "prijzen",
