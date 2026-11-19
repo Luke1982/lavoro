@@ -55,11 +55,7 @@
         :material-usage-units="materialUsageUnits" :hidden-task-count="hiddenTaskCount" :is-signed="isSigned"
         :closed-stage-id="closedStageId" :planned-after-today="plannedAfterToday"
         @times-updated="missingTimes = $event" @open-signoff="showCloseModal = true"
-        @close-service-order="closeViaStage">
-        <template #work-actions>
-            <RunMacroMenu :service-order-id="serviceOrder.id" :macros="shownMacros" :locations="macroLocations" />
-        </template>
-    </MechanicView>
+        @close-service-order="closeViaStage" />
     <ChaptersComponent v-else v-model="chapter">
         <template v-if="chapterHeaders.length > 1">
             <span class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-2 block sm:hidden pb-2">Sectie</span>
