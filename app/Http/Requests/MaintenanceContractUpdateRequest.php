@@ -69,9 +69,10 @@ class MaintenanceContractUpdateRequest extends FormRequest
     }
 
     /**
-     * Handing a contract to another customer would strand its machines with their old
-     * owner, so the caller has to say what happens to them. Required here rather than
-     * only in the modal, so the same rule holds for anything hitting the endpoint
+     * A contract only ever holds its own customer's machines, so handing it to another
+     * customer means saying what happens to them: they move along (transfer), or they
+     * stay with the old customer and come off the contract (detach). Required here rather
+     * than only in the modal, so the same rule holds for anything hitting the endpoint
      * directly.
      *
      * @return array<string, array<int, mixed>>
@@ -83,7 +84,7 @@ class MaintenanceContractUpdateRequest extends FormRequest
         }
 
         return [
-            'asset_strategy' => ['required', 'in:transfer'],
+            'asset_strategy' => ['required', 'in:transfer,detach'],
             'location_map' => ['nullable', 'array'],
             'location_map.*' => [
                 'nullable',

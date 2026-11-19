@@ -75,7 +75,7 @@ class MaintenanceContractCustomerChangeTest extends TestCase
 
         $response = $this->actingAs($this->user)->patch(
             route('maintenancecontracts.update', $contract),
-            ['customer_id' => $this->new_customer->id, 'asset_strategy' => 'detach']
+            ['customer_id' => $this->new_customer->id, 'asset_strategy' => 'keep']
         );
 
         $response->assertSessionHasErrors('asset_strategy');

@@ -34,6 +34,7 @@ use App\Services\MaintenanceContractServiceOrderGenerator;
 use App\Traits\OffersContractTemplates;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaintenanceContractController extends Controller
 {
@@ -181,7 +182,15 @@ class MaintenanceContractController extends Controller
             $maintenancecontract->save();
         }
 
-        $maintenancecontract->update($validated);
+        DB::transaction(function () use ($maintenancecontract, $validated, $asset_strategy) {
+            if ($asset_strategy === 'detach') {
+                foreach ($maintenancecontract->assets as $asset) {
+                    app(DetachContractAssetAction::class)->execute($maintenancecontract, $asset->pivot->id);
+                }
+            }
+
+            $maintenancecontract->update($validated);
+        });
 
         /**
          * Ordered deliberately: the contract already belongs to the new customer by the

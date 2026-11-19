@@ -16,6 +16,7 @@ use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
+use App\Models\MaintenanceContract;
 use App\Models\Productable;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
@@ -314,10 +315,14 @@ class AssetController extends Controller
 
         $roots = $roots->unique('id')->values();
 
-        $service = app(AssetTransferService::class);
+        $preview = app(AssetTransferService::class)->preview($roots, $new_customer_id);
+
+        if ($subject instanceof MaintenanceContract) {
+            $preview = $this->contractPreview($preview, $subject);
+        }
 
         return response()->json(array_merge(
-            $service->preview($roots, $new_customer_id),
+            $preview,
             [
                 'target_locations' => Location::where('customer_id', $new_customer_id)
                     ->orderBy('title')
@@ -330,6 +335,25 @@ class AssetController extends Controller
                     ->all(),
             ]
         ));
+    }
+
+    /**
+     * A contract changes customer before its machines move, so it keeps them: it is not
+     * among the contracts losing them. When only the contract moves, the machines that
+     * come off are the ones on it, not everything in their trees.
+     *
+     * @param  array<string, mixed>  $preview
+     * @return array<string, mixed>
+     */
+    private function contractPreview(array $preview, MaintenanceContract $contract): array
+    {
+        return array_merge($preview, [
+            'contracts' => collect($preview['contracts'])
+                ->reject(fn (array $losing) => $losing['id'] === $contract->id)
+                ->values()
+                ->all(),
+            'attached' => $contract->assets->modelKeys(),
+        ]);
     }
 
     /**
