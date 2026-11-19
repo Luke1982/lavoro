@@ -67,7 +67,10 @@ class ServiceOrderMovedBetweenProjects extends BaseSignal implements ProjectSign
 
     public function activityMetadata(): ?array
     {
-        return ['service_order_id' => $this->service_order->getKey()];
+        return [
+            'service_order_id' => $this->service_order->getKey(),
+            'service_order_number' => $this->service_order->number,
+        ];
     }
 
     public function changes(): array

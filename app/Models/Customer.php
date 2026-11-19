@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\CustomerFactory;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
+    use HasActivities;
     use HasCustomFields;
 
     /** @use HasFactory<CustomerFactory> */

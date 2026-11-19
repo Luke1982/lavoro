@@ -36,10 +36,10 @@
                                 <div v-if="event.byline" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
                                     {{ event.byline }}
                                 </div>
-                                <div v-if="event.serviceOrderId" class="mt-0.5 text-[11px]">
-                                    <a :href="`/serviceorders/${event.serviceOrderId}`"
+                                <div v-if="event.serviceOrder" class="mt-0.5 text-[11px]">
+                                    <a :href="`/serviceorders/${event.serviceOrder.id}`"
                                        class="text-blue-500 hover:underline">
-                                        Werkbon #{{ event.serviceOrderNumber }}
+                                        Werkbon {{ event.serviceOrder.number }}
                                     </a>
                                 </div>
                                 <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
@@ -96,12 +96,27 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
-import { nlDate, nlTime, initials } from '@/Utilities/Utilities';
+import { nlDate, nlTime, initials, formatWbNumber } from '@/Utilities/Utilities';
+
+const SERVICE_ORDER = 'App\\Models\\ServiceOrder';
 
 const props = defineProps({
     activities: { type: Array, required: true },
-    limit: { type: Number, default: 5 }
+    limit: { type: Number, default: 5 },
+    /**
+     * On a page that gathers history from several werkbonnen, such as a customer,
+     * each entry about one of them links to the werkbon it happened on.
+     */
+    linkServiceOrders: { type: Boolean, default: false },
 });
+
+/** The werkbon an entry names in its metadata, or, where asked, the werkbon it is about. */
+function serviceOrderOf(a) {
+    const id = a.metadata?.service_order_id
+        ?? (props.linkServiceOrders && a.subject_type === SERVICE_ORDER ? a.subject_id : null);
+
+    return id ? { id, number: a.metadata?.service_order_number ?? formatWbNumber(id) } : null;
+}
 
 /**
  * Wie er met naam en toenaam staat. Een klant die via een aanleverlink iets
@@ -184,8 +199,7 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),
         datetime: a.created_at,
-        serviceOrderId:     a.metadata?.service_order_id ?? null,
-        serviceOrderNumber: a.metadata?.service_order_number ?? null,
+        serviceOrder: serviceOrderOf(a),
     };
 }));
 

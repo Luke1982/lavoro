@@ -24,6 +24,12 @@ class CustomerController extends Controller
     use OffersContractTemplates;
 
     /**
+     * A long-standing customer's history keeps growing with every werkbon done for
+     * them; the page shows the latest stretch of it, the assistant searches all of it.
+     */
+    private const HISTORY_SHOWN = 100;
+
+    /**
      * Display a listing of the resource.
      */
     public function index(CustomerReadRequest $request)
@@ -115,6 +121,10 @@ class CustomerController extends Controller
             'contacts',
             'maintenanceContracts',
             'locations' => fn ($q) => $q->withCount(['assets', 'serviceOrders', 'events']),
+            'activities' => fn ($q) => $q->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at')
+                ->limit(self::HISTORY_SHOWN),
         ]);
 
         if ($request->user()->can('seeSensitive', Customer::class)) {
@@ -157,6 +167,7 @@ class CustomerController extends Controller
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),
             'contractTemplates' => $this->templatesFor($request),
             'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),
+            'historyShown' => self::HISTORY_SHOWN,
         ]);
     }
 

@@ -558,6 +558,20 @@
                 </BoxComponent>
             </template>
 
+            <!-- Chapter 4: Geschiedenis -->
+            <template #chapter-4>
+                <BoxComponent>
+                    <div class="flex items-center mb-4">
+                        <ClockIcon class="size-5 mr-2 text-gray-500 dark:text-slate-400" />
+                        <span class="text-md font-bold dark:text-slate-100">Geschiedenis</span>
+                        <span v-if="customer.activities?.length >= historyShown"
+                            class="ml-2 text-xs text-gray-500 dark:text-slate-400">de laatste {{ historyShown }} wijzigingen</span>
+                    </div>
+                    <TimelineComponent v-if="customer.activities?.length" :activities="customer.activities" link-service-orders />
+                    <p v-else class="text-xs text-gray-500 dark:text-slate-500">Nog niets gebeurd.</p>
+                </BoxComponent>
+            </template>
+
         </ChapterContents>
     </ChaptersComponent>
 
@@ -651,6 +665,7 @@ import { ref, computed, watch } from 'vue';
 import { canCreateMaintenanceContract, hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
 import ServiceOrderList from '@/Components/ServiceOrderList.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import AssetCreateDrawer from '@/Components/Assets/AssetCreateDrawer.vue';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
 import { useComboSearch } from '@/Composables/useComboSearch';
@@ -709,6 +724,11 @@ const props = defineProps({
     serviceOrderStages: {
         type: Array,
         default: () => [],
+    },
+    /** How many history entries the page loads; the assistant searches all of them. */
+    historyShown: {
+        type: Number,
+        default: 100,
     },
 });
 
@@ -968,5 +988,6 @@ const chapters = computed(() => [
     `Machines (${props.assets.length})`,
     `Werkbonnen & Projecten (${sortedProjects.value.length + serviceOrdersWithoutProject.value.length})`,
     `Afspraken (${eventList.value.length})`,
+    'Geschiedenis',
 ])
 </script>
