@@ -11,8 +11,6 @@ use App\Http\Requests\Admin\UpdateServiceOrderClosingTextRequest;
 use App\Http\Requests\Admin\UpdateServiceOrderMinImagesRequest;
 use App\Models\GeneralSetting;
 use App\Services\AppointmentReminders;
-use App\Services\SnelStartClient;
-use App\Services\SnelStartImport;
 use App\Support\MapDueColors;
 use App\Support\UpcomingContractAssets;
 use Illuminate\Http\RedirectResponse;
@@ -35,11 +33,6 @@ class GeneralSettingsController extends Controller
             'serviceOrderClosingText' => GeneralSetting::get('serviceorder_closing_text', ''),
             'allowOverrideUnavailability' => GeneralSetting::get('allow_override_unavailability', '0') === '1',
             'serviceOrderMinImages' => (int) GeneralSetting::get('serviceorder_min_images', 0),
-            'snelStartConnected' => SnelStartClient::isConfigured(),
-            'snelStartNightlyUpdatesCustomers' => GeneralSetting::get(
-                SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS,
-                '1'
-            ) === '1',
             'mapDueColors' => MapDueColors::get(),
             'mapDueColorsDefaults' => MapDueColors::defaults(),
             'upcomingHideContractAssets' => UpcomingContractAssets::hiddenForEveryone(),
@@ -75,13 +68,6 @@ class GeneralSettingsController extends Controller
     public function updateAllowOverrideUnavailability(UpdateBooleanSettingRequest $request): RedirectResponse
     {
         GeneralSetting::set('allow_override_unavailability', $request->validated()['value'] ? '1' : '0');
-
-        return redirect()->back()->with('success', 'Instellingen opgeslagen.');
-    }
-
-    public function updateSnelStartNightlyCustomers(UpdateBooleanSettingRequest $request): RedirectResponse
-    {
-        GeneralSetting::set(SnelStartImport::NIGHTLY_UPDATES_CUSTOMERS, $request->validated()['value'] ? '1' : '0');
 
         return redirect()->back()->with('success', 'Instellingen opgeslagen.');
     }

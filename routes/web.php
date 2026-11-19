@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Integrations\Area;
 use App\Http\Controllers\ActivityListController;
 use App\Http\Controllers\Admin\CalendarGrantController;
 use App\Http\Controllers\Admin\GeneralSettingsController;
@@ -32,6 +33,8 @@ use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ImportMappingController;
+use App\Http\Controllers\IntegrationController;
+use App\Http\Controllers\IntegrationWebhookController;
 use App\Http\Controllers\InternalAnnouncementController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
@@ -86,7 +89,6 @@ use App\Http\Controllers\ServiceOrderTaskController;
 use App\Http\Controllers\ServiceOrderTaskInstanceAssetController;
 use App\Http\Controllers\ServiceOrderTaskInstanceController;
 use App\Http\Controllers\ServiceOrderTaskInstanceMaterialController;
-use App\Http\Controllers\SnelStartImportController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierImportController;
 use App\Http\Controllers\TechnicalManagementController;
@@ -460,11 +462,20 @@ Route::group(
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
             ->only(['store', 'update', 'destroy']);
-        // Manual SnelStart imports
-        Route::post('imports/snelstart/materials', [SnelStartImportController::class, 'importMaterials'])
-            ->name('imports.snelstart.materials');
-        Route::post('imports/snelstart/customers', [SnelStartImportController::class, 'importCustomers'])
-            ->name('imports.snelstart.customers');
+        Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
+        Route::post('integrations', [IntegrationController::class, 'store'])->name('integrations.store');
+        Route::put('integrations/{integration}', [IntegrationController::class, 'update'])
+            ->name('integrations.update')->whereNumber('integration');
+        Route::delete('integrations/{integration}', [IntegrationController::class, 'destroy'])
+            ->name('integrations.destroy')->whereNumber('integration');
+        Route::post('integrations/{integration}/test', [IntegrationController::class, 'test'])
+            ->name('integrations.test')->whereNumber('integration');
+        Route::delete('integrations/{integration}/credentials/{key}', [IntegrationController::class, 'forgetCredential'])
+            ->name('integrations.forgetCredential')->whereNumber('integration');
+        Route::post('integrations/{integration}/pull/{area}', [IntegrationController::class, 'pull'])
+            ->name('integrations.pull')
+            ->whereNumber('integration')
+            ->whereIn('area', array_map(fn (Area $area) => $area->value, Area::synced()));
         Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])
             ->name('serviceorders.bulk-update');
         Route::resource('serviceorders', ServiceOrderController::class);
@@ -478,8 +489,8 @@ Route::group(
             'serviceorders/{serviceorder}/email-pdf-with-jobs',
             [ServiceOrderController::class, 'emailPdfWithJobs']
         )->name('serviceorders.emailPdfWithJobs');
-        Route::post('serviceorders/{serviceorder}/send-snelstart', [ServiceOrderController::class, 'sendToSnelStart'])
-            ->name('serviceorders.sendToSnelStart');
+        Route::post('serviceorders/{serviceorder}/send-to-administration', [ServiceOrderController::class, 'sendToAdministration'])
+            ->name('serviceorders.sendToAdministration');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
         Route::get(
@@ -699,10 +710,6 @@ Route::group(
                 [GeneralSettingsController::class, 'updateServiceOrderMinImages'],
             )->name('admin.settings.serviceorder-min-images');
             Route::put(
-                'admin/settings/snelstart-nightly-customers',
-                [GeneralSettingsController::class, 'updateSnelStartNightlyCustomers'],
-            )->name('admin.settings.snelstart-nightly-customers');
-            Route::put(
                 'admin/settings/map-due-colors',
                 [GeneralSettingsController::class, 'updateMapDueColors'],
             )->name('admin.settings.map-due-colors');
@@ -753,3 +760,11 @@ Route::post('password/reset', [PasswordResetController::class, 'update'])->name(
 Route::post('google/webhook', [GoogleWebhookController::class, 'handle'])
     ->name('google.webhook')
     ->middleware('throttle:60,1');
+
+/**
+ * Where linked systems report changes. The token in the address is the only
+ * credential; see IntegrationWebhookController.
+ */
+Route::match(['get', 'post'], 'integrations/webhook/{token}', [IntegrationWebhookController::class, 'handle'])
+    ->name('integrations.webhook')
+    ->middleware('throttle:integration-webhooks');

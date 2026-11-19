@@ -137,24 +137,6 @@
                 </div>
             </div>
 
-            <div class="p-6 bg-white rounded-md dark:bg-slate-800 shadow-sm dark:shadow-none ring-1 ring-gray-900/5 dark:ring-slate-800">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">SnelStart</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400 mb-4">
-                    Uit SnelStart, onder Instellingen &rarr; Koppelingen. Zonder deze sleutels blijft de
-                    SnelStart-knop op de werkbon uit.
-                </p>
-                <div class="max-w-xl space-y-4">
-                    <SecretField v-model="integrations.snelstart_client_key" label="Clientsleutel"
-                        :stored="storedSecrets.snelstart_client_key"
-                        :error="integrations.errors.snelstart_client_key"
-                        @forget="forgetSecret('snelstart_client_key')" />
-                    <SecretField v-model="integrations.snelstart_subscription_key" label="Abonnementssleutel"
-                        :stored="storedSecrets.snelstart_subscription_key"
-                        :error="integrations.errors.snelstart_subscription_key"
-                        @forget="forgetSecret('snelstart_subscription_key')" />
-                </div>
-            </div>
-
             <div>
                 <button type="submit" :disabled="integrations.processing"
                     class="inline-flex items-center rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
@@ -251,8 +233,6 @@ const integrations = useForm({
     mail_imap_username: props.settings.mail_imap_username || '',
     mail_imap_password: '',
     mail_imap_sent_folder: props.settings.mail_imap_sent_folder || '',
-    snelstart_client_key: '',
-    snelstart_subscription_key: '',
 })
 
 const saveIntegrations = () => integrations.put('/technical-management/integrations', { preserveScroll: true })

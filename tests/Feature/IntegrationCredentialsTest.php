@@ -4,13 +4,14 @@ namespace Tests\Feature;
 
 use App\Exceptions\GraphNotConfigured;
 use App\Exceptions\MailNotConfigured;
-use App\Exceptions\SnelStartNotConfigured;
+use App\Exceptions\Refusal;
 use App\Models\GeneralSetting;
+use App\Models\IntegrationConnection;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\SnelStartClient;
 use App\Support\TenantMailTransport;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\TestCase;
 
@@ -23,13 +24,20 @@ class IntegrationCredentialsTest extends TestCase
 {
     use CreatesAuthenticatedUsers;
 
-    public function test_snelstart_without_credentials_throws_rather_than_falling_back(): void
+    public function test_snelstart_without_credentials_refuses_rather_than_falling_back(): void
     {
         config(['services.snelstart.client_key' => 'global-sleutel-die-niemand-mag-gebruiken']);
+        Http::preventStrayRequests();
 
-        $this->expectException(SnelStartNotConfigured::class);
+        $connection = IntegrationConnection::create([
+            'connector' => 'snelstart',
+            'is_active' => true,
+            'settings' => IntegrationConnection::defaultSettings('snelstart'),
+        ]);
 
-        new SnelStartClient;
+        $this->expectException(Refusal::class);
+
+        $connection->connector()->test();
     }
 
     public function test_smtp_mail_without_credentials_throws_rather_than_falling_back(): void
@@ -58,12 +66,24 @@ class IntegrationCredentialsTest extends TestCase
 
     public function test_secret_keys_are_ciphertext_on_disk(): void
     {
-        GeneralSetting::set('snelstart_client_key', 'zeer-geheime-sleutel');
+        GeneralSetting::set('mail_smtp_password', 'zeer-geheim-wachtwoord');
 
-        $raw = (string) DB::table('general_settings')->where('key', 'snelstart_client_key')->value('value');
+        $raw = (string) DB::table('general_settings')->where('key', 'mail_smtp_password')->value('value');
+
+        $this->assertStringNotContainsString('zeer-geheim-wachtwoord', $raw);
+        $this->assertSame('zeer-geheim-wachtwoord', GeneralSetting::get('mail_smtp_password'));
+    }
+
+    public function test_connection_credentials_are_ciphertext_on_disk(): void
+    {
+        $connection = new IntegrationConnection(['connector' => 'snelstart', 'settings' => []]);
+        $connection->storeCredentials(['client_key' => 'zeer-geheime-sleutel']);
+        $connection->save();
+
+        $raw = (string) DB::table('integration_connections')->where('id', $connection->id)->value('credentials');
 
         $this->assertStringNotContainsString('zeer-geheime-sleutel', $raw);
-        $this->assertSame('zeer-geheime-sleutel', GeneralSetting::get('snelstart_client_key'));
+        $this->assertSame('zeer-geheime-sleutel', $connection->fresh()->credentials()['client_key']);
     }
 
     public function test_the_settings_page_response_contains_no_secret(): void

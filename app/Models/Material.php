@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasActivities;
+use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 class Material extends Model
 {
     use HasActivities;
+    use HasIntegrations;
     use RecordsHistory;
 
     public const FINANCIAL_ATTRIBUTES = [
@@ -37,9 +39,7 @@ class Material extends Model
         'code' => 'Code',
     ];
 
-    protected array $activity_ignore = [
-        'snelstart_id',
-    ];
+    protected array $activity_ignore = [];
 
     /** Fields whose entries are gated behind a permission. */
     protected array $activity_permissions = [
@@ -52,7 +52,6 @@ class Material extends Model
         'material_category_id',
         'material_usage_unit_id',
         'price',
-        'snelstart_id',
         'code',
         'vendor_code',
         'cost_price',

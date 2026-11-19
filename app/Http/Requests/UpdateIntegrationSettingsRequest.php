@@ -47,9 +47,6 @@ class UpdateIntegrationSettingsRequest extends FormRequest
             'mail_imap_username' => ['nullable', 'string', 'max:255'],
             'mail_imap_password' => ['nullable', 'string', 'max:512'],
             'mail_imap_sent_folder' => ['nullable', 'string', 'max:255'],
-
-            'snelstart_client_key' => ['nullable', 'string', 'max:512'],
-            'snelstart_subscription_key' => ['nullable', 'string', 'max:512'],
         ];
     }
 
@@ -74,8 +71,6 @@ class UpdateIntegrationSettingsRequest extends FormRequest
             'mail_imap_username' => 'gebruikersnaam',
             'mail_imap_password' => 'wachtwoord',
             'mail_imap_sent_folder' => 'map',
-            'snelstart_client_key' => 'clientsleutel',
-            'snelstart_subscription_key' => 'abonnementssleutel',
         ];
     }
 
@@ -107,16 +102,6 @@ class UpdateIntegrationSettingsRequest extends FormRequest
 
                 if (!filled($this->input('mail_smtp_password')) && !$this->secret_is_stored('mail_smtp_password')) {
                     $validator->errors()->add('mail_smtp_password', 'Nodig zolang er via een eigen mailserver verstuurd wordt.');
-                }
-            }
-
-            $snelstart = ['snelstart_client_key', 'snelstart_subscription_key'];
-            $filled = array_filter($snelstart, fn ($field) => filled($this->input($field))
-                || $this->secret_is_stored($field));
-
-            if (count($filled) === 1) {
-                foreach (array_diff($snelstart, $filled) as $missing) {
-                    $validator->errors()->add($missing, 'SnelStart heeft beide sleutels nodig.');
                 }
             }
         });

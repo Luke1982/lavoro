@@ -2,6 +2,7 @@
 
 namespace App\Services\EBoekhouden;
 
+use App\Domain\Integrations\IntegrationUnavailable;
 use App\Exceptions\Refusal;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +21,11 @@ use XMLWriter;
  * Every call opens a session and closes it again. There are a handful of calls
  * per click in the admin panel; keeping a session alive between requests is not
  * worth the state.
+ *
+ * Two kinds of user. The panel books MajorLabel's own invoices with the
+ * account in .env, and that is what the container hands out. A customer that
+ * links its own administration gets a client made with forCustomer(), with the
+ * codes of its connection; the .env account is never reached from there.
  */
 class EBoekhoudenClient
 {
@@ -27,11 +33,57 @@ class EBoekhoudenClient
 
     private const ENVELOPE = 'http://schemas.xmlsoap.org/soap/envelope/';
 
+    /** The fields of a relation, in the order of the WSDL, which is the order they must be sent in. */
+    public const RELATION_FIELDS = [
+        'ID', 'AddDatum', 'Code', 'Bedrijf', 'Contactpersoon', 'Geslacht', 'Adres', 'Postcode', 'Plaats', 'Land',
+        'Adres2', 'Postcode2', 'Plaats2', 'Land2', 'Telefoon', 'GSM', 'FAX', 'Email', 'Site', 'Notitie',
+        'Bankrekening', 'Girorekening', 'BTWNummer', 'KvkNummer', 'Aanhef', 'IBAN', 'BIC', 'BP',
+        'Def1', 'Def2', 'Def3', 'Def4', 'Def5', 'Def6', 'Def7', 'Def8', 'Def9', 'Def10',
+        'LA', 'Gb_ID', 'GeenEmail', 'NieuwsbriefgroepenCount',
+    ];
+
+    /** @var array{url: string, username: ?string, security_code_1: ?string, security_code_2: ?string} */
+    private array $credentials;
+
+    private string $not_configured;
+
+    public function __construct()
+    {
+        $this->credentials = [
+            'url' => (string) config('services.eboekhouden.url'),
+            'username' => config('services.eboekhouden.username'),
+            'security_code_1' => config('services.eboekhouden.security_code_1'),
+            'security_code_2' => config('services.eboekhouden.security_code_2'),
+        ];
+        $this->not_configured = 'e-Boekhouden is niet ingesteld: EBOEKHOUDEN_USERNAME en de twee beveiligingscodes ontbreken in .env.';
+    }
+
+    public static function forCustomer(?string $username, ?string $security_code_1, ?string $security_code_2): self
+    {
+        $client = new self;
+        $client->credentials = [
+            'url' => (string) config('services.eboekhouden.url'),
+            'username' => $username,
+            'security_code_1' => $security_code_1,
+            'security_code_2' => $security_code_2,
+        ];
+        $client->not_configured = 'e-Boekhouden is niet ingesteld: de gebruikersnaam of een beveiligingscode ontbreekt. '
+            . 'Vul ze in onder Instellingen → Koppelingen.';
+
+        return $client;
+    }
+
     public function configured(): bool
     {
-        return filled(config('services.eboekhouden.username'))
-            && filled(config('services.eboekhouden.security_code_1'))
-            && filled(config('services.eboekhouden.security_code_2'));
+        return filled($this->credentials['username'])
+            && filled($this->credentials['security_code_1'])
+            && filled($this->credentials['security_code_2']);
+    }
+
+    /** Opens and closes a session: the codes work. */
+    public function verify(): void
+    {
+        $this->session(fn () => null);
     }
 
     /**
@@ -70,7 +122,7 @@ class EBoekhoudenClient
     {
         $result = $this->session(fn (string $session) => $this->call('AddRelatie', [
             'SessionID' => $session,
-            'SecurityCode2' => config('services.eboekhouden.security_code_2'),
+            'SecurityCode2' => $this->credentials['security_code_2'],
             'oRel' => [
                 'ID' => 0,
                 'AddDatum' => now()->format('Y-m-d'),
@@ -123,7 +175,7 @@ class EBoekhoudenClient
         return $this->session(function (string $session) use ($number) {
             $result = $this->call('GetMutaties', [
                 'SessionID' => $session,
-                'SecurityCode2' => config('services.eboekhouden.security_code_2'),
+                'SecurityCode2' => $this->credentials['security_code_2'],
                 'cFilter' => [
                     'MutatieNr' => 0,
                     'MutatieNrVan' => 0,
@@ -152,7 +204,7 @@ class EBoekhoudenClient
     {
         $result = $this->session(fn (string $session) => $this->call('AddMutatie', [
             'SessionID' => $session,
-            'SecurityCode2' => config('services.eboekhouden.security_code_2'),
+            'SecurityCode2' => $this->credentials['security_code_2'],
             'oMut' => [
                 'MutatieNr' => 0,
                 'Soort' => 'FactuurVerstuurd',
@@ -181,12 +233,159 @@ class EBoekhoudenClient
         return (string) $result->Mutatienummer;
     }
 
+    /**
+     * Relations with every field e-Boekhouden keeps, by the names of the WSDL.
+     * Without an id: all of them.
+     *
+     * @return array<int, array<string, string>>
+     */
+    public function fullRelations(int $id = 0): array
+    {
+        return $this->session(function (string $session) use ($id) {
+            $result = $this->call('GetRelaties', [
+                'SessionID' => $session,
+                'SecurityCode2' => $this->credentials['security_code_2'],
+                'cFilter' => ['Trefwoord' => '', 'Code' => '', 'ID' => $id],
+            ]);
+
+            return array_map(function (SimpleXMLElement $relation) {
+                $fields = [];
+
+                foreach (self::RELATION_FIELDS as $field) {
+                    $fields[$field] = trim((string) $relation->{$field});
+                }
+
+                return $fields;
+            }, $this->items($result->Relaties->cRelatie));
+        });
+    }
+
+    /**
+     * Writes a relation whole: AddRelatie without an id, UpdateRelatie with
+     * one. Returns its id. Pass what fullRelations() gave with the changes laid
+     * over it, so fields Lavoro does not know are written back as they were.
+     *
+     * @param  array<string, mixed>  $fields
+     */
+    public function saveRelation(array $fields): int
+    {
+        $defaults = [
+            'ID' => 0, 'AddDatum' => now()->format('Y-m-d'), 'Land' => 'NL', 'Notitie' => 'Lavoro', 'BP' => 'B',
+            'Gb_ID' => 0, 'GeenEmail' => 1, 'NieuwsbriefgroepenCount' => 0,
+        ];
+
+        $relation = [];
+
+        foreach (self::RELATION_FIELDS as $field) {
+            $value = $fields[$field] ?? null;
+            $relation[$field] = filled($value) ? $value : ($defaults[$field] ?? '');
+        }
+
+        $id = (int) $relation['ID'];
+
+        $result = $this->session(fn (string $session) => $this->call($id === 0 ? 'AddRelatie' : 'UpdateRelatie', [
+            'SessionID' => $session,
+            'SecurityCode2' => $this->credentials['security_code_2'],
+            'oRel' => $relation,
+        ]));
+
+        return $id === 0 ? (int) $result->Rel_ID : $id;
+    }
+
+    /**
+     * Articles, all of them or the one with this id.
+     *
+     * @return array<int, array{id: string, code: string, name: string, unit: string, cost_price: string, price: string, active: bool}>
+     */
+    public function articles(int $id = 0): array
+    {
+        return $this->session(function (string $session) use ($id) {
+            $result = $this->call('GetArtikelen', [
+                'SessionID' => $session,
+                'SecurityCode2' => $this->credentials['security_code_2'],
+                'cFilter' => [
+                    'ArtikelID' => $id,
+                    'ArtikelOmschrijving' => '',
+                    'ArtikelCode' => '',
+                    'GroepOmschrijving' => '',
+                    'GroepCode' => '',
+                ],
+            ]);
+
+            return array_map(fn (SimpleXMLElement $article) => [
+                'id' => (string) $article->ArtikelID,
+                'code' => trim((string) $article->ArtikelCode),
+                'name' => trim((string) $article->ArtikelOmschrijving),
+                'unit' => trim((string) $article->Eenheid),
+                'cost_price' => (string) $article->InkoopprijsExclBTW,
+                'price' => (string) $article->VerkoopprijsExclBTW,
+                'active' => strtolower((string) $article->Actief) !== 'false',
+            ], $this->items($result->Artikelen->cArtikel));
+        });
+    }
+
+    /**
+     * An invoice in e-Boekhouden's own invoicing, made from an invoice
+     * template there. With $book it is also booked in the ledger; without, it
+     * waits there to be checked and booked by hand. Returns the number
+     * e-Boekhouden gave it.
+     *
+     * @param  array{relation_code: string, date: string, payment_days: int, template: string, description: string, book: bool, lines: array<int, array{quantity: float, unit: string, code: string, description: string, price: float, vat_code: string, revenue_account: string}>}  $invoice
+     */
+    public function addSalesInvoice(array $invoice): string
+    {
+        $flag = fn (bool $value) => $value ? 'true' : 'false';
+
+        $result = $this->session(fn (string $session) => $this->call('AddFactuur', [
+            'SessionID' => $session,
+            'SecurityCode2' => $this->credentials['security_code_2'],
+            'oFact' => [
+                'Factuurnummer' => '',
+                'Relatiecode' => $invoice['relation_code'],
+                'Datum' => $invoice['date'],
+                'Betalingstermijn' => (string) $invoice['payment_days'],
+                'Factuursjabloon' => $invoice['template'],
+                'PerEmailVerzenden' => $flag(false),
+                'EmailOnderwerp' => '',
+                'EmailBericht' => '',
+                'EmailVanAdres' => '',
+                'EmailVanNaam' => '',
+                'AutomatischeIncasso' => $flag(false),
+                'IncassoIBAN' => '',
+                'IncassoMachtigingSoort' => '',
+                'IncassoMachtigingID' => '',
+                'IncassoMachtigingDatumOndertekening' => $invoice['date'],
+                'IncassoMachtigingFirst' => $flag(false),
+                'IncassoRekeningNummer' => '',
+                'IncassoTnv' => '',
+                'IncassoPlaats' => '',
+                'IncassoOmschrijvingRegel1' => '',
+                'IncassoOmschrijvingRegel2' => '',
+                'IncassoOmschrijvingRegel3' => '',
+                'InBoekhoudingPlaatsen' => $flag($invoice['book']),
+                'BoekhoudmutatieOmschrijving' => $invoice['description'],
+                'Regels' => array_map(fn (array $line) => ['cFactuurRegel' => [
+                    'Aantal' => (string) $line['quantity'],
+                    'Eenheid' => $line['unit'],
+                    'Code' => $line['code'],
+                    'Omschrijving' => $line['description'],
+                    'PrijsPerEenheid' => (string) $line['price'],
+                    'BTWCode' => $line['vat_code'],
+                    'TegenrekeningCode' => $line['revenue_account'],
+                    'KostenplaatsID' => 0,
+                ]], $invoice['lines']),
+            ],
+        ]));
+
+        return trim((string) $result->Factuurnummer);
+    }
+
     /** @return array<int, array{id: int, code: string, name: string, city: string, email: string, vat_number: string, coc_number: string}> */
     private function relations(string $session, array $filter): array
     {
         $result = $this->call('GetRelaties', [
             'SessionID' => $session,
-            'SecurityCode2' => config('services.eboekhouden.security_code_2'),
+            'SecurityCode2' => $this->credentials['security_code_2'],
             'cFilter' => $filter,
         ]);
 
@@ -216,13 +415,13 @@ class EBoekhoudenClient
     private function session(callable $work): mixed
     {
         if (!$this->configured()) {
-            throw new Refusal('e-Boekhouden is niet ingesteld: EBOEKHOUDEN_USERNAME en de twee beveiligingscodes ontbreken in .env.');
+            throw new Refusal($this->not_configured);
         }
 
         $session = (string) $this->call('OpenSession', [
-            'Username' => config('services.eboekhouden.username'),
-            'SecurityCode1' => config('services.eboekhouden.security_code_1'),
-            'SecurityCode2' => config('services.eboekhouden.security_code_2'),
+            'Username' => $this->credentials['username'],
+            'SecurityCode1' => $this->credentials['security_code_1'],
+            'SecurityCode2' => $this->credentials['security_code_2'],
             'Source' => 'Lavoro',
         ])->SessionID;
 
@@ -240,7 +439,8 @@ class EBoekhoudenClient
     /**
      * One SOAP call. Returns the {Operation}Result element, or throws a refusal
      * with the reason e-Boekhouden gave: a wrong code, an unknown relation, a
-     * booking that does not add up.
+     * booking that does not add up. A service that is down or busy is
+     * IntegrationUnavailable, which a queued job tries again later.
      */
     private function call(string $operation, array $payload): SimpleXMLElement
     {
@@ -248,15 +448,22 @@ class EBoekhoudenClient
             $response = Http::timeout(30)
                 ->withHeaders(['SOAPAction' => '"' . self::NS . '/' . $operation . '"'])
                 ->withBody($this->envelope($operation, $payload), 'text/xml; charset=utf-8')
-                ->post(config('services.eboekhouden.url'));
+                ->post($this->credentials['url']);
         } catch (ConnectionException $e) {
-            throw new Refusal('e-Boekhouden is niet bereikbaar: ' . $e->getMessage());
+            throw new IntegrationUnavailable('e-Boekhouden is niet bereikbaar: ' . $e->getMessage());
         }
 
         $xml = @simplexml_load_string($response->body());
 
-        if ($xml === false) {
-            throw new Refusal('e-Boekhouden gaf een onleesbaar antwoord (HTTP ' . $response->status() . ').');
+        /**
+         * Not a SOAP answer at all: an error page from something in front of
+         * the service. A fault does come back as a 500, but inside an envelope,
+         * so the status alone cannot tell "busy" from "refused".
+         */
+        if ($xml === false || !isset($xml->children(self::ENVELOPE)->Body)) {
+            throw $response->status() === 429 || $response->serverError()
+                ? new IntegrationUnavailable('e-Boekhouden is even niet beschikbaar (HTTP ' . $response->status() . ').')
+                : new Refusal('e-Boekhouden gaf een onleesbaar antwoord (HTTP ' . $response->status() . ').');
         }
 
         $body = $xml->children(self::ENVELOPE)->Body;

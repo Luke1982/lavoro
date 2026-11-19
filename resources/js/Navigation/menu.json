@@ -194,6 +194,7 @@
                     "children": [
                         { "id": "algemeneinstellingen", "label": "Algemeen", "href": "/admin/settings", "adminOnly": true },
                         { "id": "agendatoegang", "label": "Agenda-toegang", "href": "/admin/calendar-grants", "adminOnly": true },
+                        { "id": "koppelingen", "label": "Koppelingen", "href": "/integrations", "permission": "integration.manage" },
                         { "id": "extravelden", "label": "Extra velden", "href": "/customfields", "permission": "customfield.read" },
                         { "id": "meldingsvoorkeuren", "label": "Meldingen", "href": "/notificationsubscriptions" }
                     ]

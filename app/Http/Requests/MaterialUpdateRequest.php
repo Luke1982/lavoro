@@ -30,7 +30,6 @@ class MaterialUpdateRequest extends FormRequest
             'material_category_id' => 'nullable|exists:material_categories,id',
             'material_usage_unit_id' => 'nullable|exists:material_usage_units,id',
             'price' => ['nullable', 'numeric', 'min:0', DbRange::decimal(10, 2)],
-            'snelstart_id' => 'nullable|uuid',
             'code' => 'nullable|string|max:255',
             'vendor_code' => 'nullable|string|max:255',
             'divisable' => 'boolean',

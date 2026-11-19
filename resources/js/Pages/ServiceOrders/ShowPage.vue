@@ -439,7 +439,7 @@
                         </BoxComponent>
                     </template>
                     <template #sidebar>
-                        <BoxComponent v-if="snelStartEnabled && hasPermission('snelstart.send_serviceorder')"
+                        <BoxComponent v-if="administrationSystems.length && hasPermission('integration.send_serviceorder')"
                             class="mb-4">
                             <div class="flex items-center justify-between mb-3">
                                 <span class="text-sm text-gray-500 dark:text-slate-400">Status verzending</span>
@@ -448,9 +448,10 @@
                                     {{ serviceOrderPillText(serviceOrder) }}
                                 </span>
                             </div>
-                            <button v-if="!serviceOrder.sent_to_administration" @click="sendToSnelStart"
-                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold">
-                                Verstuur naar SnelStart
+                            <button v-if="!serviceOrder.sent_to_administration" @click="sendToAdministration"
+                                :disabled="sendForm.processing"
+                                class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60 text-sm font-semibold">
+                                {{ sendForm.processing ? 'Bezig...' : 'Verstuur naar ' + administrationSystems.join(' en ') }}
                             </button>
                             <span v-else
                                 class="w-full inline-flex items-center justify-center px-4 py-2 text-sm rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700">
@@ -751,7 +752,7 @@ const props = defineProps({
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     userRoles: { type: Array, default: () => [] },
     projects: { type: Array, default: () => [] },
-    snelStartEnabled: { type: Boolean, default: false },
+    administrationSystems: { type: Array, default: () => [] },
     usersMissingTimes: { type: Array, default: () => [] },
     defaultLeadingColor: { type: String, default: 'event' },
     eventWidgetEvents: { type: Array, default: () => [] },
@@ -1270,15 +1271,15 @@ const emailSelectedPdf = () => {
 };
 
 const sendForm = useForm({});
-const sendToSnelStart = () => {
+const sendToAdministration = () => {
     if (props.serviceOrder.sent_to_administration) {
         return;
     }
     if (!props.serviceOrder.is_closed) {
-        alert('Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
+        alert('Sluit de werkbon af voordat je hem naar de administratie verstuurt.');
         return;
     }
-    sendForm.post(`/serviceorders/${props.serviceOrder.id}/send-snelstart`, {
+    sendForm.post(`/serviceorders/${props.serviceOrder.id}/send-to-administration`, {
         preserveScroll: true,
     });
 };
@@ -1300,7 +1301,7 @@ const materialsTotal = computed(() => materialsSubtotal.value + materialsVat.val
 
 const showFinancial = ref(false);
 const canSeeFinancials = computed(() => hasPermission('serviceorder.see_financials'));
-const canExport = computed(() => hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf', 'snelstart.send_serviceorder']));
+const canExport = computed(() => hasAnyPermission(['serviceorder.export_pdf', 'serviceorder.email_pdf', 'servicejob.export_pdf', 'servicejob.mail_pdf', 'integration.send_serviceorder']));
 
 const chapterHeaders = computed(() => [
     'Details',

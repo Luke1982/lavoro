@@ -5,6 +5,8 @@ use App\Jobs\ExpireQuotesJob;
 use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
+use App\Jobs\Integrations\RenewIntegrationWebhooksJob;
+use App\Jobs\Integrations\SyncIntegrationsJob;
 use App\Jobs\NotifyMissingExecutionTimesJob;
 use App\Jobs\NotifyOverdueMilestonesJob;
 use App\Jobs\PruneAssistantQuestionsJob;
@@ -12,7 +14,6 @@ use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
 use App\Jobs\ReinstallDemoTenantJob;
 use App\Jobs\SendAppointmentRemindersJob;
-use App\Jobs\SyncSnelStartJob;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Foundation\Inspiring;
@@ -49,12 +50,19 @@ Schedule::call(fn () => $forEachTenant(fn () => GenerateMaintenanceContractServi
     ->hourly()->name('maintenancecontracts-generate-serviceorders')->withoutOverlapping();
 
 /**
- * Customers and materials from SnelStart, for every customer that has it
- * connected; the job looks that up itself. Whether a customer already here is
- * overwritten is up to each customer, on the settings page.
+ * Customers and materials from every linked system (SnelStart, e-Boekhouden,
+ * ...), both ways, for every customer that has one; the job looks that up
+ * itself. Nightly everything, every quarter of an hour only what a system can
+ * report as changed. Webhooks are renewed hourly, before they run out.
  */
-Schedule::call(fn () => $forEachTenant(fn () => SyncSnelStartJob::dispatch()))
-    ->dailyAt('03:00')->name('snelstart-sync')->withoutOverlapping();
+Schedule::call(fn () => $forEachTenant(fn () => SyncIntegrationsJob::dispatch()))
+    ->dailyAt('03:00')->name('integrations-sync')->withoutOverlapping();
+
+Schedule::call(fn () => $forEachTenant(fn () => SyncIntegrationsJob::dispatch(frequent: true)))
+    ->everyFifteenMinutes()->name('integrations-sync-changes')->withoutOverlapping();
+
+Schedule::call(fn () => $forEachTenant(fn () => RenewIntegrationWebhooksJob::dispatch()))
+    ->hourly()->name('integrations-renew-webhooks')->withoutOverlapping();
 
 Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
     ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();

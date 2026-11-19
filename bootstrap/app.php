@@ -77,7 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->statefulApi();
 
-        $middleware->validateCsrfTokens(except: ['google/webhook']);
+        $middleware->validateCsrfTokens(except: ['google/webhook', 'integrations/webhook/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /**

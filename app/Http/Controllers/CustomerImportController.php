@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Integrations\Area;
 use App\Http\Requests\CustomerImportConfirmRequest;
 use App\Http\Requests\CustomerImportPreviewRequest;
 use App\Jobs\ProcessCustomerImportJob;
 use App\Models\Customer;
-use App\Services\SnelStartClient;
+use App\Models\IntegrationConnection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -103,7 +104,7 @@ class CustomerImportController extends Controller
                     'customers' => $this->customersProp($request),
                     'importPreview' => null,
                     'snelStartImportDetected' => true,
-                    'snelStartConnected' => SnelStartClient::isConfigured(),
+                    'pullSources' => IntegrationConnection::pullButtons(Area::Customers, $request->user()),
                 ]);
             }
         }

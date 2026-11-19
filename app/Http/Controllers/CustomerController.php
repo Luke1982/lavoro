@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Customers\CreateCustomerAction;
+use App\Domain\Integrations\Area;
 use App\Enums\ContractInterval;
 use App\Enums\ProjectStatuses;
 use App\Http\Requests\CustomerReadRequest;
@@ -10,10 +11,10 @@ use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Models\Customer;
+use App\Models\IntegrationConnection;
 use App\Models\Project;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
-use App\Services\SnelStartClient;
 use App\Support\NewMachineForm;
 use App\Traits\OffersContractTemplates;
 use Illuminate\Support\Facades\Auth;
@@ -62,7 +63,7 @@ class CustomerController extends Controller
 
         return inertia('Customers/IndexPage', [
             'customers' => $customers,
-            'snelStartConnected' => SnelStartClient::isConfigured(),
+            'pullSources' => IntegrationConnection::pullButtons(Area::Customers, $request->user()),
         ]);
     }
 

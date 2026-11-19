@@ -9,15 +9,12 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class ProcessCustomerImportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public array $rows)
-    {
-    }
+    public function __construct(public array $rows) {}
 
     public function handle(): void
     {
@@ -43,7 +40,6 @@ class ProcessCustomerImportJob implements ShouldQueue
                     Log::warning('CustomerImport: no customer found for update', ['name' => $data['name']]);
                 }
             } else {
-                $data['snelstart_id'] = (string) Str::uuid();
                 Customer::create($data);
             }
         }

@@ -11,6 +11,7 @@ use App\Enums\ServiceOrderTypes;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\HasExecutingUsers;
+use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\HasMaterials;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RecordsHistory;
@@ -33,6 +34,7 @@ class ServiceOrder extends Model
     /** @use HasFactory<ServiceOrderFactory> */
     use HasFactory;
 
+    use HasIntegrations;
     use HasMaterials;
     use HasOwner;
     use RecordsHistory;

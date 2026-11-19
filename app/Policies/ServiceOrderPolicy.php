@@ -122,9 +122,9 @@ class ServiceOrderPolicy
         return $user->hasPermission('serviceorder.email_pdf_with_checks') && $this->view($user, $serviceOrder);
     }
 
-    public function sendToSnelStart(User $user, ServiceOrder $serviceOrder): bool
+    public function sendToAdministration(User $user, ServiceOrder $serviceOrder): bool
     {
-        return $user->hasPermission('snelstart.send_serviceorder') && $this->view($user, $serviceOrder);
+        return $user->hasPermission('integration.send_serviceorder') && $this->view($user, $serviceOrder);
     }
 
     public function seeFinancials(User $user, ?ServiceOrder $serviceOrder = null): bool

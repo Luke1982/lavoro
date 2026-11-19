@@ -10,8 +10,7 @@ class GeneralSetting extends Model
 {
     /** Keys that belong on disk encrypted. */
     public const SECRET_KEYS = [
-        'graph_client_secret', 'snelstart_client_key', 'snelstart_subscription_key',
-        'mail_smtp_password', 'mail_imap_password',
+        'graph_client_secret', 'mail_smtp_password', 'mail_imap_password',
     ];
 
     protected $fillable = ['key', 'value'];
@@ -32,7 +31,7 @@ class GeneralSetting extends Model
          * After switching APP_KEY nothing can be deciphered any more. Then
          * return the default and do not blow up: that reads as "not set yet"
          * and produces a form instead of a white page on every place that
-         * touches mail or SnelStart.
+         * touches mail.
          */
         try {
             return Crypt::decryptString((string) $row->value);

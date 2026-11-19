@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Materials\CreateMaterialAction;
+use App\Domain\Integrations\Area;
 use App\Http\Requests\MaterialReadRequest;
 use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
+use App\Models\IntegrationConnection;
 use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
 use App\Models\Supplier;
-use App\Services\SnelStartClient;
 use Illuminate\Support\Facades\Auth;
 
 class MaterialController extends Controller
@@ -42,7 +43,7 @@ class MaterialController extends Controller
             'categories' => MaterialCategory::orderBy('name')->get(),
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
             'search' => $search,
-            'snelStartConnected' => SnelStartClient::isConfigured(),
+            'pullSources' => IntegrationConnection::pullButtons(Area::Materials, $request->user()),
             'canImport' => $request->user()->can('import', Material::class),
         ]);
     }

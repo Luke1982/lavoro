@@ -6,9 +6,10 @@ use App\Actions\ServiceOrders\CreateServiceOrderAction;
 use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Actions\Tickets\AttachTicketToServiceOrderAction;
 use App\Actions\Tickets\DetachTicketFromServiceOrderAction;
+use App\Domain\Integrations\Area;
+use App\Domain\Integrations\Sync\ServiceOrderSender;
 use App\Domain\ServiceOrders\BulkStageMove;
 use App\Domain\Signals\Projects\ServiceOrderMovedBetweenProjects;
-use App\Domain\Signals\ServiceOrders\SalesOrderCreatedInSnelStart;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderEmailed;
 use App\Domain\Signals\ServiceOrders\ServiceOrderInvoiceRecorded;
@@ -22,7 +23,7 @@ use App\Http\Requests\ServiceOrderEmailPdfRequest;
 use App\Http\Requests\ServiceOrderEmailPdfWithChecksRequest;
 use App\Http\Requests\ServiceOrderExportPdfRequest;
 use App\Http\Requests\ServiceOrderIndexRequest;
-use App\Http\Requests\ServiceOrderSendToSnelStartRequest;
+use App\Http\Requests\ServiceOrderSendToAdministrationRequest;
 use App\Http\Requests\ServiceOrderShowRequest;
 use App\Http\Requests\ServiceOrderStoreRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
@@ -36,6 +37,7 @@ use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\EventUserExecution;
 use App\Models\GeneralSetting;
+use App\Models\IntegrationConnection;
 use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
@@ -54,7 +56,6 @@ use App\Services\MateriableService;
 use App\Services\ProductableService;
 use App\Services\ServiceOrderEventWidget;
 use App\Services\ServiceOrderLocationResolver;
-use App\Services\SnelStartClient;
 use App\Services\TaskChecks\TaskCheckLabels;
 use App\Services\TaskInstanceVisibility;
 use App\Traits\ReadsPerPage;
@@ -66,7 +67,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -355,7 +355,8 @@ class ServiceOrderController extends Controller
                 ->where(fn ($query) => $query->active()->orWhere('id', $service_order->project_id))
                 ->inNumberOrder()
                 ->get(['id', 'number', 'title']),
-            'snelStartEnabled' => SnelStartClient::isConfigured(),
+            'administrationSystems' => IntegrationConnection::writing(Area::ServiceOrders)
+                ->map(fn (IntegrationConnection $connection) => $connection->label())->values(),
             'products' => Product::withAttributeData()
                 ->orderBy('model')
                 ->get()
@@ -569,185 +570,26 @@ class ServiceOrderController extends Controller
     }
 
     /**
-     * Sends a service order to SnelStart as a sales order.
+     * Sends a werkbon to every linked system that takes werkbonnen; see
+     * ServiceOrderSender for what each one gets and when it refuses.
      */
-    public function sendToSnelStart(
-        ServiceOrderSendToSnelStartRequest $request,
+    public function sendToAdministration(
+        ServiceOrderSendToAdministrationRequest $request,
         ServiceOrder $serviceorder,
-        SnelStartClient $client,
+        ServiceOrderSender $sender,
     ) {
-        if ($serviceorder->sent_to_administration) {
-            return redirect()->back()->with('error', 'Deze werkbon is al verzonden naar SnelStart.');
-        }
-        $serviceorder->load([
-            'customer.billingCustomer',
-            'materials',
-            'taskInstances.serviceOrderTask',
-            'taskInstances.materials',
-            'serviceOrderStage',
-        ]);
-        if (!$serviceorder->is_closed) {
-            return redirect()->back()->with('error', 'Sluit de werkbon af voordat je kunt versturen naar SnelStart.');
-        }
+        $results = $sender->send($serviceorder);
 
-        $all_materials = $serviceorder->allMaterials();
+        $sent = array_map(
+            fn (array $result) => $result['system'] . ' (' . mb_strtolower($result['form']->label())
+                . ' ' . ($result['document']->number ?? $result['document']->id) . ')',
+            $results,
+        );
+        $warnings = array_merge(...array_map(fn (array $result) => $result['document']->warnings, $results));
 
-        if ($all_materials->isEmpty()) {
-            return redirect()->back()->with('error', 'Geen materialen gekoppeld aan deze werkbon.');
-        }
+        $redirect = redirect()->back()->with('success', 'Werkbon verzonden naar ' . implode(', ', $sent) . '.');
 
-        $customer = $serviceorder->customer;
-        $customer = $customer?->billingCustomer ?: $customer;
-        if (!$customer || !$customer->snelstart_id) {
-            return redirect()->back()->with('error', 'Klant heeft geen gekoppeld SnelStart ID.');
-        }
-
-        $lines = [];
-        $total_excl = 0;
-        $skipped_null_quantity = [];
-        $skipped_no_snelstart = [];
-        foreach ($all_materials as $material) {
-            if (!$material->snelstart_id) {
-                $skipped_no_snelstart[] = $material->name;
-
-                continue;
-            }
-            if (is_null($material->pivot->quantity)) {
-                $skipped_null_quantity[] = $material->name;
-
-                continue;
-            }
-            $quantity = (float) $material->pivot->quantity;
-            $unit_price = (float) ($material->price ?? 0);
-            $line_total = $unit_price * $quantity;
-            $total_excl += $line_total;
-            $lines[] = [
-                'artikel' => [
-                    'id' => $material->snelstart_id,
-                    'uri' => '/v2/artikelen/' . $material->snelstart_id,
-                ],
-                'omschrijving' => (string) $material->name . ($material->task_instance
-                    ? ' (gebruikt voor ' . ($material->task_instance->effective_title ?: 'taak zonder titel') . ')'
-                    : ''),
-                'stuksprijs' => (float) $unit_price,
-                'aantal' => (float) $quantity,
-                'kortingsPercentage' => 0,
-                'totaal' => (float) $line_total,
-                'extraRegelVelden' => [],
-            ];
-        }
-
-        if (empty($lines)) {
-            return redirect()->back()->with(
-                'error',
-                'Geen materialen met SnelStart koppeling gevonden voor deze werkbon.'
-            );
-        }
-
-        $vat_factor = 1.21;
-        $delivery_country = $customer->country ? $client->getCountryByIso($customer->country) : null;
-        $invoice_country = $customer->postal_country ? $client->getCountryByIso($customer->postal_country) : null;
-
-        $delivery_address = [
-            'contactpersoon' => $customer->contactname ?? $customer->name,
-            'straat' => $customer->address,
-            'postcode' => $customer->postal_code,
-            'plaats' => $customer->city,
-        ];
-        if ($delivery_country) {
-            $delivery_address['land'] = [
-                'id' => $delivery_country['id'],
-                'uri' => '/v2/landen/' . $delivery_country['id'],
-            ];
-        }
-
-        $invoice_address = [
-            'contactpersoon' => $customer->contactname ?? $customer->name,
-            'straat' => $customer->postal_address ?: $customer->address,
-            'postcode' => $customer->postal_postal_code ?: $customer->postal_code,
-            'plaats' => $customer->postal_city ?: $customer->city,
-        ];
-        if ($invoice_country) {
-            $invoice_address['land'] = [
-                'id' => $invoice_country['id'],
-                'uri' => '/v2/landen/' . $invoice_country['id'],
-            ];
-        }
-        $desc = 'Werkbon ' . $serviceorder->id;
-        $payload = [
-            'relatie' => [
-                'id' => $customer->snelstart_id,
-                'uri' => '/v2/relaties/' . $customer->snelstart_id,
-            ],
-            'procesStatus' => 'Order',
-            'datum' => now()->toDateString(),
-            'omschrijving' => $desc,
-            'orderreferentie' => 'Werkbon ' . $serviceorder->id,
-            'memo' => $serviceorder->external_purchaseorder_no,
-            'verkooporderBtwIngaveModel' => 'Inclusief',
-            'verkoopOrderStatus' => 'InBehandeling',
-            'regels' => $lines,
-            'totaalExclusiefBtw' => round($total_excl, 2),
-            'totaalInclusiefBtw' => round($total_excl * $vat_factor, 2),
-            'afleveradres' => $delivery_address,
-            'factuuradres' => $invoice_address,
-            'extraHoofdVelden' => [],
-        ];
-
-        try {
-            Log::info('SnelStart verkooporder payload prepared', [
-                'omschrijving' => $desc,
-                'omschrijving_length' => mb_strlen($desc),
-                'regels_count' => count($lines),
-            ]);
-            $response = $client->post('/verkooporders', $payload);
-            $serviceorder->sent_to_administration = true;
-            $serviceorder->save();
-            Signals::dispatch(new SalesOrderCreatedInSnelStart($serviceorder, $response['id'] ?? null));
-            $redirect = redirect()->back()->with(
-                'success',
-                'Verkooporder aangemaakt in SnelStart (ID: ' . ($response['id'] ?? 'onbekend') . ').'
-            );
-            $skip_messages = [];
-            if (!empty($skipped_null_quantity)) {
-                $skip_messages[] = 'Materialen zonder hoeveelheid: ' . implode(', ', $skipped_null_quantity);
-            }
-            if (!empty($skipped_no_snelstart)) {
-                $skip_messages[] = 'Materialen zonder SnelStart ID: ' . implode(', ', $skipped_no_snelstart);
-            }
-            if (!empty($skip_messages)) {
-                $redirect = $redirect->with('error', implode(' | ', $skip_messages));
-            }
-
-            return $redirect;
-        } catch (\Throwable $e) {
-            $model_state_messages = [];
-            if (method_exists($e, 'response') && $e->response) {
-                try {
-                    $json = $e->response->json();
-                    if (is_array($json) && isset($json['modelState']) && is_array($json['modelState'])) {
-                        foreach ($json['modelState'] as $field => $problems) {
-                            if (is_array($problems)) {
-                                foreach ($problems as $p) {
-                                    $model_state_messages[] = $field . ': ' . $p;
-                                }
-                            }
-                        }
-                    }
-                } catch (\Throwable $ignore) {
-                }
-            }
-            $combined = $e->getMessage();
-            if ($model_state_messages) {
-                $combined .= ' | ' . implode(' | ', $model_state_messages);
-            }
-            Log::error('Fout bij versturen naar SnelStart', [
-                'error' => $e->getMessage(),
-                'modelState' => $model_state_messages,
-            ]);
-
-            return redirect()->back()->with('error', 'Fout bij versturen naar SnelStart: ' . $combined);
-        }
+        return $warnings === [] ? $redirect : $redirect->with('error', implode(' | ', $warnings));
     }
 
     private function generateServiceOrderPdf(ServiceOrder $serviceorder): DompdfPdf

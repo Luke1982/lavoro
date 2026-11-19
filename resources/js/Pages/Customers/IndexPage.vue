@@ -25,11 +25,11 @@
                         <ArrowUpTrayIcon class="h-4 w-4 text-emerald-500 shrink-0" />
                         {{ previewForm.processing ? 'Bezig...' : 'Importeer uit Excel' }}
                     </button>
-                    <button v-if="snelStartConnected" @click="snelStartChoiceOpen = true; actionsOpen = false"
-                        :disabled="snelStartForm.processing"
+                    <button v-for="source in pullSources" :key="source.id"
+                        @click="pullFrom(source); actionsOpen = false" :disabled="pullForm.processing"
                         class="w-full flex items-center gap-x-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60 disabled:opacity-50 transition text-left">
                         <CloudArrowDownIcon class="h-4 w-4 text-sky-500 shrink-0" />
-                        {{ snelStartForm.processing ? 'Bezig...' : 'Klanten ophalen uit SnelStart' }}
+                        {{ pulling === source.id ? 'Bezig...' : 'Klanten ophalen uit ' + source.label }}
                     </button>
                 </div>
             </div>
@@ -53,27 +53,6 @@
                     class="rounded-md bg-lavoro-green px-3 py-2 text-sm font-semibold text-gray-900 hover:opacity-90 disabled:opacity-60"
                     @click="confirmSnelStartImport">
                     Ja, importeren
-                </button>
-            </div>
-        </template>
-    </ModalDialog>
-
-    <ModalDialog v-model:open="snelStartChoiceOpen" title="Klanten ophalen uit SnelStart" max-width-class="sm:max-w-md">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-            Nieuwe klanten uit SnelStart komen er altijd bij. Wil je klanten die al in Lavoro staan ook bijwerken
-            met wat SnelStart heeft? Wat in Lavoro anders is ingevuld, wordt dan overschreven.
-        </p>
-        <template #footer>
-            <div class="flex gap-3 justify-end">
-                <button type="button" :disabled="snelStartForm.processing"
-                    class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-60 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
-                    @click="importFromSnelStart(false)">
-                    {{ snelStartForm.processing && !snelStartForm.update_existing ? 'Bezig...' : 'Alleen nieuwe klanten' }}
-                </button>
-                <button type="button" :disabled="snelStartForm.processing"
-                    class="rounded-md bg-lavoro-green px-3 py-2 text-sm font-semibold text-gray-900 hover:opacity-90 disabled:opacity-60"
-                    @click="importFromSnelStart(true)">
-                    {{ snelStartForm.processing && snelStartForm.update_existing ? 'Bezig...' : 'Ook bestaande bijwerken' }}
                 </button>
             </div>
         </template>
@@ -275,9 +254,9 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    snelStartConnected: {
-        type: Boolean,
-        default: false,
+    pullSources: {
+        type: Array,
+        default: () => [],
     },
 })
 
@@ -295,13 +274,13 @@ onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
 const previewForm = useForm({ file: null, convert_from_snelstart: false, skip_snelstart_prompt: false })
-const snelStartChoiceOpen = ref(false)
-const snelStartForm = useForm({ update_existing: false })
-const importFromSnelStart = (update_existing) => {
-    snelStartForm.update_existing = update_existing
-    snelStartForm.post('/imports/snelstart/customers', {
+const pullForm = useForm({})
+const pulling = ref(null)
+const pullFrom = (source) => {
+    pulling.value = source.id
+    pullForm.post(`/integrations/${source.id}/pull/customers`, {
         preserveScroll: true,
-        onFinish: () => { snelStartChoiceOpen.value = false },
+        onFinish: () => { pulling.value = null },
     })
 }
 const triggerFileInput = () => fileInputRef.value?.click()

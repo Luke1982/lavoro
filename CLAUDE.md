@@ -88,6 +88,15 @@ The layer that keeps controllers thin. A controller, action or service does the 
 
 How it all fits together: `docs/development/multi-tenancy.md`. The original build plan, task by task: `docs/archive/plans/2026-06-09-multi-database-tenancy.md`.
 
+## Integrations
+
+Every outside system (SnelStart, e-Boekhouden, ...) goes through `app/Domain/Integrations`. See `docs/development/integrations.md`.
+
+-   Never call an outside system's API from a controller or model. Add a capability (`Capability` + an interface in `Contracts/`) and implement it in the connector.
+-   A connector only translates between the standard shapes (`Data/`) and one API. Sync rules (fingerprints, who leads, matching, missing records) live once, in `Sync/Synchronizer`.
+-   Records are linked through `integrationables`, never through a `<system>_id` column on the model.
+-   Connector errors are `Refusal`s with what the other side said; `IntegrationUnavailable` for anything a retry may fix.
+
 ## Project overview
 
 Laravel 12 + Inertia + Vue 3 field-service management app (in Dutch, "Lavoro"). Tracks customers, assets, service orders, jobs, checks, tickets, materials, events/appointments, projects with milestones, documents, images and remarks.

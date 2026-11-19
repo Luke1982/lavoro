@@ -80,21 +80,21 @@ class ServiceOrderAccessTest extends TestCase
             ->assertOk();
     }
 
-    public function test_sending_to_snelstart_needs_its_own_permission(): void
+    public function test_sending_to_the_administration_needs_its_own_permission(): void
     {
         $order = $this->order();
 
         $this->actingAs($this->userWith('serviceorder.read'))
-            ->postJson('/serviceorders/' . $order->id . '/send-snelstart')
+            ->postJson('/serviceorders/' . $order->id . '/send-to-administration')
             ->assertForbidden();
     }
 
-    public function test_sending_to_snelstart_is_let_through_with_the_permission(): void
+    public function test_sending_to_the_administration_is_let_through_with_the_permission(): void
     {
         $order = $this->order();
 
-        $response = $this->actingAs($this->userWithPermissions('serviceorder.read', 'snelstart.send_serviceorder'))
-            ->postJson('/serviceorders/' . $order->id . '/send-snelstart');
+        $response = $this->actingAs($this->userWithPermissions('serviceorder.read', 'integration.send_serviceorder'))
+            ->postJson('/serviceorders/' . $order->id . '/send-to-administration');
 
         $this->assertNotSame(403, $response->status());
     }

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\GeneralSetting;
+use App\Models\IntegrationConnection;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Console\Command;
@@ -15,7 +16,8 @@ use Illuminate\Console\Command;
  * installation the mail server, the Microsoft 365 registration and the
  * SnelStart keys are environment settings, because there was only ever one
  * company to send for. Here every customer sends with their own, so they live
- * in general_settings.
+ * in general_settings -- and the SnelStart keys in the customer's SnelStart
+ * connection, which this makes when there is none yet.
  *
  * Without this step a customer arrives with an empty Technisch beheer screen
  * and sends no mail at all -- which is deliberate (sending from the wrong
@@ -61,6 +63,12 @@ class ImportTenantSettings extends Command
 
         'snelstart_client_key' => 'SNELSTART_CLIENT_KEY',
         'snelstart_subscription_key' => 'SNELSTART_SUBSCRIPTION_KEY',
+    ];
+
+    /** Settings that are credentials of a connection rather than general settings. */
+    private const SNELSTART = [
+        'snelstart_client_key' => 'client_key',
+        'snelstart_subscription_key' => 'subscription_key',
     ];
 
     /** What is never printed back, whatever happens. */
@@ -206,7 +214,9 @@ class ImportTenantSettings extends Command
         $kept = [];
 
         Tenancy::within($tenant, function () use ($wanted, &$set, &$kept) {
-            foreach ($wanted as $key => $value) {
+            $this->writeSnelStart(array_intersect_key($wanted, self::SNELSTART), $set, $kept);
+
+            foreach (array_diff_key($wanted, self::SNELSTART) as $key => $value) {
                 $existing = GeneralSetting::get($key);
 
                 if (filled($existing) && !$this->option('overwrite')) {
@@ -239,5 +249,38 @@ class ImportTenantSettings extends Command
         $this->line('  Check it under Technisch beheer, and send a test mail from there.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  array<string, string>  $wanted
+     * @param  array<int, string>  $set
+     * @param  array<int, string>  $kept
+     */
+    private function writeSnelStart(array $wanted, array &$set, array &$kept): void
+    {
+        if ($wanted === []) {
+            return;
+        }
+
+        $connection = IntegrationConnection::where('connector', 'snelstart')->first() ?? IntegrationConnection::open('snelstart');
+        $credentials = $connection->credentials();
+
+        foreach ($wanted as $setting => $value) {
+            $key = self::SNELSTART[$setting];
+
+            if (filled($credentials[$key] ?? null) && !$this->option('overwrite')) {
+                $kept[] = $setting;
+
+                continue;
+            }
+
+            $credentials[$key] = $value;
+            $set[] = $setting;
+        }
+
+        if (!$this->option('dry-run')) {
+            $connection->storeCredentials($credentials);
+            $connection->save();
+        }
     }
 }

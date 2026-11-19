@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Collection;
@@ -18,6 +19,7 @@ class Customer extends Model
     /** @use HasFactory<CustomerFactory> */
     use HasFactory;
 
+    use HasIntegrations;
     use RecordsHistory;
 
     public const SENSITIVE_ATTRIBUTES = [
@@ -52,7 +54,6 @@ class Customer extends Model
     protected array $activity_ignore = [
         'lat',
         'lon',
-        'snelstart_id',
     ];
 
     /** Fields whose entries are gated behind a permission. */
@@ -62,7 +63,6 @@ class Customer extends Model
     ];
 
     protected $fillable = [
-        'snelstart_id',
         'name',
         'email',
         'invoice_email',

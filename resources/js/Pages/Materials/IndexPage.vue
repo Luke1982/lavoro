@@ -6,10 +6,11 @@
             <ImportUploadButton kind="materials" />
         </template>
         <template #filters>
-            <div>
-                <button v-if="snelStartConnected" @click="importMaterials" :disabled="importingMaterials"
+            <div class="flex gap-2">
+                <button v-for="source in pullSources" :key="source.id" @click="pullFrom(source)"
+                    :disabled="pulling !== null"
                     class="ml-auto px-3 py-2 bg-lavoro-blue text-white text-xs font-semibold rounded hover:opacity-90 disabled:bg-gray-400">
-                    SnelStart materialen importeren
+                    {{ pulling === source.id ? 'Bezig...' : 'Materialen ophalen uit ' + source.label }}
                 </button>
             </div>
         </template>
@@ -142,16 +143,16 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { PackageIcon, EyeIcon } from '@lucide/vue'
 
 const materialFormRef = ref(null)
-const importingMaterials = ref(false)
-const importMaterialsForm = useForm({})
+const pulling = ref(null)
+const pullForm = useForm({})
 const boolEdits = reactive({})
 
-const { materials, categories, usageUnits, snelStartConnected, canImport } = defineProps({
+const { materials, categories, usageUnits, pullSources, canImport } = defineProps({
     materials: { type: Object, required: true },
     categories: { type: Array, default: () => [] },
     usageUnits: { type: Array, default: () => [] },
     search: { type: String, default: '' },
-    snelStartConnected: { type: Boolean, default: false },
+    pullSources: { type: Array, default: () => [] },
     canImport: { type: Boolean, default: false },
 })
 
@@ -195,11 +196,11 @@ function updateMaterial(mat, patch, close = null) {
     })
 }
 
-function importMaterials() {
-    importingMaterials.value = true
-    importMaterialsForm.post('/imports/snelstart/materials', {
+function pullFrom(source) {
+    pulling.value = source.id
+    pullForm.post(`/integrations/${source.id}/pull/materials`, {
         preserveScroll: true,
-        onFinish: () => { importingMaterials.value = false },
+        onFinish: () => { pulling.value = null },
     })
 }
 </script>

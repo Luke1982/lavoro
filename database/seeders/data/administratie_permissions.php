@@ -25,6 +25,8 @@ return [
     'event.read',
     'google_calendar.connect',
     'image.see',
+    'integration.pull',
+    'integration.send_serviceorder',
     'material.read',
     'product.read',
     'product.view_prices',
@@ -44,9 +46,6 @@ return [
     'serviceorder.export_pdf',
     'serviceorder.read',
     'serviceorder.see_financials',
-    'snelstart.get_articles',
-    'snelstart.get_customers',
-    'snelstart.send_serviceorder',
     'ticket.read',
     'ticket.see_all',
 ];

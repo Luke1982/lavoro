@@ -71,11 +71,18 @@ return [
         ))))),
     ],
 
+    /**
+     * Where the bookkeeping systems are. The keys are not here: every customer
+     * links its own administration, under Instellingen → Koppelingen.
+     */
     'snelstart' => [
-        'client_key' => env('SNELSTART_CLIENT_KEY'),
-        'subscription_key' => env('SNELSTART_SUBSCRIPTION_KEY'),
         'auth_url' => env('SNELSTART_AUTH_URL', 'https://auth.snelstart.nl/b2b/token'),
         'api_base' => env('SNELSTART_API_BASE', 'https://b2bapi.snelstart.nl/v2'),
+    ],
+
+    'businesscentral' => [
+        'login_url' => env('BUSINESSCENTRAL_LOGIN_URL', 'https://login.microsoftonline.com'),
+        'api_url' => env('BUSINESSCENTRAL_API_URL', 'https://api.businesscentral.dynamics.com/v2.0'),
     ],
 
     /**

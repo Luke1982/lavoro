@@ -26,7 +26,6 @@ class TechnicalManagementController extends Controller
     /** Fields the screen only gets to see as "is filled in". */
     private const SECRET_KEYS = [
         'graph_client_secret', 'mail_smtp_password', 'mail_imap_password',
-        'snelstart_client_key', 'snelstart_subscription_key',
     ];
 
     public function index(Request $request)

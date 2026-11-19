@@ -326,6 +326,16 @@ class AppServiceProvider extends ServiceProvider
          * the network stood between someone and an endless list of passwords.
          * The sixth try fires Lockout, which is written down like a refusal.
          */
+        /**
+         * Per webhook, not per address: Business Central calls from Microsoft's
+         * shared addresses, so a limit per address would make every customer
+         * share one budget -- and a subscription that keeps getting 429s may be
+         * switched off on their side. The hash keeps the token out of the cache
+         * keys.
+         */
+        RateLimiter::for('integration-webhooks', fn (Request $request) => Limit::perMinute(300)
+            ->by(hash('sha256', (string) $request->route('token'))));
+
         RateLimiter::for('login', function (Request $request) {
             /**
              * Written down here and not in a middleware of its own: the
