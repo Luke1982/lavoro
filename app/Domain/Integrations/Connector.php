@@ -2,13 +2,17 @@
 
 namespace App\Domain\Integrations;
 
+use App\Domain\Integrations\Contracts\ConnectsWithOAuth;
 use App\Domain\Integrations\Contracts\PullsCustomers;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\Field;
 use App\Domain\Integrations\Data\MaterialData;
+use App\Exceptions\Refusal;
 use App\Models\IntegrationConnection;
+use Closure;
+use Throwable;
 
 /**
  * One outside system, as Lavoro talks to it. A connector only translates:
@@ -111,7 +115,34 @@ abstract class Connector
                 fn (DocumentForm $form) => ['id' => $form->value, 'name' => $form->label()],
                 static::documentFormsOffered(),
             ),
+            'oauth' => static::connectsWithOAuth(),
+            'oauth_ready' => static::connectsWithOAuth() && static::oauthReady(),
         ];
+    }
+
+    /** Whether the customer connects by logging in there (ConnectsWithOAuth) instead of typing in keys. */
+    public static function connectsWithOAuth(): bool
+    {
+        return is_subclass_of(static::class, ConnectsWithOAuth::class);
+    }
+
+    /**
+     * Undoes a half-made document after $failure, and returns what to throw:
+     * the failure itself, or -- when undoing is refused too -- a refusal that
+     * also says what was left behind there, for someone to remove by hand.
+     */
+    protected function undoAfter(Throwable $failure, Closure $undo, string $left_behind): Throwable
+    {
+        try {
+            $undo();
+        } catch (Refusal $e) {
+            if ($failure instanceof Refusal) {
+                return new Refusal($failure->getMessage() . ' ' . $left_behind . ' staat nog in ' . static::label()
+                    . ' en moet daar met de hand weg: ' . $e->getMessage(), 0, $failure);
+            }
+        }
+
+        return $failure;
     }
 
     protected function credential(string $key): ?string

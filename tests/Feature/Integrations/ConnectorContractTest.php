@@ -42,7 +42,7 @@ class ConnectorContractTest extends TestCase
      * Stored on every connection. Renaming one orphans every customer's
      * connection to that system, so a change here has to be deliberate.
      */
-    private const KEYS = ['snelstart', 'eboekhouden', 'businesscentral'];
+    private const KEYS = ['snelstart', 'eboekhouden', 'businesscentral', 'exactonline', 'afas', 'moneybird'];
 
     /** @return array<string, array{0: class-string<Connector>}> */
     public static function connectors(): array
@@ -67,7 +67,7 @@ class ConnectorContractTest extends TestCase
     {
         $this->assertNotSame('', $connector::label(), $connector . ' has no label');
         $this->assertNotSame('', $connector::description(), $connector . ' has no description');
-        $this->assertNotSame([], $connector::credentialFields(), $connector . ' asks for no credentials');
+        $this->assertTrue($connector::connectsWithOAuth() || $connector::credentialFields() !== [], $connector . ' asks for no credentials and has no login either');
         $this->assertNotSame([], $connector::capabilities(), $connector . ' can do nothing');
         $this->assertJson(json_encode($connector::describe(), JSON_THROW_ON_ERROR));
     }
@@ -125,7 +125,11 @@ class ConnectorContractTest extends TestCase
         $credentials = [];
 
         foreach ($connector::credentialFields() as $field) {
-            $credentials[$field->key] = in_array('uuid', $field->rules, true) ? (string) Str::uuid() : 'voorbeeld';
+            $credentials[$field->key] = match (true) {
+                in_array('uuid', $field->rules, true) => (string) Str::uuid(),
+                str_contains(implode(' ', $field->rules), '\\d') => '12345',
+                default => 'voorbeeld',
+            };
         }
 
         $defaults = IntegrationConnection::defaultSettings($connector::key());

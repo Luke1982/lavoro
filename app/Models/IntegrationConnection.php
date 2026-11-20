@@ -122,7 +122,16 @@ class IntegrationConnection extends Model
 
         $this->settings = $settings;
         $this->is_active = $form['is_active'] ?? $this->is_active;
-        $this->storeCredentials($credentials);
+
+        /**
+         * Only when something was filled in. Encrypting gives a new value
+         * every time, so rewriting them anyway would save the credentials as
+         * they were read -- and put back a refresh token that was renewed
+         * meanwhile, which Exact has already killed.
+         */
+        if ($credentials !== $this->credentials()) {
+            $this->storeCredentials($credentials);
+        }
     }
 
     public function links(): HasMany
@@ -199,6 +208,13 @@ class IntegrationConnection extends Model
     public function option(string $key): mixed
     {
         return $this->settings['options'][$key] ?? null;
+    }
+
+    public function setOption(string $key, ?string $value): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['options'][$key] = $value;
+        $this->settings = $settings;
     }
 
     public function areaSetting(Area $area, string $key, mixed $default = null): mixed

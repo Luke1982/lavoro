@@ -22,6 +22,12 @@ interface ReceivesWebhooks
     /** @return array<int, Area> The areas it can send notices for. */
     public static function webhookAreas(): array;
 
+    /**
+     * What a webhook is made for there: the administration, division or
+     * company. A webhook made for another one is cancelled and made again.
+     */
+    public function webhookScope(): string;
+
     /** Asks the other side to call $url for changes in this area; also used to renew. */
     public function subscribe(Area $area, string $url, IntegrationWebhook $webhook): WebhookSubscription;
 

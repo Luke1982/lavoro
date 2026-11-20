@@ -4,9 +4,11 @@ namespace Tests\Feature\Integrations;
 
 use App\Domain\Integrations\Area;
 use App\Domain\Integrations\Connectors;
+use App\Domain\Integrations\Sync\Webhooks;
 use App\Models\Central\IntegrationWebhookLookup;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreatesAuthenticatedUsers;
 use Tests\Fakes\FakeConnector;
 use Tests\TestCase;
@@ -170,5 +172,29 @@ class IntegrationSettingsTest extends TestCase
         $connection->save();
 
         return $connection;
+    }
+
+    public function test_a_webhook_made_for_another_administration_is_made_again(): void
+    {
+        $webhook = $this->connect()->webhooks()->firstOrFail();
+        $webhook->update(['scope' => 'een-andere']);
+
+        app(Webhooks::class)->ensure(IntegrationConnection::where('connector', 'fake')->firstOrFail());
+
+        $remade = IntegrationConnection::where('connector', 'fake')->firstOrFail()->webhooks()->firstOrFail();
+        $this->assertNotSame($webhook->id, $remade->id);
+        $this->assertSame('nep', $remade->scope);
+        $this->assertFalse(IntegrationWebhookLookup::whereKey(hash('sha256', $webhook->token))->exists());
+    }
+
+    public function test_saving_settings_leaves_the_stored_credentials_alone(): void
+    {
+        $connection = $this->connect();
+        $before = DB::table('integration_connections')->where('id', $connection->id)->value('credentials');
+
+        $this->manager()->put('/integrations/' . $connection->id, ['is_active' => true, 'credentials' => ['api_key' => '']])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($before, DB::table('integration_connections')->where('id', $connection->id)->value('credentials'));
     }
 }

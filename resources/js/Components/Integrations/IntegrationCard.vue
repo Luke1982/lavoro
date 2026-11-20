@@ -19,11 +19,23 @@
                 <span class="text-sm text-gray-500 dark:text-slate-400">Actief</span>
                 <SwitchComponent v-model="form.is_active" title="Koppeling actief" />
             </div>
-            <button v-else-if="!opening" type="button" @click="opening = true"
+            <a v-else-if="connector.oauth && connector.oauth_ready" :href="oauthUrl"
+                class="shrink-0 inline-flex items-center rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+                Koppelen met {{ connector.label }}
+            </a>
+            <button v-else-if="!connector.oauth && !opening" type="button" @click="opening = true"
                 class="shrink-0 inline-flex items-center rounded-md bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
                 Koppelen
             </button>
         </div>
+
+        <p v-if="connector.oauth && !connector.oauth_ready" class="mt-4 text-sm text-gray-500 dark:text-slate-400">
+            Koppelen met {{ connector.label }} kan zodra MajorLabel de app voor {{ connector.label }} heeft geregistreerd.
+        </p>
+        <p v-else-if="connection && connector.oauth && !connection.signed_in"
+            class="mt-4 rounded-md bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-300 ring-1 ring-amber-200 dark:ring-amber-800">
+            Het koppelen is niet afgemaakt. <a :href="oauthUrl" class="font-semibold underline">Koppel opnieuw met {{ connector.label }}</a>.
+        </p>
 
         <div v-if="connection" class="mt-4 text-sm">
             <p v-if="connection.last_error"
@@ -38,7 +50,7 @@
         </div>
 
         <form v-if="connection || opening" class="mt-6 space-y-8" @submit.prevent="save">
-            <section>
+            <section v-if="connector.credential_fields.length">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Inloggegevens</h3>
                 <div class="max-w-xl space-y-4">
                     <template v-for="field in connector.credential_fields" :key="field.key">
@@ -147,6 +159,10 @@
                     Annuleren
                 </button>
                 <template v-if="connection">
+                    <a v-if="connector.oauth && connector.oauth_ready" :href="oauthUrl"
+                        class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700">
+                        Opnieuw koppelen
+                    </a>
                     <button type="button" :disabled="testForm.processing" @click="test"
                         class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700 disabled:opacity-50">
                         {{ testForm.processing ? 'Bezig...' : 'Verbinding testen' }}
@@ -193,6 +209,8 @@ const props = defineProps({
 })
 
 const opening = ref(false)
+
+const oauthUrl = computed(() => `/integrations/${props.connector.key}/oauth`)
 
 const credentials = () => Object.fromEntries(props.connector.credential_fields.map((field) => {
     const stored = props.connection?.credentials.find((credential) => credential.key === field.key)

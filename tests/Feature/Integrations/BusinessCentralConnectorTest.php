@@ -201,7 +201,7 @@ class BusinessCentralConnectorTest extends TestCase
         iterator_to_array($this->connector()->pullCustomers());
     }
 
-    public function test_the_quarterly_pull_asks_only_for_what_changed(): void
+    public function test_the_quarter_hourly_pull_asks_only_for_what_changed(): void
     {
         $this->answers['GET ' . $this->companyPath('/customers')] = fn () => Http::response(['value' => []]);
 

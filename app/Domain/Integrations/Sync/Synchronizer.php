@@ -36,6 +36,12 @@ use InvalidArgumentException;
  * A pull runs in one transaction, as the imports before it did: a failure
  * halfway leaves nothing half done. What it sends out goes on the queue and
  * only leaves after the commit.
+ *
+ * Nothing here talks to the other system inside a transaction: a pull fetches
+ * first and then takes what it fetched. A token renewed on the way must be
+ * committed the moment it arrives -- Exact kills the old refresh token at once,
+ * so a rollback would cut the connection -- and a transaction should not stay
+ * open while the network takes its time.
  */
 class Synchronizer
 {
@@ -78,7 +84,12 @@ class Synchronizer
             $area,
             $since === null ? IntegrationRun::PULL : IntegrationRun::PULL_CHANGES,
             null,
-            fn () => DB::transaction(fn () => $this->takeAll($connection, self::mapping($area), $connector, $since)),
+            function () use ($connection, $area, $connector, $since) {
+                $mapping = self::mapping($area);
+                $records = iterator_to_array($mapping->pull($connector, $since), false);
+
+                return DB::transaction(fn () => $this->takeAll($connection, $mapping, $connector, $records, $since === null));
+            },
         ));
     }
 
@@ -225,19 +236,23 @@ class Synchronizer
         return $model->integrationLink($connection)?->external_id;
     }
 
-    /** @return array<string, int> */
-    private function takeAll(IntegrationConnection $connection, Mapping $mapping, Connector $connector, ?CarbonImmutable $since): array
+    /**
+     * @param  array<int, ExternalRecord>  $records
+     * @param  bool  $complete  Everything there was fetched, so a link not among it is gone there.
+     * @return array<string, int>
+     */
+    private function takeAll(IntegrationConnection $connection, Mapping $mapping, Connector $connector, array $records, bool $complete): array
     {
         $counts = [];
-        $seen = [];
 
-        foreach ($mapping->pull($connector, $since) as $record) {
-            $seen[] = $record->id;
+        foreach ($records as $record) {
             $outcome = $this->take($connection, $mapping, $connector, $record);
             $counts[$outcome] = ($counts[$outcome] ?? 0) + 1;
         }
 
-        return $since === null ? $counts + $this->noteMissing($connection, $mapping->area(), $seen) : $counts;
+        $seen = array_map(fn (ExternalRecord $record) => $record->id, $records);
+
+        return $complete ? $counts + $this->noteMissing($connection, $mapping->area(), $seen) : $counts;
     }
 
     /**

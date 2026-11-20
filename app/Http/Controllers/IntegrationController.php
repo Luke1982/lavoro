@@ -115,6 +115,7 @@ class IntegrationController extends Controller
                     'service_orders' => ['form' => $connection->areaSetting(Area::ServiceOrders, 'form')],
                 ],
             ],
+            'signed_in' => !$class::connectsWithOAuth() || filled($credentials['access_token'] ?? null),
             'credentials' => array_map(fn (Field $field) => [
                 'key' => $field->key,
                 'stored' => filled($credentials[$field->key] ?? null),

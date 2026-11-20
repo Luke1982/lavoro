@@ -121,6 +121,11 @@ class FakeConnector extends Connector implements PullsCustomers, PullsMaterials,
         return [Area::Customers];
     }
 
+    public function webhookScope(): string
+    {
+        return 'nep';
+    }
+
     public function pullCustomers(?CarbonImmutable $since = null): iterable
     {
         self::$pulls[] = $since;

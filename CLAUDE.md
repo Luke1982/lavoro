@@ -108,7 +108,7 @@ Laravel 12 + Inertia + Vue 3 field-service management app (in Dutch, "Lavoro"). 
 -   `app/Http/Requests/` — Form Requests for every action. Auth in `authorize()` (policy or `hasPermission(...)`); validation in `rules()`. Naming: `{Resource}{Action}Request`.
 -   `app/Policies/` — model policies referenced from Form Requests via `$user->can('view', $model)`.
 -   `app/Enums/` — typed enums. Most expose a `comboBoxArray()` helper for frontend dropdowns.
--   `app/Services/` — domain services: PDF generation, mail, `SnelStartClient` (accounting integration).
+-   `app/Services/` — domain services: PDF generation, mail, the e-Boekhouden SOAP client. Bookkeeping systems go through `app/Domain/Integrations` (see Integrations above).
 -   `routes/web.php` — Inertia routes under the `auth` middleware group; admin block uses `admin` middleware.
 -   `routes/api.php` — Sanctum-protected JSON routes (`auth:sanctum`).
 
@@ -138,6 +138,6 @@ All cross-model attachment uses morph-pivot tables ending in `-ables`: `eventabl
 
 ## Integrations
 
--   **SnelStart** — Dutch accounting SaaS. `SnelStartClient` in `app/Services/`. Console commands sync relations and articles. UI elements gate on `snelStartEnabled` prop.
+-   **Bookkeeping** — SnelStart, e-Boekhouden, Business Central, Exact Online, AFAS Profit and Moneybird, all as connectors in `app/Domain/Integrations` (see the Integrations section above and `docs/development/integrations.md`). Exact Online and Moneybird log in through MajorLabel's own app (`EXACT_*`, `MONEYBIRD_*` in `.env`).
 -   **Google Calendar** — OAuth via `GoogleOAuthController`; webhook sync via `GoogleWebhookController`.
 -   **Microsoft Graph mail** — configured via `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` env vars (requires `Mail.Send` application permission on the Azure app registration).

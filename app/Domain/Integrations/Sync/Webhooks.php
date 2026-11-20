@@ -37,9 +37,10 @@ class Webhooks
         $wanted = array_filter($connector::webhookAreas(), fn (Area $area) => $connection->reads($area));
         $webhooks = $connection->webhooks()->get()->keyBy(fn (IntegrationWebhook $webhook) => $webhook->area->value);
 
-        foreach ($webhooks as $webhook) {
-            if (!in_array($webhook->area, $wanted, true)) {
+        foreach ($webhooks as $key => $webhook) {
+            if (!in_array($webhook->area, $wanted, true) || $webhook->scope !== $this->scope($connection)) {
                 $this->remove($webhook);
+                $webhooks->forget($key);
             }
         }
 
@@ -69,6 +70,19 @@ class Webhooks
         return hash('sha256', $token);
     }
 
+    /** What webhooks of this connection are made for now; empty while that is not chosen yet. */
+    private function scope(IntegrationConnection $connection): ?string
+    {
+        try {
+            /** @var ReceivesWebhooks $connector */
+            $connector = $connection->connector();
+
+            return $connector->webhookScope();
+        } catch (Refusal) {
+            return null;
+        }
+    }
+
     /** Never subscribed (the other side refused last time), or running out soon. */
     private function due(IntegrationWebhook $webhook): bool
     {
@@ -90,7 +104,12 @@ class Webhooks
             return;
         }
 
-        $webhook->update(['external_id' => $subscription->id, 'expires_at' => $subscription->expires_at]);
+        $webhook->update([
+            'external_id' => $subscription->id,
+            'expires_at' => $subscription->expires_at,
+            'signing_secret' => $subscription->signing_secret ?? $webhook->signing_secret,
+            'scope' => $this->scope($connection),
+        ]);
     }
 
     private function create(IntegrationConnection $connection, Area $area): IntegrationWebhook

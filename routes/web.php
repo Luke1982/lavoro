@@ -34,6 +34,7 @@ use App\Http\Controllers\GoogleWebhookController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ImportMappingController;
 use App\Http\Controllers\IntegrationController;
+use App\Http\Controllers\IntegrationOAuthController;
 use App\Http\Controllers\IntegrationWebhookController;
 use App\Http\Controllers\InternalAnnouncementController;
 use App\Http\Controllers\LocationController;
@@ -512,6 +513,10 @@ Route::group(
             ->name('integrations.test')->whereNumber('integration');
         Route::delete('integrations/{integration}/credentials/{key}', [IntegrationController::class, 'forgetCredential'])
             ->name('integrations.forgetCredential')->whereNumber('integration');
+        Route::get('integrations/oauth/callback', [IntegrationOAuthController::class, 'callback'])
+            ->name('integrations.oauth.callback');
+        Route::get('integrations/{connector}/oauth', [IntegrationOAuthController::class, 'start'])
+            ->name('integrations.oauth.start')->where('connector', '[a-z]+');
         Route::post('integrations/{integration}/pull/{area}', [IntegrationController::class, 'pull'])
             ->name('integrations.pull')
             ->whereNumber('integration')

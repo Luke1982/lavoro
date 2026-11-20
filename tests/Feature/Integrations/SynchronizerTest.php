@@ -299,7 +299,7 @@ class SynchronizerTest extends TestCase
         $this->assertNotNull($this->connection->fresh()->last_error);
     }
 
-    public function test_the_quarterly_pull_asks_only_what_changed_since_the_last_pull(): void
+    public function test_the_quarter_hourly_pull_asks_only_what_changed_since_the_last_pull(): void
     {
         $this->connection->runs()->delete();
         FakeConnector::$pulls = [];

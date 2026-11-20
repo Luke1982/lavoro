@@ -105,7 +105,7 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
         return [
             new Field('environment', 'Omgeving', default: 'production', rules: ['regex:/^[A-Za-z0-9_-]+$/'],
                 help: 'De naam van de Business Central-omgeving, zoals production of sandbox.'),
-            new Field('company_id', 'Bedrijf (ID)', required: false, rules: ['uuid'],
+            new Field('company_id', 'Bedrijf (ID)', required: false, rules: ['uuid'], scope: true,
                 help: 'Laat leeg en klik op Verbinding testen: de melding noemt dan de bedrijven met hun ID.'),
         ];
     }
@@ -133,6 +133,11 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
     public static function webhookAreas(): array
     {
         return array_values(self::RESOURCES);
+    }
+
+    public function webhookScope(): string
+    {
+        return (string) $this->option('company_id');
     }
 
     /**
@@ -227,7 +232,7 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
                 $this->api()->post($document_path . '/Microsoft.NAV.post');
             }
         } catch (Throwable $e) {
-            throw $this->removeAfter($e, $document_path);
+            throw $this->undoAfter($e, fn () => $this->api()->delete($document_path), 'Het half aangemaakte document');
         }
 
         [$number, $warnings] = $this->numberOf($form, $document_path, $header, $warnings);
@@ -399,25 +404,6 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
     private function changedSince(?CarbonImmutable $since): array
     {
         return $since ? ['$filter' => 'lastModifiedDateTime gt ' . $since->utc()->format('Y-m-d\TH:i:s\Z')] : [];
-    }
-
-    /**
-     * Removes a half-made document after $failure, and returns what to throw:
-     * the failure itself, or -- when the document could not be removed either
-     * -- a refusal that also says something was left behind.
-     */
-    private function removeAfter(Throwable $failure, string $path): Throwable
-    {
-        try {
-            $this->api()->delete($path);
-        } catch (Refusal $e) {
-            if ($failure instanceof Refusal) {
-                return new Refusal($failure->getMessage() . ' Het half aangemaakte document staat nog in Business Central '
-                    . 'en moet daar met de hand weg: ' . $e->getMessage(), 0, $failure);
-            }
-        }
-
-        return $failure;
     }
 
     private function subscriptionPath(IntegrationWebhook $webhook): string

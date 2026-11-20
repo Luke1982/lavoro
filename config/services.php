@@ -86,6 +86,26 @@ return [
     ],
 
     /**
+     * Exact Online and Moneybird are connected by logging in there, through
+     * MajorLabel's own app: one registration for every customer, so its id
+     * and secret are here. The tokens are per customer, on the connection.
+     * The return address to register is /integrations/oauth/callback.
+     */
+    'exact' => [
+        'base_url' => env('EXACT_BASE_URL', 'https://start.exactonline.nl'),
+        'client_id' => env('EXACT_CLIENT_ID'),
+        'client_secret' => env('EXACT_CLIENT_SECRET'),
+        'webhook_secret' => env('EXACT_WEBHOOK_SECRET'),
+    ],
+
+    'moneybird' => [
+        'oauth_url' => env('MONEYBIRD_OAUTH_URL', 'https://moneybird.com/oauth'),
+        'api_url' => env('MONEYBIRD_API_URL', 'https://moneybird.com/api/v2'),
+        'client_id' => env('MONEYBIRD_CLIENT_ID'),
+        'client_secret' => env('MONEYBIRD_CLIENT_SECRET'),
+    ],
+
+    /**
      * Route planning on the maps: a VROOM server. Either HeiGIT's, at
      * https://api.heigit.org/vroom/v0 with a free key from account.heigit.org,
      * or one of our own, which needs no key (scripts/routeplanner/setup.sh).

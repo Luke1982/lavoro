@@ -2,8 +2,11 @@
 
 namespace App\Domain\Integrations;
 
+use App\Domain\Integrations\Connectors\Afas\AfasConnector;
 use App\Domain\Integrations\Connectors\BusinessCentral\BusinessCentralConnector;
 use App\Domain\Integrations\Connectors\EBoekhouden\EBoekhoudenConnector;
+use App\Domain\Integrations\Connectors\Exact\ExactConnector;
+use App\Domain\Integrations\Connectors\Moneybird\MoneybirdConnector;
 use App\Domain\Integrations\Connectors\SnelStart\SnelStartConnector;
 use App\Models\IntegrationConnection;
 use InvalidArgumentException;
@@ -19,6 +22,9 @@ class Connectors
         SnelStartConnector::class,
         EBoekhoudenConnector::class,
         BusinessCentralConnector::class,
+        ExactConnector::class,
+        AfasConnector::class,
+        MoneybirdConnector::class,
     ];
 
     /** @var array<string, class-string<Connector>> Added by a test, never in production code. */

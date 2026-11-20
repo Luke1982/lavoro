@@ -1,7 +1,8 @@
 # Integrations: one funnel for outside systems
 
 Lavoro exchanges customers, materials and werkbonnen with bookkeeping systems
-(SnelStart, e-Boekhouden.nl, Business Central). All of them go
+(SnelStart, e-Boekhouden.nl, Business Central, Exact Online, AFAS Profit,
+Moneybird). All of them go
 through one layer in `app/Domain/Integrations`, the way Laravel puts mail
 behind a mailer: the rest of the app says "sync customers" or "send this
 werkbon", and a **connector** translates that to one system's API.
@@ -23,13 +24,14 @@ werkbon", and a **connector** translates that to one system's API.
 
 ## Capabilities
 
-| Capability | Contract | SnelStart | e-Boekhouden | Business Central |
-|---|---|---|---|---|
-| Customers read | `PullsCustomers` | full | full | delta |
-| Customers write | `PushesCustomers` | yes | yes | yes |
-| Materials read | `PullsMaterials` | full | full (active only) | delta (not blocked) |
-| Werkbon out | `ReceivesSalesDocuments` | sales order | draft invoice, final invoice | sales order, draft invoice, posted invoice |
-| Webhooks | `ReceivesWebhooks` | no | no | customers, items |
+| Capability | Contract | SnelStart | e-Boekhouden | Business Central | Exact Online | AFAS Profit | Moneybird |
+|---|---|---|---|---|---|---|---|
+| Login | | keys | codes | app in customer's Entra | OAuth, MajorLabel's app | token | OAuth, MajorLabel's app |
+| Customers read | `PullsCustomers` | full | full | delta | delta | delta | delta |
+| Customers write | `PushesCustomers` | yes | yes | yes | yes | no | yes |
+| Materials read | `PullsMaterials` | full | full (active only) | delta (not blocked) | delta (sellable, not ended) | delta (not blocked) | full |
+| Werkbon out | `ReceivesSalesDocuments` | sales order | draft, final invoice | sales order, draft, posted invoice | sales order, draft, processed invoice | sales order | draft, sent invoice |
+| Webhooks | `ReceivesWebhooks` | no | no | customers, items | accounts, items (with app webhook secret) | no | contacts, products |
 
 Every area a connection reads is compared in full every night: the only way
 to notice a record removed there, and the safety net under webhooks. A system
@@ -81,6 +83,11 @@ has no records at all is likelier broken than emptied.
 
 A pull runs in one transaction, so a failure halfway changes nothing. What it
 sends out goes on the queue and only leaves after the commit.
+
+Nothing talks to the other system inside a database transaction: a pull
+fetches everything first and only then takes it in one transaction. A token
+renewed on the way is saved at once; inside the transaction a rollback would
+throw away the only refresh token Exact still accepts.
 
 Syncs of one connection and area never run side by side (`Synchronizer::exclusively`,
 a cache lock): otherwise a customer created there could come back through its
@@ -153,6 +160,90 @@ without a company lists the companies.
   Notices with a different `clientState` are ignored; `collection` means "pull
   what changed in the whole area".
 
+## Connecting through a login (OAuth)
+
+Exact Online and Moneybird are connected by logging in there: the connector
+implements `ConnectsWithOAuth`, asks for no credentials, and the card shows
+"Koppelen met …". The app on the other side is MajorLabel's own, one
+registration for every customer, so its id and secret are in config
+(`services.exact`, `services.moneybird`); what is per customer are the tokens,
+stored encrypted with the connection's credentials.
+
+- `IntegrationOAuthController::start` changes nothing: it keeps a random
+  state with the connector key and the tenant in the session (one entry per
+  state, so two logins in two tabs do not trip over each other) and sends the
+  person off. `callback` takes that entry by the state it gets back -- the
+  customer comes from the session, never from the request -- exchanges the
+  code, lets the connector pick the administration or division with the new
+  tokens, and only then makes or saves the connection. A login that does not
+  come back complete leaves nothing behind. That save starts the first full
+  pull and the webhooks.
+- One return address for every system and customer:
+  `https://<app domain>/integrations/oauth/callback`. That is what is
+  registered with Exact and Moneybird.
+- `OAuthTokens` renews a token shortly before it runs out, under a lock per
+  connection, and re-reads the tokens once it has the lock. Exact hands out a
+  new refresh token on every renewal and kills the old one; two workers
+  renewing at once would otherwise leave one with a dead token. A refresh
+  token Exact has not seen for 30 days dies too, which the nightly sync
+  prevents.
+- A refusal in the callback is shown on the Koppelingen page, not "back":
+  back would be the other system's login page. A 429 or 5xx from a token
+  address is `IntegrationUnavailable` (try later), not "connect again".
+- Saving the settings only rewrites the credentials when one was filled in:
+  encryption makes every write differ, and writing them back as read would
+  restore a refresh token that was renewed meanwhile.
+
+The administration, division or company a connection works in is a scope
+option (`Field::$scope`). Every link is an id within it, so it cannot change
+while anything is linked: another one is a new connection. A webhook
+remembers the scope it was made for (`IntegrationWebhook::$scope`, from
+`ReceivesWebhooks::webhookScope()`) and is made again when that differs.
+
+### Registering MajorLabel's apps
+
+**Exact Online** (once, for NL):
+1. Log in to the Dutch Exact Online App Center with MajorLabel's Exact
+   account. That user needs Exact's "Manage apps" right; an app that connects
+   other companies' administrations generally needs a developer subscription.
+2. Under "Manage my apps", register an app ("Lavoro") with redirect URI
+   `https://<app domain>/integrations/oauth/callback`: exactly that, HTTPS
+   (Exact refuses http and localhost).
+3. Copy the Client ID and Client secret -- the secret may be shown only once --
+   and the app's webhook secret into `EXACT_CLIENT_ID`, `EXACT_CLIENT_SECRET`
+   and `EXACT_WEBHOOK_SECRET`, then `config:cache` and restart the workers.
+   Without the webhook secret Lavoro asks for no webhooks and relies on the
+   quarter-hourly changes.
+4. Until Exact has reviewed the app it only works for MajorLabel's own
+   administrations; submit it for review in the App Center before customers
+   connect. An app registered for NL cannot connect administrations in another
+   country.
+
+**Moneybird**:
+1. Log in at moneybird.com with MajorLabel's account and register an external
+   application ("Lavoro") at moneybird.com/user/applications/new.
+2. Callback URL: `https://<app domain>/integrations/oauth/callback`, exactly
+   (protocol and trailing slash count).
+3. Copy the Client ID and Client secret into `MONEYBIRD_CLIENT_ID` and
+   `MONEYBIRD_CLIENT_SECRET`, `config:cache`, restart the workers. Lavoro asks
+   for the scopes `sales_invoices settings`.
+
+**AFAS Profit** has no app to register: each customer makes an app connector
+in Profit and gives Lavoro a token (see the manual, chapter Koppelingen).
+
+## AFAS Profit
+
+Profit has no standard GetConnectors, so the customer defines two and gives
+their fields the ids Lavoro reads (`AfasConnector::DEBTOR` and `ARTICLE`, plus
+`DebtorId`, `Blocked` and `ModifiedDate`). "Test" checks both through
+`/metainfo/get/<name>` and names every missing field id: a missing field would
+otherwise read as empty and empty it in Lavoro. Customers are not sent to
+AFAS: a debtor there carries mandatory parts (payment terms, VAT duty, a postal
+address) that are the administration's to decide. A werkbon goes out as a
+sales order through `FbSales` with article lines (`VaIt` 2, `ItCd`, `QuUn`,
+`Upri`). Profit explains a refusal in the base64 header `X-Profit-Error`; a
+500 from Profit is such a business-rule refusal, not an outage.
+
 ## Adding a connector
 
 1. A class extending `Connector` in `Connectors/<System>/`, with `key()`
@@ -183,4 +274,7 @@ stored.
   (e-Boekhouden's `GetOpenPosten` and Business Central's customer ledger would
   feed it).
 - Business Central on-premises: other login, other address per customer.
+- Customers to AFAS (`KnSalesRelationOrg`), and the werkbon reference on an
+  AFAS order: the field codes are not confirmed in AFAS's public pages.
+- Twinfield, Yuki, Visma eAccounting.
 - VAT per material: every line goes out at 21%, as the SnelStart send always did.
