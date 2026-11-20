@@ -3,6 +3,7 @@
 namespace App\Domain\Integrations;
 
 use App\Models\Customer;
+use App\Models\LedgerAccount;
 use App\Models\Material;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ enum Area: string
     case Customers = 'customers';
     case Materials = 'materials';
     case ServiceOrders = 'service_orders';
+    case LedgerAccounts = 'ledger_accounts';
 
     /**
      * The areas kept in step in both directions. Werkbonnen are not among
@@ -26,7 +28,7 @@ enum Area: string
      */
     public static function synced(): array
     {
-        return [self::Customers, self::Materials];
+        return [self::Customers, self::Materials, self::LedgerAccounts];
     }
 
     public function label(): string
@@ -35,6 +37,7 @@ enum Area: string
             self::Customers => 'Klanten',
             self::Materials => 'Materialen',
             self::ServiceOrders => 'Werkbonnen',
+            self::LedgerAccounts => 'Grootboekrekeningen',
         };
     }
 
@@ -45,6 +48,7 @@ enum Area: string
             self::Customers => Customer::class,
             self::Materials => Material::class,
             self::ServiceOrders => ServiceOrder::class,
+            self::LedgerAccounts => LedgerAccount::class,
         };
     }
 

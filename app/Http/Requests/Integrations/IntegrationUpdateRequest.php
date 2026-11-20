@@ -45,7 +45,7 @@ class IntegrationUpdateRequest extends FormRequest
                 $current = $connection->option($field->key);
 
                 if ($field->scope && filled($wanted) && filled($current) && (string) $wanted !== (string) $current && $connection->links()->exists()) {
-                    $validator->errors()->add('options.' . $field->key, 'Dit kan niet meer veranderen zolang er klanten of materialen gekoppeld zijn. '
+                    $validator->errors()->add('options.' . $field->key, 'Dit kan niet meer veranderen zolang er klanten, materialen of grootboekrekeningen gekoppeld zijn. '
                         . 'Verwijder de koppeling en koppel opnieuw om een andere te gebruiken.');
                 }
             }

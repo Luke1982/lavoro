@@ -28,7 +28,7 @@ class ProductUpdateRequest extends ProductRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->hasPermission('product.update') ?? false;
     }
 
     /**
@@ -76,6 +76,7 @@ class ProductUpdateRequest extends ProductRequest
             'registable' => ['sometimes', 'nullable', 'boolean'],
             'active' => ['sometimes', 'nullable', 'boolean'],
             'warranty' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'ledger_account_id' => ['sometimes', 'nullable', 'integer', 'exists:ledger_accounts,id'],
         ];
     }
 

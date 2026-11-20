@@ -3,8 +3,10 @@
 namespace App\Domain\Integrations;
 
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
+use App\Domain\Integrations\Contracts\PushesLedgerAccounts;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Contracts\ReceivesWebhooks;
 
@@ -23,6 +25,8 @@ enum Capability: string
     case CustomersWrite = 'customers.write';
     case MaterialsRead = 'materials.read';
     case ServiceOrdersWrite = 'service_orders.write';
+    case LedgerAccountsRead = 'ledger_accounts.read';
+    case LedgerAccountsWrite = 'ledger_accounts.write';
     case Webhooks = 'webhooks';
 
     /** @return class-string */
@@ -33,6 +37,8 @@ enum Capability: string
             self::CustomersWrite => PushesCustomers::class,
             self::MaterialsRead => PullsMaterials::class,
             self::ServiceOrdersWrite => ReceivesSalesDocuments::class,
+            self::LedgerAccountsRead => PullsLedgerAccounts::class,
+            self::LedgerAccountsWrite => PushesLedgerAccounts::class,
             self::Webhooks => ReceivesWebhooks::class,
         };
     }
@@ -44,6 +50,8 @@ enum Capability: string
             self::CustomersWrite => 'Klanten versturen',
             self::MaterialsRead => 'Materialen ophalen',
             self::ServiceOrdersWrite => 'Werkbonnen versturen',
+            self::LedgerAccountsRead => 'Grootboekrekeningen ophalen',
+            self::LedgerAccountsWrite => 'Grootboekrekeningen versturen',
             self::Webhooks => 'Meldt zelf wijzigingen',
         };
     }
@@ -54,6 +62,7 @@ enum Capability: string
             self::CustomersRead, self::CustomersWrite => Area::Customers,
             self::MaterialsRead => Area::Materials,
             self::ServiceOrdersWrite => Area::ServiceOrders,
+            self::LedgerAccountsRead, self::LedgerAccountsWrite => Area::LedgerAccounts,
             self::Webhooks => null,
         };
     }
@@ -64,6 +73,7 @@ enum Capability: string
             Area::Customers => self::CustomersRead,
             Area::Materials => self::MaterialsRead,
             Area::ServiceOrders => null,
+            Area::LedgerAccounts => self::LedgerAccountsRead,
         };
     }
 
@@ -73,6 +83,7 @@ enum Capability: string
             Area::Customers => self::CustomersWrite,
             Area::Materials => null,
             Area::ServiceOrders => self::ServiceOrdersWrite,
+            Area::LedgerAccounts => self::LedgerAccountsWrite,
         };
     }
 }

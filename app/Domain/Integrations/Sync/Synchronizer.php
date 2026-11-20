@@ -59,6 +59,7 @@ class Synchronizer
         return match ($area) {
             Area::Customers => new CustomerMapping,
             Area::Materials => new MaterialMapping,
+            Area::LedgerAccounts => new LedgerAccountMapping,
             Area::ServiceOrders => throw new InvalidArgumentException('Werkbonnen are sent, not synchronised.'),
         };
     }

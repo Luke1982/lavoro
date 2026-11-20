@@ -32,7 +32,11 @@ class IntegrationController extends Controller
         return inertia('Admin/Integrations/IndexPage', [
             'connectors' => array_values(array_map(fn (string $class) => $class::describe(), Connectors::all())),
             'connections' => $connections->map(fn (IntegrationConnection $connection) => $this->present($connection))->values(),
-            'areas' => array_map(fn (Area $area) => ['key' => $area->value, 'label' => $area->label()], Area::cases()),
+            'areas' => array_map(fn (Area $area) => [
+                'key' => $area->value,
+                'label' => $area->label(),
+                'synced' => in_array($area, Area::synced(), true),
+            ], Area::cases()),
         ]);
     }
 
@@ -80,7 +84,8 @@ class IntegrationController extends Controller
     }
 
     /**
-     * By hand, from the customers or materials list or this screen. Runs while
+     * By hand, from the list of customers, materials or ledger accounts, or
+     * from this screen. Runs while
      * you wait, in one transaction: after a refusal nothing has changed, and
      * the message says why.
      */
@@ -106,12 +111,11 @@ class IntegrationController extends Controller
             'settings' => [
                 'options' => (object) ($connection->settings['options'] ?? []),
                 'areas' => [
-                    'customers' => [
-                        'read' => (bool) $connection->areaSetting(Area::Customers, 'read', false),
-                        'write' => (bool) $connection->areaSetting(Area::Customers, 'write', false),
-                        'leading' => $connection->leading(Area::Customers)->value,
-                    ],
-                    'materials' => ['read' => (bool) $connection->areaSetting(Area::Materials, 'read', false)],
+                    ...collect(Area::synced())->mapWithKeys(fn (Area $area) => [$area->value => [
+                        'read' => (bool) $connection->areaSetting($area, 'read', false),
+                        'write' => (bool) $connection->areaSetting($area, 'write', false),
+                        'leading' => $connection->leading($area)->value,
+                    ]]),
                     'service_orders' => ['form' => $connection->areaSetting(Area::ServiceOrders, 'form')],
                 ],
             ],

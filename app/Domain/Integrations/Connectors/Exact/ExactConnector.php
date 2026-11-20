@@ -7,14 +7,17 @@ use App\Domain\Integrations\ChangeDetection;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\ConnectsWithOAuth;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
+use App\Domain\Integrations\Contracts\PushesLedgerAccounts;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Contracts\ReceivesWebhooks;
 use App\Domain\Integrations\Data\ChangeNotice;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Data\PushedDocument;
 use App\Domain\Integrations\Data\SalesDocumentData;
@@ -31,17 +34,17 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Exact Online (NL). Customers both ways, articles in, and a werkbon out as a
- * sales order, a draft invoice or a processed invoice. Exact can say what
- * changed since a moment, and calls Lavoro itself when customers or articles
- * change.
+ * Exact Online (NL). Customers and revenue accounts both ways, articles in, and
+ * a werkbon out as a sales order, a draft invoice or a processed invoice. Exact
+ * can say what changed since a moment, and calls Lavoro itself when customers
+ * or articles change.
  *
  * Everything is per administration ("division"); the one the person was in
  * when connecting is taken, and can be changed under the options. Exact allows
  * an app about 60 calls a minute and 5,000 a day per administration, which is
  * why full pulls go through the bulk endpoints, a thousand records a call.
  */
-class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustomers, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
+class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustomers, PullsLedgerAccounts, PullsMaterials, PushesCustomers, PushesLedgerAccounts, ReceivesSalesDocuments, ReceivesWebhooks
 {
     /** A customer's field here => the account's field there. */
     private const ACCOUNT = [
@@ -58,6 +61,11 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
     ];
 
     private const ITEM_FIELDS = 'ID,Code,Description,StandardSalesPrice,CostPriceStandard,Stock,IsSalesItem,EndDate';
+
+    private const GL_ACCOUNT_FIELDS = 'ID,Code,Description,Type,IsBlocked';
+
+    /** Type 110 is a revenue account ("Omzet"), on the profit and loss account (W) and credited (C). */
+    private const REVENUE = ['Type' => 110, 'BalanceType' => 'W', 'BalanceSide' => 'C'];
 
     /** The webhook topic per area. */
     private const TOPICS = ['Accounts' => Area::Customers, 'Items' => Area::Materials];
@@ -79,7 +87,7 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
 
     public static function description(): string
     {
-        return 'Boekhouding. Klanten twee kanten op, artikelen naar Lavoro, en een werkbon als verkooporder of factuur. Meldt wijzigingen zelf.';
+        return 'Boekhouding. Klanten en omzetrekeningen twee kanten op, artikelen naar Lavoro, en een werkbon als verkooporder of factuur. Meldt wijzigingen zelf.';
     }
 
     public static function credentialFields(): array
@@ -94,8 +102,6 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
                 help: 'Wordt bij het koppelen ingevuld met de administratie waarin je zat. Vul een ander nummer in voor een andere.'),
             new Field('sales_journal', 'Verkoopdagboek', default: '70', rules: ['regex:/^[A-Za-z0-9]+$/'],
                 help: 'De code van het verkoopdagboek voor facturen van werkbonnen.'),
-            new Field('gl_account', 'Omzetrekening (ID)', required: false, rules: ['uuid'],
-                help: 'Leeg: de grootboekrekening die bij het artikel hoort.'),
         ];
     }
 
@@ -115,6 +121,11 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
     }
 
     public static function materialChanges(): ChangeDetection
+    {
+        return ChangeDetection::Delta;
+    }
+
+    public static function ledgerAccountChanges(): ChangeDetection
     {
         return ChangeDetection::Delta;
     }
@@ -223,6 +234,49 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
         return $item && $this->sellable($item) ? $this->materialRecord($item) : null;
     }
 
+    /** Only revenue accounts that are not blocked: those are what a sales line can be booked on. */
+    public function pullLedgerAccounts(?CarbonImmutable $since = null): iterable
+    {
+        $revenue = 'Type eq ' . self::REVENUE['Type'];
+
+        $accounts = $since
+            ? $this->api()->pages($this->path('/financial/GLAccounts'), ['$select' => self::GL_ACCOUNT_FIELDS, '$filter' => $revenue . ' and ' . $this->changedSince($since)])
+            : $this->api()->pages($this->path('/bulk/Financial/GLAccounts'), ['$select' => self::GL_ACCOUNT_FIELDS, '$filter' => $revenue]);
+
+        foreach ($accounts as $account) {
+            if ($this->bookable($account)) {
+                yield $this->ledgerAccountRecord($account);
+            }
+        }
+    }
+
+    public function fetchLedgerAccount(string $id): ?ExternalRecord
+    {
+        $account = Str::isUuid($id) ? $this->api()->find($this->record('/financial/GLAccounts', $id), ['$select' => self::GL_ACCOUNT_FIELDS]) : null;
+
+        return $account && $this->bookable($account) ? $this->ledgerAccountRecord($account) : null;
+    }
+
+    public function createLedgerAccount(LedgerAccountData $account): ExternalRecord
+    {
+        return $this->ledgerAccountRecord($this->api()->post($this->path('/financial/GLAccounts'), [
+            ...$this->ledgerAccountPayload($account),
+            ...self::REVENUE,
+        ]));
+    }
+
+    /** Read back as it is, blocked or not: it was just found to update. */
+    public function updateLedgerAccount(string $id, LedgerAccountData $account): ExternalRecord
+    {
+        $path = $this->record('/financial/GLAccounts', $id);
+        $this->api()->put($path, $this->ledgerAccountPayload($account));
+
+        $updated = $this->api()->find($path, ['$select' => self::GL_ACCOUNT_FIELDS])
+            ?? throw new Refusal('Exact Online gaf de bijgewerkte grootboekrekening niet terug.');
+
+        return $this->ledgerAccountRecord($updated);
+    }
+
     /**
      * The document with its lines in one call, so Exact either has all of it
      * or none. A final invoice is then processed ("printed", without mailing
@@ -231,7 +285,7 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
      */
     public function pushSalesDocument(SalesDocumentData $document, DocumentForm $form): PushedDocument
     {
-        [$lines, $warnings] = $this->documentLines($document);
+        [$lines, $warnings] = $this->documentLines($document, invoice: $form !== DocumentForm::SalesOrder);
 
         if ($form === DocumentForm::SalesOrder) {
             $order = $this->api()->post($this->path('/salesorder/SalesOrders'), [
@@ -247,10 +301,7 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
             ...$this->documentHeader($document),
             'Journal' => $this->option('sales_journal'),
             'InvoiceDate' => $document->date->toDateString(),
-            'SalesInvoiceLines' => array_map(
-                fn (array $line) => array_filter([...$line, 'GLAccount' => $this->option('gl_account')], fn ($value) => $value !== null),
-                $lines,
-            ),
+            'SalesInvoiceLines' => $lines,
         ]);
         $id = (string) $invoice['InvoiceID'];
 
@@ -318,7 +369,7 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
     }
 
     /** @return array{0: array<int, array<string, mixed>>, 1: array<int, string>} */
-    private function documentLines(SalesDocumentData $document): array
+    private function documentLines(SalesDocumentData $document, bool $invoice): array
     {
         $lines = [];
         $warnings = [];
@@ -330,7 +381,7 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
                 continue;
             }
 
-            $lines[] = $this->documentLine($line);
+            $lines[] = $this->documentLine($line, $invoice);
         }
 
         if ($lines === []) {
@@ -341,15 +392,22 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
         return [$lines, $warnings];
     }
 
-    /** @return array<string, mixed> */
-    private function documentLine(SalesLineData $line): array
+    /**
+     * An invoice line goes onto the material's revenue account, when it has
+     * one there, instead of the article's own. A sales order line has no such
+     * field: the invoice Exact later makes of it takes the article's.
+     *
+     * @return array<string, mixed>
+     */
+    private function documentLine(SalesLineData $line, bool $invoice): array
     {
-        return [
+        return array_filter([
             'Item' => $line->article_id,
             'Description' => mb_substr($line->description, 0, 60),
             'Quantity' => $line->quantity,
             'UnitPrice' => $line->unit_price,
-        ];
+            'GLAccount' => $invoice ? $line->ledger_account_id : null,
+        ], fn ($value) => $value !== null);
     }
 
     /** @return array<string, mixed> */
@@ -422,6 +480,29 @@ class ExactConnector extends Connector implements ConnectsWithOAuth, PullsCustom
             'cost_price' => $item['CostPriceStandard'] ?? null,
             'stock' => $item['Stock'] ?? null,
         ]));
+    }
+
+    private function ledgerAccountRecord(array $account): ExternalRecord
+    {
+        return new ExternalRecord((string) $account['ID'], LedgerAccountData::from([
+            'name' => $account['Description'] ?? null,
+            'code' => isset($account['Code']) ? trim((string) $account['Code']) : null,
+        ]));
+    }
+
+    /** @return array<string, string> Exact requires a number and a description on every account. */
+    private function ledgerAccountPayload(LedgerAccountData $account): array
+    {
+        if (!filled($account->code)) {
+            throw new Refusal('Grootboekrekening "' . $account->name . '" heeft geen nummer, en Exact Online vereist er een.');
+        }
+
+        return ['Code' => $account->code, 'Description' => (string) $account->name];
+    }
+
+    private function bookable(array $account): bool
+    {
+        return (int) ($account['Type'] ?? 0) === self::REVENUE['Type'] && !($account['IsBlocked'] ?? false);
     }
 
     private function sellable(array $item): bool

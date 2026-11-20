@@ -14,6 +14,7 @@ use App\Exceptions\Refusal;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
 use App\Models\IntegrationWebhook;
+use App\Models\LedgerAccount;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Request as IncomingRequest;
@@ -86,6 +87,13 @@ class MoneybirdConnectorTest extends TestCase
             $key === 'PATCH /sales_invoices/7001/send_invoice.json' => Http::response(['id' => '7001', 'invoice_id' => '2026-0042', 'state' => 'open']),
             $key === 'DELETE /sales_invoices/7001.json' => Http::response(null, 204),
             $key === 'POST /webhooks.json' => Http::response(['id' => '9001', 'token' => 'hun-token', 'secret' => 'hun-geheim'], 201),
+            $key === 'GET /ledger_accounts.json' => Http::response([
+                ['id' => '601', 'name' => 'Omzet', 'account_type' => 'revenue', 'account_id' => '8000', 'active' => true, 'allowed_document_types' => ['sales_invoice', 'general_journal_document']],
+                ['id' => '602', 'name' => 'Omzet zonder nummer', 'account_type' => 'revenue', 'account_id' => null, 'active' => true, 'allowed_document_types' => ['sales_invoice']],
+                ['id' => '603', 'name' => 'Oude omzet', 'account_type' => 'revenue', 'account_id' => '8900', 'active' => false, 'allowed_document_types' => ['sales_invoice']],
+                ['id' => '604', 'name' => 'Inkoop', 'account_type' => 'direct_costs', 'account_id' => '7000', 'active' => true, 'allowed_document_types' => ['purchase_invoice']],
+                ['id' => '605', 'name' => 'Rente', 'account_type' => 'revenue', 'account_id' => '8800', 'active' => true, 'allowed_document_types' => ['general_journal_document']],
+            ]),
         };
     }
 
@@ -186,6 +194,24 @@ class MoneybirdConnectorTest extends TestCase
         $this->assertArrayNotHasKey('product_id', $invoice['details_attributes'][1]);
         $this->assertSame('Manual', $this->sentTo('PATCH', '/sales_invoices/7001/send_invoice.json')[0]['sales_invoice_sending']['delivery_method']);
         $this->assertSame('2026-0042', $pushed->number);
+    }
+
+    public function test_only_active_revenue_accounts_for_sales_invoices_come_in(): void
+    {
+        $this->connection->settings = [...$this->connection->settings, 'ledger_accounts' => ['read' => true, 'write' => false, 'leading' => 'external']];
+        $this->connection->saveQuietly();
+
+        app(Synchronizer::class)->pull($this->connection->fresh(), Area::LedgerAccounts);
+
+        $this->assertEqualsCanonicalizing(['Omzet', 'Omzet zonder nummer'], LedgerAccount::pluck('name')->all());
+        $this->assertNull(LedgerAccount::where('name', 'Omzet zonder nummer')->value('code'));
+    }
+
+    public function test_an_invoice_line_carries_its_account(): void
+    {
+        $this->connector()->pushSalesDocument($this->document([new SalesLineData('Filter', 1, 12.5, 21, ledger_account_id: '601')]), DocumentForm::DraftInvoice);
+
+        $this->assertSame('601', $this->sentTo('POST', '/sales_invoices.json')[0]['sales_invoice']['details_attributes'][0]['ledger_account_id']);
     }
 
     public function test_a_draft_invoice_is_not_sent(): void

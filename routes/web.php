@@ -37,6 +37,7 @@ use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\IntegrationOAuthController;
 use App\Http\Controllers\IntegrationWebhookController;
 use App\Http\Controllers\InternalAnnouncementController;
+use App\Http\Controllers\LedgerAccountController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceContractPriceFormulaController;
@@ -521,6 +522,11 @@ Route::group(
             ->name('integrations.pull')
             ->whereNumber('integration')
             ->whereIn('area', array_map(fn (Area $area) => $area->value, Area::synced()));
+        Route::resource('integrations/ledger-accounts', LedgerAccountController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->names('ledger-accounts')
+            ->parameters(['ledger-accounts' => 'ledger_account'])
+            ->whereNumber('ledger_account');
         Route::post('serviceorders/bulk-update', [ServiceOrderController::class, 'bulkUpdate'])
             ->name('serviceorders.bulk-update');
         Route::resource('serviceorders', ServiceOrderController::class);

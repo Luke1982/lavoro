@@ -1,9 +1,9 @@
 # Integrations: one funnel for outside systems
 
-Lavoro exchanges customers, materials and werkbonnen with bookkeeping systems
+Lavoro exchanges customers, materials, ledger accounts and werkbonnen with
+bookkeeping systems
 (SnelStart, e-Boekhouden.nl, Business Central, Exact Online, AFAS Profit,
-Moneybird). All of them go
-through one layer in `app/Domain/Integrations`, the way Laravel puts mail
+Moneybird). All of them go through one layer in `app/Domain/Integrations`, the way Laravel puts mail
 behind a mailer: the rest of the app says "sync customers" or "send this
 werkbon", and a **connector** translates that to one system's API.
 
@@ -13,7 +13,7 @@ werkbon", and a **connector** translates that to one system's API.
 |---|---|---|
 | Connector | `Connector`, `Connectors/<System>/` | Translates the standard shapes to one API and back. Knows nothing about models, links or sync rules. |
 | Capabilities | `Capability`, `Contracts/` | What a connector can do. Each capability is an interface; a connector has it by implementing it. |
-| Standard shapes | `Data/` | `CustomerData`, `MaterialData`, `SalesDocumentData` (+ `SalesLineData`), `ExternalRecord`, `PushedDocument`, `ChangeNotice`. |
+| Standard shapes | `Data/` | `CustomerData`, `MaterialData`, `LedgerAccountData`, `SalesDocumentData` (+ `SalesLineData`), `ExternalRecord`, `PushedDocument`, `ChangeNotice`. |
 | Registry | `Connectors` | Every connector by key. Every customer can use every connector: a connector is not a module. |
 | Connection | `IntegrationConnection` (tenant DB) | One system a customer uses: encrypted credentials, per-area settings, last sync, last error. One per connector. |
 | Link | `Integrationable` / `integrationables` | Which record here is which record there, plus a fingerprint per field of both sides at the last sync. |
@@ -30,14 +30,54 @@ werkbon", and a **connector** translates that to one system's API.
 | Customers read | `PullsCustomers` | full | full | delta | delta | delta | delta |
 | Customers write | `PushesCustomers` | yes | yes | yes | yes | no | yes |
 | Materials read | `PullsMaterials` | full | full (active only) | delta (not blocked) | delta (sellable, not ended) | delta (not blocked) | full |
+| Ledger accounts read | `PullsLedgerAccounts` | no | full (category VW, costs included) | delta (Income, posting, direct posting, not blocked) | delta (type 110 revenue, not blocked) | no | full (active revenue, allowed on sales invoices) |
+| Ledger accounts write | `PushesLedgerAccounts` | no | no | no (API is read-only) | yes, as revenue account | no | no (needs an RGS code) |
+| Line on its account | `SalesLineData::$ledger_account_id` | no | by number (`TegenrekeningCode`) | lines without item (`Account` line) | invoice lines (`GLAccount`) | no | all lines (`ledger_account_id`) |
 | Werkbon out | `ReceivesSalesDocuments` | sales order | draft, final invoice | sales order, draft, posted invoice | sales order, draft, processed invoice | sales order | draft, sent invoice |
-| Webhooks | `ReceivesWebhooks` | no | no | customers, items | accounts, items (with app webhook secret) | no | contacts, products |
+| Webhooks | `ReceivesWebhooks` | no | no | customers, items | customers (`Accounts`), items (with app webhook secret) | no | contacts, products |
 
 Every area a connection reads is compared in full every night: the only way
 to notice a record removed there, and the safety net under webhooks. A system
 with `ChangeDetection::Delta` ("what changed since") is also asked every 15
 minutes. Webhooks are a capability of their own, not a way of detecting
 changes: they only make a change arrive sooner.
+
+## Ledger accounts
+
+`LedgerAccount` holds the revenue accounts ("8000 Omzet") materials and products
+are booked on (`ledger_account_id` on both). It is a synced area like customers
+(`Area::LedgerAccounts`, `LedgerAccountMapping`, matched by code), so the
+connection's read, write and "who wins" switches apply to it unchanged. An
+account can be made here (`Koppelingen → Grootboekrekeningen`, under
+`integration.manage`) or fetched; one made here gets a number, one from
+Moneybird may lack it.
+
+Each connector fetches only what a sales line can be booked on, as far as that
+system tells (see the table). e-Boekhouden only tells balance sheet from profit
+and loss, so its cost accounts come along and the person picks. Writing is only built for Exact: its
+API documents the fields of a new revenue account. Business Central's account
+API is read-only, Moneybird requires an RGS code per new account, and
+e-Boekhouden's `AddGrootboekrekening` takes a group whose values are not
+documented. SnelStart and AFAS have no ledger capability: their lines are
+booked through the article.
+
+On a werkbon, `ServiceOrderSender` puts the material's account on the line as
+its id in that system (`SalesLineData::$ledger_account_id`), when the
+connection exchanges accounts and the account is linked there; an account that
+is not linked there is named in a warning. A connection that no longer
+exchanges accounts gets none: the field is hidden then, and a choice nobody can
+see must not book anything. Without one, each system books the line as it
+always did: on the article's account, or the connection's default. An item line
+in Business Central is booked by its posting groups and takes no account; an
+Exact sales order line has no account field, so only invoices carry it.
+
+The field on materials and products shows only while an active connection
+exchanges ledger accounts (`LedgerAccount::inUse()`; `choices()` returns null
+otherwise), and so does the link to the list on that connection's card. Products carry the account for when
+products themselves are invoiced: a werkbon sends materials only, so nothing
+reads a product's account yet. An account still chosen on a material or
+product cannot be removed (`LedgerAccountController::destroy`, and a
+restricting foreign key).
 
 ## Two-way sync
 
@@ -103,8 +143,8 @@ and is retried.
   areas only, changes only). It dispatches one `PullAreaJob` per connection
   and area.
 - **By hand:** `POST /integrations/{id}/pull/{area}` runs the same pull while
-  you wait (the buttons on the customers and materials lists, and "Nu
-  ophalen").
+  you wait (the buttons on the customers, materials and ledger account lists,
+  and "Nu ophalen").
 - **Out:** `SendChangesToIntegrations` listens to `ModelChanged` and queues a
   `PushRecordJob` per connection that writes that area. Nothing that saves a
   customer needs to know a linked system exists.
@@ -249,8 +289,8 @@ sales order through `FbSales` with article lines (`VaIt` 2, `ItCd`, `QuUn`,
 1. A class extending `Connector` in `Connectors/<System>/`, with `key()`
    (stored, never rename it), `label()`, `description()`,
    `credentialFields()`, optional `optionFields()`, and `test()`.
-2. Implement the contracts it can honour. Override `customerFields()` /
-   `materialFields()` when it carries fewer fields.
+2. Implement the contracts it can honour. Override `customerFields()`,
+   `materialFields()` or `ledgerAccountFields()` when it carries fewer fields.
 3. Add it to `Connectors::BUILT_IN`.
 4. Validation rules on any field that ends up in an address (`Field::$rules`).
 5. A test against a fake of its API, like `BusinessCentralConnectorTest`.
@@ -270,7 +310,7 @@ stored.
 
 ## Not built yet
 
-- Materials out (`PushesMaterials`), products, quotes, and payment status
+- Materials out (`PushesMaterials`), products on invoices, quotes, and payment status
   (e-Boekhouden's `GetOpenPosten` and Business Central's customer ledger would
   feed it).
 - Business Central on-premises: other login, other address per customer.
@@ -278,3 +318,7 @@ stored.
   AFAS order: the field codes are not confirmed in AFAS's public pages.
 - Twinfield, Yuki, Visma eAccounting.
 - VAT per material: every line goes out at 21%, as the SnelStart send always did.
+- A material's ledger account taken from its article (Exact's `GLRevenue`,
+  Moneybird's product `ledger_account_id`): the account is chosen in Lavoro.
+- Webhooks for ledger accounts: they change seldom, and the nightly pull (and
+  Exact's and Business Central's 15-minute delta) keeps them current.

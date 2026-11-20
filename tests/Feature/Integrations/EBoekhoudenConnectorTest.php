@@ -12,6 +12,7 @@ use App\Domain\Integrations\Sync\Synchronizer;
 use App\Exceptions\Refusal;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
+use App\Models\LedgerAccount;
 use App\Models\Material;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
@@ -77,6 +78,10 @@ class EBoekhoudenConnectorTest extends TestCase
                 . '<InkoopprijsExclBTW>0</InkoopprijsExclBTW><VerkoopprijsExclBTW>0</VerkoopprijsExclBTW><Actief>false</Actief></cArtikel>'
                 . '</Artikelen>',
             'AddFactuur' => '<ErrorMsg /><Factuurnummer>F2026-001</Factuurnummer>',
+            'GetGrootboekrekeningen' => '<ErrorMsg /><Rekeningen>'
+                . '<cGrootboekrekening><ID>301</ID><Code>8010</Code><Omschrijving>Omzet service</Omschrijving><Categorie>VW</Categorie><Groep>OMZ</Groep></cGrootboekrekening>'
+                . '<cGrootboekrekening><ID>302</ID><Code>1100</Code><Omschrijving>Bank</Omschrijving><Categorie>FIN</Categorie><Groep>LIQ</Groep></cGrootboekrekening>'
+                . '</Rekeningen>',
         };
 
         return Http::response('<?xml version="1.0" encoding="utf-8"?>'
@@ -168,6 +173,31 @@ class EBoekhoudenConnectorTest extends TestCase
         $this->expectExceptionMessage('factuursjabloon');
 
         $this->connection->fresh()->connector()->pushSalesDocument($this->document(), DocumentForm::DraftInvoice);
+    }
+
+    public function test_only_accounts_on_the_profit_and_loss_account_come_in(): void
+    {
+        $this->connection->update(['settings' => [...$this->connection->settings, 'ledger_accounts' => ['read' => true, 'write' => false, 'leading' => 'external']]]);
+
+        app(Synchronizer::class)->pull($this->connection->fresh(), Area::LedgerAccounts);
+
+        $this->assertSame(['8010'], LedgerAccount::pluck('code')->all());
+        $this->assertSame('301', LedgerAccount::firstOrFail()->externalId($this->connection));
+    }
+
+    public function test_an_invoice_line_is_booked_on_the_number_of_its_own_account(): void
+    {
+        $document = new SalesDocumentData('Werkbon 12', 'Werkbon 12', CarbonImmutable::parse('2026-11-19'), '42', CustomerData::from(['name' => 'Garage Smit']), [
+            new SalesLineData('Filter', 1, 12.5, 21, ledger_account_id: '301'),
+            new SalesLineData('Bout', 1, 1, 21),
+            new SalesLineData('Pakking', 1, 2, 21, ledger_account_id: '999'),
+        ]);
+
+        $pushed = $this->connection->connector()->pushSalesDocument($document, DocumentForm::DraftInvoice);
+
+        preg_match_all('~<TegenrekeningCode>(\d+)</TegenrekeningCode>~', $this->body('AddFactuur'), $accounts);
+        $this->assertSame(['8010', '8000', '8000'], $accounts[1]);
+        $this->assertSame(['Pakking ging op de standaard omzetrekening: de eigen grootboekrekening staat niet meer in e-Boekhouden.'], $pushed->warnings);
     }
 
     public function test_a_service_that_is_down_is_worth_another_try_later(): void

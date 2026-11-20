@@ -86,42 +86,36 @@
                 </p>
 
                 <div class="divide-y divide-gray-200 dark:divide-slate-700 rounded-md ring-1 ring-gray-200 dark:ring-slate-700">
-                    <div v-if="can('customers.read') || can('customers.write')" class="p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Klanten</p>
-                            <button v-if="connection.settings.areas.customers.read && canPull" type="button"
-                                :disabled="pullForm.processing" @click="pull('customers')"
-                                class="text-xs font-semibold text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50">
-                                {{ pulling === 'customers' ? 'Bezig...' : 'Nu ophalen' }}
-                            </button>
+                    <div v-for="area in exchangeable" :key="area.key" class="p-4 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ area.label }}</p>
+                            <div class="flex items-center gap-3">
+                                <Link v-if="area.key === 'ledger_accounts' && connection.is_active && (connection.settings.areas.ledger_accounts.read || connection.settings.areas.ledger_accounts.write)"
+                                    href="/integrations/ledger-accounts"
+                                    class="text-xs font-semibold text-lavoro-blue dark:text-blue-400 hover:underline">
+                                    Bekijken
+                                </Link>
+                                <button v-if="connection.settings.areas[area.key].read && canPull" type="button"
+                                    :disabled="pullForm.processing" @click="pull(area.key)"
+                                    class="text-xs font-semibold text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50">
+                                    {{ pulling === area.key ? 'Bezig...' : 'Nu ophalen' }}
+                                </button>
+                            </div>
                         </div>
-                        <Toggle v-if="can('customers.read')" v-model="form.areas.customers.read"
+                        <Toggle v-if="can(area.key + '.read')" v-model="form.areas[area.key].read"
                             :label="'Ophalen uit ' + connector.label"
-                            :hint="connector.change_detection.customers ? 'Wijzigingen: ' + connector.change_detection.customers + '.' : ''"
-                            :error="form.errors['areas.customers.read']" />
-                        <Toggle v-if="can('customers.write')" v-model="form.areas.customers.write"
+                            :hint="connector.change_detection[area.key] ? 'Wijzigingen: ' + connector.change_detection[area.key] + '.' : ''"
+                            :error="form.errors['areas.' + area.key + '.read']" />
+                        <Toggle v-if="can(area.key + '.write')" v-model="form.areas[area.key].write"
                             :label="'Versturen naar ' + connector.label"
-                            hint="Nieuwe en gewijzigde klanten in Lavoro gaan meteen mee."
-                            :error="form.errors['areas.customers.write']" />
-                        <Toggle v-if="form.areas.customers.read" v-model="lavoroLeads"
+                            :hint="'Nieuwe en gewijzigde ' + area.label.toLowerCase() + ' in Lavoro gaan meteen mee.'"
+                            :error="form.errors['areas.' + area.key + '.write']" />
+                        <Toggle v-if="form.areas[area.key].read" :model-value="form.areas[area.key].leading === 'lavoro'"
+                            @update:model-value="(lavoro) => { form.areas[area.key].leading = lavoro ? 'lavoro' : 'external' }"
                             label="Lavoro wint bij een wijziging aan beide kanten"
-                            :hint="lavoroLeads
-                                ? 'Wat in Lavoro is aangepast blijft staan' + (form.areas.customers.write ? ' en gaat naar ' + connector.label + '.' : '.')
+                            :hint="form.areas[area.key].leading === 'lavoro'
+                                ? 'Wat in Lavoro is aangepast blijft staan' + (form.areas[area.key].write ? ' en gaat naar ' + connector.label + '.' : '.')
                                 : 'De versie van ' + connector.label + ' overschrijft wat in Lavoro anders is ingevuld.'" />
-                    </div>
-
-                    <div v-if="can('materials.read')" class="p-4 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Materialen</p>
-                            <button v-if="connection.settings.areas.materials.read && canPull" type="button"
-                                :disabled="pullForm.processing" @click="pull('materials')"
-                                class="text-xs font-semibold text-lavoro-blue dark:text-blue-400 hover:underline disabled:opacity-50">
-                                {{ pulling === 'materials' ? 'Bezig...' : 'Nu ophalen' }}
-                            </button>
-                        </div>
-                        <Toggle v-model="form.areas.materials.read" :label="'Ophalen uit ' + connector.label"
-                            :hint="connector.change_detection.materials ? 'Wijzigingen: ' + connector.change_detection.materials + '.' : ''"
-                            :error="form.errors['areas.materials.read']" />
                     </div>
 
                     <div v-if="connector.document_forms.length" class="p-4 space-y-3">
@@ -195,7 +189,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import SecretField from '@/Components/UI/SecretField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -221,15 +215,18 @@ const options = () => Object.fromEntries(props.connector.option_fields.map((fiel
     field.key, props.connection?.settings.options[field.key] || '',
 ]))
 
-const areas = () => {
+const can = (capability) => props.connector.capabilities.some((item) => item.key === capability)
+const synced = computed(() => props.areas.filter((area) => area.synced))
+const exchangeable = computed(() => synced.value.filter((area) => can(area.key + '.read') || can(area.key + '.write')))
+
+const areaSettings = () => {
     const current = props.connection?.settings.areas
     return {
-        customers: {
-            read: current?.customers.read ?? false,
-            write: current?.customers.write ?? false,
-            leading: current?.customers.leading ?? 'external',
-        },
-        materials: { read: current?.materials.read ?? false },
+        ...Object.fromEntries(synced.value.map((area) => [area.key, {
+            read: current?.[area.key]?.read ?? false,
+            write: current?.[area.key]?.write ?? false,
+            leading: current?.[area.key]?.leading ?? 'external',
+        }])),
         service_orders: { form: current?.service_orders.form ?? null },
     }
 }
@@ -239,15 +236,9 @@ const form = useForm({
     is_active: props.connection?.is_active ?? true,
     credentials: credentials(),
     options: options(),
-    areas: areas(),
+    areas: areaSettings(),
 })
 
-const lavoroLeads = computed({
-    get: () => form.areas.customers.leading === 'lavoro',
-    set: (value) => { form.areas.customers.leading = value ? 'lavoro' : 'external' },
-})
-
-const can = (capability) => props.connector.capabilities.some((item) => item.key === capability)
 const stored = (key) => !!props.connection?.credentials.find((credential) => credential.key === key)?.stored
 const canPull = computed(() => hasAnyPermission(['integration.pull', 'integration.manage']))
 
@@ -299,7 +290,7 @@ const forget = (key) => {
 }
 
 const remove = () => {
-    if (!confirm('De koppeling met ' + props.connector.label + ' verwijderen? Klanten en materialen blijven staan, '
+    if (!confirm('De koppeling met ' + props.connector.label + ' verwijderen? Wat al is uitgewisseld blijft staan, '
         + 'in Lavoro en in ' + props.connector.label + '; alleen de koppeling tussen de twee verdwijnt.')) {
         return
     }

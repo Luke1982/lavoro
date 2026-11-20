@@ -22,8 +22,8 @@ use Illuminate\Support\Facades\Crypt;
  *
  * settings holds one block per area plus the connector's own options:
  *
- *   customers:      read, write, leading (external|lavoro)
- *   materials:      read
+ *   customers, materials, ledger_accounts (Area::synced()):
+ *                   read, write, leading (external|lavoro)
  *   service_orders: form (a DocumentForm, or null for "not sent")
  *   options:        whatever Connector::optionFields() asks for
  *
@@ -100,6 +100,11 @@ class IntegrationConnection extends Model
      * sent back to the screen; an option or switch that was not sent keeps its
      * value too.
      *
+     * The credentials are only written when something was filled in.
+     * Encrypting gives a new value every time, so rewriting them anyway would
+     * save them as they were read -- and put back a refresh token that was
+     * renewed meanwhile, which Exact has already killed.
+     *
      * @param  array{is_active?: bool, credentials?: array<string, ?string>, options?: array<string, ?string>, areas?: array<string, array<string, mixed>>}  $form
      */
     public function configure(array $form): void
@@ -123,12 +128,6 @@ class IntegrationConnection extends Model
         $this->settings = $settings;
         $this->is_active = $form['is_active'] ?? $this->is_active;
 
-        /**
-         * Only when something was filled in. Encrypting gives a new value
-         * every time, so rewriting them anyway would save the credentials as
-         * they were read -- and put back a refresh token that was renewed
-         * meanwhile, which Exact has already killed.
-         */
         if ($credentials !== $this->credentials()) {
             $this->storeCredentials($credentials);
         }
@@ -245,6 +244,12 @@ class IntegrationConnection extends Model
 
         return $this->is_active && $capability && $this->can($capability)
             && (bool) $this->areaSetting($area, 'write', false);
+    }
+
+    /** Whether anything of this area goes either way. */
+    public function exchanges(Area $area): bool
+    {
+        return $this->reads($area) || $this->writes($area);
     }
 
     public function leading(Area $area): Leading

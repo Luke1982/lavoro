@@ -87,6 +87,12 @@
                                             label="Verkoopprijs" :error="form.errors.retail_price"
                                             @revert="form.clearErrors('retail_price')" />
                                     </div>
+                                    <EditableTextField v-if="ledgerAccounts" type="combobox" v-model="form.ledger_account_id"
+                                        :options="ledgerAccounts" label="Grootboekrekening"
+                                        :error="form.errors.ledger_account_id"
+                                        @revert="form.clearErrors('ledger_account_id')">
+                                        <template #display>{{ ledgerAccounts.find(a => a.id === form.ledger_account_id)?.name ?? '—' }}</template>
+                                    </EditableTextField>
                                     <div>
                                         <h3 class="text-xs font-semibold mb-1 text-slate-500 dark:text-slate-400">Bundel</h3>
                                         <div class="flex items-center gap-3">
@@ -636,6 +642,7 @@ const props = defineProps({
         default: () => [],
     },
     productTypes: { type: Array, default: () => [] },
+    ledgerAccounts: { type: Array, default: null },
     productRelations: { type: Array, default: () => [] },
     eligibleChildProducts: { type: Array, default: () => [] },
     childProducts: { type: Array, default: () => [] },
@@ -671,6 +678,7 @@ const form = useForm({
     registable: props.product.registable ?? true,
     active: props.product.active ?? true,
     warranty: props.product.warranty,
+    ledger_account_id: props.product.ledger_account_id,
 });
 
 const chapters = [
@@ -693,6 +701,7 @@ watch([
     () => form.registable,
     () => form.active,
     () => form.warranty,
+    () => form.ledger_account_id,
 ], () => {
     form.patch(`/products/${props.product.id}`, { preserveScroll: true });
 });

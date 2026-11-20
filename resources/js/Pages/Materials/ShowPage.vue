@@ -78,6 +78,12 @@
                             @revert="form.clearErrors('material_usage_unit_id')">
                             <template #display>{{ usageUnits.find(u => u.id === form.material_usage_unit_id)?.name ?? '—' }}</template>
                         </EditableTextField>
+                        <EditableTextField v-if="ledgerAccounts" type="combobox" v-model="form.ledger_account_id"
+                            :options="ledgerAccounts" label="Grootboekrekening"
+                            :error="form.errors.ledger_account_id"
+                            @revert="form.clearErrors('ledger_account_id')">
+                            <template #display>{{ ledgerAccounts.find(a => a.id === form.ledger_account_id)?.name ?? '—' }}</template>
+                        </EditableTextField>
                         <EditableTextField v-model="form.price" type="input" inputType="currency" label="Verkoopprijs"
                             :error="form.errors.price" @revert="form.clearErrors('price')" />
                         <div v-if="hasPermission('material.see_financials')">
@@ -241,6 +247,7 @@ const props = defineProps({
     material:          { type: Object, required: true },
     categories:        { type: Array, default: () => [] },
     usageUnits:        { type: Array, default: () => [] },
+    ledgerAccounts:    { type: Array, default: null },
     materialSuppliers: { type: Array, default: () => [] },
     allSuppliers:      { type: Array, default: () => [] },
     suppliersUseAjax:  { type: Boolean, default: false },
@@ -259,6 +266,7 @@ const form = useForm({
     cost_price:              props.material.cost_price,
     material_category_id:    props.material.material_category_id,
     material_usage_unit_id:  props.material.material_usage_unit_id,
+    ledger_account_id:       props.material.ledger_account_id,
     divisable:               props.material.divisable ?? false,
     is_active:               props.material.is_active ?? true,
     is_service:              props.material.is_service ?? false,
@@ -276,6 +284,7 @@ watch([
     () => form.cost_price,
     () => form.material_category_id,
     () => form.material_usage_unit_id,
+    () => form.ledger_account_id,
     () => form.divisable,
     () => form.is_active,
     () => form.is_service,

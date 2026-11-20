@@ -8,6 +8,7 @@ use App\Http\Requests\MaterialReadRequest;
 use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
 use App\Models\IntegrationConnection;
+use App\Models\LedgerAccount;
 use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
@@ -97,6 +98,7 @@ class MaterialController extends Controller
             'material' => $material,
             'categories' => MaterialCategory::orderBy('name')->get(['id', 'name']),
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(['id', 'name']),
+            'ledgerAccounts' => LedgerAccount::choices(),
             'materialSuppliers' => $material->suppliers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,

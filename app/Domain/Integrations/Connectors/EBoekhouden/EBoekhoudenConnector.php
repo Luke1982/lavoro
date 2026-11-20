@@ -5,16 +5,17 @@ namespace App\Domain\Integrations\Connectors\EBoekhouden;
 use App\Domain\Integrations\ChangeDetection;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Data\PushedDocument;
 use App\Domain\Integrations\Data\SalesDocumentData;
-use App\Domain\Integrations\Data\SalesLineData;
 use App\Domain\Integrations\DocumentForm;
 use App\Domain\Integrations\RecordNotFound;
 use App\Exceptions\Refusal;
@@ -25,14 +26,14 @@ use Carbon\CarbonImmutable;
  * e-Boekhouden.nl, for a customer's own administration -- not the one the
  * panel books MajorLabel's invoices in, which runs on the account in .env.
  *
- * Relations both ways, articles in, and a werkbon out as an invoice made from
- * one of their invoice templates: left unbooked for someone to check (draft) or
- * booked straight away (final). It has no sales orders.
+ * Relations both ways, articles and ledger accounts in, and a werkbon out as an
+ * invoice made from one of their invoice templates: left unbooked for someone
+ * to check (draft) or booked straight away (final). It has no sales orders.
  *
  * A relation is known here by its ID, which does not change; its code is what
  * an invoice needs, and is looked up when one goes out.
  */
-class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMaterials, PushesCustomers, ReceivesSalesDocuments
+class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsLedgerAccounts, PullsMaterials, PushesCustomers, ReceivesSalesDocuments
 {
     /** A customer's field here => the relation's field there. */
     private const RELATION = [
@@ -55,7 +56,13 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
         'chamber_of_commerce_number' => 'KvkNummer',
     ];
 
+    /** The category of the accounts on the profit and loss account ("verlies en winst"), where revenue is booked. */
+    private const PROFIT_AND_LOSS = 'VW';
+
     private ?EBoekhoudenClient $client = null;
+
+    /** @var array<string, string>|null The number of each account by its id, read once per send. */
+    private ?array $ledger_codes = null;
 
     public static function key(): string
     {
@@ -69,7 +76,7 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
 
     public static function description(): string
     {
-        return 'Boekhouding. Relaties twee kanten op, artikelen naar Lavoro, en een werkbon als factuur.';
+        return 'Boekhouding. Relaties twee kanten op, artikelen en grootboekrekeningen naar Lavoro, en een werkbon als factuur.';
     }
 
     public static function credentialFields(): array
@@ -89,7 +96,8 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
                 help: 'De naam van het sjabloon in e-Boekhouden waarmee werkbonnen een factuur worden. Nodig om werkbonnen te versturen.'),
             new Field('vat_code', 'Btw-code', default: 'HOOG_VERK_21',
                 help: 'Voor elke regel; HOOG_VERK_21 is 21% omzetbelasting.'),
-            new Field('revenue_account', 'Omzetrekening', default: '8000'),
+            new Field('revenue_account', 'Omzetrekening', default: '8000',
+                help: 'Voor elke regel waarvan het materiaal geen eigen grootboekrekening heeft.'),
             new Field('payment_days', 'Betalingstermijn in dagen', default: '14', rules: ['integer', 'between:0,365']),
         ];
     }
@@ -110,6 +118,11 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
     }
 
     public static function materialChanges(): ChangeDetection
+    {
+        return ChangeDetection::Full;
+    }
+
+    public static function ledgerAccountChanges(): ChangeDetection
     {
         return ChangeDetection::Full;
     }
@@ -172,6 +185,23 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
         return $article ? $this->materialRecord($article) : null;
     }
 
+    /** Only accounts on the profit and loss account: a sales line cannot be booked on the bank. */
+    public function pullLedgerAccounts(?CarbonImmutable $since = null): iterable
+    {
+        foreach ($this->client()->ledgerAccounts() as $account) {
+            if ($account['category'] === self::PROFIT_AND_LOSS) {
+                yield $this->ledgerAccountRecord($account);
+            }
+        }
+    }
+
+    public function fetchLedgerAccount(string $id): ?ExternalRecord
+    {
+        $account = ctype_digit($id) ? collect($this->client()->ledgerAccounts((int) $id))->firstWhere('id', $id) : null;
+
+        return $account && $account['category'] === self::PROFIT_AND_LOSS ? $this->ledgerAccountRecord($account) : null;
+    }
+
     public function pushSalesDocument(SalesDocumentData $document, DocumentForm $form): PushedDocument
     {
         $template = $this->option('invoice_template')
@@ -184,6 +214,27 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
         $relation = $this->relation($document->customer_id)
             ?? throw new Refusal('De klant bestaat niet meer in e-Boekhouden.');
 
+        $lines = [];
+        $warnings = [];
+
+        foreach ($document->lines as $line) {
+            $own_account = $line->ledger_account_id ? $this->ledgerCode($line->ledger_account_id) : null;
+
+            if ($line->ledger_account_id && !$own_account) {
+                $warnings[] = $line->description . ' ging op de standaard omzetrekening: de eigen grootboekrekening staat niet meer in e-Boekhouden.';
+            }
+
+            $lines[] = [
+                'quantity' => round($line->quantity, 4),
+                'unit' => 'st',
+                'code' => (string) $line->code,
+                'description' => $line->description,
+                'price' => round($line->unit_price, 4),
+                'vat_code' => (string) $this->option('vat_code'),
+                'revenue_account' => $own_account ?? (string) $this->option('revenue_account'),
+            ];
+        }
+
         $number = $this->client()->addSalesInvoice([
             'relation_code' => $relation['Code'],
             'date' => $document->date->toDateString(),
@@ -191,22 +242,28 @@ class EBoekhoudenConnector extends Connector implements PullsCustomers, PullsMat
             'template' => $template,
             'description' => $document->description . ($document->memo ? ' (' . $document->memo . ')' : ''),
             'book' => $form === DocumentForm::FinalInvoice,
-            'lines' => array_map(fn (SalesLineData $line) => [
-                'quantity' => round($line->quantity, 4),
-                'unit' => 'st',
-                'code' => (string) $line->code,
-                'description' => $line->description,
-                'price' => round($line->unit_price, 4),
-                'vat_code' => (string) $this->option('vat_code'),
-                'revenue_account' => (string) $this->option('revenue_account'),
-            ], $document->lines),
+            'lines' => $lines,
         ]);
 
         if ($number === '') {
             throw new Refusal('e-Boekhouden gaf geen factuurnummer terug.');
         }
 
-        return new PushedDocument(id: $number, number: $number);
+        return new PushedDocument(id: $number, number: $number, warnings: $warnings);
+    }
+
+    /** An invoice line names its account by number; null when the account is no longer there. */
+    private function ledgerCode(string $id): ?string
+    {
+        $this->ledger_codes ??= collect($this->client()->ledgerAccounts())->pluck('code', 'id')->all();
+
+        return ($this->ledger_codes[$id] ?? '') ?: null;
+    }
+
+    /** @param  array{id: string, code: string, name: string}  $account */
+    private function ledgerAccountRecord(array $account): ExternalRecord
+    {
+        return new ExternalRecord($account['id'], LedgerAccountData::from(['name' => $account['name'], 'code' => $account['code']]));
     }
 
     private function relation(string $id): ?array

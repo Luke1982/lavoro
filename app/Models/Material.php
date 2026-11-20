@@ -6,6 +6,7 @@ use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property bool $divisable
@@ -37,6 +38,11 @@ class Material extends Model
         'max_stock' => 'Maximale voorraad',
         'is_active' => 'Actief',
         'code' => 'Code',
+        'ledger_account_id' => 'Grootboekrekening',
+    ];
+
+    protected array $activity_relations = [
+        'ledger_account_id' => ['ledgerAccount', 'label'],
     ];
 
     protected array $activity_ignore = [];
@@ -61,6 +67,7 @@ class Material extends Model
         'stock',
         'min_stock',
         'max_stock',
+        'ledger_account_id',
     ];
 
     /**
@@ -84,6 +91,11 @@ class Material extends Model
     public function usageUnit()
     {
         return $this->belongsTo(MaterialUsageUnit::class, 'material_usage_unit_id');
+    }
+
+    public function ledgerAccount(): BelongsTo
+    {
+        return $this->belongsTo(LedgerAccount::class);
     }
 
     public function images()

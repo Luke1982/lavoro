@@ -6,14 +6,17 @@ use App\Domain\Integrations\Area;
 use App\Domain\Integrations\ChangeDetection;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
+use App\Domain\Integrations\Contracts\PushesLedgerAccounts;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Contracts\ReceivesWebhooks;
 use App\Domain\Integrations\Data\ChangeNotice;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Data\PushedDocument;
 use App\Domain\Integrations\Data\SalesDocumentData;
@@ -30,13 +33,16 @@ use Symfony\Component\HttpFoundation\Response;
  * A system that can do everything, kept in memory: what the synchronizer does
  * can be checked without any one real API in between. Reset in setUp.
  */
-class FakeConnector extends Connector implements PullsCustomers, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
+class FakeConnector extends Connector implements PullsCustomers, PullsLedgerAccounts, PullsMaterials, PushesCustomers, PushesLedgerAccounts, ReceivesSalesDocuments, ReceivesWebhooks
 {
     /** @var array<string, array<string, ?string>> Their customers, by id. */
     public static array $customers = [];
 
     /** @var array<string, array<string, mixed>> Their articles, by id. */
     public static array $materials = [];
+
+    /** @var array<string, array<string, ?string>> Their ledger accounts, by id. */
+    public static array $ledger_accounts = [];
 
     /** @var array<int, array{form: DocumentForm, document: SalesDocumentData}> */
     public static array $documents = [];
@@ -64,6 +70,7 @@ class FakeConnector extends Connector implements PullsCustomers, PullsMaterials,
     {
         self::$customers = [];
         self::$materials = [];
+        self::$ledger_accounts = [];
         self::$documents = [];
         self::$calls = [];
         self::$subscriptions = [];
@@ -107,6 +114,11 @@ class FakeConnector extends Connector implements PullsCustomers, PullsMaterials,
     }
 
     public static function materialChanges(): ChangeDetection
+    {
+        return ChangeDetection::Full;
+    }
+
+    public static function ledgerAccountChanges(): ChangeDetection
     {
         return ChangeDetection::Full;
     }
@@ -175,6 +187,39 @@ class FakeConnector extends Connector implements PullsCustomers, PullsMaterials,
     public function fetchMaterial(string $id): ?ExternalRecord
     {
         return isset(self::$materials[$id]) ? new ExternalRecord($id, MaterialData::from(self::$materials[$id])) : null;
+    }
+
+    public function pullLedgerAccounts(?CarbonImmutable $since = null): iterable
+    {
+        foreach (self::$ledger_accounts as $id => $values) {
+            yield new ExternalRecord((string) $id, LedgerAccountData::from($values));
+        }
+    }
+
+    public function fetchLedgerAccount(string $id): ?ExternalRecord
+    {
+        return isset(self::$ledger_accounts[$id]) ? new ExternalRecord($id, LedgerAccountData::from(self::$ledger_accounts[$id])) : null;
+    }
+
+    public function createLedgerAccount(LedgerAccountData $account): ExternalRecord
+    {
+        $id = 'gb-' . self::$next_id++;
+        self::$ledger_accounts[$id] = $account->only(LedgerAccountData::FIELDS);
+        self::$calls[] = 'create-ledger-account:' . $id;
+
+        return $this->fetchLedgerAccount($id);
+    }
+
+    public function updateLedgerAccount(string $id, LedgerAccountData $account): ExternalRecord
+    {
+        if (!isset(self::$ledger_accounts[$id])) {
+            throw new RecordNotFound('Nepboekhouding kent ' . $id . ' niet.');
+        }
+
+        self::$ledger_accounts[$id] = $account->only(LedgerAccountData::FIELDS);
+        self::$calls[] = 'update-ledger-account:' . $id;
+
+        return $this->fetchLedgerAccount($id);
     }
 
     public function pushSalesDocument(SalesDocumentData $document, DocumentForm $form): PushedDocument

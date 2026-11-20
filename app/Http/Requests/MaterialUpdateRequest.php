@@ -14,7 +14,7 @@ class MaterialUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->hasPermission('material.update') ?? false;
     }
 
     /**
@@ -38,6 +38,7 @@ class MaterialUpdateRequest extends FormRequest
             'stock' => ['required', 'numeric', DbRange::decimal(10, 2)],
             'min_stock' => ['required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
             'max_stock' => ['required', 'numeric', 'min:0', DbRange::decimal(10, 2)],
+            'ledger_account_id' => ['sometimes', 'nullable', 'integer', 'exists:ledger_accounts,id'],
         ], $this->financialRules());
     }
 

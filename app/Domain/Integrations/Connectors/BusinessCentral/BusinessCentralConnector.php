@@ -6,6 +6,7 @@ use App\Domain\Integrations\Area;
 use App\Domain\Integrations\ChangeDetection;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
@@ -14,6 +15,7 @@ use App\Domain\Integrations\Data\ChangeNotice;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Data\PushedDocument;
 use App\Domain\Integrations\Data\SalesDocumentData;
@@ -31,15 +33,16 @@ use Throwable;
 
 /**
  * Microsoft Dynamics 365 Business Central online, through its standard API.
- * Customers both ways, items in as materials, and a werkbon out as a sales
- * order, a draft invoice or a posted invoice. Business Central can say what
- * changed since a moment, and calls Lavoro itself when something changes.
+ * Customers both ways, items in as materials, revenue accounts in, and a
+ * werkbon out as a sales order, a draft invoice or a posted invoice. Business
+ * Central can say what changed since a moment, and calls Lavoro itself when
+ * customers or items change. Its API does not let accounts be made.
  *
  * The customer registers an app in its own Microsoft Entra tenant, adds it in
  * Business Central under Microsoft Entra-toepassingen with the permission sets
  * it needs, and enters the app's id and secret here.
  */
-class BusinessCentralConnector extends Connector implements PullsCustomers, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
+class BusinessCentralConnector extends Connector implements PullsCustomers, PullsLedgerAccounts, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
 {
     /** A customer's field here => the customer's field there. */
     private const CUSTOMER = [
@@ -86,7 +89,7 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
 
     public static function description(): string
     {
-        return 'Microsoft Dynamics 365 Business Central. Klanten twee kanten op, artikelen naar Lavoro, en een werkbon als verkooporder of factuur. Meldt wijzigingen zelf.';
+        return 'Microsoft Dynamics 365 Business Central. Klanten twee kanten op, artikelen en omzetrekeningen naar Lavoro, en een werkbon als verkooporder of factuur. Meldt wijzigingen zelf.';
     }
 
     public static function credentialFields(): array
@@ -121,6 +124,11 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
     }
 
     public static function materialChanges(): ChangeDetection
+    {
+        return ChangeDetection::Delta;
+    }
+
+    public static function ledgerAccountChanges(): ChangeDetection
     {
         return ChangeDetection::Delta;
     }
@@ -196,6 +204,22 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
                 yield $this->materialRecord($item);
             }
         }
+    }
+
+    public function pullLedgerAccounts(?CarbonImmutable $since = null): iterable
+    {
+        foreach ($this->api()->pages($this->path('/accounts'), $this->changedSince($since)) as $account) {
+            if ($this->bookable($account)) {
+                yield $this->ledgerAccountRecord($account);
+            }
+        }
+    }
+
+    public function fetchLedgerAccount(string $id): ?ExternalRecord
+    {
+        $account = $this->find('accounts', $id);
+
+        return $account && $this->bookable($account) ? $this->ledgerAccountRecord($account) : null;
     }
 
     public function fetchMaterial(string $id): ?ExternalRecord
@@ -337,8 +361,8 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
         $warnings = [];
 
         foreach ($document->lines as $line) {
-            if (!$line->article_id) {
-                $warnings[] = 'Materiaal zonder Business Central-artikel overgeslagen: ' . $line->description;
+            if (!$line->article_id && !$line->ledger_account_id) {
+                $warnings[] = 'Materiaal zonder artikel of grootboekrekening in Business Central overgeslagen: ' . $line->description;
 
                 continue;
             }
@@ -347,19 +371,26 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
         }
 
         if ($lines === []) {
-            throw new Refusal('Geen materialen met een Business Central-artikel op deze werkbon. '
+            throw new Refusal('Geen materialen met een artikel of grootboekrekening in Business Central op deze werkbon. '
                 . 'Haal de artikelen op uit Business Central en gebruik die op de werkbon.');
         }
 
         return [$lines, $warnings];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * An item line when there is an article: Business Central books it by the
+     * item's own posting groups, and an account cannot be set on it. Without
+     * one, a line straight onto the material's revenue account.
+     *
+     * @return array<string, mixed>
+     */
     private function documentLine(SalesLineData $line): array
     {
         return [
-            'lineType' => 'Item',
-            'itemId' => $line->article_id,
+            ...($line->article_id
+                ? ['lineType' => 'Item', 'itemId' => $line->article_id]
+                : ['lineType' => 'Account', 'accountId' => $line->ledger_account_id]),
             'description' => mb_substr($line->description, 0, self::MAX_LINE_DESCRIPTION),
             'quantity' => $line->quantity,
             'unitPrice' => $line->unit_price,
@@ -397,6 +428,23 @@ class BusinessCentralConnector extends Connector implements PullsCustomers, Pull
             'price' => $item['unitPrice'] ?? null,
             'cost_price' => $item['unitCost'] ?? null,
             'stock' => $item['inventory'] ?? null,
+        ]));
+    }
+
+    /** A posting account for income that may be used on a document line and is not blocked. */
+    private function bookable(array $account): bool
+    {
+        return ($account['category'] ?? null) === 'Income'
+            && ($account['accountType'] ?? null) === 'Posting'
+            && ($account['directPosting'] ?? true)
+            && !($account['blocked'] ?? false);
+    }
+
+    private function ledgerAccountRecord(array $account): ExternalRecord
+    {
+        return new ExternalRecord((string) $account['id'], LedgerAccountData::from([
+            'name' => $account['displayName'] ?? null,
+            'code' => $account['number'] ?? null,
         ]));
     }
 

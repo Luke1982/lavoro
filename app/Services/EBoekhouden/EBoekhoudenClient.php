@@ -325,6 +325,29 @@ class EBoekhoudenClient
     }
 
     /**
+     * Ledger accounts, all of them or the one with this id.
+     *
+     * @return array<int, array{id: string, code: string, name: string, category: string}>
+     */
+    public function ledgerAccounts(int $id = 0): array
+    {
+        return $this->session(function (string $session) use ($id) {
+            $result = $this->call('GetGrootboekrekeningen', [
+                'SessionID' => $session,
+                'SecurityCode2' => $this->credentials['security_code_2'],
+                'cFilter' => ['ID' => $id, 'Code' => '', 'Categorie' => ''],
+            ]);
+
+            return array_map(fn (SimpleXMLElement $account) => [
+                'id' => (string) $account->ID,
+                'code' => trim((string) $account->Code),
+                'name' => trim((string) $account->Omschrijving),
+                'category' => trim((string) $account->Categorie),
+            ], $this->items($result->Rekeningen->cGrootboekrekening));
+        });
+    }
+
+    /**
      * An invoice in e-Boekhouden's own invoicing, made from an invoice
      * template there. With $book it is also booked in the ledger; without, it
      * waits there to be checked and booked by hand. Returns the number

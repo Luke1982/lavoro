@@ -7,6 +7,7 @@ use App\Domain\Integrations\ChangeDetection;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\ConnectsWithOAuth;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\PushesCustomers;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
@@ -15,6 +16,7 @@ use App\Domain\Integrations\Data\ChangeNotice;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Data\PushedDocument;
 use App\Domain\Integrations\Data\SalesDocumentData;
@@ -30,15 +32,18 @@ use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 /**
- * Moneybird. Contacts both ways, products in as materials, and a werkbon out
- * as an invoice: left as a draft, or sent -- without mailing the customer --
- * so it gets its number and is booked. Moneybird can list the contacts changed
+ * Moneybird. Contacts both ways, products in as materials, revenue accounts
+ * in, and a werkbon out as an invoice: left as a draft, or sent -- without
+ * mailing the customer -- so it gets its number and is booked. Moneybird can list the contacts changed
  * since a moment and calls Lavoro itself when contacts or products change.
  *
  * Moneybird signs every notice with a secret it hands out once, when the
  * webhook is made; that secret is kept on the webhook.
+ *
+ * Accounts are not sent: Moneybird wants an RGS code with every new one,
+ * which Lavoro does not know.
  */
-class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCustomers, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
+class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCustomers, PullsLedgerAccounts, PullsMaterials, PushesCustomers, ReceivesSalesDocuments, ReceivesWebhooks
 {
     /** A customer's field here => the contact's field there. The name is handled apart: a contact may be a person. */
     private const CONTACT = [
@@ -82,7 +87,7 @@ class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCu
 
     public static function description(): string
     {
-        return 'Boekhouding. Contacten twee kanten op, producten naar Lavoro, en een werkbon als factuur. Meldt wijzigingen zelf.';
+        return 'Boekhouding. Contacten twee kanten op, producten en omzetrekeningen naar Lavoro, en een werkbon als factuur. Meldt wijzigingen zelf.';
     }
 
     public static function credentialFields(): array
@@ -115,6 +120,12 @@ class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCu
 
     /** Products cannot be asked for "changed since"; there are seldom many. */
     public static function materialChanges(): ChangeDetection
+    {
+        return ChangeDetection::Full;
+    }
+
+    /** Moneybird hands over all accounts in one answer, without pages or a "changed since". */
+    public static function ledgerAccountChanges(): ChangeDetection
     {
         return ChangeDetection::Full;
     }
@@ -221,6 +232,22 @@ class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCu
         $product = ctype_digit($id) ? $this->api()->find('/products/' . $id . '.json') : null;
 
         return $product ? $this->materialRecord($product) : null;
+    }
+
+    public function pullLedgerAccounts(?CarbonImmutable $since = null): iterable
+    {
+        foreach ($this->api()->get('/ledger_accounts.json') as $account) {
+            if ($this->bookable($account)) {
+                yield $this->ledgerAccountRecord($account);
+            }
+        }
+    }
+
+    public function fetchLedgerAccount(string $id): ?ExternalRecord
+    {
+        $account = ctype_digit($id) ? $this->api()->find('/ledger_accounts/' . $id . '.json') : null;
+
+        return $account && $this->bookable($account) ? $this->ledgerAccountRecord($account) : null;
     }
 
     /**
@@ -333,7 +360,24 @@ class MoneybirdConnector extends Connector implements ConnectsWithOAuth, PullsCu
             'amount' => rtrim(rtrim(number_format($line->quantity, 4, '.', ''), '0'), '.'),
             'tax_rate_id' => $this->taxRate($line->vat_percent),
             'product_id' => $line->article_id,
+            'ledger_account_id' => $line->ledger_account_id,
         ], fn ($value) => $value !== null);
+    }
+
+    /** An active revenue account that sales invoices may use: what a sales line can be booked on. */
+    private function bookable(array $account): bool
+    {
+        return ($account['account_type'] ?? null) === 'revenue'
+            && ($account['active'] ?? true)
+            && in_array('sales_invoice', $account['allowed_document_types'] ?? ['sales_invoice'], true);
+    }
+
+    private function ledgerAccountRecord(array $account): ExternalRecord
+    {
+        return new ExternalRecord((string) $account['id'], LedgerAccountData::from([
+            'name' => $account['name'] ?? null,
+            'code' => $account['account_id'] ?? null,
+        ]));
     }
 
     private function taxRate(float $percent): string

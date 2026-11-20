@@ -10,6 +10,7 @@ use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Contracts\ReceivesWebhooks;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Domain\Integrations\Sync\Synchronizer;
 use App\Domain\Signals\Integrations\ServiceOrderSentToAdministration;
@@ -87,6 +88,7 @@ class ConnectorContractTest extends TestCase
     {
         $this->assertSame([], array_diff($connector::customerFields(), CustomerData::FIELDS), $connector . ' carries unknown customer fields');
         $this->assertSame([], array_diff($connector::materialFields(), MaterialData::FIELDS), $connector . ' carries unknown material fields');
+        $this->assertSame([], array_diff($connector::ledgerAccountFields(), LedgerAccountData::FIELDS), $connector . ' carries unknown ledger account fields');
 
         if ($connector::can(Capability::CustomersRead)) {
             $this->assertContains('name', $connector::customerFields(), $connector . ' pulls customers without a name, which are all skipped');
@@ -94,6 +96,10 @@ class ConnectorContractTest extends TestCase
 
         if ($connector::can(Capability::MaterialsRead)) {
             $this->assertContains('name', $connector::materialFields(), $connector . ' pulls materials without a name, which are all skipped');
+        }
+
+        if ($connector::can(Capability::LedgerAccountsRead)) {
+            $this->assertContains('name', $connector::ledgerAccountFields(), $connector . ' pulls ledger accounts without a name, which are all skipped');
         }
     }
 
@@ -169,7 +175,7 @@ class ConnectorContractTest extends TestCase
      */
     public function test_nothing_outside_the_funnel_talks_to_a_bookkeeping_system(): void
     {
-        $hosts = ['snelstart.nl', 'businesscentral.dynamics.com', 'e-boekhouden.nl'];
+        $hosts = ['snelstart.nl', 'businesscentral.dynamics.com', 'e-boekhouden.nl', 'exactonline.nl', 'moneybird.com', 'afas.online'];
         $allowed = ['Domain/Integrations/', 'Services/EBoekhouden/'];
         $offenders = [];
 
@@ -183,7 +189,7 @@ class ConnectorContractTest extends TestCase
                 }
             }
 
-            if (preg_match('/\b(snelstart|eboekhouden|businesscentral)_id\b/', $source)) {
+            if (preg_match('/\b(snelstart|eboekhouden|businesscentral|exact|moneybird|afas)_id\b/', $source)) {
                 $offenders[] = $relative . ' uses a <system>_id column; link through integrationables instead';
             }
         }

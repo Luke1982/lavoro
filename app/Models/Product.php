@@ -8,6 +8,7 @@ use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
 
 class Product extends Model
@@ -69,6 +70,7 @@ class Product extends Model
         'registable',
         'active',
         'warranty',
+        'ledger_account_id',
     ];
 
     protected $casts = [
@@ -95,6 +97,12 @@ class Product extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /** The revenue account it is booked on once products themselves are invoiced. */
+    public function ledgerAccount(): BelongsTo
+    {
+        return $this->belongsTo(LedgerAccount::class);
     }
 
     /**

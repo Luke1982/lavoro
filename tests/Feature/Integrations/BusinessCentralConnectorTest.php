@@ -15,6 +15,7 @@ use App\Models\Central\IntegrationWebhookLookup;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
 use App\Models\IntegrationWebhook;
+use App\Models\LedgerAccount;
 use App\Models\Material;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
@@ -109,6 +110,13 @@ class BusinessCentralConnectorTest extends TestCase
             "GET /subscriptions('sub-1')" => Http::response(['subscriptionId' => 'sub-1', '@odata.etag' => 'W/"etag-1"']),
             "PATCH /subscriptions('sub-1')" => Http::response(['subscriptionId' => 'sub-1', 'expirationDateTime' => '2026-11-25T10:00:00Z']),
             "DELETE /subscriptions('sub-1')" => Http::response(null, 204),
+            'GET ' . $company . '/accounts' => Http::response(['value' => [
+                $this->ledgerAccount('8000', 'Omzet'),
+                $this->ledgerAccount('8001', 'Omzet totaal', ['accountType' => 'Total']),
+                $this->ledgerAccount('8002', 'Omzet geblokkeerd', ['blocked' => true]),
+                $this->ledgerAccount('8003', 'Omzet niet direct', ['directPosting' => false]),
+                $this->ledgerAccount('4000', 'Kosten', ['category' => 'Expense']),
+            ]]),
         };
     }
 
@@ -244,6 +252,38 @@ class BusinessCentralConnectorTest extends TestCase
         $this->assertFalse(Material::where('code', '1001')->exists());
     }
 
+    private function ledgerAccount(string $number, string $name, array $fields = []): array
+    {
+        return ['id' => (string) Str::uuid(), 'number' => $number, 'displayName' => $name, 'category' => 'Income',
+            'accountType' => 'Posting', 'directPosting' => true, 'blocked' => false, ...$fields];
+    }
+
+    public function test_only_income_accounts_a_line_may_be_posted_on_come_in(): void
+    {
+        $this->connection->settings = [...$this->connection->settings, 'ledger_accounts' => ['read' => true, 'write' => false, 'leading' => 'external']];
+        $this->connection->saveQuietly();
+
+        app(Synchronizer::class)->pull($this->connection->fresh(), Area::LedgerAccounts);
+
+        $this->assertSame(['8000'], LedgerAccount::pluck('code')->all());
+    }
+
+    public function test_a_line_without_an_item_goes_onto_the_materials_account(): void
+    {
+        $account_id = (string) Str::uuid();
+
+        $pushed = $this->connector()->pushSalesDocument($this->document([
+            new SalesLineData('Filter', 2, 12.5, 21, article_id: self::ITEM_ID, ledger_account_id: $account_id),
+            new SalesLineData('Voorrijkosten', 1, 35, 21, ledger_account_id: $account_id),
+        ]), DocumentForm::SalesOrder);
+
+        $lines = $this->sentTo('POST', $this->companyPath('/salesOrders(' . self::ORDER_ID . ')/salesOrderLines'));
+        $this->assertSame(['Item', self::ITEM_ID], [$lines[0]['lineType'], $lines[0]['itemId']]);
+        $this->assertArrayNotHasKey('accountId', $lines[0], 'an item line is booked by its posting groups');
+        $this->assertSame(['Account', $account_id, 35.0], [$lines[1]['lineType'], $lines[1]['accountId'], $lines[1]['unitPrice']]);
+        $this->assertSame([], $pushed->warnings);
+    }
+
     public function test_a_werkbon_becomes_a_sales_order_with_item_lines_only(): void
     {
         $pushed = $this->connector()->pushSalesDocument($this->document([
@@ -258,7 +298,7 @@ class BusinessCentralConnectorTest extends TestCase
         $this->assertCount(1, $lines);
         $this->assertSame(['Item', self::ITEM_ID, 2.0, 12.5], [$lines[0]['lineType'], $lines[0]['itemId'], $lines[0]['quantity'], $lines[0]['unitPrice']]);
         $this->assertSame([self::ORDER_ID, 'VO1001'], [$pushed->id, $pushed->number]);
-        $this->assertSame(['Materiaal zonder Business Central-artikel overgeslagen: Los onderdeel'], $pushed->warnings);
+        $this->assertSame(['Materiaal zonder artikel of grootboekrekening in Business Central overgeslagen: Los onderdeel'], $pushed->warnings);
     }
 
     public function test_a_final_invoice_is_posted_and_comes_back_with_its_posted_number(): void

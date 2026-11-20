@@ -78,9 +78,9 @@ class ServiceOrderSender
 
         $order->load([
             'customer.billingCustomer',
-            'materials',
+            'materials.ledgerAccount',
             'taskInstances.serviceOrderTask',
-            'taskInstances.materials',
+            'taskInstances.materials.ledgerAccount',
             'serviceOrderStage',
         ]);
 
@@ -181,12 +181,20 @@ class ServiceOrderSender
     ): SalesDocumentData {
         $lines = [];
         $warnings = [];
+        $exchanges_ledger_accounts = $connection->exchanges(Area::LedgerAccounts);
 
         foreach ($materials as $material) {
             if (is_null($material->pivot->quantity)) {
                 $warnings[] = 'Materiaal zonder hoeveelheid overgeslagen: ' . $material->name;
 
                 continue;
+            }
+
+            $ledger_account_id = $exchanges_ledger_accounts ? $material->ledgerAccount?->externalId($connection) : null;
+
+            if ($exchanges_ledger_accounts && $material->ledgerAccount && !$ledger_account_id) {
+                $warnings[] = 'Grootboekrekening ' . $material->ledgerAccount->label . ' van ' . $material->name
+                    . ' staat niet in ' . $connection->label() . '.';
             }
 
             $lines[] = new SalesLineData(
@@ -198,6 +206,7 @@ class ServiceOrderSender
                 vat_percent: self::VAT_PERCENT,
                 article_id: $material->externalId($connection),
                 code: $material->code,
+                ledger_account_id: $ledger_account_id,
             );
         }
 

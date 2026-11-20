@@ -5,6 +5,7 @@ namespace Tests\Feature\Integrations;
 use App\Domain\Integrations\Area;
 use App\Domain\Integrations\Connectors\Exact\ExactConnector;
 use App\Domain\Integrations\Data\CustomerData;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\SalesDocumentData;
 use App\Domain\Integrations\Data\SalesLineData;
 use App\Domain\Integrations\DocumentForm;
@@ -14,6 +15,7 @@ use App\Exceptions\Refusal;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
 use App\Models\IntegrationWebhook;
+use App\Models\LedgerAccount;
 use App\Models\Material;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Request;
@@ -41,6 +43,8 @@ class ExactConnectorTest extends TestCase
     private const ITEM_ID = '44444444-4444-4444-4444-444444444444';
 
     private const INVOICE_ID = '99999999-9999-9999-9999-999999999999';
+
+    private const GL_ACCOUNT_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
     private IntegrationConnection $connection;
 
@@ -116,6 +120,11 @@ class ExactConnectorTest extends TestCase
             'GET ' . $division . "/salesinvoice/SalesInvoices(guid'" . self::INVOICE_ID . "')" => Http::response(['d' => ['InvoiceNumber' => 26000042]]),
             'DELETE ' . $division . "/salesinvoice/SalesInvoices(guid'" . self::INVOICE_ID . "')" => Http::response(null, 204),
             'POST ' . $division . '/webhooks/WebhookSubscriptions' => Http::response(['d' => ['ID' => 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa']], 201),
+            'GET ' . $division . '/bulk/Financial/GLAccounts' => Http::response(['d' => ['results' => [
+                ['ID' => self::GL_ACCOUNT_ID, 'Code' => '8000  ', 'Description' => 'Omzet hoog', 'Type' => 110, 'IsBlocked' => false],
+                ['ID' => 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'Code' => '8999', 'Description' => 'Geblokkeerd', 'Type' => 110, 'IsBlocked' => true],
+            ]]]),
+            'POST ' . $division . '/financial/GLAccounts' => Http::response(['d' => [...$request->data(), 'ID' => self::GL_ACCOUNT_ID]], 201),
         };
     }
 
@@ -355,6 +364,52 @@ class ExactConnectorTest extends TestCase
         }
 
         $this->assertSame('refresh-1', $this->connection->fresh()->credentials()['refresh_token'], 'the only refresh token that still works was kept');
+    }
+
+    public function test_only_revenue_accounts_that_are_not_blocked_come_in(): void
+    {
+        $this->connection->settings = [...$this->connection->settings, 'ledger_accounts' => ['read' => true, 'write' => false, 'leading' => 'external']];
+        $this->connection->saveQuietly();
+
+        app(Synchronizer::class)->pull($this->connection->fresh(), Area::LedgerAccounts);
+
+        $this->assertStringContainsString('Type eq 110', urldecode($this->sentTo('GET', '/' . self::DIVISION . '/bulk/Financial/GLAccounts')[0]->url()));
+        $this->assertSame(['8000'], LedgerAccount::pluck('code')->all());
+        $this->assertSame(self::GL_ACCOUNT_ID, LedgerAccount::firstOrFail()->externalId($this->connection));
+    }
+
+    public function test_an_account_made_in_lavoro_becomes_a_revenue_account_there(): void
+    {
+        $record = $this->connector()->createLedgerAccount(LedgerAccountData::from(['code' => '8200', 'name' => 'Omzet service']));
+
+        $this->assertSame(self::GL_ACCOUNT_ID, $record->id);
+        $this->assertSame(
+            ['Code' => '8200', 'Description' => 'Omzet service', 'Type' => 110, 'BalanceType' => 'W', 'BalanceSide' => 'C'],
+            $this->sentTo('POST', '/' . self::DIVISION . '/financial/GLAccounts')[0]->data(),
+        );
+    }
+
+    public function test_an_account_without_a_number_is_refused_before_anything_is_sent(): void
+    {
+        try {
+            $this->connector()->createLedgerAccount(LedgerAccountData::from(['name' => 'Zonder nummer']));
+            $this->fail('An account without a number should have been refused.');
+        } catch (Refusal $e) {
+            $this->assertStringContainsString('geen nummer', $e->getMessage());
+        }
+
+        $this->assertSame([], $this->sentTo('POST', '/' . self::DIVISION . '/financial/GLAccounts'));
+    }
+
+    public function test_an_invoice_line_goes_onto_the_materials_account_and_a_sales_order_line_has_none(): void
+    {
+        $line = new SalesLineData('Filter', 1, 12.5, 21, article_id: self::ITEM_ID, ledger_account_id: self::GL_ACCOUNT_ID);
+
+        $this->connector()->pushSalesDocument($this->document([$line]), DocumentForm::DraftInvoice);
+        $this->connector()->pushSalesDocument($this->document([$line]), DocumentForm::SalesOrder);
+
+        $this->assertSame(self::GL_ACCOUNT_ID, $this->sentTo('POST', '/' . self::DIVISION . '/salesinvoice/SalesInvoices')[0]['SalesInvoiceLines'][0]['GLAccount']);
+        $this->assertArrayNotHasKey('GLAccount', $this->sentTo('POST', '/' . self::DIVISION . '/salesorder/SalesOrders')[0]['SalesOrderLines'][0]);
     }
 
     public function test_a_line_without_a_price_goes_out_at_zero_and_not_at_the_article_price(): void

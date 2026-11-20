@@ -4,10 +4,12 @@ namespace App\Domain\Integrations;
 
 use App\Domain\Integrations\Contracts\ConnectsWithOAuth;
 use App\Domain\Integrations\Contracts\PullsCustomers;
+use App\Domain\Integrations\Contracts\PullsLedgerAccounts;
 use App\Domain\Integrations\Contracts\PullsMaterials;
 use App\Domain\Integrations\Contracts\ReceivesSalesDocuments;
 use App\Domain\Integrations\Data\CustomerData;
 use App\Domain\Integrations\Data\Field;
+use App\Domain\Integrations\Data\LedgerAccountData;
 use App\Domain\Integrations\Data\MaterialData;
 use App\Exceptions\Refusal;
 use App\Models\IntegrationConnection;
@@ -16,9 +18,10 @@ use Throwable;
 
 /**
  * One outside system, as Lavoro talks to it. A connector only translates:
- * Lavoro's standard shapes (CustomerData, MaterialData, SalesDocumentData) to
- * that system's API and back. It knows nothing of models, links or sync rules;
- * those are in Sync and are the same for every connector.
+ * Lavoro's standard shapes (CustomerData, MaterialData, LedgerAccountData,
+ * SalesDocumentData) to that system's API and back. It knows nothing of
+ * models, links or sync rules; those are in Sync and are the same for every
+ * connector.
  *
  * What it can do is what it implements: each capability is an interface in
  * Contracts (see Capability). A new connector is a subclass here, the
@@ -62,6 +65,12 @@ abstract class Connector
         return MaterialData::FIELDS;
     }
 
+    /** @return array<int, string> The LedgerAccountData fields this system has. */
+    public static function ledgerAccountFields(): array
+    {
+        return LedgerAccountData::FIELDS;
+    }
+
     /** @return array<int, Capability> */
     public static function capabilities(): array
     {
@@ -79,6 +88,7 @@ abstract class Connector
         return match (true) {
             $area === Area::Customers && is_subclass_of(static::class, PullsCustomers::class) => static::customerChanges(),
             $area === Area::Materials && is_subclass_of(static::class, PullsMaterials::class) => static::materialChanges(),
+            $area === Area::LedgerAccounts && is_subclass_of(static::class, PullsLedgerAccounts::class) => static::ledgerAccountChanges(),
             default => null,
         };
     }

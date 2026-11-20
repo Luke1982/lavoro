@@ -13,6 +13,7 @@ use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
+use App\Models\LedgerAccount;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductMaterialDefault;
@@ -197,6 +198,7 @@ class ProductController extends Controller
             'machineOption' => $product->toMachineOption(),
             'documentCategories' => DocumentCategory::forPicker(),
             'productTypes' => ProductType::flatListWithPath(),
+            'ledgerAccounts' => LedgerAccount::choices(),
             'allCustomers' => $customer_count <= 50
                 ? Customer::orderBy('name')->get(['id', 'name'])
                 : collect(),
