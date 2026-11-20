@@ -2,13 +2,13 @@
     <DrawerComponent v-model="open" title="Offerte versturen"
         subtitle="De klant krijgt een knop naar de offerte, waar hij akkoord geeft of een wijziging vraagt.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <DrawerField label="Aan">
+            <DrawerField label="Aan" data-tour="quote.send.to">
                 <TextInput v-model="form.to" type="email" :has-error="Boolean(form.errors.to)" :error-message="form.errors.to" />
             </DrawerField>
             <DrawerField label="Onderwerp">
                 <TextInput v-model="form.subject" :has-error="Boolean(form.errors.subject)" :error-message="form.errors.subject" />
             </DrawerField>
-            <DrawerField label="Tekst" tall>
+            <DrawerField label="Tekst" tall data-tour="quote.send.body">
                 <TipTapEditor v-model="form.body" :has-error="Boolean(form.errors.body)" />
                 <p v-if="form.errors.body" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.body }}</p>
                 <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">

@@ -3,4 +3,4 @@
  * the actions it can take. Everything else about running one lives in
  * Tours/engine.js.
  */
-export { useTour, requestTour, announceTourPage, leaveTourPage, openPicker, findSpot, findSpotAll, visibleRect, addressStartingTour, isDesktop, prefersReducedMotion, onceIntoChapter } from '@/Tours/engine'
+export { useTour, temporarily, requestTour, announceTourPage, leaveTourPage, openPicker, findSpot, findSpotAll, visibleRect, addressStartingTour, isDesktop, prefersReducedMotion, onceIntoChapter } from '@/Tours/engine'

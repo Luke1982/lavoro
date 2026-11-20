@@ -1,8 +1,11 @@
 <template>
-    <IndexHeaderComponent title="Offertes" subtitle="Wat er aan klanten is aangeboden" search-url="/quotes"
+    <IndexHeaderComponent ref="header" title="Offertes" subtitle="Wat er aan klanten is aangeboden" search-url="/quotes"
         search-label="Zoek binnen offertes" search-placeholder="Zoek op nummer, titel of klant"
         :search-other-params="otherParams" add-label="Nieuwe offerte" @add="showCreateDrawer = true"
         :can-add="hasPermission('quote.create')" :has-active-filters="hasActiveFilters">
+        <template #actions>
+            <TourButton tour="offertes" />
+        </template>
         <template #filters>
             <ListFilters :filters="filters" :query="list" class="grid grid-cols-1 gap-2 sm:grid-cols-3" />
         </template>
@@ -22,7 +25,8 @@
                 <div class="col-span-1 text-right">Bedrag</div>
                 <div class="col-span-1 text-right">Status</div>
             </div>
-            <Link v-for="quote in rows" :key="quote.id" :href="`/quotes/${quote.id}`" role="row"
+            <Link v-for="(quote, index) in rows" :key="quote.id" :href="`/quotes/${quote.id}`" role="row"
+                :data-tour="index === 0 ? 'quotes.row' : null"
                 class="grid grid-cols-12 gap-x-2 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2 items-center hover:bg-gray-50 dark:hover:bg-slate-800/40">
                 <div class="hidden lg:block col-span-2 text-xs font-medium text-gray-500 dark:text-slate-400 tabular-nums">
                     {{ quote.number }}
@@ -39,7 +43,8 @@
                 <div class="hidden lg:block col-span-1 text-xs">{{ nlDate(quote.quote_date) }}</div>
                 <div class="hidden lg:block col-span-1 text-xs">{{ quote.valid_until ? nlDate(quote.valid_until) : '–' }}</div>
                 <div class="col-span-2 lg:col-span-1 text-right tabular-nums">{{ nlCurrency(quote.total) }}</div>
-                <div class="col-span-2 lg:col-span-1 text-right text-xs" :class="quoteStatusClass(quote.status)">
+                <div class="col-span-2 lg:col-span-1 text-right text-xs" :class="quoteStatusClass(quote.status)"
+                    :data-tour="index === 0 ? 'quotes.status' : null">
                     {{ quote.status }}
                     <span v-if="quote.lost_reason" class="block text-gray-500 dark:text-slate-400">{{ quote.lost_reason }}</span>
                 </div>
@@ -66,6 +71,8 @@ import ListFilters from '@/Components/UI/ListFilters.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import QuoteCreateDrawer from '@/Components/Quotes/QuoteCreateDrawer.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
+import { temporarily, useTour } from '@/Composables/useTour'
 import { hasPermission, nlCurrency, nlDate, quoteStatusClass } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
 
@@ -81,6 +88,7 @@ const props = defineProps({
 
 const OPEN = 'open'
 
+const header = ref(null)
 const showCreateDrawer = ref(false)
 const rows = computed(() => props.quotes?.data ?? [])
 
@@ -122,4 +130,10 @@ const otherParams = computed(() => ({
     customer: props.list.customer ?? undefined,
     reason: props.list.reason ?? undefined,
 }))
+
+/** The offertes rondleiding opens the filters and the drawer for a new quote to show what is in them. */
+useTour('offertes', {
+    openFilters: () => header.value?.openFilters() ?? null,
+    openCreate: () => temporarily(showCreateDrawer, true),
+})
 </script>

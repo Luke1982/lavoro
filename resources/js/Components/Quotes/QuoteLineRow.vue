@@ -102,7 +102,7 @@
                     </div>
                 </template>
                 <div :class="COLUMNS.actions" class="flex justify-end pt-1">
-                    <DropdownMenu v-if="editable" placement="bottom-end" width-class="w-56" title="Meer"
+                    <DropdownMenu v-if="editable" placement="bottom-end" width-class="w-56" title="Meer" data-cell="menu"
                         button-class="rounded-md p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-slate-800">
                         <template #button>
                             <EllipsisVerticalIcon class="size-4" />

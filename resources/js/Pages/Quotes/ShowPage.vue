@@ -1,8 +1,11 @@
 <template>
-    <BreadcrumbComponent :items="[{ label: 'Offertes', href: '/quotes' }, { label: quote.number }]" />
+    <div class="flex items-start justify-between gap-4">
+        <BreadcrumbComponent :items="[{ label: 'Offertes', href: '/quotes' }, { label: quote.number }]" />
+        <TourButton tour="offerte" />
+    </div>
 
     <header class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div class="flex min-w-0 flex-1 gap-4">
+        <div class="flex min-w-0 flex-1 gap-4" data-tour="quote.header">
             <div class="hidden sm:flex size-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30">
                 <FileTextIcon class="size-8 text-lavoro-blue" />
             </div>
@@ -12,12 +15,12 @@
                     <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" :class="quoteStatusPillClass(quote.status)">
                         {{ quote.status }}
                     </span>
-                    <span class="rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-slate-300"
+                    <span class="rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-slate-300" data-tour="quote.version"
                         v-tooltip="versionSent ? 'De versie waar je aan werkt; de klant heeft hem gekregen' : 'De versie waar je aan werkt; nog niet verstuurd'">
                         Versie {{ quote.version }}<template v-if="!versionSent"> · nog niet verstuurd</template>
                     </span>
                 </div>
-                <input v-if="canEdit" v-model="form.title" @change="save('title')" aria-label="Titel"
+                <input v-if="canEdit" v-model="form.title" @change="save('title')" aria-label="Titel" data-tour="quote.title"
                     class="mt-1 w-full max-w-2xl rounded-lg border-0 bg-white dark:bg-slate-900 px-3 py-1.5 text-2xl font-bold ring-1 ring-inset ring-gray-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600" />
                 <h1 v-else class="mt-1 text-2xl font-bold">{{ quote.title }}</h1>
                 <p v-if="form.errors.title" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.title }}</p>
@@ -33,8 +36,9 @@
             </div>
         </div>
 
-        <div v-if="can.update || can.create" class="flex flex-wrap items-center gap-2">
-            <DropdownMenu placement="bottom-end" width-class="w-64" title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`">
+        <div v-if="can.update || can.create" class="flex flex-wrap items-center gap-2" data-tour="quote.actions">
+            <DropdownMenu placement="bottom-end" width-class="w-64" title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`"
+                data-tour="quote.menu">
                 <template #button>
                     <EllipsisIcon class="size-5" />
                 </template>
@@ -62,24 +66,24 @@
                     </button>
                 </MenuItem>
             </DropdownMenu>
-            <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="[BUTTON, OUTLINE]">
+            <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="[BUTTON, OUTLINE]" data-tour="quote.preview">
                 <EyeIcon class="size-4" /> Voorbeeld
             </a>
-            <a :href="`/quotes/${quote.id}/pdf`" target="_blank" :class="[BUTTON, OUTLINE]">
+            <a :href="`/quotes/${quote.id}/pdf`" target="_blank" :class="[BUTTON, OUTLINE]" data-tour="quote.pdf">
                 <FileDownIcon class="size-4" /> PDF
             </a>
-            <button v-if="can.update && quote.status !== 'Geaccepteerd'" type="button" @click="sending = true"
+            <button v-if="canSend" type="button" data-tour="quote.send" @click="sending = true"
                 :class="[BUTTON, 'bg-lavoro-blue text-white hover:opacity-90']">
                 {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
             </button>
-            <button v-if="can.update && acceptable" type="button" @click="accepting = true"
+            <button v-if="can.update && acceptable" type="button" data-tour="quote.accept" @click="accepting = true"
                 :class="[BUTTON, 'border border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400']">
                 <CheckIcon class="size-4" /> Akkoord vastleggen
             </button>
             <Link v-if="serviceOrder" :href="`/serviceorders/${serviceOrder.id}`" :class="[BUTTON, OUTLINE]">
                 <ClipboardCheckIcon class="size-4" /> Werkbon {{ serviceOrder.number }}
             </Link>
-            <button v-else-if="quote.status === 'Geaccepteerd' && can.createServiceOrder" type="button" @click="convert"
+            <button v-else-if="quote.status === 'Geaccepteerd' && can.update && can.createServiceOrder" type="button" @click="convert"
                 :class="[BUTTON, 'bg-green-600 text-white hover:bg-green-700']">
                 <ClipboardCheckIcon class="size-4" /> Werkbon maken
             </button>
@@ -103,8 +107,8 @@
 
     <TwoThirdsOneThird class="mt-6">
         <template #main>
-            <ChaptersComponent>
-                <ChapterHeaders>
+            <ChaptersComponent v-model="activeChapter">
+                <ChapterHeaders data-tour="quote.chapters">
                     <ChapterHeader v-for="(chapter, index) in chapters" :key="chapter.label" :index="index">
                         <span class="inline-flex items-center gap-2">
                             <component :is="chapter.icon" class="size-4" />
@@ -114,7 +118,7 @@
                 </ChapterHeaders>
                 <ChapterContents>
                     <template #chapter-0>
-                        <BoxComponent padding="px-0 pt-0 pb-2 sm:px-0 sm:pb-2 xl:px-0 xl:pt-0 xl:pb-2" class="flow-root">
+                        <BoxComponent padding="px-0 pt-0 pb-2 sm:px-0 sm:pb-2 xl:px-0 xl:pt-0 xl:pb-2" class="flow-root" data-tour="quote.lines">
                             <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
                                 <SectionHeader :icon="FileTextIcon" title="Offerteregels" chapter="financial" flush class="min-w-0 flex-1"
                                     subtitle="Stel hier de inhoud van de offerte samen. Bepaal per regel of deze optioneel is en meetelt in het totaal." />
@@ -123,7 +127,7 @@
                                         <ArrowDownIcon class="size-4 transition-transform" :class="allOpen ? 'rotate-180' : ''" />
                                         {{ allOpen ? 'Alles inklappen' : 'Alles uitvouwen' }}
                                     </button>
-                                    <button v-if="rows.length > 1" type="button" @click="compact = !compact"
+                                    <button v-if="rows.length > 1" type="button" data-tour="quote.reorder" @click="compact = !compact"
                                         :class="[SMALL_BUTTON, compact ? 'border border-lavoro-blue bg-blue-50 text-lavoro-blue dark:bg-slate-800' : OUTLINE]"
                                         v-tooltip="'Alleen de namen, om makkelijk te verslepen'">
                                         <ArrowDownUpIcon class="size-4" /> Volgorde
@@ -147,9 +151,11 @@
                                 <QuoteLineRow v-for="(line, index) in rows" :key="line.id + '-' + line.updated_at" :quote-id="quote.id"
                                     :line="line" :vat-rates="vatRates" :units="units" :editable="canEdit" :see-margins="can.seeMargins"
                                     :compact="compact" :can-be-alternative="index > 0 && rows[index - 1].kind !== 'text'"
+                                    :data-tour="line.id === firstPricedLineId ? 'quote.line' : null"
                                     class="border-t first:border-t-0 border-gray-100 dark:border-slate-800">
                                     <QuoteMaterialsPanel v-if="line.kind === 'product' && !compact && (line.children.length || canEdit)"
                                         :quote-id="quote.id" :product="line" :units="units" :editable="canEdit"
+                                        :data-tour="line.id === firstProductId ? 'quote.materials' : null"
                                         :open="openPanels[line.id] ?? true" @update:open="(value) => openPanels[line.id] = value" />
                                 </QuoteLineRow>
                             </draggable>
@@ -164,7 +170,7 @@
                     </template>
 
                     <template #chapter-1>
-                        <BoxComponent>
+                        <BoxComponent data-tour="quote.texts">
                             <SectionHeader :icon="FileTextIcon" title="Aanhef & slot" chapter="details"
                                 subtitle="Boven en onder de regels, zoals de klant ze leest." />
                             <template v-if="canEdit">
@@ -193,29 +199,29 @@
                             <SectionHeader :icon="HandshakeIcon" title="Afspraken" chapter="details"
                                 subtitle="Wat de klant over prijs, planning en betaling leest. De installatievoorwaarden vragen dat de offerte dit noemt." />
                             <div class="grid gap-4 sm:grid-cols-2">
-                                <div class="sm:col-span-2">
+                                <div class="sm:col-span-2" data-tour="quote.pricing">
                                     <span class="text-xs font-bold text-slate-400">Prijsafspraak</span>
                                     <SegmentedToggle v-model="form.pricing_method" class="mt-1" :options="pricingMethods" :disabled="!canEdit"
                                         @update:model-value="save('pricing_method')" />
                                     <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">De klant leest: {{ pricingExplanation }}</p>
                                 </div>
-                                <div>
+                                <div data-tour="quote.start">
                                     <span class="text-xs font-bold text-slate-400">Start</span>
                                     <TextInput v-model="form.start_period" :disabled="!canEdit" placeholder="Bijvoorbeeld: week 14, in overleg"
                                         @change="save('start_period')" :has-error="Boolean(form.errors.start_period)" :error-message="form.errors.start_period" />
                                 </div>
-                                <div>
+                                <div data-tour="quote.duration">
                                     <span class="text-xs font-bold text-slate-400">Duur</span>
                                     <TextInput v-model="form.duration" :disabled="!canEdit" placeholder="Bijvoorbeeld: twee werkdagen"
                                         @change="save('duration')" :has-error="Boolean(form.errors.duration)" :error-message="form.errors.duration" />
                                 </div>
-                                <div class="sm:col-span-2">
+                                <div class="sm:col-span-2" data-tour="quote.payment-terms">
                                     <span class="text-xs font-bold text-slate-400">Betaling</span>
                                     <textarea v-model="form.payment_terms" rows="2" :disabled="!canEdit" @change="save('payment_terms')"
                                         placeholder="Bijvoorbeeld: betaling binnen 14 dagen na factuurdatum"
                                         class="mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2" />
                                 </div>
-                                <div class="sm:col-span-2">
+                                <div class="sm:col-span-2" data-tour="quote.payment-schedule">
                                     <span class="text-xs font-bold text-slate-400">Betaaltermijnen</span>
                                     <p v-if="!form.payment_schedule?.length" class="text-xs text-gray-500 dark:text-slate-400">
                                         Geen termijnen: de klant betaalt volgens de afspraak hierboven.
@@ -229,7 +235,7 @@
                     </template>
 
                     <template #chapter-3>
-                        <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id"
+                        <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id" data-tour="quote.attachments"
                             documentable-type="\App\Models\Quote" title="Bijlagen" subtitle="Tekeningen, brochures en andere stukken bij deze offerte." />
                     </template>
 
@@ -249,7 +255,7 @@
                                         :has-error="Boolean(form.errors.valid_until)" :error-message="form.errors.valid_until" />
                                 </div>
                             </div>
-                            <div class="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4">
+                            <div class="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4" data-tour="quote.layout">
                                 <span class="text-xs font-bold text-slate-400">Wat de klant ziet</span>
                                 <div class="mt-2 grid gap-2 sm:grid-cols-2">
                                     <label v-for="(label, choice) in layoutChoices" :key="choice" class="flex items-center gap-2 text-sm">
@@ -271,7 +277,7 @@
 
         <template #sidebar>
             <div class="space-y-4">
-                <BoxComponent>
+                <BoxComponent data-tour="quote.totals">
                     <SectionHeader :icon="EuroIcon" title="Totaal" chapter="financial" />
                     <dl class="space-y-1 text-sm">
                         <div class="flex justify-between px-3 py-1"><dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.net) }}</dd></div>
@@ -316,7 +322,7 @@
                     <p v-if="quote.lost_reason_note" class="text-sm whitespace-pre-line">{{ quote.lost_reason_note }}</p>
                 </BoxComponent>
 
-                <BoxComponent v-if="versions.length">
+                <BoxComponent v-if="versions.length" data-tour="quote.versions">
                     <SectionHeader :icon="LayersIcon" title="Versies" chapter="documents"
                         subtitle="Wat de klant elke keer kreeg, zoals het er toen uitzag." />
                     <ul class="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
@@ -358,7 +364,7 @@
                     </div>
                 </BoxComponent>
 
-                <BoxComponent>
+                <BoxComponent data-tour="quote.settings">
                     <SectionHeader :icon="SettingsIcon" title="Offerte-instellingen" chapter="details" />
                     <label class="flex items-start justify-between gap-3">
                         <span>
@@ -418,7 +424,7 @@
                     </div>
                 </BoxComponent>
 
-                <BoxComponent>
+                <BoxComponent data-tour="quote.timeline">
                     <SectionHeader :icon="HistoryIcon" title="Tijdlijn" chapter="timeline" />
                     <TimelineComponent v-if="quote.activities?.length" :activities="quote.activities" :limit="3" />
                     <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
@@ -455,6 +461,7 @@ import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
 import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
+import TourButton from '@/Components/Tour/TourButton.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
@@ -464,6 +471,7 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
+import { temporarily, useTour } from '@/Composables/useTour'
 import { nlCurrency, nlDate, nlDateMedium, nlQuantity, quoteStatusPillClass } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -531,8 +539,10 @@ const declining = ref(false)
 /** Which way the quote is being taken along: 'copy', 'template', or not at all. */
 const copying = ref(null)
 const compact = ref(false)
+const activeChapter = ref(0)
 
 const canEdit = computed(() => props.editable && props.can.update)
+const canSend = computed(() => props.can.update && props.quote.status !== 'Geaccepteerd')
 const canStartVersion = computed(() => props.can.update && props.versionSent && props.quote.status !== 'Geaccepteerd')
 
 /** What the customer reads about the way the price holds, as the server words it for the page and the PDF. */
@@ -546,7 +556,9 @@ watch(() => props.lines, (lines) => { rows.value = [...lines] })
 
 /** Which products have their materials open: all, until someone closes one. */
 const openPanels = reactive({})
-const hasPanels = computed(() => rows.value.some(line => line.kind === 'product'))
+const firstProductId = computed(() => rows.value.find(line => line.kind === 'product')?.id ?? null)
+const firstPricedLineId = computed(() => rows.value.find(line => line.kind !== 'text')?.id ?? null)
+const hasPanels = computed(() => firstProductId.value !== null)
 const allOpen = computed(() => rows.value.filter(line => line.kind === 'product').every(line => openPanels[line.id] ?? true))
 
 function toggleAllPanels() {
@@ -635,4 +647,33 @@ function destroy() {
     if (!confirm(`Offerte ${props.quote.number} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return
     router.delete(`/quotes/${props.quote.id}`)
 }
+
+function openChapter(label) {
+    const index = chapters.value.findIndex(chapter => chapter.label === label)
+    if (index >= 0) activeChapter.value = index
+}
+
+/**
+ * The offerte rondleiding opens the tab it talks about and the drawer for
+ * sending; it never sends or saves anything. A tab is opened without an undo of
+ * its own, so going from tab to tab never slides back past the first one:
+ * rememberChapter turns back to the tab that was open once the chapter ends.
+ */
+useTour('offerte', {
+    rememberChapter: () => {
+        const before = activeChapter.value
+
+        return () => { activeChapter.value = before }
+    },
+    openLines: () => openChapter('Regels'),
+    openTexts: () => openChapter('Aanhef & slot'),
+    openAgreements: () => openChapter('Afspraken'),
+    openAttachments: () => openChapter('Bijlagen'),
+    openSettings: () => openChapter('Instellingen'),
+    openSend: () => canSend.value ? temporarily(sending, true) : null,
+}, {
+    spots: {
+        'quote.line.menu': () => document.querySelector('[data-tour="quote.line"] [data-cell=menu]'),
+    },
+})
 </script>

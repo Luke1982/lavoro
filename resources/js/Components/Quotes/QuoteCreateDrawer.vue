@@ -2,11 +2,11 @@
     <DrawerComponent v-model="open" :title="origin ? `Offerte vanuit ${start?.label ?? '…'}` : 'Nieuwe offerte'"
         subtitle="De offerte krijgt bij het opslaan vanzelf een nummer en is een maand geldig.">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
-            <DrawerField label="Titel">
+            <DrawerField label="Titel" data-tour="quotes.new.title">
                 <TextInput v-model="form.title" type="text" placeholder="Bijvoorbeeld: Airco woonkamer en slaapkamer"
                     :hasError="Boolean(form.errors.title)" :errorMessage="form.errors.title" />
             </DrawerField>
-            <DrawerField label="Klant">
+            <DrawerField label="Klant" data-tour="quotes.new.customer">
                 <p v-if="origin" class="py-2 text-sm">{{ start?.customer?.name ?? 'Geen klant gevonden' }}</p>
                 <ComboBox v-else :options="customerOptions" v-model="form.customer_id" placeholder="Selecteer klant"
                     :has-external-searching="customersUseAjax" :searching="customersSearching"
@@ -14,7 +14,7 @@
                     :hasError="Boolean(form.errors.customer_id)" :errorMessage="form.errors.customer_id" />
                 <p v-if="origin && form.errors.customer_id" class="text-sm text-red-600 dark:text-red-400">{{ form.errors.customer_id }}</p>
             </DrawerField>
-            <DrawerField v-if="!origin && templates.length" label="Sjabloon">
+            <DrawerField v-if="!origin && templates.length" label="Sjabloon" data-tour="quotes.new.template">
                 <ComboBox :options="templates" v-model="form.template_id" placeholder="Leeg beginnen" />
             </DrawerField>
             <DrawerField v-if="origin" label="Overnemen">
@@ -28,11 +28,11 @@
                     </span>
                 </label>
             </DrawerField>
-            <DrawerField label="Offertedatum">
+            <DrawerField label="Offertedatum" data-tour="quotes.new.date">
                 <TextInput v-model="form.quote_date" type="date"
                     :hasError="Boolean(form.errors.quote_date)" :errorMessage="form.errors.quote_date" />
             </DrawerField>
-            <DrawerField label="Geldig tot">
+            <DrawerField label="Geldig tot" data-tour="quotes.new.valid-until">
                 <TextInput v-model="form.valid_until" type="date" placeholder="Een maand na de offertedatum"
                     :hasError="Boolean(form.errors.valid_until)" :errorMessage="form.errors.valid_until" />
             </DrawerField>
@@ -44,7 +44,7 @@
                     class="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700">
                     Annuleren
                 </button>
-                <button type="button" @click="submit" :disabled="form.processing || (origin && !start)"
+                <button type="button" data-tour="quotes.new.save" @click="submit" :disabled="form.processing || (origin && !start)"
                     class="px-4 py-2 text-sm font-medium bg-lavoro-blue text-white rounded-md hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed">
                     Opslaan
                 </button>

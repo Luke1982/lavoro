@@ -1,0 +1,133 @@
+{
+    "id": "offertes",
+    "title": "Rondleiding door de offertes",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "page": "/quotes",
+    "autoStart": true,
+    "requires": {
+        "modules": [
+            "quotes"
+        ],
+        "permissions": [
+            "quote.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "lijst",
+            "version": 1,
+            "title": "De offertelijst",
+            "summary": "Zoeken en filteren, wat je per offerte ziet, en de status.",
+            "steps": [
+                {
+                    "spot": "list.search",
+                    "title": "Zoeken",
+                    "text": "Zoek op **offertenummer**, **titel** of **klant**.",
+                    "say": "Je zoekt een offerte op nummer of titel. De naam van de klant werkt ook."
+                },
+                {
+                    "spot": "list.filter-panel",
+                    "action": "openFilters",
+                    "title": "Filters",
+                    "text": "De lijst opent op de **lopende offertes**: alles wat nog niet geaccepteerd, afgewezen of vervallen is. Onder **Filters** kies je een andere status, of **Alle statussen**. Je filtert ook op klant, en op de **reden van verlies**: zo zie je waarom offertes niet doorgingen.",
+                    "say": "De lijst opent op de lopende offertes. Onder filters kies je een andere status, of een klant. Je kunt ook filteren op de reden van verlies.",
+                    "marks": [
+                        {
+                            "spot": "list.filters",
+                            "when": "filters"
+                        }
+                    ]
+                },
+                {
+                    "spot": "quotes.row",
+                    "skipIfMissing": true,
+                    "title": "Een offerte in de lijst",
+                    "text": "Per offerte zie je het **nummer**, de titel, de klant, de datum, tot wanneer hij geldig is en het **bedrag** exclusief btw. Klik op een offerte om hem te openen.",
+                    "say": "Per offerte zie je het nummer, de titel en de klant. Ook het bedrag en tot wanneer hij geldig is. Klik erop om hem te openen."
+                },
+                {
+                    "spot": "quotes.status",
+                    "skipIfMissing": true,
+                    "title": "De status",
+                    "text": "Een offerte begint als **Concept**. Met versturen wordt hij **Verzonden**. Wat de klant antwoordt, maakt er **Geaccepteerd**, **Wijziging gevraagd** of **Afgewezen** van. Een verzonden offerte die verloopt, gaat vanzelf naar **Vervallen**. Bij een afgewezen offerte staat de reden eronder.",
+                    "say": "Een offerte begint als concept. Na het versturen staat hij op verzonden. Wat de klant antwoordt, bepaalt de status daarna. Bij een afgewezen offerte staat de reden eronder."
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "quote.manage_settings"
+                        ]
+                    },
+                    "title": "Instellingen",
+                    "text": "Wat voor elke offerte geldt, stel je in onder **Verkoop → Offertes → Instellingen**: welke kolommen de klant ziet, je **algemene voorwaarden**, de eenheden, de redenen van verlies en je sjablonen.",
+                    "say": "Wat voor elke offerte geldt, stel je in bij de offerte-instellingen. Bijvoorbeeld je algemene voorwaarden, en wat de klant op de offerte ziet."
+                }
+            ]
+        },
+        {
+            "id": "nieuw",
+            "version": 1,
+            "title": "Een offerte maken",
+            "summary": "Een nieuwe offerte, leeg of uit een sjabloon, en een offerte vanuit een werkbon of storing.",
+            "requires": {
+                "permissions": [
+                    "quote.create"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "list.add",
+                    "title": "Nieuwe offerte",
+                    "text": "Met **Nieuwe offerte** open je een la voor een nieuwe offerte. Op een telefoon is dat het plusje.",
+                    "say": "Met \"Nieuwe offerte\" open je een la voor een nieuwe offerte."
+                },
+                {
+                    "spot": "quotes.new.title",
+                    "action": "openCreate",
+                    "title": "Titel en klant",
+                    "text": "Geef de offerte een **titel** die de klant begrijpt, zoals *Airco woonkamer en slaapkamer*. Kies dan de **klant**. Heeft die geen KvK- en geen btw-nummer, dan begint de offerte als offerte voor een **particulier**, met bedenktijd.",
+                    "say": "Geef de offerte een titel die de klant begrijpt. Kies dan de klant.",
+                    "marks": [
+                        {
+                            "spot": "quotes.new.customer",
+                            "when": "Kies dan de klant"
+                        }
+                    ]
+                },
+                {
+                    "spot": "quotes.new.template",
+                    "skipIfMissing": true,
+                    "action": "openCreate",
+                    "title": "Een sjabloon",
+                    "text": "Kies je een **sjabloon**? Dan begint de offerte met de regels, teksten en afspraken van dat sjabloon. Zonder sjabloon begin je leeg. Een sjabloon maak je zelf, vanuit een offerte.",
+                    "say": "Kies je een sjabloon? Dan begint de offerte met de regels en teksten daarvan. Zonder sjabloon begin je leeg."
+                },
+                {
+                    "spot": "quotes.new.date",
+                    "action": "openCreate",
+                    "title": "Datum en geldigheid",
+                    "text": "De **offertedatum** is vandaag. Laat je **Geldig tot** leeg, dan is de offerte een maand geldig. Het **nummer** krijgt hij vanzelf bij het opslaan.",
+                    "say": "De offertedatum is vandaag. Laat je \"geldig tot\" leeg? Dan is de offerte een maand geldig. Het nummer komt vanzelf.",
+                    "marks": [
+                        {
+                            "spot": "quotes.new.valid-until",
+                            "when": "geldig tot"
+                        }
+                    ]
+                },
+                {
+                    "spot": "quotes.new.save",
+                    "action": "openCreate",
+                    "title": "Opslaan",
+                    "text": "Met **Opslaan** maak je de offerte en open je hem meteen. Daar zet je de regels erop. De rondleiding slaat niets op.",
+                    "say": "Met \"Opslaan\" maak je de offerte. Hij gaat dan meteen open, en daar zet je de regels erop."
+                },
+                {
+                    "title": "Vanuit een werkbon of storing",
+                    "text": "Vindt een monteur meer werk, dat eerst een offerte nodig heeft? Op een **werkbon** staat in de standaardweergave bovenaan **Offerte maken**, en op een **storing** staat het onder de **drie puntjes**. De offerte krijgt de klant en het adres, en van een werkbon ook het project. Je vinkt aan wat je overneemt: van een werkbon de storingen, de materialen en de gewerkte uren, van een storing de storing zelf als tekstregel.",
+                    "say": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kiest zelf wat je nog meer overneemt."
+                }
+            ]
+        }
+    ]
+}

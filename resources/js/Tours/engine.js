@@ -62,7 +62,7 @@ export const tourState = reactive({
  * Offers spots and actions to the rondleiding of `tour` for as long as the
  * calling component is mounted. An action returns its own undo.
  *
- *     useTour('planner', { openCalendar: () => { open.value = true; return () => { open.value = false } } })
+ *     useTour('planner', { openCalendar: () => temporarily(open, true) })
  *     useTour('planner', {}, { spots: { 'planner.cell': () => cellElement() } })
  */
 export function useTour(tour, actions = {}, options = {}) {
@@ -92,6 +92,15 @@ function unregister(registry, owner) {
         const kept = entries.filter((entry) => entry.owner !== owner)
         kept.length ? registry.set(key, kept) : registry.delete(key)
     }
+}
+
+/** Sets `target` to `value` while a step needs it and returns the undo; null when it already held `value`. */
+export function temporarily(target, value) {
+    const before = target.value
+    if (before === value) return null
+    target.value = value
+
+    return () => { target.value = before }
 }
 
 export function isDesktop() {

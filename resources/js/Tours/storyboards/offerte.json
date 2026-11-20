@@ -1,0 +1,305 @@
+{
+    "id": "offerte",
+    "title": "Rondleiding door een offerte",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt een minuut of twee. Overslaan kan altijd.",
+    "autoStart": true,
+    "assistant": false,
+    "requires": {
+        "modules": [
+            "quotes"
+        ],
+        "permissions": [
+            "quote.read"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "offerte",
+            "version": 1,
+            "title": "De offerte",
+            "summary": "Nummer, status en versie, de knoppen bovenaan, de tabbladen en het totaal.",
+            "steps": [
+                {
+                    "spot": "quote.header",
+                    "title": "Nummer, status en versie",
+                    "text": "Bovenaan staan het **offertenummer**, de **status** en de **versie** waar je aan werkt. Het nummer bestaat uit het jaar en een teller die elk jaar opnieuw begint. Daaronder staan de titel, de klant, de offertedatum en tot wanneer hij geldig is.",
+                    "say": "Bovenaan staan het offertenummer, de status en de versie waar je aan werkt. Daaronder de titel, de klant en tot wanneer de offerte geldig is."
+                },
+                {
+                    "spot": "quote.title",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "quote.update"
+                        ]
+                    },
+                    "title": "Aanpassen",
+                    "text": "Je past een offerte aan zolang hij op **Concept** of **Wijziging gevraagd** staat. Klik in een veld, zoals de titel, en typ. Het wordt bewaard zodra je het veld verlaat.",
+                    "say": "Je past een offerte aan zolang hij op concept staat, of de klant om een wijziging vroeg. Klik in een veld en typ. Het wordt bewaard zodra je het veld verlaat."
+                },
+                {
+                    "spot": "quote.preview",
+                    "requires": {
+                        "anyPermissions": [
+                            "quote.update",
+                            "quote.create"
+                        ]
+                    },
+                    "title": "Voorbeeld en PDF",
+                    "text": "Met **Voorbeeld** zie je de offerte zoals de klant hem ziet, in een nieuw tabblad. Met **PDF** zie je hem zoals hij op papier staat. Er wordt niets verstuurd.",
+                    "say": "Met \"Voorbeeld\" zie je de offerte zoals de klant hem ziet. Met \"PDF\" zie je hem op papier. Er wordt niets verstuurd.",
+                    "marks": [
+                        {
+                            "spot": "quote.pdf",
+                            "when": "PDF"
+                        }
+                    ]
+                },
+                {
+                    "spot": "quote.menu",
+                    "skipIfMissing": true,
+                    "title": "Meer acties",
+                    "text": "Onder de **drie puntjes** staan **Nieuwe versie maken**, **Kopie maken**, **Bewaren als sjabloon**, de andere statussen, zoals **Afgewezen** en **Terug naar concept**, en **Verwijderen**. Een offerte die verstuurd is, verwijder je niet meer: die wijs je af of laat je vervallen.",
+                    "say": "Onder de drie puntjes maak je een kopie, of bewaar je de offerte als sjabloon. Daar zet je hem ook zelf op een andere status."
+                },
+                {
+                    "spot": "quote.chapters",
+                    "title": "Vijf tabbladen",
+                    "text": "De offerte staat op vijf tabbladen: de **Regels**, **Aanhef & slot**, de **Afspraken**, de **Bijlagen** en de **Instellingen**.",
+                    "say": "De offerte staat op vijf tabbladen. Je begint bij de regels."
+                },
+                {
+                    "spot": "quote.totals",
+                    "title": "Het totaal",
+                    "text": "Rechts staat het **totaal**: zonder btw, de btw per tarief, en in het groen met btw. Daaronder wat er **stelpost** is en wat de **opties** kosten die niet meetellen. Mag je marges zien, dan zie je ook de inkoop en de marge.",
+                    "say": "Rechts staat het totaal, zonder en met btw. Daaronder zie je wat er stelpost is, en wat de opties kosten die niet meetellen."
+                }
+            ]
+        },
+        {
+            "id": "regels",
+            "version": 1,
+            "title": "Regels",
+            "summary": "Producten, diensten en tekst op de offerte zetten, opties, alternatieven, stelposten en materialen.",
+            "requires": {
+                "permissions": [
+                    "quote.update"
+                ]
+            },
+            "actions": [
+                "rememberChapter",
+                "openLines"
+            ],
+            "steps": [
+                {
+                    "spot": "quote.add",
+                    "skipIfMissing": true,
+                    "title": "Regel toevoegen",
+                    "text": "Onderaan de regels staat **Regel toevoegen**, met vier knoppen. **Product of materiaal** haal je uit de catalogus. **Dienst / eigen regel** is voor iets dat niet in de catalogus staat, zoals montage-uren of voorrijkosten. Een **Tekstregel** is een kop met een stukje tekst, zonder bedrag. Een **Optionele regel** kan de klant erbij nemen.",
+                    "say": "Met deze vier knoppen zet je iets op de offerte. Een product of materiaal uit de catalogus. Een eigen regel, zoals montage-uren. Een tekstregel zonder bedrag. Of een optie die de klant erbij kan nemen."
+                },
+                {
+                    "spot": "quote.add.search",
+                    "skipIfMissing": true,
+                    "action": "openCatalogSearch",
+                    "title": "Zoeken in de catalogus",
+                    "text": "Zoek op merk, model, artikelnummer, naam of code. Producten en materialen staan in één lijst, met hun verkoopprijs. Vul het **aantal** in en klik op **Toevoegen**. Komen er materialen mee met het product, dan zet Lavoro ze eronder. Hoort daar een keuze bij, zoals hoeveel meter leiding, dan vraagt Lavoro dat eerst.",
+                    "say": "Zoek op merk, model, naam of code. Vul het aantal in en klik op \"Toevoegen\". Moet er bij een product iets gekozen worden, zoals hoeveel meter leiding? Dan vraagt Lavoro dat eerst."
+                },
+                {
+                    "spot": "quote.line",
+                    "skipIfMissing": true,
+                    "title": "Een regel",
+                    "text": "Op een regel pas je alles direct aan: de naam, de **toelichting** eronder, de **ruimte**, zoals *woonkamer*, het aantal, de eenheid, de prijs en de btw. Het wordt bewaard zodra je het veld verlaat. De prijs komt uit de catalogus en blijft staan, ook als de catalogus later verandert.",
+                    "say": "Op een regel pas je alles direct aan. De naam, de ruimte, het aantal en de prijs. Het wordt bewaard zodra je het veld verlaat."
+                },
+                {
+                    "spot": "quote.line.menu",
+                    "skipIfMissing": true,
+                    "title": "Optie, alternatief, stelpost of korting",
+                    "text": "Onder de **drie puntjes** maak je een regel **optioneel**, of een **alternatief** voor de regel erboven: dan telt er maar één van mee. Een **stelpost** is een bedrag dat nog niet vaststaat; dat verreken je achteraf. Je geeft er ook **korting** in procenten.",
+                    "say": "Onder dit menu maak je een regel optioneel, of een alternatief voor de regel erboven. Je maakt er ook een stelpost van, of je geeft korting."
+                },
+                {
+                    "spot": "quote.lines",
+                    "title": "Wat meetelt",
+                    "text": "Een **optie** is lichtblauw en heeft een vinkje. Aangevinkt **telt hij mee** in het totaal; zonder vinkje staat hij apart. Bij **alternatieven** kies je met het rondje welke meetelt. Mag de klant zelf kiezen, dan zet de klant ze aan of uit bij het akkoord.",
+                    "say": "Een optie heeft een vinkje. Aangevinkt telt hij mee in het totaal. Bij alternatieven kies je met het rondje welke meetelt."
+                },
+                {
+                    "spot": "quote.materials",
+                    "skipIfMissing": true,
+                    "title": "Materialen bij een product",
+                    "text": "Onder een product staan de **materialen** die meekomen, zoals een muurbeugel bij een airco. Met **Materiaal toevoegen** zet je er nog een bij. Verander je het aantal van het product, dan gaan de standaardmaterialen mee. Wat je zelf hebt aangepast of erbij hebt gezet, blijft staan. Welke materialen standaard meekomen, stel je in op het tabblad **Offerte** van het product.",
+                    "say": "Onder een product staan de materialen die meekomen. Verander je het aantal van het product? Dan gaan de standaardmaterialen mee."
+                },
+                {
+                    "spot": "quote.reorder",
+                    "skipIfMissing": true,
+                    "title": "De volgorde",
+                    "text": "Met het bolletjesraster links sleep je een regel naar een andere plek. **Volgorde** toont alleen de namen, zodat je een lange offerte makkelijk ordent.",
+                    "say": "Met het raster links sleep je een regel naar een andere plek. Met \"Volgorde\" zie je alleen de namen, en sleep je nog makkelijker."
+                }
+            ]
+        },
+        {
+            "id": "afspraken",
+            "version": 1,
+            "title": "Teksten en afspraken",
+            "summary": "Aanhef en slot, prijs, planning en betaling, bijlagen, en wat de klant ziet.",
+            "actions": [
+                "rememberChapter"
+            ],
+            "steps": [
+                {
+                    "spot": "quote.texts",
+                    "action": "openTexts",
+                    "title": "Aanhef en slot",
+                    "text": "De **aanhef** staat boven de regels, het **slot** eronder. Kun je de offerte aanpassen, dan maak je tekst **vet**, *schuin* of een lijstje, en klik je op **Opslaan** als je klaar bent.",
+                    "say": "De aanhef staat boven de regels, het slot eronder. Pas je ze aan? Klik dan op \"Opslaan\" als je klaar bent."
+                },
+                {
+                    "spot": "quote.pricing",
+                    "action": "openAgreements",
+                    "title": "De prijsafspraak",
+                    "text": "Bij **Afspraken** staat wat een offerte volgens de installatievoorwaarden moet noemen. Eerst de **prijsafspraak**: een **Vaste prijs**, of **Regie**. Bij regie reken je af op de werkelijke uren en materialen. Daaronder lees je wat de klant ziet.",
+                    "say": "Bij afspraken kies je eerst de prijsafspraak. Een vaste prijs, of regie. Bij regie reken je af op de werkelijke uren en materialen."
+                },
+                {
+                    "spot": "quote.start",
+                    "action": "openAgreements",
+                    "title": "Planning en betaling",
+                    "text": "Schrijf wanneer het werk **start** en hoe lang het **duurt**, en hoe de klant **betaalt**. Met **betaaltermijnen** verdeel je het bedrag, zoals *30% bij opdracht*. Samen moeten ze 100% zijn. Van een particulier vraag je vooraf niet meer dan in de offerte-instellingen staat.",
+                    "say": "Schrijf wanneer het werk start en hoe lang het duurt. En hoe de klant betaalt. Met betaaltermijnen verdeel je het bedrag. Samen moeten ze honderd procent zijn.",
+                    "marks": [
+                        {
+                            "spot": "quote.duration",
+                            "when": "duurt"
+                        },
+                        {
+                            "spot": "quote.payment-terms",
+                            "when": "betaalt"
+                        },
+                        {
+                            "spot": "quote.payment-schedule",
+                            "when": "betaaltermijnen"
+                        }
+                    ]
+                },
+                {
+                    "spot": "quote.attachments",
+                    "skipIfMissing": true,
+                    "action": "openAttachments",
+                    "title": "Bijlagen",
+                    "text": "Bij **Bijlagen** bewaar je tekeningen, brochures en andere stukken bij de offerte. Ze gaan niet mee naar de klant. De **getekende offerte** komt hier vanzelf te staan.",
+                    "say": "Bij bijlagen bewaar je tekeningen en brochures bij de offerte. Ze gaan niet mee naar de klant. De getekende offerte komt hier vanzelf te staan."
+                },
+                {
+                    "spot": "quote.layout",
+                    "action": "openSettings",
+                    "title": "Wat de klant ziet",
+                    "text": "Bij **Instellingen** kies je welke kolommen de klant ziet: het aantal, de prijs per eenheid, de korting, de btw en het regeltotaal. Zonder prijs per eenheid en regeltotaal ziet de klant alleen het totaal.",
+                    "say": "Bij instellingen kies je wat de klant ziet. Zet je de prijzen per regel uit? Dan ziet de klant alleen het totaal."
+                },
+                {
+                    "spot": "quote.settings",
+                    "title": "Kiezen en bedenktijd",
+                    "text": "Staat **Klant mag opties selecteren** aan, dan zet de klant zelf opties aan of uit en kiest hij een alternatief. Staat **Particuliere klant** aan, dan krijgt de klant **14 dagen bedenktijd**, met het formulier om te herroepen bij de offerte.",
+                    "say": "Hier bepaal je of de klant zelf opties mag kiezen. En of het een particuliere klant is. Die krijgt na het akkoord twee weken bedenktijd."
+                }
+            ]
+        },
+        {
+            "id": "versturen",
+            "version": 1,
+            "title": "Versturen en akkoord",
+            "summary": "De offerte versturen, wat de klant ermee kan, en het akkoord op je eigen scherm.",
+            "requires": {
+                "permissions": [
+                    "quote.update"
+                ]
+            },
+            "steps": [
+                {
+                    "spot": "quote.send",
+                    "skipIfMissing": true,
+                    "title": "Versturen",
+                    "text": "Met **Versturen**, of **Opnieuw versturen**, gaat de offerte per e-mail naar de klant. Je ziet de mail eerst.",
+                    "say": "Met \"Versturen\" gaat de offerte per e-mail naar de klant. Je ziet de mail eerst."
+                },
+                {
+                    "spot": "quote.send.to",
+                    "skipIfMissing": true,
+                    "action": "openSend",
+                    "title": "Aan wie",
+                    "text": "De mail gaat naar de **contactpersoon** van de offerte. Is die er niet, of heeft die geen e-mailadres, dan naar het offerte-e-mailadres van de klant, en anders naar zijn gewone adres. Je past het hier nog aan, net als het onderwerp.",
+                    "say": "De mail gaat naar de contactpersoon van de offerte. Of anders naar het adres van de klant. Je past het hier nog aan."
+                },
+                {
+                    "spot": "quote.send.body",
+                    "skipIfMissing": true,
+                    "action": "openSend",
+                    "title": "De mail",
+                    "text": "Onder de tekst komt een knop: daarmee opent de klant de offerte, zonder in te loggen. De **PDF** gaat mee, en je **algemene voorwaarden** als bijlage of als link. De link werkt tot en met de geldig-tot-datum. Verstuur je opnieuw, dan werkt de vorige link niet meer. De rondleiding verstuurt niets.",
+                    "say": "Onder de tekst komt een knop. Daarmee opent de klant de offerte, zonder in te loggen. De PDF en je voorwaarden gaan mee."
+                },
+                {
+                    "title": "Wat de klant doet",
+                    "text": "De klant ziet de offerte zoals op papier, zonder inkoopprijzen. Hij reageert één keer: **akkoord** met naam en handtekening, een **wijziging vragen**, of **afwijzen**. De status gaat dan vanzelf mee. Wie de offerte maakte, krijgt een melding als de klant de offerte **voor het eerst bekijkt** en als hij reageert.",
+                    "say": "De klant geeft akkoord met een handtekening. Of hij vraagt een wijziging, of hij wijst de offerte af. Wie de offerte maakte, krijgt daar een melding van. Ook als de klant de offerte voor het eerst bekijkt."
+                },
+                {
+                    "title": "Een herinnering",
+                    "text": "Reageert de klant na een paar dagen niet, dan krijgt hij één keer vanzelf een **herinnering**. Verloopt de offerte bijna zonder antwoord, dan krijgt wie hem maakte een melding. Hoeveel dagen dat is, staat in de offerte-instellingen.",
+                    "say": "Reageert de klant niet? Dan krijgt hij na een paar dagen vanzelf een herinnering. En verloopt de offerte bijna, dan krijgt wie hem maakte een melding."
+                },
+                {
+                    "spot": "quote.accept",
+                    "skipIfMissing": true,
+                    "title": "Akkoord op je eigen scherm",
+                    "text": "Ben je bij de klant? Met **Akkoord vastleggen** tekent de klant op jouw scherm, bijvoorbeeld op een tablet. Je vinkt de opties aan die hij neemt, vult zijn naam in en laat hem tekenen. De bevestiging met de getekende offerte gaat per mail naar de klant.",
+                    "say": "Ben je bij de klant? Met \"Akkoord vastleggen\" tekent de klant op jouw scherm. Hij krijgt de getekende offerte per mail."
+                }
+            ]
+        },
+        {
+            "id": "versies",
+            "version": 1,
+            "title": "Versies en werkbon",
+            "summary": "Een nieuwe versie maken, eerdere versies terugzien, een werkbon maken en de tijdlijn.",
+            "steps": [
+                {
+                    "spot": "quote.version",
+                    "title": "Versies",
+                    "text": "Jij bepaalt wanneer een offerte een nieuwe **versie** wordt. Verbeter je een tikfout en verstuur je opnieuw, dan blijft het dezelfde versie. Wil je dat de klant een nieuwe versie krijgt, bijvoorbeeld na een gevraagde wijziging? Kies dan onder de drie puntjes **Nieuwe versie maken**. Dat kan pas als deze versie verstuurd is, en niet meer na het akkoord.",
+                    "say": "Jij bepaalt wanneer een offerte een nieuwe versie wordt. Kies daarvoor onder de drie puntjes \"Nieuwe versie maken\". De vorige versie blijft bewaard."
+                },
+                {
+                    "spot": "quote.versions",
+                    "skipIfMissing": true,
+                    "title": "Wat de klant kreeg",
+                    "text": "Rechts onder **Versies** staat elke keer dat de offerte verstuurd is, precies zoals de klant hem kreeg. Je ziet de ontvanger, het bedrag, en wanneer de klant hem **bekeek**. Met **Bekijken** en **PDF** open je die versie.",
+                    "say": "Hier staat elke keer dat de offerte verstuurd is. Precies zoals de klant hem kreeg. Je ziet ook wanneer de klant hem bekeek."
+                },
+                {
+                    "spot": "quote.actions",
+                    "requires": {
+                        "permissions": [
+                            "quote.update",
+                            "serviceorder.create"
+                        ]
+                    },
+                    "title": "Werkbon maken",
+                    "text": "Is de offerte **geaccepteerd**? Dan staat hier **Werkbon maken**. Wat de klant nam, gaat in één keer mee naar een werkbon: een product wordt een **taak**, met de materialen eronder. Opties die de klant liet liggen gaan niet mee. Daarna brengt de knop je naar die werkbon.",
+                    "say": "Is de offerte geaccepteerd? Dan staat hier \"Werkbon maken\". Wat de klant nam, gaat in één keer mee naar de werkbon."
+                },
+                {
+                    "spot": "quote.timeline",
+                    "title": "De tijdlijn",
+                    "text": "In de **tijdlijn** staat alles wat er met de offerte gebeurde: regels die veranderden, verzendingen, wanneer de klant keek, herinneringen en elke nieuwe status met de reden. De assistent leest dezelfde tijdlijn.",
+                    "say": "In de tijdlijn staat alles wat er met de offerte gebeurde. Ook wanneer de klant keek, en elke nieuwe status."
+                }
+            ]
+        }
+    ]
+}

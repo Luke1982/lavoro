@@ -1,5 +1,5 @@
 <template>
-    <div class="m-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/60 p-3">
+    <div class="m-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/60 p-3" data-tour="quote.add">
         <div class="flex flex-wrap items-center gap-2">
             <DropdownMenu placement="bottom-start" width-class="w-60" title="Regel toevoegen"
                 button-class="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-base font-semibold text-lavoro-blue hover:bg-blue-50 dark:hover:bg-slate-800">
@@ -22,7 +22,7 @@
             </button>
         </div>
 
-        <div v-if="mode === 'catalog' || mode === 'option'" class="mt-3 flex flex-col gap-2 md:flex-row md:items-start">
+        <div v-if="mode === 'catalog' || mode === 'option'" class="mt-3 flex flex-col gap-2 md:flex-row md:items-start" data-tour="quote.add.search">
             <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter class="flex-1"
                 :searching="searching" placeholder="Zoek op merk, model, naam of code" empty-message="Typ om te zoeken"
                 @change="search" />
@@ -52,6 +52,7 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import CompanionMaterialsDialog from '@/Components/Quotes/CompanionMaterialsDialog.vue'
 import { COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
 import { useQuoteCatalog } from '@/Components/Quotes/useQuoteCatalog'
+import { temporarily, useTour } from '@/Composables/useTour'
 
 /**
  * Putting something on a quote. A product or material is searched for, and an
@@ -135,4 +136,7 @@ function reset() {
     choice.value = null
     quantity.value = 1
 }
+
+/** The offerte rondleiding opens the search to show where products and materials are found. */
+useTour('offerte', { openCatalogSearch: () => temporarily(mode, 'catalog') })
 </script>
