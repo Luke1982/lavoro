@@ -18,8 +18,9 @@ use Closure;
  * Like projects, the status only moves from the one this request saw, so two
  * people pressing "geaccepteerd" at once leave one line on the timeline.
  *
- * Leaving "geaccepteerd" undoes the acceptance: the name and signature go, and
- * the trail keeps who signed. The options that were taken stay ticked, as the
+ * Leaving "geaccepteerd" undoes the acceptance: the name, the signature and what
+ * came with them go, and the trail keeps who signed. Leaving "afgewezen" drops
+ * the reason it was lost for. The options that were taken stay ticked, as the
  * starting point for the next answer. Once a werkbon was made from the quote,
  * it stays accepted.
  */
@@ -66,9 +67,8 @@ class ChangeQuoteStatusAction
                 $status->isDecided() => ['decided_at' => now()],
                 default => ['decided_at' => null],
             },
-            ...($previous === QuoteStatuses::geaccepteerd
-                ? array_fill_keys(['accepted_name', 'accepted_signature', 'accepted_via', 'accepted_version_id'], null)
-                : []),
+            ...($previous === QuoteStatuses::geaccepteerd ? array_fill_keys(Quote::ACCEPTANCE, null) : []),
+            ...($previous === QuoteStatuses::afgewezen ? ['lost_reason_id' => null, 'lost_reason_note' => null] : []),
             ...$with,
         ];
 

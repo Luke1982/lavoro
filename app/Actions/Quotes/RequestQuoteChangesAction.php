@@ -5,14 +5,16 @@ namespace App\Actions\Quotes;
 use App\Domain\Quotes\QuoteGuard;
 use App\Domain\Signals\Quotes\QuoteChangesRequested;
 use App\Enums\QuoteStatuses;
+use App\Exceptions\Refusal;
 use App\Models\AccessToken;
 use App\Models\Quote;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The customer asks for something to be different, through the link they were
- * sent. That is their answer, so the link is used up; the quote opens for the
- * change and goes to them again with a new one.
+ * sent. That is their answer, so the link is used up and any other link to the
+ * quote stops working; the quote opens for the change and goes to them again
+ * with a new one.
  */
 class RequestQuoteChangesAction
 {
@@ -25,7 +27,7 @@ class RequestQuoteChangesAction
         DB::transaction(function () use ($quote, $name, $message, $link) {
             $link->useUp(['kind' => 'changes', 'name' => $name, 'message' => $message]);
 
-            $this->change_status->execute(
+            $moved = $this->change_status->execute(
                 $quote,
                 QuoteStatuses::wijziging_gevraagd,
                 announce: fn (Quote $quote, string $previous, string $new) => new QuoteChangesRequested(
@@ -36,6 +38,12 @@ class RequestQuoteChangesAction
                     $message,
                 ),
             );
+
+            if (!$moved) {
+                throw new Refusal('Op offerte ' . $quote->number . ' is zojuist al gereageerd.');
+            }
+
+            $quote->withdrawLinks();
         });
     }
 }

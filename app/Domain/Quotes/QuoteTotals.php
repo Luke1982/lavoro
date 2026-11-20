@@ -11,10 +11,12 @@ use Illuminate\Support\Collection;
  * disagree by a cent. VAT is counted per rate over the sum of its lines, the way
  * an invoice states it, not per line.
  *
- * Optional lines the customer did not choose, and the materials under such a
- * product, are what the customer may still add: they are summed apart and are
- * not in the total. The cost
- * and margin are only for whoever may see margins.
+ * A line goes where the line at its top goes: a product decides for the
+ * materials under it. Optional lines the customer did not choose are what the
+ * customer may still add: they are summed apart and are not in the total. An
+ * alternative not chosen is neither: taking it means giving up another one.
+ * Stelposten are in the total, and summed apart as well, because they are
+ * settled afterwards. The cost and margin are only for whoever may see margins.
  */
 final class QuoteTotals
 {
@@ -26,17 +28,19 @@ final class QuoteTotals
         public readonly array $vat,
         public readonly int $vat_cents,
         public readonly int $optional_net_cents,
+        public readonly int $provisional_net_cents,
         public readonly int $cost_cents,
     ) {}
 
     /** @param Collection<int, QuoteLine> $lines */
     public static function of(Collection $lines): self
     {
-        $left_out_ids = $lines->reject(fn (QuoteLine $line) => $line->isIncluded())->pluck('id')->all();
+        $by_id = $lines->keyBy('id');
+        $top = fn (QuoteLine $line) => $by_id->get($line->parent_id) ?? $line;
 
-        [$optional, $included] = $lines->partition(
-            fn (QuoteLine $line) => !$line->isIncluded() || in_array($line->parent_id, $left_out_ids, true)
-        );
+        $included = $lines->filter(fn (QuoteLine $line) => $top($line)->isIncluded());
+        $optional = $lines->filter(fn (QuoteLine $line) => !$top($line)->isIncluded() && $top($line)->is_optional);
+        $provisional = $included->filter(fn (QuoteLine $line) => $line->is_provisional || $top($line)->is_provisional);
 
         $vat = $included
             ->groupBy(fn (QuoteLine $line) => (string) $line->vat_percent)
@@ -51,6 +55,7 @@ final class QuoteTotals
             $vat,
             array_sum(array_column($vat, 'vat_cents')),
             self::net($optional),
+            self::net($provisional),
             $included->sum(fn (QuoteLine $line) => $line->costCents()),
         );
     }
@@ -79,6 +84,7 @@ final class QuoteTotals
             'vat_total' => $this->vat_cents / 100,
             'gross' => $this->grossCents() / 100,
             'optional_net' => $this->optional_net_cents / 100,
+            'provisional_net' => $this->provisional_net_cents / 100,
             ...($with_margin ? [
                 'cost' => $this->cost_cents / 100,
                 'margin' => ($this->net_cents - $this->cost_cents) / 100,

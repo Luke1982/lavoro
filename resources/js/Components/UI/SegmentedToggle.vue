@@ -1,8 +1,8 @@
 <template>
     <div role="tablist" class="flex gap-1 rounded-lavoro-sm bg-gray-100 p-1 dark:bg-slate-800">
         <button v-for="option in options" :key="option.value" type="button" role="tab"
-            :aria-selected="model === option.value"
-            class="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold transition-colors cursor-pointer"
+            :aria-selected="model === option.value" :disabled="disabled"
+            class="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             :class="model === option.value
                 ? 'bg-white text-lavoro-blue shadow-sm dark:bg-slate-700 dark:text-sky-300'
                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
@@ -21,11 +21,13 @@
 /**
  * Twee of drie standen naast elkaar, waarvan er altijd precies één aan staat:
  * de weergave van een pagina, intern tegenover extern. Er valt niets uit te
- * zetten, dus nogmaals op de actieve stand tikken doet niets.
+ * zetten, dus nogmaals op de actieve stand tikken doet niets. Uitgeschakeld
+ * laat hij de stand zien zonder dat je hem kunt veranderen.
  */
 defineProps({
     /** [{ value, label, icon?, count? }] */
     options: { type: Array, required: true },
+    disabled: { type: Boolean, default: false },
 })
 
 const model = defineModel({ required: true })

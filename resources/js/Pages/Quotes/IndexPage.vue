@@ -4,11 +4,11 @@
         :search-other-params="otherParams" add-label="Nieuwe offerte" @add="showCreateDrawer = true"
         :can-add="hasPermission('quote.create')" :has-active-filters="hasActiveFilters">
         <template #filters>
-            <ListFilters :filters="filters" :query="list" class="grid grid-cols-1 gap-2 sm:grid-cols-2" />
+            <ListFilters :filters="filters" :query="list" class="grid grid-cols-1 gap-2 sm:grid-cols-3" />
         </template>
     </IndexHeaderComponent>
 
-    <QuoteCreateDrawer v-model="showCreateDrawer" :customers="customers" :customers-use-ajax="customersUseAjax" />
+    <QuoteCreateDrawer v-model="showCreateDrawer" :customers="customers" :customers-use-ajax="customersUseAjax" :templates="templates" />
 
     <BoxComponent padding="px-0 py-0 xl:px-0 xl:pt-0 xl:pb-0 sm:px-0 sm:pb-0 px-0 py-0">
         <div v-if="rows.length">
@@ -41,6 +41,7 @@
                 <div class="col-span-2 lg:col-span-1 text-right tabular-nums">{{ nlCurrency(quote.total) }}</div>
                 <div class="col-span-2 lg:col-span-1 text-right text-xs" :class="quoteStatusClass(quote.status)">
                     {{ quote.status }}
+                    <span v-if="quote.lost_reason" class="block text-gray-500 dark:text-slate-400">{{ quote.lost_reason }}</span>
                 </div>
             </Link>
             <div class="flex justify-between bg-white dark:bg-slate-900 rounded-b-lavoro-sm p-4">
@@ -73,6 +74,8 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     customersUseAjax: { type: Boolean, default: false },
     statuses: { type: Array, default: () => [] },
+    lostReasons: { type: Array, default: () => [] },
+    templates: { type: Array, default: () => [] },
     list: { type: Object, required: true },
 })
 
@@ -104,12 +107,19 @@ const filters = computed(() => [
         search: props.customersUseAjax ? searchCustomers : null,
         searching: customersSearching.value,
     },
+    {
+        param: 'reason',
+        placeholder: 'Elke reden van verlies',
+        everything: 'Elke reden van verlies',
+        options: props.lostReasons,
+    },
 ])
 
-const hasActiveFilters = computed(() => props.list.status !== OPEN || props.list.customer !== null)
+const hasActiveFilters = computed(() => props.list.status !== OPEN || props.list.customer !== null || props.list.reason !== null)
 
 const otherParams = computed(() => ({
     status: props.list.status === OPEN ? undefined : props.list.status,
     customer: props.list.customer ?? undefined,
+    reason: props.list.reason ?? undefined,
 }))
 </script>

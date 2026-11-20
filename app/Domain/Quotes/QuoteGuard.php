@@ -29,6 +29,16 @@ final class QuoteGuard
         }
     }
 
+    /** Terms that do not add up, or ask a private customer for more up front than allowed, do not go out. */
+    public static function paymentScheduleHolds(Quote $quote): void
+    {
+        $problem = PaymentSchedule::problem($quote->payment_schedule, $quote->is_consumer);
+
+        if ($problem !== null) {
+            throw new Refusal('Offerte ' . $quote->number . ' kan zo niet de deur uit. ' . $problem);
+        }
+    }
+
     /** A customer answers through the link only while the quote is out with them. */
     public static function answerable(Quote $quote): void
     {

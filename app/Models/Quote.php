@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use App\Casts\CleanHtml;
+use App\Domain\Quotes\PaymentSchedule;
 use App\Domain\Quotes\QuoteForCustomer;
+use App\Domain\Quotes\QuoteLayout;
+use App\Domain\Quotes\QuoteSettings;
 use App\Domain\Quotes\QuoteTotals;
+use App\Domain\Quotes\VatRates;
 use App\Enums\QuoteAcceptedVia;
+use App\Enums\QuotePricingMethods;
 use App\Enums\QuoteStatuses;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasOwner;
@@ -15,7 +20,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,6 +34,20 @@ class Quote extends Model
     use HasActivities;
     use HasOwner;
     use RecordsHistory;
+
+    /** How long a private customer may still change their mind, counted from the day they said yes. */
+    public const COOLING_OFF_DAYS = 14;
+
+    /** What a yes carries along, and what going back from "geaccepteerd" clears. */
+    public const ACCEPTANCE = [
+        'accepted_name',
+        'accepted_signature',
+        'accepted_via',
+        'accepted_version_id',
+        'accepted_document',
+        'accepted_terms_name',
+        'starts_within_cooling_off',
+    ];
 
     protected $fillable = [
         'title',
@@ -40,13 +61,29 @@ class Quote extends Model
         'closing_text',
         'customer_picks_options',
         'default_vat_percent',
+        'is_consumer',
+        'layout',
+        'pricing_method',
+        'start_period',
+        'duration',
+        'payment_terms',
+        'payment_schedule',
     ];
 
     /**
      * A signature is a person's handwriting: the quote page shows it to who may
-     * see the quote, and nothing else carries it.
+     * see the quote, and nothing else carries it. What was signed is read by the
+     * PDF, never sent along with the quote.
      */
-    protected $hidden = ['accepted_signature'];
+    protected $hidden = ['accepted_signature', 'accepted_document'];
+
+    /** What a quote is before anyone chose otherwise; the columns default the same way. */
+    protected $attributes = [
+        'version' => 1,
+        'default_vat_percent' => VatRates::DEFAULT,
+        'pricing_method' => QuotePricingMethods::vaste_prijs->value,
+        'is_consumer' => false,
+    ];
 
     protected array $activity_labels = [
         'number' => 'Offertenummer',
@@ -61,10 +98,23 @@ class Quote extends Model
         'closing_text' => 'Slot',
         'customer_picks_options' => 'Klant mag opties selecteren',
         'default_vat_percent' => 'Standaard btw-tarief',
+        'is_consumer' => 'Particuliere klant',
+        'layout' => 'Weergave',
+        'pricing_method' => 'Prijsafspraak',
+        'start_period' => 'Start',
+        'duration' => 'Duur',
+        'payment_terms' => 'Betaling',
+        'payment_schedule' => 'Betaaltermijnen',
     ];
 
     /** Editor HTML: the timeline reads it as plain text, the stored value keeps the markup. */
     protected array $activity_html = ['intro_text', 'closing_text'];
+
+    /** Stored as JSON, read on the timeline as a sentence. */
+    protected array $activity_formats = [
+        'layout' => [QuoteLayout::class, 'describe'],
+        'payment_schedule' => [PaymentSchedule::class, 'describe'],
+    ];
 
     protected array $activity_relations = [
         'customer_id' => ['customer', 'name'],
@@ -73,16 +123,22 @@ class Quote extends Model
         'project_id' => ['project', 'number'],
     ];
 
-    /** Reported by QuoteStatusChanged and its kind, which stamp these along with the status. */
+    /**
+     * Reported by QuoteStatusChanged and its kinds, which stamp these along with
+     * the status, and by QuoteVersionStarted and QuoteExpiresSoon.
+     */
     protected array $activity_ignore = [
         'status',
         'sent_at',
         'decided_at',
-        'accepted_name',
-        'accepted_signature',
-        'accepted_via',
-        'accepted_version_id',
+        'lost_reason_id',
+        'lost_reason_note',
+        ...self::ACCEPTANCE,
         'service_order_id',
+        'version',
+        'expiry_noticed_for',
+        'origin_type',
+        'origin_id',
     ];
 
     protected function casts(): array
@@ -97,6 +153,13 @@ class Quote extends Model
             'decided_at' => 'datetime',
             'customer_picks_options' => 'boolean',
             'default_vat_percent' => 'float',
+            'is_consumer' => 'boolean',
+            'layout' => 'array',
+            'pricing_method' => QuotePricingMethods::class,
+            'payment_schedule' => 'array',
+            'starts_within_cooling_off' => 'boolean',
+            'accepted_document' => 'array',
+            'expiry_noticed_for' => 'date:Y-m-d',
         ];
     }
 
@@ -160,10 +223,47 @@ class Quote extends Model
         return $this->belongsTo(ServiceOrder::class);
     }
 
-    /** What the customer was shown, newest first. */
+    /** What the customer was shown, each send, newest first. */
     public function versions(): HasMany
     {
-        return $this->hasMany(QuoteVersion::class)->orderByDesc('number');
+        return $this->hasMany(QuoteVersion::class)->orderByDesc('number')->orderByDesc('id');
+    }
+
+    /** The last send of the version being worked on, if it went out. */
+    public function latestSendOfVersion(): ?QuoteVersion
+    {
+        return $this->versions()->where('number', $this->version)->first();
+    }
+
+    /** What the customer holds and can say yes to while the quote is out: the last send. */
+    public function sendOnOffer(): ?QuoteVersion
+    {
+        return $this->statusEnum()->awaitsAnswer() ? $this->latestSendOfVersion() : null;
+    }
+
+    /**
+     * What the customer signed, as the signed copy prints it; for a yes given
+     * before that was kept, the version they said yes to. Null while nobody did.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function signedDocument(): ?array
+    {
+        return $this->accepted_name === null ? null : ($this->accepted_document ?? $this->acceptedVersion?->document());
+    }
+
+    /**
+     * The general terms a yes goes with: those of the send it answers, by
+     * default the one on offer, or, for a quote accepted as it stands, the ones
+     * it would go out with today.
+     *
+     * @return array{name: string, path: string}|null
+     */
+    public function termsOnOffer(?QuoteVersion $send = null): ?array
+    {
+        $send ??= $this->sendOnOffer();
+
+        return $send ? $send->document()['terms'] : QuoteSettings::terms();
     }
 
     public function acceptedVersion(): BelongsTo
@@ -172,21 +272,53 @@ class Quote extends Model
     }
 
     /**
-     * Freezes the quote as the customer sees it now, as the next version: when it
-     * is sent, with the address and the link, or when it is accepted on a screen
-     * without having been sent like this.
+     * Freezes the quote as the customer sees it now, under the number of the
+     * version being worked on: when it is sent, with the address and the link,
+     * or when it is accepted on a screen without having been sent like this.
+     * Whoever sends passes the snapshot the mail's PDF was made from, so the two
+     * cannot differ.
+     *
+     * @param  array<string, mixed>|null  $snapshot
      */
-    public function recordVersion(?string $recipient = null, ?AccessToken $link = null): QuoteVersion
-    {
+    public function recordVersion(
+        ?string $recipient = null,
+        ?AccessToken $link = null,
+        ?array $snapshot = null,
+    ): QuoteVersion {
         $this->unsetRelation('lines');
 
         return $this->versions()->create([
-            'number' => (int) $this->versions()->max('number') + 1,
-            'snapshot' => QuoteForCustomer::of($this),
+            'number' => $this->version,
+            'snapshot' => $snapshot ?? QuoteForCustomer::of($this),
             'recipient' => $recipient,
             'access_token_id' => $link?->id,
             'created_by' => auth()->id(),
         ]);
+    }
+
+    public function lostReason(): BelongsTo
+    {
+        return $this->belongsTo(QuoteLostReason::class);
+    }
+
+    /** The werkbon, storing, quote or template this quote was made from. */
+    public function origin(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /** The columns the customer sees: this quote's own choice, or else the settings. */
+    public function layoutForCustomer(): array
+    {
+        return QuoteLayout::complete($this->layout, QuoteSettings::layout());
+    }
+
+    /** Until when a private customer who said yes may still change their mind; null when that does not apply. */
+    public function coolingOffUntil(): ?Carbon
+    {
+        return $this->is_consumer && $this->statusEnum() === QuoteStatuses::geaccepteerd && $this->decided_at
+            ? $this->decided_at->copy()->addDays(self::COOLING_OFF_DAYS)
+            : null;
     }
 
     /** Brochures, drawings and the like that belong with the quote. */

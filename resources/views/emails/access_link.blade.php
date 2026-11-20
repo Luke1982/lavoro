@@ -44,6 +44,7 @@
                         <td>{!! $body !!}</td>
                     </tr>
 
+                    @if ($link_url)
                     <tr>
                         <td style="padding:28px 0 8px 0;">
                             {{-- Een tabel en geen knop met randen: Outlook tekent alleen dit betrouwbaar. --}}
@@ -71,6 +72,7 @@
                             @endif
                         </td>
                     </tr>
+                    @endif
                 </table>
             </td>
         </tr>

@@ -30,6 +30,7 @@ class QuoteLine extends Model
         'position',
         'description',
         'details',
+        'location_note',
         'quantity',
         'unit',
         'unit_price',
@@ -38,6 +39,8 @@ class QuoteLine extends Model
         'discount_percent',
         'is_optional',
         'is_chosen',
+        'is_provisional',
+        'choice_group',
     ];
 
     protected $hidden = self::MARGIN_ATTRIBUTES;
@@ -52,16 +55,31 @@ class QuoteLine extends Model
             'discount_percent' => 'float',
             'is_optional' => 'boolean',
             'is_chosen' => 'boolean',
+            'is_provisional' => 'boolean',
+            'choice_group' => 'integer',
         ];
     }
 
     /**
      * Whether the line is part of what is offered and counted: every line that
-     * is not optional, and an optional one the customer chose.
+     * is not optional, an optional one the customer chose, and of alternatives
+     * the one chosen.
      */
     public function isIncluded(): bool
     {
-        return !$this->is_optional || $this->is_chosen === true;
+        return $this->isAlternative() || $this->is_optional ? $this->is_chosen === true : true;
+    }
+
+    /** One of a few lines of which the customer takes exactly one: good, better, best. */
+    public function isAlternative(): bool
+    {
+        return $this->choice_group !== null;
+    }
+
+    /** Whether the customer can still choose this line: an option, or an alternative. */
+    public function isChoosable(): bool
+    {
+        return $this->is_optional || $this->isAlternative();
     }
 
     /**

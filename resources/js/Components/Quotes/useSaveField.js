@@ -4,15 +4,17 @@
  * niet een lege tekst.
  *
  * Vergeleken als tekst, zodat 6 uit de server en "6" uit een invoerveld als
- * hetzelfde tellen.
+ * hetzelfde tellen; een lijst of een groep keuzes als JSON.
  *
  * @param form  het useForm-formulier met de velden
  * @param url   waar het heen gaat
  * @param saved wat de server nu heeft, om tegen te vergelijken
  */
 export function useSaveField(form, url, saved) {
+    const text = (value) => (value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''))
+
     return (name) => {
-        if (String(form[name] ?? '') === String(saved()[name] ?? '')) return
+        if (text(form[name]) === text(saved()[name])) return
         form.transform(data => ({ [name]: data[name] === '' ? null : data[name] }))
             .patch(url(), { preserveScroll: true, preserveState: true })
     }

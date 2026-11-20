@@ -2,6 +2,7 @@
 
 namespace App\Actions\Quotes;
 
+use App\Domain\Quotes\QuoteAlternatives;
 use App\Domain\Quotes\QuoteGuard;
 use App\Domain\Signals\Quotes\QuoteLineRemoved;
 use App\Domain\Signals\Signals;
@@ -10,7 +11,8 @@ use App\Models\QuoteLine;
 /**
  * Takes a line off a concept quote. A product takes the materials under it along,
  * through the foreign key: piping without the unit it was for is not something
- * anyone meant to offer.
+ * anyone meant to offer. An alternative leaves the others of its choice behind,
+ * one of which then counts.
  */
 class RemoveQuoteLineAction
 {
@@ -20,6 +22,10 @@ class RemoveQuoteLineAction
 
         $children = $line->children->all();
         $line->delete();
+
+        if ($line->isAlternative()) {
+            QuoteAlternatives::tidy($line->quote, $line->choice_group);
+        }
 
         Signals::dispatch(new QuoteLineRemoved($line->quote, $line, $children));
     }

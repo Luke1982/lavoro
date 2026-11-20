@@ -18,6 +18,12 @@ class Company extends Model
         'postal_code',
         'city',
         'country',
+        'coc_number',
+        'vat_number',
+        'iban',
+        'email',
+        'phone',
+        'website',
         'logo_path',
         'logo_negative_path',
         'is_main',
@@ -43,6 +49,20 @@ class Company extends Model
     public static function main(): ?self
     {
         return static::where('is_main', true)->first();
+    }
+
+    /**
+     * Who makes a quote, as it is printed on it: the address, the KvK number the
+     * law requires, the VAT number and the bank account.
+     *
+     * @return array<string, ?string>
+     */
+    public function details(): array
+    {
+        return $this->only([
+            'name', 'address_line1', 'address_line2', 'postal_code', 'city', 'country',
+            'coc_number', 'vat_number', 'iban', 'email', 'phone', 'website',
+        ]);
     }
 
     /**

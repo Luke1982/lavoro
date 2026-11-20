@@ -17,13 +17,14 @@ use Illuminate\Support\Str;
  * on, and a readable label, which is what a person sees. Storing only the label
  * would mean a renamed customer silently rewrites history.
  *
- * Models refine the output with three optional properties:
+ * Models refine the output with optional properties:
  *
  *   protected array $activity_labels = ['customer_id' => 'Klant'];
  *   protected array $activity_relations = ['customer_id' => ['customer', 'name']];
  *   protected array $activity_ignore = ['internal_token'];
  *   protected array $activity_permissions = ['price' => 'material.see_financials'];
  *   protected array $activity_html = ['intro_text'];
+ *   protected array $activity_formats = ['layout' => [QuoteLayout::class, 'describe']];
  *
  * @mixin Model
  *
@@ -249,6 +250,12 @@ trait RecordsHistory
 
         if (in_array($field, property_exists($this, 'activity_html') ? $this->activity_html : [], true)) {
             return RichText::plain((string) $value);
+        }
+
+        $formats = property_exists($this, 'activity_formats') ? $this->activity_formats : [];
+
+        if (isset($formats[$field])) {
+            return $formats[$field](is_string($value) ? json_decode($value, true) : $value);
         }
 
         if (is_bool($value) || $this->hasCast($field, ['bool', 'boolean'])) {

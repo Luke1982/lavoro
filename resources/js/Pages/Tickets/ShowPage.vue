@@ -86,6 +86,13 @@
                             Werkbon openen
                             </Link>
                             </MenuItem>
+                            <MenuItem v-if="canMakeQuotes()" v-slot="{ active }">
+                            <button type="button" @click="quoteDrawerOpen = true"
+                                :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-slate-200 cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                <FilePen class="size-4" />
+                                Offerte maken
+                            </button>
+                            </MenuItem>
                             <MenuItem v-if="hasPermission('ticket.delete')" v-slot="{ active }">
                             <button type="button" @click="deleteTicket"
                                 :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
@@ -94,6 +101,7 @@
                             </button>
                             </MenuItem>
                         </DropdownMenu>
+                        <QuoteCreateDrawer v-if="canMakeQuotes()" v-model="quoteDrawerOpen" :origin="{ kind: 'ticket', id: ticket.id }" />
                     </div>
                 </div>
 
@@ -395,7 +403,8 @@ import {
 import { MenuItem } from '@headlessui/vue';
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import { ChevronRightIcon } from '@heroicons/vue/24/outline';
-import { BellOff, BellPlus, Siren, TimelineIcon } from '@lucide/vue';
+import { BellOff, BellPlus, FilePen, Siren, TimelineIcon } from '@lucide/vue';
+import QuoteCreateDrawer from '@/Components/Quotes/QuoteCreateDrawer.vue';
 import { useTray, useTrayRecord } from '@/Composables/useTray.js';
 import TrayPlaceButton from '@/Components/Tray/TrayPlaceButton.vue';
 import TourButton from '@/Components/Tour/TourButton.vue';
@@ -403,7 +412,7 @@ import { useTour, findSpot } from '@/Composables/useTour';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
-import { hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';
+import { canMakeQuotes, hasPermission, nlDate, nlTime } from '@/Utilities/Utilities';
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue';
 import InfoRequestModal from '@/Components/Tickets/InfoRequestModal.vue';
 import { ref } from 'vue';
@@ -423,6 +432,7 @@ const props = defineProps({
 useTrayRecord('ticket', () => props.ticket.id);
 
 const infoRequestOpen = ref(false);
+const quoteDrawerOpen = ref(false);
 const followBusy = ref(false);
 
 /** Eén woord en één pictogram voor de knop op het scherm en de regel in het menu. */

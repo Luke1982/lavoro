@@ -56,6 +56,18 @@
                                         <span class="text-sm text-gray-700 dark:text-slate-300">Hoofd bedrijf?</span>
                                     </div>
                                 </div>
+                                <div>
+                                    <h4 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Registratie en contact</h4>
+                                    <p class="text-xs text-gray-500 dark:text-slate-400">Het KvK-nummer is wettelijk verplicht op offertes en facturen.</p>
+                                    <div class="mt-2 grid grid-cols-2 gap-4">
+                                        <div v-for="field in REGISTRATION_FIELDS" :key="field.name">
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ field.label }}</label>
+                                            <EditableTextField v-model="form[field.name]" class="w-full" :placeholder="field.placeholder"
+                                                @update="inlineSave(field.name, $event)" />
+                                            <p v-if="form.errors[field.name]" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ form.errors[field.name] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label
@@ -115,9 +127,25 @@ const form = useForm({
     postal_code: props.company.postal_code,
     city: props.company.city,
     country: props.company.country,
+    coc_number: props.company.coc_number,
+    vat_number: props.company.vat_number,
+    iban: props.company.iban,
+    email: props.company.email,
+    phone: props.company.phone,
+    website: props.company.website,
     is_main: props.company.is_main,
     logo: null
 })
+
+/** What a quote prints about who makes it, beside the address. */
+const REGISTRATION_FIELDS = [
+    { name: 'coc_number', label: 'KvK-nummer', placeholder: '12345678' },
+    { name: 'vat_number', label: 'Btw-nummer', placeholder: 'NL123456789B01' },
+    { name: 'iban', label: 'IBAN', placeholder: 'NL00BANK0123456789' },
+    { name: 'email', label: 'E-mail', placeholder: 'info@bedrijf.nl' },
+    { name: 'phone', label: 'Telefoon', placeholder: '010 123 45 67' },
+    { name: 'website', label: 'Website', placeholder: 'www.bedrijf.nl' },
+]
 
 const logoFile = ref(null)
 const logoNegativeFile = ref(null)
@@ -131,7 +159,11 @@ function onFileNegative(e) {
 }
 
 function inlineSave(field, value) {
-    router.patch(`/companies/${props.company.id}/inline`, { [field]: value }, { preserveScroll: true })
+    router.patch(`/companies/${props.company.id}/inline`, { [field]: value }, {
+        preserveScroll: true,
+        onError: (errors) => form.setError(errors),
+        onSuccess: () => form.clearErrors(field),
+    })
 }
 
 function uploadLogo() {

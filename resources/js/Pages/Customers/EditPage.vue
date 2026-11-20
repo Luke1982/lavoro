@@ -69,7 +69,7 @@
                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TextInput v-model="form.invoice_email" label="Factuur e-mail" type="email"
                         :has-error="!!form.errors.invoice_email" :error-message="form.errors.invoice_email" />
-                    <TextInput v-model="form.quotes_email" label="Offerte e-mail" type="email"
+                    <TextInput v-if="hasModule('quotes')" v-model="form.quotes_email" label="Offerte e-mail" type="email"
                         :has-error="!!form.errors.quotes_email" :error-message="form.errors.quotes_email" />
                     <template v-if="hasPermission('customer.see_sensitive')">
                         <TextInput v-model="form.iban" label="IBAN" :has-error="!!form.errors.iban"
@@ -112,7 +112,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import { useComboSearch } from '@/Composables/useComboSearch'
-import { hasPermission } from '@/Utilities/Utilities'
+import { hasModule, hasPermission } from '@/Utilities/Utilities'
 
 const props = defineProps({
     customer: { type: Object, required: true },

@@ -70,6 +70,7 @@ use App\Http\Controllers\QuoteDecisionController;
 use App\Http\Controllers\QuoteLineController;
 use App\Http\Controllers\QuoteResponseController;
 use App\Http\Controllers\QuoteSettingsController;
+use App\Http\Controllers\QuoteStartController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoutePlanController;
@@ -243,6 +244,17 @@ Route::group(
          */
         Route::middleware('tenant.module:quotes')->group(function () {
             Route::get('quote-settings', [QuoteSettingsController::class, 'index'])->name('quote-settings.index');
+            Route::patch('quote-settings', [QuoteSettingsController::class, 'update'])->name('quote-settings.update');
+            Route::post('quote-settings/terms', [QuoteSettingsController::class, 'storeTerms'])->name('quote-settings.terms.store');
+            Route::delete('quote-settings/terms', [QuoteSettingsController::class, 'destroyTerms'])->name('quote-settings.terms.destroy');
+            Route::get('quote-terms', [QuoteSettingsController::class, 'terms'])->name('quote-terms');
+            Route::post('quote-settings/reasons', [QuoteSettingsController::class, 'storeReason'])->name('quote-settings.reasons.store');
+            Route::put('quote-settings/reasons/order', [QuoteSettingsController::class, 'orderReasons'])->name('quote-settings.reasons.order');
+            Route::patch('quote-settings/reasons/{reason}', [QuoteSettingsController::class, 'updateReason'])->name('quote-settings.reasons.update');
+            Route::delete('quote-settings/reasons/{reason}', [QuoteSettingsController::class, 'destroyReason'])->name('quote-settings.reasons.destroy');
+            Route::patch('quote-settings/templates/{template}', [QuoteSettingsController::class, 'updateTemplate'])->name('quote-settings.templates.update');
+            Route::delete('quote-settings/templates/{template}', [QuoteSettingsController::class, 'destroyTemplate'])->name('quote-settings.templates.destroy');
+            Route::get('quotes/origin/{kind}/{id}', [QuoteStartController::class, 'origin'])->whereNumber('id')->name('quotes.origin');
             Route::post('quote-settings/units', [QuoteSettingsController::class, 'storeUnit'])->name('quote-settings.units.store');
             Route::put('quote-settings/units/order', [QuoteSettingsController::class, 'orderUnits'])->name('quote-settings.units.order');
             Route::patch('quote-settings/units/{unit}', [QuoteSettingsController::class, 'updateUnit'])->name('quote-settings.units.update');
@@ -250,9 +262,16 @@ Route::group(
             Route::resource('quotes', QuoteController::class)->except(['create', 'edit']);
             Route::patch('quotes/{quote}/status', [QuoteController::class, 'status'])->name('quotes.status');
             Route::get('quotes/{quote}/preview', [QuoteController::class, 'preview'])->name('quotes.preview');
+            Route::get('quotes/{quote}/pdf', [QuoteController::class, 'pdf'])->name('quotes.pdf');
             Route::get('quotes/{quote}/versions/{version}', [QuoteController::class, 'version'])
                 ->scopeBindings()
                 ->name('quotes.version');
+            Route::get('quotes/{quote}/versions/{version}/pdf', [QuoteController::class, 'versionPdf'])
+                ->scopeBindings()
+                ->name('quotes.version.pdf');
+            Route::post('quotes/{quote}/new-version', [QuoteDecisionController::class, 'newVersion'])->name('quotes.newVersion');
+            Route::post('quotes/{quote}/duplicate', [QuoteStartController::class, 'duplicate'])->name('quotes.duplicate');
+            Route::post('quotes/{quote}/template', [QuoteStartController::class, 'saveAsTemplate'])->name('quotes.template');
             Route::post('quotes/{quote}/send', [QuoteDecisionController::class, 'send'])
                 ->middleware('throttle:10,1')
                 ->name('quotes.send');
@@ -269,6 +288,8 @@ Route::group(
                     ->name('quotes.lines.order');
                 Route::patch('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'update'])
                     ->name('quotes.lines.update');
+                Route::post('quotes/{quote}/lines/{line}/alternative', [QuoteLineController::class, 'alternative'])
+                    ->name('quotes.lines.alternative');
                 Route::delete('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'destroy'])
                     ->name('quotes.lines.destroy');
                 Route::post('products/{product}/material-defaults', [ProductMaterialDefaultController::class, 'store'])
@@ -768,13 +789,17 @@ Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->grou
 });
 
 /**
- * Where a customer answers a quote, once: accept it or ask for a change. The
+ * Where a customer answers a quote, once: accept it, ask for a change or decline
+ * it, with the quote and its terms to download. The
  * link opens the customer's database first, so the module is asked inside it.
  */
 Route::middleware(['accesstoken:quote.response', 'tenant.module:quotes', 'throttle:30,1'])->group(function () {
     Route::get('offerte/{token}', [QuoteResponseController::class, 'show'])->name('public.quote.respond');
     Route::post('offerte/{token}/akkoord', [QuoteResponseController::class, 'accept'])->name('public.quote.accept');
     Route::post('offerte/{token}/wijziging', [QuoteResponseController::class, 'requestChanges'])->name('public.quote.changes');
+    Route::post('offerte/{token}/afwijzen', [QuoteResponseController::class, 'decline'])->name('public.quote.decline');
+    Route::get('offerte/{token}/pdf', [QuoteResponseController::class, 'pdf'])->name('public.quote.pdf');
+    Route::get('offerte/{token}/voorwaarden', [QuoteResponseController::class, 'terms'])->name('public.quote.terms');
 });
 
 Route::get('login', [AuthController::class, 'create'])->name('login');

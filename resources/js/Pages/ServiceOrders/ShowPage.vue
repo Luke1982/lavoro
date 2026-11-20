@@ -43,6 +43,13 @@
                 Tijden ontbreken: {{ missingTimes.join(', ') }}
             </BadgeComponent>
             <PlanInPlannerButton :serviceorder="serviceOrder" variant="button" />
+            <template v-if="canMakeQuotes()">
+                <button type="button" @click="quoteDrawerOpen = true"
+                    class="flex shrink-0 items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800">
+                    <FilePen class="size-4 shrink-0" /> Offerte maken
+                </button>
+                <QuoteCreateDrawer v-model="quoteDrawerOpen" :origin="{ kind: 'serviceorder', id: serviceOrder.id }" />
+            </template>
         </template>
         <div class="flex w-full sm:w-auto sm:ml-auto items-stretch gap-2">
             <TourButton v-if="isMonteurView" tour="werkbon" />
@@ -675,11 +682,11 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
-import { nlDate, nlTime, hasPermission, hasAnyPermission, projectLabel, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
+import { canMakeQuotes, nlDate, nlTime, hasPermission, hasAnyPermission, projectLabel, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
 import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { EyeIcon, EyeSlashIcon, DocumentTextIcon, CalendarDaysIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, ExclamationCircleIcon, InformationCircleIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
-import { Check, TrashIcon } from '@lucide/vue';
+import { Check, FilePen, TrashIcon } from '@lucide/vue';
 import MaterialsWidget from '@/Components/Materials/MaterialsWidget.vue';
 import MaterialsFinancialOverview from '@/Components/Materials/MaterialsFinancialOverview.vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -704,6 +711,7 @@ import { BadgeCheck, ChevronRightIcon, Euro as EuroIcon, HardHat, LayoutList, Pa
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import PlanInPlannerButton from '@/Components/ServiceOrders/PlanInPlannerButton.vue';
+import QuoteCreateDrawer from '@/Components/Quotes/QuoteCreateDrawer.vue';
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue';
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue';
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue';
@@ -777,6 +785,7 @@ const missingTimes = ref(props.usersMissingTimes);
 watch(() => props.usersMissingTimes, (value) => { missingTimes.value = value });
 
 const showCloseModal = ref(false);
+const quoteDrawerOpen = ref(false);
 
 
 const internalCustomers = computed(() =>

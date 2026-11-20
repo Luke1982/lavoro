@@ -7,12 +7,15 @@ use App\Models\Quote;
 
 /**
  * The customer said yes: with their name and signature, through the link or on
- * a screen in the app, and with the options they chose. The status it moves to
- * is part of this fact, so the trail tells it once.
+ * a screen in the app, and with the options and alternatives they chose. The
+ * status it moves to is part of this fact, so the trail tells it once.
  */
 class QuoteAccepted extends QuoteStatusChanged
 {
-    /** @param array<int, string> $chosen_options descriptions of the optional lines taken */
+    /**
+     * @param  array<int, string>  $chosen_options  descriptions of the options and alternatives taken
+     * @param  string|null  $recipient  where the link that was answered had gone
+     */
     public function __construct(
         Quote $quote,
         string $previous_status,
@@ -21,6 +24,7 @@ class QuoteAccepted extends QuoteStatusChanged
         public QuoteAcceptedVia $accepted_via,
         public array $chosen_options = [],
         public int $version = 1,
+        public ?string $recipient = null,
     ) {
         parent::__construct($quote, $previous_status, $new_status);
     }
@@ -41,7 +45,10 @@ class QuoteAccepted extends QuoteStatusChanged
             . ' van offerte ' . $this->quote->label()
             . ' ' . $this->accepted_via->phrase();
 
-        return $this->chosen_options === [] ? $sentence : $sentence . ', met ' . implode(', ', $this->chosen_options);
+        return $sentence
+            . ($this->chosen_options === [] ? '' : ', met ' . implode(', ', $this->chosen_options))
+            . ($this->quote->accepted_terms_name ? ', en met de algemene voorwaarden' : '')
+            . ($this->quote->starts_within_cooling_off ? '. De klant vroeg binnen de bedenktijd te beginnen' : '');
     }
 
     public function activityMetadata(): ?array

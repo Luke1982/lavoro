@@ -23,8 +23,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Turns an accepted quote into the werkbon that carries it out, once.
  *
- * What was taken goes over; an option the customer left out does not, and a
- * text has nothing to do. A product becomes a task with that product and
+ * What was taken goes over; an option the customer left out does not, nor an
+ * alternative they did not pick, and a text has nothing to do. Where a line
+ * goes ("woonkamer") goes along in its name, so the monteur knows which unit
+ * belongs where. A product becomes a task with that product and
  * quantity, so the monteur registers the machines on completion, and the
  * materials that came along with it are booked under that task. Other
  * materials go on the werkbon as planned, and a line of its own becomes a free
@@ -91,12 +93,17 @@ class ConvertQuoteToServiceOrderAction
             'service_order_id' => $order->id,
             'product_id' => $line->item instanceof Product ? $line->item->id : null,
             'quantity' => max(1, (int) round($line->quantity)),
-            'title' => $line->description,
+            'title' => self::named($line),
         ]);
 
         foreach ($children as $child) {
             $this->book($task, $child);
         }
+    }
+
+    private static function named(QuoteLine $line): string
+    {
+        return $line->description . ($line->location_note ? ' (' . $line->location_note . ')' : '');
     }
 
     /** A catalogue material as planned material; anything else, or a material since removed, as a free line. */
@@ -109,7 +116,7 @@ class ConvertQuoteToServiceOrderAction
         }
 
         $this->materials->createFreeform($owner, [
-            'description' => $line->description,
+            'description' => self::named($line),
             'quantity' => $line->quantity,
             'unforseen' => false,
         ]);

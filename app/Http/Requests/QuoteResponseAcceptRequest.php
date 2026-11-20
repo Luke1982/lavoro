@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesQuoteAcceptance;
 use App\Models\AccessToken;
+use App\Models\QuoteVersion;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -21,7 +22,9 @@ class QuoteResponseAcceptRequest extends FormRequest
 
     public function rules(): array
     {
-        return $this->acceptanceRules(app(AccessToken::class)->tokenable);
+        $link = app(AccessToken::class);
+
+        return $this->acceptanceRules($link->tokenable, QuoteVersion::shownBy($link));
     }
 
     public function messages(): array

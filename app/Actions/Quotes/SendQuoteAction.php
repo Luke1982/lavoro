@@ -4,7 +4,10 @@ namespace App\Actions\Quotes;
 
 use App\Domain\Access\LinkMailer;
 use App\Domain\Planning\Clock;
+use App\Domain\Quotes\QuoteFiles;
+use App\Domain\Quotes\QuoteForCustomer;
 use App\Domain\Quotes\QuoteGuard;
+use App\Domain\Quotes\QuoteMail;
 use App\Domain\Signals\Quotes\QuoteSentToCustomer;
 use App\Domain\Signals\Signals;
 use App\Enums\AccessTokenPurpose;
@@ -15,20 +18,19 @@ use App\Models\Quote;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Sends a quote to the customer, with a link to look at it and answer: accept
- * it, or ask for a change. Sending again after a change is the same thing; once
- * the new mail is out, the link sent before stops working, so there is only
- * ever one way to answer, and it shows what is offered now.
+ * Sends a quote to the customer, with a link to look at it and answer, the quote
+ * on paper, and the general terms. Sending again after a change is the same
+ * thing; once the new mail is out, the links sent before stop working, so there
+ * is only ever one way to answer, and it shows what is offered now.
  *
- * Every send is a new version: the quote frozen as the customer gets it, which
- * the link then shows. The link lasts as long as the quote is valid. The mail
- * goes before anything is recorded: if it does not go out, the quote is as it
- * was.
+ * Every send is recorded as the version being worked on, frozen as the customer
+ * gets it; whoever makes the quote decides when a new version starts. The PDF
+ * and the record are made from one snapshot, so they cannot differ. The link
+ * lasts as long as the quote is valid. The mail goes before anything is
+ * recorded: if it does not go out, the quote is as it was.
  */
 class SendQuoteAction
 {
-    private const BUTTON = 'Offerte bekijken';
-
     public function __construct(
         private readonly LinkMailer $mailer,
         private readonly ChangeQuoteStatusAction $change_status,
@@ -41,6 +43,7 @@ class SendQuoteAction
         }
 
         QuoteGuard::offersSomething($quote);
+        QuoteGuard::paymentScheduleHolds($quote);
 
         if ($quote->valid_until !== null && $quote->valid_until->toDateString() < Clock::today()) {
             throw new Refusal(
@@ -48,6 +51,9 @@ class SendQuoteAction
                 . '. Kies eerst een nieuwe datum.'
             );
         }
+
+        $snapshot = QuoteForCustomer::of($quote);
+        $files = QuoteFiles::forMail($snapshot);
 
         $issued = $this->mailer->send(
             $quote,
@@ -57,15 +63,16 @@ class SendQuoteAction
                 $subject,
                 $body,
                 $url,
-                self::BUTTON,
+                QuoteMail::BUTTON,
                 $expires_on,
+                $files,
             ),
             expires_at: $quote->valid_until?->copy()->endOfDay(),
         );
 
-        DB::transaction(function () use ($quote, $to, $issued) {
+        DB::transaction(function () use ($quote, $to, $issued, $snapshot) {
             $quote->withdrawLinks(except: $issued->token);
-            $version = $quote->recordVersion($to, $issued->token);
+            $version = $quote->recordVersion($to, $issued->token, $snapshot);
 
             $announce = fn (Quote $quote, string $previous, string $new) => new QuoteSentToCustomer(
                 $quote,

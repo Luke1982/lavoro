@@ -85,6 +85,15 @@ export const hasPermission = (permission) => {
     return perms.has(permission);
 };
 
+/**
+ * Whether this customer subscribes to a module, such as "quotes". A button for
+ * a module the customer does not have leads to a page the server turns away.
+ */
+export const hasModule = (module) => (usePage()?.props?.tenant?.modules ?? []).includes(module);
+
+/** Whether "Offerte maken" belongs on this screen: the customer has quotes, and this person may make them. */
+export const canMakeQuotes = () => hasModule('quotes') && hasPermission('quote.create');
+
 export const hasAnyPermission = (permissions) => {
     const page = usePage();
     const auth = page?.props?.auth || {};

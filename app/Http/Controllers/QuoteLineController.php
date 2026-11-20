@@ -6,8 +6,10 @@ use App\Actions\Quotes\AddProductToQuoteAction;
 use App\Actions\Quotes\AddQuoteLineAction;
 use App\Actions\Quotes\RemoveQuoteLineAction;
 use App\Actions\Quotes\ReorderQuoteLinesAction;
+use App\Actions\Quotes\ToggleQuoteAlternativeAction;
 use App\Actions\Quotes\UpdateQuoteLineAction;
 use App\Enums\QuoteLineKinds;
+use App\Http\Requests\QuoteLineAlternativeRequest;
 use App\Http\Requests\QuoteLineDestroyRequest;
 use App\Http\Requests\QuoteLinesOrderRequest;
 use App\Http\Requests\QuoteLineStoreRequest;
@@ -53,6 +55,18 @@ class QuoteLineController extends Controller
         UpdateQuoteLineAction $update,
     ) {
         $update->execute($line, $request->validated());
+
+        return redirect()->back();
+    }
+
+    /** Makes the line an alternative to the one above it, or a line of its own again. */
+    public function alternative(
+        QuoteLineAlternativeRequest $request,
+        Quote $quote,
+        QuoteLine $line,
+        ToggleQuoteAlternativeAction $toggle,
+    ) {
+        $toggle->execute($line);
 
         return redirect()->back();
     }

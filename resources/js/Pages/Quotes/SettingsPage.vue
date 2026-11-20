@@ -7,38 +7,154 @@
         </div>
         <div>
             <h1 class="text-2xl font-bold">Offerte-instellingen</h1>
-            <p class="text-sm text-gray-500 dark:text-slate-400">Wat voor elke offerte geldt.</p>
+            <p class="text-sm text-gray-500 dark:text-slate-400">Wat voor elke offerte geldt, tenzij je het op de offerte zelf anders kiest.</p>
         </div>
     </header>
 
     <ChaptersComponent>
         <ChapterHeaders>
-            <ChapterHeader :index="0">
-                <span class="inline-flex items-center gap-2"><RulerIcon class="size-4" /> Eenheden</span>
+            <ChapterHeader v-for="(chapter, index) in CHAPTERS" :key="chapter.label" :index="index">
+                <span class="inline-flex items-center gap-2"><component :is="chapter.icon" class="size-4" /> {{ chapter.label }}</span>
             </ChapterHeader>
         </ChapterHeaders>
         <ChapterContents>
             <template #chapter-0>
                 <BoxComponent class="max-w-2xl">
-                    <SectionHeader :icon="RulerIcon" title="Eenheden" chapter="details"
-                        subtitle="Waaruit je op een offerteregel kiest. De eenheden van je materialen komen er vanzelf bij. Versleep een eenheid om de volgorde te veranderen." />
+                    <SectionHeader :icon="FileTextIcon" title="Wat de klant ziet" chapter="details"
+                        subtitle="De kolommen op de pagina van de klant en op de PDF. Zonder prijs per eenheid en regeltotaal ziet de klant alleen het totaal." />
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <label v-for="(label, choice) in layoutChoices" :key="choice" class="flex items-center gap-2 text-sm">
+                            <input v-model="form.layout[choice]" type="checkbox" class="rounded border-gray-300 text-lavoro-blue" @change="save('layout')" />
+                            {{ label }}
+                        </label>
+                    </div>
 
-                    <draggable v-model="rows" handle=".draghandle" :animation="150"
-                        class="divide-y divide-gray-100 dark:divide-slate-800 rounded-lg ring-1 ring-gray-200 dark:ring-slate-700" @end="reorder">
-                        <QuoteUnitRow v-for="unit in rows" :key="unit.id + '-' + unit.name" :unit="unit" />
-                    </draggable>
-                    <p v-if="!rows.length" class="py-4 text-sm text-gray-400 dark:text-slate-500">Nog geen eenheden.</p>
-
-                    <form class="mt-4 flex items-start gap-2" @submit.prevent="add">
-                        <div class="flex-1">
-                            <TextInput v-model="form.name" placeholder="Nieuwe eenheid, bijvoorbeeld m³ of strekkende meter"
-                                :has-error="Boolean(form.errors.name)" :error-message="form.errors.name" />
+                    <div class="mt-6 space-y-4 border-t border-gray-100 dark:border-slate-800 pt-4">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Betaling</span>
+                            <textarea v-model="form.payment_terms" rows="2" @change="save('payment_terms')"
+                                class="mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2" />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Waarmee elke nieuwe offerte begint.</p>
                         </div>
-                        <button type="submit" :disabled="!form.name || form.processing"
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <span class="text-xs font-bold text-slate-400">Ten hoogste vooraf van een particulier</span>
+                                <div class="flex items-center gap-2">
+                                    <TextInput v-model="form.max_upfront_percent" type="number" @change="save('max_upfront_percent')"
+                                        :has-error="Boolean(form.errors.max_upfront_percent)" :error-message="form.errors.max_upfront_percent" />
+                                    <span class="text-sm text-gray-500">%</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">AVIC 25%, NVKL 35%, de wet 50%.</p>
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-400">Uurtarief</span>
+                                <CurrencyInput v-model="form.hourly_rate" @change="save('hourly_rate')" aria-label="Uurtarief" />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Voor de gewerkte uren van een werkbon op een offerte.</p>
+                            </div>
+                        </div>
+                    </div>
+                </BoxComponent>
+            </template>
+
+            <template #chapter-1>
+                <BoxComponent class="max-w-2xl">
+                    <SectionHeader :icon="BellRingIcon" title="Opvolging" chapter="details"
+                        subtitle="Wat er vanzelf gebeurt met een offerte die verstuurd is en nog geen antwoord heeft. Laat een veld leeg om het uit te zetten." />
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Herinnering aan de klant na</span>
+                            <div class="flex items-center gap-2">
+                                <TextInput v-model="form.reminder_days" type="number" placeholder="Uit" @change="save('reminder_days')"
+                                    :has-error="Boolean(form.errors.reminder_days)" :error-message="form.errors.reminder_days" />
+                                <span class="text-sm text-gray-500">dagen</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Eén keer, met dezelfde versie en een nieuwe link.</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Melding aan de maker</span>
+                            <div class="flex items-center gap-2">
+                                <TextInput v-model="form.expiry_notice_days" type="number" placeholder="Uit" @change="save('expiry_notice_days')"
+                                    :has-error="Boolean(form.errors.expiry_notice_days)" :error-message="form.errors.expiry_notice_days" />
+                                <span class="text-sm text-gray-500">dagen voor het verlopen</span>
+                            </div>
+                        </div>
+                    </div>
+                </BoxComponent>
+            </template>
+
+            <template #chapter-2>
+                <BoxComponent class="max-w-2xl">
+                    <SectionHeader :icon="ScaleIcon" title="Algemene voorwaarden" chapter="documents"
+                        subtitle="Gaan als PDF mee met elke offerte, en bij het akkoord vinkt de klant aan ze te hebben ontvangen. Dat moet volgens de wet vóór of bij het tekenen." />
+                    <div v-if="settings.terms_name" class="flex items-center justify-between gap-3 rounded-lg ring-1 ring-gray-200 dark:ring-slate-700 px-3 py-2">
+                        <a href="/quote-terms" target="_blank" class="inline-flex min-w-0 items-center gap-2 text-sm font-medium text-lavoro-blue hover:underline">
+                            <FileTextIcon class="size-4 shrink-0" /> <span class="truncate">{{ settings.terms_name }}</span>
+                        </a>
+                        <button type="button" @click="removeTerms" class="text-sm text-red-600 hover:underline">Weghalen</button>
+                    </div>
+                    <p v-else class="text-sm text-gray-500 dark:text-slate-400">Nog geen algemene voorwaarden. Offertes gaan zonder de deur uit.</p>
+                    <form class="mt-4 flex flex-wrap items-center gap-2" @submit.prevent="uploadTerms">
+                        <input type="file" accept="application/pdf" @change="(event) => terms.terms = event.target.files[0]"
+                            class="block flex-1 text-sm text-gray-900 dark:text-slate-100" />
+                        <button type="submit" :disabled="!terms.terms || terms.processing"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                            <PlusIcon class="size-4" /> Toevoegen
+                            <UploadIcon class="size-4" /> {{ settings.terms_name ? 'Vervangen' : 'Uploaden' }}
                         </button>
                     </form>
+                    <p v-if="terms.errors.terms" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ terms.errors.terms }}</p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+                        Vervangen geldt voor wat je vanaf nu verstuurt. Een klant die eerder een offerte kreeg, houdt de voorwaarden van toen.
+                    </p>
+                </BoxComponent>
+            </template>
+
+            <template #chapter-3>
+                <BoxComponent class="max-w-2xl">
+                    <SectionHeader :icon="RulerIcon" title="Eenheden" chapter="details"
+                        subtitle="Waaruit je op een offerteregel kiest. De eenheden van je materialen komen er vanzelf bij. Versleep een eenheid om de volgorde te veranderen." />
+                    <draggable v-model="units" handle=".draghandle" :animation="150" :class="LIST" @end="order('units', units)">
+                        <QuoteSettingsRow v-for="unit in units" :key="unit.id + '-' + unit.name" :item="unit" :url="`/quote-settings/units/${unit.id}`"
+                            label="Naam van de eenheid" :confirm-text="`De eenheid ${unit.name} verwijderen? Offertes die hem al gebruiken houden hem.`" />
+                    </draggable>
+                    <p v-if="!units.length" class="py-4 text-sm text-gray-400 dark:text-slate-500">Nog geen eenheden.</p>
+                    <QuoteSettingsAddRow url="/quote-settings/units" placeholder="Nieuwe eenheid, bijvoorbeeld m³ of strekkende meter" />
+                </BoxComponent>
+            </template>
+
+            <template #chapter-4>
+                <BoxComponent class="max-w-2xl">
+                    <SectionHeader :icon="CircleXIcon" title="Redenen van verlies" chapter="details"
+                        subtitle="Waaruit je kiest als een offerte is afgewezen, zodat je in de lijst ziet waarom offertes verloren gaan. De klant kiest zelf uit de redenen die voor de klant aan staan." />
+                    <draggable v-model="reasons" handle=".draghandle" :animation="150" :class="LIST" @end="order('reasons', reasons)">
+                        <QuoteSettingsRow v-for="reason in reasons" :key="reason.id + '-' + reason.name" :item="reason"
+                            :url="`/quote-settings/reasons/${reason.id}`" label="Reden"
+                            :confirm-text="`De reden ${reason.name} verwijderen? Offertes die erom verloren gingen, zeggen dan niet meer waarom.`">
+                            <span class="shrink-0 text-xs text-gray-500 dark:text-slate-400">{{ reason.quotes_count }} offertes</span>
+                            <label class="flex shrink-0 items-center gap-2 text-xs text-gray-600 dark:text-slate-300">
+                                <SwitchComponent :model-value="reason.customer_can_pick"
+                                    @update:model-value="(value) => patchReason(reason, { customer_can_pick: value })" />
+                                voor de klant
+                            </label>
+                        </QuoteSettingsRow>
+                    </draggable>
+                    <QuoteSettingsAddRow url="/quote-settings/reasons" placeholder="Nieuwe reden, bijvoorbeeld levertijd te lang" />
+                </BoxComponent>
+            </template>
+
+            <template #chapter-5>
+                <BoxComponent class="max-w-2xl">
+                    <SectionHeader :icon="BookmarkIcon" title="Sjablonen" chapter="details"
+                        subtitle="Offertes om een nieuwe mee te beginnen, zoals airco voor één ruimte. Je maakt er een vanuit een offerte: kies daar in het menu Bewaren als sjabloon." />
+                    <div :class="LIST">
+                        <QuoteSettingsRow v-for="template in templates" :key="template.id + '-' + template.name" :item="template"
+                            :url="`/quote-settings/templates/${template.id}`" label="Naam van het sjabloon" :draggable="false"
+                            :confirm-text="`Het sjabloon ${template.name} verwijderen? Offertes die ermee gemaakt zijn blijven zoals ze zijn.`">
+                            <span class="shrink-0 text-xs text-gray-500 dark:text-slate-400">
+                                {{ template.lines }} regels<template v-if="template.created_by"> · {{ template.created_by }}</template>
+                            </span>
+                        </QuoteSettingsRow>
+                    </div>
+                    <p v-if="!templates.length" class="py-4 text-sm text-gray-400 dark:text-slate-500">Nog geen sjablonen.</p>
                 </BoxComponent>
             </template>
         </ChapterContents>
@@ -49,32 +165,69 @@
 import { ref, watch } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
-import { PlusIcon, RulerIcon, SettingsIcon } from '@lucide/vue'
+import {
+    BellRingIcon, BookmarkIcon, CircleXIcon, FileTextIcon, RulerIcon, ScaleIcon, SettingsIcon, UploadIcon,
+} from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
 import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
-import QuoteUnitRow from '@/Components/Quotes/QuoteUnitRow.vue'
+import QuoteSettingsAddRow from '@/Components/Quotes/QuoteSettingsAddRow.vue'
+import QuoteSettingsRow from '@/Components/Quotes/QuoteSettingsRow.vue'
+import { useSaveField } from '@/Components/Quotes/useSaveField'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
+import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 
-/** The settings that hold for every quote, a chapter each. The units come first. */
+/** The settings that hold for every quote, a chapter each. Every field is saved the moment it is left. */
 const props = defineProps({
+    settings: { type: Object, required: true },
+    layoutChoices: { type: Object, required: true },
     units: { type: Array, required: true },
+    reasons: { type: Array, required: true },
+    templates: { type: Array, required: true },
 })
 
-const rows = ref([...props.units])
-watch(() => props.units, (units) => { rows.value = [...units] })
+const CHAPTERS = [
+    { label: 'Offerte', icon: FileTextIcon },
+    { label: 'Opvolging', icon: BellRingIcon },
+    { label: 'Voorwaarden', icon: ScaleIcon },
+    { label: 'Eenheden', icon: RulerIcon },
+    { label: 'Redenen', icon: CircleXIcon },
+    { label: 'Sjablonen', icon: BookmarkIcon },
+]
 
-const form = useForm({ name: '' })
+const LIST = 'divide-y divide-gray-100 dark:divide-slate-800 rounded-lg ring-1 ring-gray-200 dark:ring-slate-700'
 
-function add() {
-    form.post('/quote-settings/units', { preserveScroll: true, onSuccess: () => form.reset() })
+const form = useForm({ ...props.settings, layout: { ...props.settings.layout } })
+const save = useSaveField(form, () => '/quote-settings', () => props.settings)
+
+/** The lists as they are dragged; the server's order again after every reload. */
+const units = ref([...props.units])
+const reasons = ref([...props.reasons])
+watch(() => props.units, (rows) => { units.value = [...rows] })
+watch(() => props.reasons, (rows) => { reasons.value = [...rows] })
+
+function order(list, rows) {
+    const key = list === 'units' ? 'unit_ids' : 'reason_ids'
+    router.put(`/quote-settings/${list}/order`, { [key]: rows.map(row => row.id) }, { preserveScroll: true })
 }
 
-function reorder() {
-    router.put('/quote-settings/units/order', { unit_ids: rows.value.map(unit => unit.id) }, { preserveScroll: true })
+function patchReason(reason, changes) {
+    router.patch(`/quote-settings/reasons/${reason.id}`, changes, { preserveScroll: true })
+}
+
+const terms = useForm({ terms: null })
+
+function uploadTerms() {
+    terms.post('/quote-settings/terms', { preserveScroll: true, forceFormData: true, onSuccess: () => terms.reset() })
+}
+
+function removeTerms() {
+    if (!confirm('De algemene voorwaarden weghalen? Offertes gaan dan zonder voorwaarden de deur uit.')) return
+    router.delete('/quote-settings/terms', { preserveScroll: true })
 }
 </script>

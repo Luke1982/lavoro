@@ -12,9 +12,9 @@
                     <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" :class="quoteStatusPillClass(quote.status)">
                         {{ quote.status }}
                     </span>
-                    <span v-if="versions.length" class="rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-slate-300"
-                        v-tooltip="'De laatste versie die de klant kreeg'">
-                        Versie {{ versions[0].number }}
+                    <span class="rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-slate-300"
+                        v-tooltip="versionSent ? 'De versie waar je aan werkt; de klant heeft hem gekregen' : 'De versie waar je aan werkt; nog niet verstuurd'">
+                        Versie {{ quote.version }}<template v-if="!versionSent"> · nog niet verstuurd</template>
                     </span>
                 </div>
                 <input v-if="canEdit" v-model="form.title" @change="save('title')" aria-label="Titel"
@@ -33,13 +33,27 @@
             </div>
         </div>
 
-        <div v-if="can.update" class="flex flex-wrap items-center gap-2">
-            <DropdownMenu v-if="nextStatuses.length || (can.delete && !quote.sent_at)" placement="bottom-end" width-class="w-60"
-                title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`">
+        <div v-if="can.update || can.create" class="flex flex-wrap items-center gap-2">
+            <DropdownMenu placement="bottom-end" width-class="w-64" title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`">
                 <template #button>
                     <EllipsisIcon class="size-5" />
                 </template>
-                <MenuItem v-for="status in nextStatuses" :key="status" v-slot="{ active }">
+                <MenuItem v-if="canStartVersion" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active)" @click="startVersion">
+                        <LayersIcon class="size-4" /> Nieuwe versie maken
+                    </button>
+                </MenuItem>
+                <MenuItem v-if="can.create" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active)" @click="copying = 'copy'">
+                        <CopyIcon class="size-4" /> Kopie maken
+                    </button>
+                </MenuItem>
+                <MenuItem v-if="can.create" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active)" @click="copying = 'template'">
+                        <BookmarkIcon class="size-4" /> Bewaren als sjabloon
+                    </button>
+                </MenuItem>
+                <MenuItem v-for="status in can.update ? nextStatuses : []" :key="status" v-slot="{ active }">
                     <button type="button" :class="menuItem(active)" @click="moveTo(status)">{{ STATUS_ACTIONS[status] }}</button>
                 </MenuItem>
                 <MenuItem v-if="can.delete && !quote.sent_at" v-slot="{ active }">
@@ -51,11 +65,14 @@
             <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="[BUTTON, OUTLINE]">
                 <EyeIcon class="size-4" /> Voorbeeld
             </a>
-            <button v-if="quote.status !== 'Geaccepteerd'" type="button" @click="sending = true"
+            <a :href="`/quotes/${quote.id}/pdf`" target="_blank" :class="[BUTTON, OUTLINE]">
+                <FileDownIcon class="size-4" /> PDF
+            </a>
+            <button v-if="can.update && quote.status !== 'Geaccepteerd'" type="button" @click="sending = true"
                 :class="[BUTTON, 'bg-lavoro-blue text-white hover:opacity-90']">
                 {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
             </button>
-            <button v-if="acceptable" type="button" @click="accepting = true"
+            <button v-if="can.update && acceptable" type="button" @click="accepting = true"
                 :class="[BUTTON, 'border border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400']">
                 <CheckIcon class="size-4" /> Akkoord vastleggen
             </button>
@@ -70,12 +87,19 @@
     </header>
 
     <p v-if="!editable && can.update" class="mt-4 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm text-gray-600 dark:text-slate-300">
-        Deze offerte is {{ quote.status.toLowerCase() }}. Zet hem via het menu terug naar concept om hem aan te passen.
+        Deze offerte is {{ quote.status.toLowerCase() }}.
+        {{ canStartVersion
+            ? 'Kies in het menu Nieuwe versie maken om hem aan te passen, of zet hem terug naar concept om deze versie te verbeteren.'
+            : 'Zet hem via het menu terug naar concept om hem aan te passen.' }}
     </p>
 
     <QuoteSendDrawer v-if="can.update" v-model="sending" :quote-id="quote.id" :defaults="sendDefaults" />
-    <QuoteAcceptDialog v-if="can.update" v-model="accepting" :quote-id="quote.id" :lines="lines" :totals="totals"
+    <QuoteAcceptDialog v-if="can.update" v-model="accepting" :quote-id="quote.id" :lines="lines" :totals="totals" :layout="layout"
+        :terms-name="termsOnOffer" :is-consumer="quote.is_consumer"
         :default-name="quote.contact?.full_name ?? ''" :can-create-service-order="can.createServiceOrder" />
+    <QuoteDeclineDialog v-if="can.update" v-model="declining" :quote-id="quote.id" :reasons="lostReasons" />
+    <QuoteCopyDialog v-if="can.create" :model-value="copying !== null" @update:model-value="(value) => { if (!value) copying = null }"
+        :quote="quote" :as-template="copying === 'template'" :customers="customers" :customers-use-ajax="customersUseAjax" />
 
     <TwoThirdsOneThird class="mt-6">
         <template #main>
@@ -120,9 +144,10 @@
 
                             <draggable v-model="rows" handle=".draghandle" :animation="150" :disabled="!canEdit"
                                 class="space-y-1 px-2 pb-2" @end="reorder">
-                                <QuoteLineRow v-for="line in rows" :key="line.id + '-' + line.updated_at" :quote-id="quote.id"
+                                <QuoteLineRow v-for="(line, index) in rows" :key="line.id + '-' + line.updated_at" :quote-id="quote.id"
                                     :line="line" :vat-rates="vatRates" :units="units" :editable="canEdit" :see-margins="can.seeMargins"
-                                    :compact="compact" class="border-t first:border-t-0 border-gray-100 dark:border-slate-800">
+                                    :compact="compact" :can-be-alternative="index > 0 && rows[index - 1].kind !== 'text'"
+                                    class="border-t first:border-t-0 border-gray-100 dark:border-slate-800">
                                     <QuoteMaterialsPanel v-if="line.kind === 'product' && !compact && (line.children.length || canEdit)"
                                         :quote-id="quote.id" :product="line" :units="units" :editable="canEdit"
                                         :open="openPanels[line.id] ?? true" @update:open="(value) => openPanels[line.id] = value" />
@@ -164,14 +189,54 @@
                     </template>
 
                     <template #chapter-2>
+                        <BoxComponent>
+                            <SectionHeader :icon="HandshakeIcon" title="Afspraken" chapter="details"
+                                subtitle="Wat de klant over prijs, planning en betaling leest. De installatievoorwaarden vragen dat de offerte dit noemt." />
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div class="sm:col-span-2">
+                                    <span class="text-xs font-bold text-slate-400">Prijsafspraak</span>
+                                    <SegmentedToggle v-model="form.pricing_method" class="mt-1" :options="pricingMethods" :disabled="!canEdit"
+                                        @update:model-value="save('pricing_method')" />
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">De klant leest: {{ pricingExplanation }}</p>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-400">Start</span>
+                                    <TextInput v-model="form.start_period" :disabled="!canEdit" placeholder="Bijvoorbeeld: week 14, in overleg"
+                                        @change="save('start_period')" :has-error="Boolean(form.errors.start_period)" :error-message="form.errors.start_period" />
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-400">Duur</span>
+                                    <TextInput v-model="form.duration" :disabled="!canEdit" placeholder="Bijvoorbeeld: twee werkdagen"
+                                        @change="save('duration')" :has-error="Boolean(form.errors.duration)" :error-message="form.errors.duration" />
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <span class="text-xs font-bold text-slate-400">Betaling</span>
+                                    <textarea v-model="form.payment_terms" rows="2" :disabled="!canEdit" @change="save('payment_terms')"
+                                        placeholder="Bijvoorbeeld: betaling binnen 14 dagen na factuurdatum"
+                                        class="mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2" />
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <span class="text-xs font-bold text-slate-400">Betaaltermijnen</span>
+                                    <p v-if="!form.payment_schedule?.length" class="text-xs text-gray-500 dark:text-slate-400">
+                                        Geen termijnen: de klant betaalt volgens de afspraak hierboven.
+                                    </p>
+                                    <QuotePaymentSchedule v-model="form.payment_schedule" :editable="canEdit" :gross="totals.gross"
+                                        :is-consumer="form.is_consumer" :max-upfront="maxUpfrontPercent" :error="scheduleError"
+                                        @save="save('payment_schedule')" />
+                                </div>
+                            </div>
+                        </BoxComponent>
+                    </template>
+
+                    <template #chapter-3>
                         <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id"
                             documentable-type="\App\Models\Quote" title="Bijlagen" subtitle="Tekeningen, brochures en andere stukken bij deze offerte." />
                     </template>
 
-                    <template #chapter-3>
+                    <template #chapter-4>
                         <BoxComponent>
                             <SectionHeader :icon="SettingsIcon" title="Instellingen" chapter="details"
-                                subtitle="Wanneer de offerte gemaakt is en hoe lang hij geldig is." />
+                                subtitle="Wanneer de offerte gemaakt is, hoe lang hij geldig is, en wat de klant ervan ziet." />
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <span class="text-xs font-bold text-slate-400">Offertedatum</span>
@@ -183,6 +248,20 @@
                                     <TextInput v-model="form.valid_until" type="date" :disabled="!canEdit" @change="save('valid_until')"
                                         :has-error="Boolean(form.errors.valid_until)" :error-message="form.errors.valid_until" />
                                 </div>
+                            </div>
+                            <div class="mt-6 border-t border-gray-100 dark:border-slate-800 pt-4">
+                                <span class="text-xs font-bold text-slate-400">Wat de klant ziet</span>
+                                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                                    <label v-for="(label, choice) in layoutChoices" :key="choice" class="flex items-center gap-2 text-sm">
+                                        <input v-model="form.layout[choice]" type="checkbox" :disabled="!canEdit"
+                                            class="rounded border-gray-300 text-lavoro-blue" @change="save('layout')" />
+                                        {{ label }}
+                                    </label>
+                                </div>
+                                <p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+                                    Zonder prijs per eenheid en regeltotaal ziet de klant alleen het totaal, zoals bij een vaste prijs gebruikelijk.
+                                    De standaard stel je in bij de offerte-instellingen.
+                                </p>
                             </div>
                         </BoxComponent>
                     </template>
@@ -202,6 +281,9 @@
                         <div class="flex justify-between rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-base font-bold text-green-900 dark:text-green-200">
                             <dt>Totaal incl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.gross) }}</dd>
                         </div>
+                        <div v-if="totals.provisional_net" class="flex justify-between px-3 pt-2 text-amber-700 dark:text-amber-400">
+                            <dt>Waarvan stelposten</dt><dd class="tabular-nums">{{ nlCurrency(totals.provisional_net) }}</dd>
+                        </div>
                         <div v-if="totals.optional_net" class="flex justify-between px-3 pt-2 text-sky-700 dark:text-sky-400">
                             <dt>Opties die niet meetellen</dt><dd class="tabular-nums">{{ nlCurrency(totals.optional_net) }}</dd>
                         </div>
@@ -220,11 +302,23 @@
                         :subtitle="`${quote.accepted_name}, ${acceptedVia}, ${nlDate(quote.decided_at)}`" />
                     <img v-if="quote.accepted_signature" :src="quote.accepted_signature" alt="Handtekening"
                         class="w-full rounded border border-gray-200 dark:border-slate-700 bg-white" />
+                    <ul class="mt-3 space-y-1 text-sm text-gray-600 dark:text-slate-300">
+                        <li v-if="quote.accepted_terms_name">Algemene voorwaarden geaccepteerd ({{ quote.accepted_terms_name }})</li>
+                        <li v-if="coolingOffUntil">
+                            Bedenktijd tot en met {{ nlDateMedium(coolingOffUntil) }}.
+                            {{ quote.starts_within_cooling_off ? 'De klant vroeg om eerder te beginnen.' : 'Niet eerder beginnen, tenzij de klant erom vraagt.' }}
+                        </li>
+                    </ul>
+                </BoxComponent>
+
+                <BoxComponent v-if="quote.status === 'Afgewezen' && (quote.lost_reason || quote.lost_reason_note)">
+                    <SectionHeader :icon="CircleXIcon" title="Afgewezen" chapter="signoff" :subtitle="quote.lost_reason?.name ?? 'Zonder reden'" />
+                    <p v-if="quote.lost_reason_note" class="text-sm whitespace-pre-line">{{ quote.lost_reason_note }}</p>
                 </BoxComponent>
 
                 <BoxComponent v-if="versions.length">
                     <SectionHeader :icon="LayersIcon" title="Versies" chapter="documents"
-                        subtitle="Wat de klant elke keer kreeg, zoals hij het zag." />
+                        subtitle="Wat de klant elke keer kreeg, zoals het er toen uitzag." />
                     <ul class="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
                         <li v-for="version in versions" :key="version.id" class="flex items-start justify-between gap-3 py-2">
                             <div class="min-w-0">
@@ -239,9 +333,16 @@
                                     {{ nlDate(version.created_at) }} · {{ version.recipient ?? 'in de app' }}
                                     <template v-if="version.net !== null"> · {{ nlCurrency(version.net) }} excl. btw</template>
                                 </div>
+                                <div v-if="version.viewed_at || version.reminded_at" class="text-xs text-gray-500 dark:text-slate-400">
+                                    <template v-if="version.viewed_at">Bekeken op {{ nlDate(version.viewed_at) }}</template>
+                                    <template v-if="version.viewed_at && version.reminded_at"> · </template>
+                                    <template v-if="version.reminded_at">herinnerd op {{ nlDate(version.reminded_at) }}</template>
+                                </div>
                             </div>
-                            <a :href="`/quotes/${quote.id}/versions/${version.id}`" target="_blank"
-                                class="shrink-0 text-xs font-semibold text-lavoro-blue hover:underline">Bekijken</a>
+                            <div class="flex shrink-0 flex-col items-end gap-0.5 text-xs font-semibold">
+                                <a :href="`/quotes/${quote.id}/versions/${version.id}`" target="_blank" class="text-lavoro-blue hover:underline">Bekijken</a>
+                                <a :href="`/quotes/${quote.id}/versions/${version.id}/pdf`" target="_blank" class="text-lavoro-blue hover:underline">PDF</a>
+                            </div>
                         </li>
                     </ul>
                 </BoxComponent>
@@ -250,8 +351,9 @@
                     <SectionHeader :icon="MessageSquareIcon" title="Reacties van de klant" chapter="remarks" />
                     <div v-for="(answer, index) in answers" :key="index"
                         class="py-2 text-sm border-b last:border-b-0 border-gray-100 dark:border-slate-800">
-                        <div class="font-medium">{{ answer.name }} {{ answer.kind === 'accepted' ? 'ging akkoord' : 'vroeg een wijziging' }}</div>
+                        <div class="font-medium">{{ answer.name }} {{ ANSWER_KINDS[answer.kind] }}</div>
                         <div class="text-xs text-gray-500 dark:text-slate-400">{{ nlDate(answer.answered_at) }} · {{ answer.recipient }}</div>
+                        <p v-if="answer.reason" class="mt-1">Reden: {{ answer.reason }}</p>
                         <p v-if="answer.message" class="mt-1 whitespace-pre-line">{{ answer.message }}</p>
                     </div>
                 </BoxComponent>
@@ -268,6 +370,16 @@
                         <SwitchComponent v-model="form.customer_picks_options" :disabled="!canEdit"
                             @update:model-value="save('customer_picks_options')" />
                     </label>
+                    <label class="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 dark:border-slate-800 pt-4">
+                        <span>
+                            <span class="block text-sm font-semibold">Particuliere klant</span>
+                            <span class="block text-xs text-gray-500 dark:text-slate-400">
+                                De klant krijgt 14 dagen bedenktijd, met het modelformulier voor herroeping bij de offerte.
+                            </span>
+                        </span>
+                        <SwitchComponent v-model="form.is_consumer" :disabled="!canEdit" @update:model-value="save('is_consumer')" />
+                    </label>
+                    <p v-if="form.errors.is_consumer" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.is_consumer }}</p>
                     <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-slate-800 pt-4">
                         <span class="inline-flex items-center gap-1 text-sm">
                             Standaard btw-tarief
@@ -283,6 +395,11 @@
                 <BoxComponent>
                     <SectionHeader :icon="InfoIcon" title="Gegevens" chapter="customer" />
                     <div class="flex flex-col gap-3">
+                        <div v-if="origin">
+                            <span class="text-xs font-bold text-slate-400">Gemaakt vanuit</span>
+                            <Link v-if="origin.url" :href="origin.url" class="block text-sm text-lavoro-blue hover:underline">{{ origin.label }}</Link>
+                            <p v-else class="text-sm">{{ origin.label }}</p>
+                        </div>
                         <div>
                             <span class="text-xs font-bold text-slate-400">Locatie</span>
                             <ComboBox :options="locationOptions" v-model="form.location_id" placeholder="Hoofdadres van de klant"
@@ -317,9 +434,9 @@ import { Link, router, useForm } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import {
-    ArrowDownIcon, ArrowDownUpIcon, CalendarCheckIcon, CalendarIcon, CheckIcon, ClipboardCheckIcon, EllipsisIcon, EuroIcon,
-    EyeIcon, FileTextIcon, HistoryIcon, InfoIcon, LayersIcon, ListIcon, MessageSquareIcon, PaperclipIcon, PenLineIcon, SettingsIcon,
-    Trash2Icon, UserIcon,
+    ArrowDownIcon, ArrowDownUpIcon, BookmarkIcon, CalendarCheckIcon, CalendarIcon, CheckIcon, CircleXIcon, ClipboardCheckIcon,
+    CopyIcon, EllipsisIcon, EuroIcon, EyeIcon, FileDownIcon, FileTextIcon, HandshakeIcon, HistoryIcon, InfoIcon, LayersIcon,
+    ListIcon, MessageSquareIcon, PaperclipIcon, PenLineIcon, SettingsIcon, Trash2Icon, UserIcon,
 } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
@@ -329,8 +446,11 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import QuoteAcceptDialog from '@/Components/Quotes/QuoteAcceptDialog.vue'
 import QuoteAddBar from '@/Components/Quotes/QuoteAddBar.vue'
+import QuoteCopyDialog from '@/Components/Quotes/QuoteCopyDialog.vue'
+import QuoteDeclineDialog from '@/Components/Quotes/QuoteDeclineDialog.vue'
 import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
 import QuoteMaterialsPanel from '@/Components/Quotes/QuoteMaterialsPanel.vue'
+import QuotePaymentSchedule from '@/Components/Quotes/QuotePaymentSchedule.vue'
 import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
 import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
@@ -338,6 +458,7 @@ import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
+import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
@@ -359,15 +480,38 @@ const props = defineProps({
     acceptable: { type: Boolean, default: false },
     nextStatuses: { type: Array, default: () => [] },
     editable: { type: Boolean, default: false },
+    /** Whether the version being worked on went out: only then can a new one start. */
+    versionSent: { type: Boolean, default: false },
+    /** The general terms the customer would accept with it, by name. */
+    termsOnOffer: { type: String, default: null },
+    coolingOffUntil: { type: String, default: null },
+    /** What the quote was made from: { label, url }. */
+    origin: { type: Object, default: null },
+    layout: { type: Object, required: true },
+    layoutChoices: { type: Object, required: true },
+    /** [{ value, label, explanation }] */
+    pricingMethods: { type: Array, default: () => [] },
+    maxUpfrontPercent: { type: Number, required: true },
+    lostReasons: { type: Array, default: () => [] },
+    customers: { type: Array, default: () => [] },
+    customersUseAjax: { type: Boolean, default: false },
     can: { type: Object, required: true },
 })
 
 const chapters = computed(() => [
     { label: 'Regels', icon: ListIcon },
     { label: 'Aanhef & slot', icon: FileTextIcon },
+    { label: 'Afspraken', icon: HandshakeIcon },
     { label: 'Bijlagen', icon: PaperclipIcon, count: props.quote.documents.length },
     { label: 'Instellingen', icon: SettingsIcon },
 ])
+
+/** How the sidebar says what the customer answered on their page. */
+const ANSWER_KINDS = {
+    accepted: 'ging akkoord',
+    changes: 'vroeg een wijziging',
+    declined: 'wees de offerte af',
+}
 
 /** What a plain status button says. Sending and accepting have buttons of their own. */
 const STATUS_ACTIONS = {
@@ -383,9 +527,18 @@ const OUTLINE = 'border border-gray-300 dark:border-slate-600 bg-white dark:bg-s
 
 const sending = ref(false)
 const accepting = ref(false)
+const declining = ref(false)
+/** Which way the quote is being taken along: 'copy', 'template', or not at all. */
+const copying = ref(null)
 const compact = ref(false)
 
 const canEdit = computed(() => props.editable && props.can.update)
+const canStartVersion = computed(() => props.can.update && props.versionSent && props.quote.status !== 'Geaccepteerd')
+
+/** What the customer reads about the way the price holds, as the server words it for the page and the PDF. */
+const pricingExplanation = computed(() => props.pricingMethods.find(method => method.value === form.pricing_method)?.explanation)
+const scheduleError = computed(() => Object.entries(form.errors)
+    .find(([field]) => field.startsWith('payment_schedule'))?.[1] ?? null)
 
 /** The lines in the order they are dragged to; the server's order again after every reload. */
 const rows = ref([...props.lines])
@@ -414,6 +567,13 @@ const form = useForm({
     project_id: props.quote.project_id,
     customer_picks_options: props.quote.customer_picks_options,
     default_vat_percent: props.quote.default_vat_percent,
+    is_consumer: props.quote.is_consumer,
+    layout: { ...props.layout },
+    pricing_method: props.quote.pricing_method,
+    start_period: props.quote.start_period,
+    duration: props.quote.duration,
+    payment_terms: props.quote.payment_terms,
+    payment_schedule: props.quote.payment_schedule,
 })
 
 /**
@@ -442,7 +602,7 @@ const projectOptions = computed(() => (props.quote.customer.projects ?? []).map(
 
 const marginShare = computed(() => Math.round((props.totals.margin / props.totals.net) * 100) + '%')
 
-const save = useSaveField(form, () => `/quotes/${props.quote.id}`, () => props.quote)
+const save = useSaveField(form, () => `/quotes/${props.quote.id}`, () => ({ ...props.quote, layout: props.layout }))
 
 /** Picking toggles: clicking the chosen location, contact or project again clears it. */
 watch(() => [form.location_id, form.contact_id, form.project_id], () => {
@@ -450,11 +610,24 @@ watch(() => [form.location_id, form.contact_id, form.project_id], () => {
 })
 
 function moveTo(status) {
+    if (status === 'Afgewezen') {
+        declining.value = true
+        return
+    }
     router.patch(`/quotes/${props.quote.id}/status`, { status }, { preserveScroll: true })
 }
 
+function startVersion() {
+    if (!confirm(`Versie ${props.quote.version + 1} van offerte ${props.quote.number} beginnen? Versie ${props.quote.version} blijft bewaard zoals de klant hem kreeg.`)) return
+    router.post(`/quotes/${props.quote.id}/new-version`, {}, { preserveScroll: true })
+}
+
+/** Within the cooling-off period, and without the customer asking to start sooner, the werkbon waits: say so first. */
 function convert() {
-    if (!confirm(`Van offerte ${props.quote.number} een werkbon maken?`)) return
+    const waiting = props.coolingOffUntil && !props.quote.starts_within_cooling_off
+        ? ` De bedenktijd loopt nog tot en met ${nlDateMedium(props.coolingOffUntil)} en de klant vroeg niet om eerder te beginnen.`
+        : ''
+    if (!confirm(`Van offerte ${props.quote.number} een werkbon maken?${waiting}`)) return
     router.post(`/quotes/${props.quote.id}/service-order`)
 }
 

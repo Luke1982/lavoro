@@ -2,6 +2,7 @@
 
 use App\Jobs\DeleteOrphanedImagesJob;
 use App\Jobs\ExpireQuotesJob;
+use App\Jobs\FollowUpQuotesJob;
 use App\Jobs\GenerateMaintenanceContractServiceOrdersJob;
 use App\Jobs\Google\DispatchTenantCalendarPullsJob;
 use App\Jobs\Google\RenewWatchChannelsJob;
@@ -88,6 +89,13 @@ Schedule::call(fn () => $forEachTenant(function () {
         ExpireQuotesJob::dispatch();
     }
 }))->dailyAt('06:30')->name('quotes-expire')->withoutOverlapping();
+
+/** After the lapsing, so a quote that ran out yesterday is not also reminded today. */
+Schedule::call(fn () => $forEachTenant(function () {
+    if (tenancy()->tenant->hasModule('quotes')) {
+        FollowUpQuotesJob::dispatch();
+    }
+}))->dailyAt('08:30')->name('quotes-follow-up')->withoutOverlapping();
 
 /**
  * Every five minutes, so a reminder set for an hour lands between 55 and 60

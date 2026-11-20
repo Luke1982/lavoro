@@ -56,21 +56,24 @@ enum QuoteStatuses: string
     }
 
     /**
-     * Where a quote in this status may go next. An accepted quote only goes
-     * back to concept, which undoes the acceptance; ChangeQuoteStatusAction
-     * refuses even that once a werkbon was made from it.
+     * Where a quote in this status may go next. An accepted quote goes back to
+     * concept, which undoes the acceptance, or to declined, for a customer who
+     * changed their mind, such as a private customer within the 14 days;
+     * ChangeQuoteStatusAction refuses both once a werkbon was made from it. A
+     * concept can be declined too: some customers say no before anything was
+     * sent.
      *
      * @return array<int, self>
      */
     public function next(): array
     {
         return match ($this) {
-            self::concept => [self::verzonden, self::geaccepteerd],
+            self::concept => [self::verzonden, self::geaccepteerd, self::afgewezen],
             self::verzonden => [
                 self::concept, self::wijziging_gevraagd, self::geaccepteerd, self::afgewezen, self::vervallen,
             ],
             self::wijziging_gevraagd => [self::verzonden, self::concept, self::geaccepteerd, self::afgewezen],
-            self::geaccepteerd => [self::concept],
+            self::geaccepteerd => [self::concept, self::afgewezen],
             self::afgewezen, self::vervallen => [self::verzonden, self::concept],
         };
     }

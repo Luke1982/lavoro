@@ -30,9 +30,20 @@ class QuoteLineUpdateRequest extends FormRequest
             'cost_price' => $this->costPriceRules(),
             'vat_percent' => ['sometimes', 'required', Rule::in(VatRates::ALL)],
             'discount_percent' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
-            'is_optional' => ['sometimes', 'boolean'],
+            'is_optional' => [
+                'sometimes', 'boolean',
+                Rule::when($this->route('line')->isAlternative(), ['declined']),
+            ],
             'is_chosen' => ['sometimes', 'boolean'],
+            'is_provisional' => [
+                'sometimes', 'boolean',
+                Rule::when($this->route('line')->kind === QuoteLineKinds::text->value, ['declined']),
+            ],
             'details' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'location_note' => [
+                'sometimes', 'nullable', 'string', 'max:100',
+                Rule::when($this->route('line')->kind === QuoteLineKinds::text->value, ['prohibited']),
+            ],
         ];
     }
 
@@ -41,6 +52,8 @@ class QuoteLineUpdateRequest extends FormRequest
         return [
             ...$this->costPriceMessages(),
             'quantity.integer' => 'Een product bied je per heel stuk aan.',
+            'is_optional.declined' => 'Een alternatief is geen optie. Haal hem eerst uit de keuze.',
+            'is_provisional.declined' => 'Een tekst heeft geen bedrag, dus ook geen stelpost.',
         ];
     }
 }

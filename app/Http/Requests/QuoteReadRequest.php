@@ -32,16 +32,18 @@ class QuoteReadRequest extends FormRequest
                 ...array_column(QuoteStatuses::cases(), 'value'),
             ])],
             'customer' => ['sometimes', 'nullable', 'integer'],
+            'reason' => ['sometimes', 'nullable', 'integer'],
         ];
     }
 
-    /** @return array{search: string, status: string, customer: ?int} */
+    /** @return array{search: string, status: string, customer: ?int, reason: ?int} */
     public function listQuery(): array
     {
         return [
             'search' => trim((string) $this->validated('search', '')),
             'status' => $this->validated('status') ?? self::OPEN,
             'customer' => $this->validated('customer') ? (int) $this->validated('customer') : null,
+            'reason' => $this->validated('reason') ? (int) $this->validated('reason') : null,
         ];
     }
 }

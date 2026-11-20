@@ -1,13 +1,19 @@
 <template>
-    <div class="flow-root rounded-lg transition-colors" :class="line.is_optional ? 'bg-sky-50/80 dark:bg-sky-900/15' : ''">
+    <div class="flow-root rounded-lg transition-colors" :class="tint">
         <div class="flex flex-wrap md:flex-nowrap items-start gap-x-3 gap-y-2 px-3" :class="compact ? 'py-2' : 'py-3'">
             <div class="flex items-center gap-2 shrink-0" :class="compact ? '' : 'pt-3'">
                 <button v-if="editable" type="button" class="draghandle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 dark:text-slate-600"
                     aria-label="Verslepen">
                     <GripVerticalIcon class="size-4" />
                 </button>
-                <input v-if="line.is_optional" type="checkbox" :checked="line.is_chosen === true" :disabled="!editable"
+                <input v-if="line.choice_group" type="radio" :name="`alternatives-${line.choice_group}`" :checked="line.is_chosen === true"
+                    :disabled="!editable" class="size-4 border-gray-300 text-fuchsia-600 focus:ring-fuchsia-600"
+                    :aria-label="`${line.description} telt mee`"
+                    v-tooltip="line.is_chosen ? 'Dit alternatief telt mee in het totaal' : 'Kies dit alternatief voor het totaal'"
+                    @change="patch({ is_chosen: true })" />
+                <input v-else-if="line.is_optional" type="checkbox" :checked="line.is_chosen === true" :disabled="!editable"
                     class="size-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue"
+                    :aria-label="`${line.description} telt mee`"
                     v-tooltip="line.is_chosen ? 'Telt mee in het totaal' : 'Telt niet mee in het totaal'"
                     @change="patch({ is_chosen: !line.is_chosen })" />
             </div>
@@ -33,9 +39,20 @@
                                 placeholder="Toelichting" aria-label="Toelichting"
                                 :class="[GHOST_FIELD, 'text-xs text-gray-500 dark:text-slate-400 resize-none field-sizing-content']" />
                             <p v-else-if="line.details" class="text-xs text-gray-500 dark:text-slate-400 whitespace-pre-line">{{ line.details }}</p>
+                            <label v-if="editable || line.location_note" class="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                                <MapPinIcon class="size-3.5 shrink-0" />
+                                <input v-if="editable" v-model="form.location_note" @change="save('location_note')" maxlength="100"
+                                    placeholder="Ruimte, bijvoorbeeld woonkamer" aria-label="Ruimte"
+                                    :class="[GHOST_FIELD, 'text-xs py-0.5']" />
+                                <span v-else>{{ line.location_note }}</span>
+                            </label>
                         </template>
                     </div>
-                    <span class="mt-1 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="kind.badge">{{ kind.label }}</span>
+                    <div class="mt-1 flex shrink-0 flex-col items-end gap-1">
+                        <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="kind.badge">{{ kind.label }}</span>
+                        <span v-if="line.is_provisional" class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="PROVISIONAL_BADGE"
+                            v-tooltip="'Wordt achteraf verrekend op de werkelijke kosten'">Stelpost</span>
+                    </div>
                 </div>
                 <p v-for="error in form.errors" :key="error" class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>
             </div>
@@ -80,7 +97,7 @@
                         </select>
                         <div v-else class="py-1.5 text-gray-500">{{ nlQuantity(line.vat_percent) }}%</div>
                     </div>
-                    <div class="py-1.5 text-right font-bold tabular-nums" :class="[COLUMNS.total, line.is_optional && !line.is_chosen ? 'text-gray-400' : '']">
+                    <div class="py-1.5 text-right font-bold tabular-nums" :class="[COLUMNS.total, isLeftOut(line) ? 'text-gray-400' : '']">
                         {{ nlCurrency(line.net) }}
                     </div>
                 </template>
@@ -90,10 +107,22 @@
                         <template #button>
                             <EllipsisVerticalIcon class="size-4" />
                         </template>
-                        <MenuItem v-if="!isText" v-slot="{ active }">
+                        <MenuItem v-if="!isText && !line.choice_group" v-slot="{ active }">
                             <button type="button" :class="menuItem(active)" @click="patch({ is_optional: !line.is_optional })">
                                 <StarIcon class="size-4" />
                                 {{ line.is_optional ? 'Niet meer optioneel' : 'Optioneel maken' }}
+                            </button>
+                        </MenuItem>
+                        <MenuItem v-if="!isText && (line.choice_group || canBeAlternative)" v-slot="{ active }">
+                            <button type="button" :class="menuItem(active)" @click="toggleAlternative">
+                                <SplitIcon class="size-4" />
+                                {{ line.choice_group ? 'Geen alternatief meer' : 'Alternatief voor de regel erboven' }}
+                            </button>
+                        </MenuItem>
+                        <MenuItem v-if="!isText" v-slot="{ active }">
+                            <button type="button" :class="menuItem(active)" @click="patch({ is_provisional: !line.is_provisional })">
+                                <CircleDashedIcon class="size-4" />
+                                {{ line.is_provisional ? 'Geen stelpost meer' : 'Stelpost maken' }}
                             </button>
                         </MenuItem>
                         <MenuItem v-if="!isText" v-slot="{ active }">
@@ -121,9 +150,12 @@ import { computed, ref } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import {
-    AlignLeftIcon, EllipsisVerticalIcon, GripVerticalIcon, PackageIcon, PercentIcon, StarIcon, Trash2Icon, WrenchIcon,
+    AlignLeftIcon, CircleDashedIcon, EllipsisVerticalIcon, GripVerticalIcon, MapPinIcon, PackageIcon, PercentIcon, SplitIcon,
+    StarIcon, Trash2Icon, WrenchIcon,
 } from '@lucide/vue'
-import { BOXED_FIELD, COLUMNS, GHOST_FIELD, KINDS, NO_SPIN, menuItem, unitChoices } from '@/Components/Quotes/quoteColumns'
+import {
+    BOXED_FIELD, COLUMNS, GHOST_FIELD, KINDS, NO_SPIN, PROVISIONAL_BADGE, isLeftOut, menuItem, unitChoices,
+} from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
@@ -135,7 +167,9 @@ import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
  * One line at the top of a quote, edited where it stands: a field is saved the
  * moment it is left. The materials that came along with a product are drawn
  * below it, through the slot. An optional line is tinted and carries a box:
- * ticked, it counts in the total and the customer finds it ticked.
+ * ticked, it counts in the total and the customer finds it ticked. An
+ * alternative carries a round button instead: of its set, the one picked counts.
+ * Where a line goes, such as "woonkamer", is noted under it.
  *
  * The page keys a row on its id and its updated_at, so a row whose line changed
  * on the server, also by a listener, starts again from what the server holds.
@@ -148,10 +182,15 @@ const props = defineProps({
     editable: { type: Boolean, default: false },
     seeMargins: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
+    /** Whether the line above has a price, so this one can be offered instead of it. */
+    canBeAlternative: { type: Boolean, default: false },
 })
 
 const isText = computed(() => props.line.kind === 'text')
-const kind = computed(() => KINDS[props.line.is_optional ? 'optional' : props.line.kind] ?? KINDS.free)
+const kind = computed(() => KINDS[props.line.choice_group ? 'alternative' : props.line.is_optional ? 'optional' : props.line.kind] ?? KINDS.free)
+const tint = computed(() => props.line.choice_group
+    ? 'bg-fuchsia-50/70 dark:bg-fuchsia-900/15'
+    : props.line.is_optional ? 'bg-sky-50/80 dark:bg-sky-900/15' : '')
 const placeholderIcon = computed(() => ({ product: PackageIcon, material: PackageIcon, text: AlignLeftIcon })[props.line.kind] ?? WrenchIcon)
 const unitOptions = computed(() => unitChoices(props.units, props.line.unit))
 const url = computed(() => `/quotes/${props.quoteId}/lines/${props.line.id}`)
@@ -159,6 +198,7 @@ const url = computed(() => `/quotes/${props.quoteId}/lines/${props.line.id}`)
 const form = useForm({
     description: props.line.description,
     details: props.line.details,
+    location_note: props.line.location_note,
     quantity: props.line.quantity,
     unit: props.line.unit,
     unit_price: props.line.unit_price,
@@ -173,6 +213,10 @@ const save = useSaveField(form, () => url.value, () => props.line)
 
 function patch(changes) {
     router.patch(url.value, changes, { preserveScroll: true })
+}
+
+function toggleAlternative() {
+    router.post(`${url.value}/alternative`, {}, { preserveScroll: true })
 }
 
 function remove() {

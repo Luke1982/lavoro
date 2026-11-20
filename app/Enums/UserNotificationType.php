@@ -7,8 +7,10 @@ use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\Projects\MilestoneOverdue;
 use App\Domain\Signals\Quotes\QuoteAccepted;
 use App\Domain\Signals\Quotes\QuoteChangesRequested;
+use App\Domain\Signals\Quotes\QuoteDeclined;
+use App\Domain\Signals\Quotes\QuoteExpiresSoon;
 use App\Domain\Signals\Quotes\QuoteSignal;
-use App\Domain\Signals\Quotes\QuoteStatusChanged;
+use App\Domain\Signals\Quotes\QuoteViewed;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCloseBlockedByHiddenTasks;
@@ -104,6 +106,9 @@ enum UserNotificationType: string
     /** De klant gaf antwoord op een offerte: nieuws over je eigen werk, voor wie de offerte maakte. */
     case quote_accepted = 'quote.accepted';
     case quote_changes_requested = 'quote.changes_requested';
+    case quote_declined = 'quote.declined';
+    case quote_viewed = 'quote.viewed';
+    case quote_expires_soon = 'quote.expires_soon';
 
     public function label(): string
     {
@@ -127,6 +132,9 @@ enum UserNotificationType: string
             self::milestone_overdue => 'Mijlpaal over datum',
             self::quote_accepted => 'Offerte geaccepteerd',
             self::quote_changes_requested => 'Wijziging van offerte gevraagd',
+            self::quote_declined => 'Offerte afgewezen',
+            self::quote_viewed => 'Offerte bekeken',
+            self::quote_expires_soon => 'Offerte verloopt binnenkort',
         };
     }
 
@@ -156,6 +164,9 @@ enum UserNotificationType: string
                 . ' dat jij leidt, over datum raakt.',
             self::quote_accepted => 'Als een klant akkoord gaat met een offerte die jij maakte.',
             self::quote_changes_requested => 'Als een klant een wijziging vraagt van een offerte die jij maakte.',
+            self::quote_declined => 'Als een klant een offerte die jij maakte afwijst.',
+            self::quote_viewed => 'Als een klant een offerte die jij maakte voor het eerst bekijkt.',
+            self::quote_expires_soon => 'Als een offerte die jij maakte bijna verloopt zonder antwoord.',
         };
     }
 
@@ -171,7 +182,8 @@ enum UserNotificationType: string
         return match ($this) {
             self::execution_times_missing, self::own_appointment_moved, self::removed_from_appointment,
             self::assigned_to_serviceorder, self::appointment_reminder, self::milestone_overdue,
-            self::quote_accepted, self::quote_changes_requested => false,
+            self::quote_accepted, self::quote_changes_requested, self::quote_declined, self::quote_viewed,
+            self::quote_expires_soon => false,
             default => true,
         };
     }
@@ -247,6 +259,9 @@ enum UserNotificationType: string
             $signal instanceof MilestoneOverdue => [self::milestone_overdue],
             $signal instanceof QuoteAccepted => [self::quote_accepted],
             $signal instanceof QuoteChangesRequested => [self::quote_changes_requested],
+            $signal instanceof QuoteDeclined && $signal->declined_by !== null => [self::quote_declined],
+            $signal instanceof QuoteViewed => [self::quote_viewed],
+            $signal instanceof QuoteExpiresSoon => [self::quote_expires_soon],
             default => [],
         };
     }
@@ -293,9 +308,10 @@ enum UserNotificationType: string
                 : collect(),
 
             /** Whoever made the quote, as long as they may still open it. */
-            self::quote_accepted, self::quote_changes_requested => $signal instanceof QuoteStatusChanged
-                ? $signal->quote->owners()->whereNull('users.deleted_at')->get()
-                    ->filter(fn (User $user) => $user->can('view', $signal->quote))
+            self::quote_accepted, self::quote_changes_requested, self::quote_declined, self::quote_viewed,
+            self::quote_expires_soon => $signal instanceof QuoteSignal
+                ? $signal->quote()->owners()->whereNull('users.deleted_at')->get()
+                    ->filter(fn (User $user) => $user->can('view', $signal->quote()))
                     ->map(fn (User $user) => (int) $user->id)
                     ->values()
                 : collect(),
@@ -351,7 +367,8 @@ enum UserNotificationType: string
             self::assigned_to_serviceorder, self::appointment_reminder => [],
 
             self::milestone_overdue => ['project.read'],
-            self::quote_accepted, self::quote_changes_requested => ['quote.read'],
+            self::quote_accepted, self::quote_changes_requested, self::quote_declined, self::quote_viewed,
+            self::quote_expires_soon => ['quote.read'],
         };
     }
 
@@ -393,6 +410,9 @@ enum UserNotificationType: string
             self::milestone_overdue => 'Flag',
             self::quote_accepted => 'ClipboardCheck',
             self::quote_changes_requested => 'FilePen',
+            self::quote_declined => 'FileX',
+            self::quote_viewed => 'Eye',
+            self::quote_expires_soon => 'Hourglass',
         };
     }
 
@@ -415,6 +435,9 @@ enum UserNotificationType: string
             self::milestone_overdue => 'red',
             self::quote_accepted => 'green',
             self::quote_changes_requested => 'amber',
+            self::quote_declined => 'red',
+            self::quote_viewed => 'blue',
+            self::quote_expires_soon => 'amber',
         };
     }
 
@@ -446,6 +469,9 @@ enum UserNotificationType: string
             self::milestone_overdue => 'Mijlpaal over datum',
             self::quote_accepted => 'Offerte ' . $this->quote($signal)->number . ' geaccepteerd',
             self::quote_changes_requested => 'Wijziging gevraagd van offerte ' . $this->quote($signal)->number,
+            self::quote_declined => 'Offerte ' . $this->quote($signal)->number . ' afgewezen',
+            self::quote_viewed => 'Offerte ' . $this->quote($signal)->number . ' bekeken',
+            self::quote_expires_soon => 'Offerte ' . $this->quote($signal)->number . ' verloopt binnenkort',
         };
     }
 
@@ -467,7 +493,8 @@ enum UserNotificationType: string
             self::assigned_to_serviceorder => $this->assignedToServiceOrderBody($signal),
             self::appointment_reminder => 'Je afspraak begint bijna.',
             self::milestone_overdue => $this->milestoneOverdueBody($signal),
-            self::quote_accepted, self::quote_changes_requested => (string) $signal->activityDescription(),
+            self::quote_accepted, self::quote_changes_requested, self::quote_declined, self::quote_viewed,
+            self::quote_expires_soon => (string) $signal->activityDescription(),
         };
     }
 
@@ -496,7 +523,8 @@ enum UserNotificationType: string
             /** Er loopt iets uit waar jij over gaat; dat wil je weten voordat de klant belt. */
             self::milestone_overdue => UserNotificationPriority::normaal,
             /** Een klant die op antwoord wacht: niet dringend, wel vandaag. */
-            self::quote_accepted, self::quote_changes_requested => UserNotificationPriority::normaal,
+            self::quote_accepted, self::quote_changes_requested, self::quote_declined,
+            self::quote_expires_soon => UserNotificationPriority::normaal,
             default => UserNotificationPriority::laag,
         };
     }

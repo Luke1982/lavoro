@@ -179,7 +179,7 @@
                                     <EditableTextField v-model="form.invoice_email" type="input" label="Factuur e-mail"
                                         placeholder="Nog niet ingesteld" :error="form.errors.invoice_email"
                                         :disabled="!canUpdate" @revert="form.clearErrors('invoice_email')" />
-                                    <EditableTextField v-model="form.quotes_email" type="input" label="Offerte e-mail"
+                                    <EditableTextField v-if="hasModule('quotes')" v-model="form.quotes_email" type="input" label="Offerte e-mail"
                                         placeholder="Nog niet ingesteld" :error="form.errors.quotes_email"
                                         :disabled="!canUpdate" @revert="form.clearErrors('quotes_email')" />
                                     <div v-if="hasPermission('customer.see_sensitive')">
@@ -662,7 +662,7 @@ import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
 import MaintenanceContractCreateDrawer from '@/Components/MaintenanceContracts/MaintenanceContractCreateDrawer.vue';
 import { useForm, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
-import { canCreateMaintenanceContract, hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
+import { canCreateMaintenanceContract, hasModule, hasPermission, nlDate, projectStatusClass, mapsLinkFromCustomer, initials, maintenanceContractStatusText, maintenanceContractStatusBadgeColor, maintenanceContractStatusMeta } from '@/Utilities/Utilities';
 import ServiceOrderList from '@/Components/ServiceOrderList.vue';
 import EventTimelineComponent from '@/Components/Timeline/EventTimelineComponent.vue';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
