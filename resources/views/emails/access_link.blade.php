@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $company_name ?? 'Aanvullende informatie' }}</title>
+    <title>{{ $company_name ?? $button_label }}</title>
 </head>
 
 <body style="margin:0; padding:0; background-color:#f4f5f7;">
@@ -50,11 +50,11 @@
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td align="center" bgcolor="#1d4ed8" style="border-radius:6px;">
-                                        <a href="{{ $upload_url }}"
+                                        <a href="{{ $link_url }}"
                                             style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif;
                                                    font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none;
                                                    border-radius:6px;">
-                                            Informatie aanleveren
+                                            {{ $button_label }}
                                         </a>
                                     </td>
                                 </tr>
@@ -65,7 +65,7 @@
                     <tr>
                         <td style="padding-top:16px; font-size:12px; color:#6b7280;">
                             Werkt de knop niet? Kopieer dan deze link naar uw browser:<br>
-                            <span style="word-break:break-all;">{{ $upload_url }}</span>
+                            <span style="word-break:break-all;">{{ $link_url }}</span>
                             @if ($expires_on)
                                 <br><br>Deze link werkt tot en met {{ $expires_on }}.
                             @endif

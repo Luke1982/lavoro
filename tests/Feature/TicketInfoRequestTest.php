@@ -112,7 +112,7 @@ class TicketInfoRequestTest extends TestCase
 
         Mail::assertSent(TicketInfoRequestMail::class, function (TicketInfoRequestMail $mail) {
             return $mail->hasTo('anders@example.nl')
-                && str_contains($mail->upload_url, '/storing/informatie/')
+                && str_contains($mail->link_url, '/storing/informatie/')
                 && str_contains($mail->body_html, 'Beste klant');
         });
 

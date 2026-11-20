@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Domain\Quotes\VatRates;
+use App\Enums\QuoteLineKinds;
 use App\Http\Requests\Concerns\ValidatesQuoteLines;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,7 +21,10 @@ class QuoteLineUpdateRequest extends FormRequest
     {
         return [
             'description' => ['sometimes', 'required', 'string', 'max:255'],
-            'quantity' => ['sometimes', 'required', 'numeric', 'gte:0', 'max:99999'],
+            'quantity' => [
+                'sometimes', 'required', 'numeric', 'gte:0', 'max:99999',
+                Rule::when($this->route('line')->kind === QuoteLineKinds::product->value, ['integer', 'min:1']),
+            ],
             'unit' => ['sometimes', 'nullable', 'string', 'max:30'],
             'unit_price' => ['sometimes', 'required', 'numeric', 'min:-9999999', 'max:9999999'],
             'cost_price' => $this->costPriceRules(),
@@ -32,6 +36,9 @@ class QuoteLineUpdateRequest extends FormRequest
 
     public function messages(): array
     {
-        return $this->costPriceMessages();
+        return [
+            ...$this->costPriceMessages(),
+            'quantity.integer' => 'Een product bied je per heel stuk aan.',
+        ];
     }
 }

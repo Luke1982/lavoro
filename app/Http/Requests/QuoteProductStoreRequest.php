@@ -20,7 +20,7 @@ class QuoteProductStoreRequest extends FormRequest
     {
         return [
             'product_id' => ['required', 'integer', 'exists:products,id'],
-            'quantity' => ['required', 'numeric', 'gt:0', 'max:99999'],
+            'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
             'materials' => ['sometimes', 'array'],
             'materials.*.default_id' => [
                 'required',
@@ -35,6 +35,7 @@ class QuoteProductStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'quantity.integer' => 'Een product bied je per heel stuk aan.',
             'materials.*.default_id.exists' => 'Dit materiaal hoort niet bij dit product.',
             'materials.*.quantity.gt' => 'Geef een aantal groter dan nul, of vink het materiaal uit.',
         ];

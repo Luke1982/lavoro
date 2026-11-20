@@ -66,7 +66,9 @@ use App\Http\Controllers\ProjectTemplateController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\QuoteCatalogController;
 use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\QuoteDecisionController;
 use App\Http\Controllers\QuoteLineController;
+use App\Http\Controllers\QuoteResponseController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoutePlanController;
@@ -241,6 +243,11 @@ Route::group(
         Route::middleware('tenant.module:quotes')->group(function () {
             Route::resource('quotes', QuoteController::class)->except(['create', 'edit']);
             Route::patch('quotes/{quote}/status', [QuoteController::class, 'status'])->name('quotes.status');
+            Route::post('quotes/{quote}/send', [QuoteDecisionController::class, 'send'])
+                ->middleware('throttle:10,1')
+                ->name('quotes.send');
+            Route::post('quotes/{quote}/accept', [QuoteDecisionController::class, 'accept'])->name('quotes.accept');
+            Route::post('quotes/{quote}/service-order', [QuoteDecisionController::class, 'convert'])->name('quotes.convert');
             Route::get('quotes/{quote}/catalog', QuoteCatalogController::class)
                 ->middleware('throttle:120,1')
                 ->name('quotes.catalog');
@@ -746,6 +753,16 @@ Route::middleware(['accesstoken:ticket.customer_upload', 'throttle:60,1'])->grou
         ->name('public.ticket.upload');
     Route::post('storing/informatie/{token}', [CustomerUploadController::class, 'store'])
         ->name('public.ticket.upload.store');
+});
+
+/**
+ * Where a customer answers a quote, once: accept it or ask for a change. The
+ * link opens the customer's database first, so the module is asked inside it.
+ */
+Route::middleware(['accesstoken:quote.response', 'tenant.module:quotes', 'throttle:30,1'])->group(function () {
+    Route::get('offerte/{token}', [QuoteResponseController::class, 'show'])->name('public.quote.respond');
+    Route::post('offerte/{token}/akkoord', [QuoteResponseController::class, 'accept'])->name('public.quote.accept');
+    Route::post('offerte/{token}/wijziging', [QuoteResponseController::class, 'requestChanges'])->name('public.quote.changes');
 });
 
 Route::get('login', [AuthController::class, 'create'])->name('login');

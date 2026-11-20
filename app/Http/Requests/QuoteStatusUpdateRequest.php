@@ -13,10 +13,16 @@ class QuoteStatusUpdateRequest extends FormRequest
         return $this->user()->can('update', $this->route('quote'));
     }
 
+    /**
+     * Accepting and asking for a change carry a name, a signature or a message,
+     * so a plain status button does not set them.
+     */
     public function rules(): array
     {
+        $allowed = array_map(fn (QuoteStatuses $status) => $status->value, $this->route('quote')->statusesByHand());
+
         return [
-            'status' => ['required', Rule::enum(QuoteStatuses::class)],
+            'status' => ['required', Rule::in($allowed)],
         ];
     }
 }

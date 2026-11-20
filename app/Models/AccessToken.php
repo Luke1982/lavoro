@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Access\IssuedAccessToken;
+use App\Domain\Access\LinkAlreadyAnswered;
 use App\Enums\AccessTokenPurpose;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,7 @@ class AccessToken extends Model
         'payload' => 'array',
         'expires_at' => 'datetime',
         'last_used_at' => 'datetime',
+        'used_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
 
@@ -56,12 +58,16 @@ class AccessToken extends Model
      * A second link for the same record does not revoke the first: they point
      * at the same thing with the same rights, and breaking a link a customer is
      * looking at that moment gains nothing.
+     *
+     * The purpose says how long a link lasts, unless the record knows better: a
+     * quote's link lasts as long as the quote is valid.
      */
     public static function issue(
         Model $tokenable,
         AccessTokenPurpose $purpose,
         ?string $recipient = null,
         array $payload = [],
+        ?\DateTimeInterface $expires_at = null,
     ): IssuedAccessToken {
         $plaintext = tenant()->getTenantKey() . self::TENANT_SEPARATOR . Str::random(48);
 
@@ -71,7 +77,7 @@ class AccessToken extends Model
             'purpose' => $purpose,
             'recipient' => $recipient,
             'payload' => $payload,
-            'expires_at' => now()->addDays($purpose->ttlDays()),
+            'expires_at' => $expires_at ?? now()->addDays($purpose->ttlDays()),
         ]);
 
         $token->token_hash = self::hash($plaintext);
@@ -127,7 +133,58 @@ class AccessToken extends Model
 
     public function isUsable(): bool
     {
-        return !$this->isRevoked() && !$this->isExpired();
+        return !$this->isRevoked() && !$this->isExpired() && !$this->isUsedUp();
+    }
+
+    /** A link that takes one answer and has had it. */
+    public function isUsedUp(): bool
+    {
+        return $this->used_at !== null;
+    }
+
+    /**
+     * Takes the one answer a link like this gets, and keeps it in the payload.
+     * One statement that only succeeds while nobody answered yet, so two tabs
+     * sending at the same moment give one answer and one refusal, not two.
+     * Inside the caller's transaction, so an answer whose consequences fail
+     * leaves the link unanswered.
+     *
+     * @param  array<string, mixed>  $answer
+     *
+     * @throws LinkAlreadyAnswered
+     */
+    public function useUp(array $answer): void
+    {
+        $now = now();
+        $payload = [...($this->payload ?? []), 'answer' => $answer];
+
+        $taken = self::whereKey($this->getKey())
+            ->whereNull('used_at')
+            ->whereNull('revoked_at')
+            ->update(['used_at' => $now, 'payload' => json_encode($payload), 'updated_at' => $now]);
+
+        if ($taken !== 1) {
+            throw new LinkAlreadyAnswered;
+        }
+
+        $this->forceFill(['used_at' => $now, 'payload' => $payload])->syncOriginalAttributes(['used_at', 'payload']);
+    }
+
+    /** @return array<string, mixed>|null what was answered, for a link that takes one answer */
+    public function answer(): ?array
+    {
+        return $this->payload['answer'] ?? null;
+    }
+
+    /**
+     * What was answered, when, and where the link had gone: as a record's page
+     * lists the answers it got.
+     *
+     * @return array<string, mixed>
+     */
+    public function answerSummary(): array
+    {
+        return [...($this->answer() ?? []), 'answered_at' => $this->used_at, 'recipient' => $this->recipient];
     }
 
     /**
@@ -147,10 +204,10 @@ class AccessToken extends Model
         ])->save();
     }
 
-    /** What is still open: not revoked and not expired. */
+    /** What is still open: not revoked, not expired and not answered. */
     public function scopeUsable(Builder $query): Builder
     {
-        return $query->whereNull('revoked_at')->where('expires_at', '>', now());
+        return $query->whereNull('revoked_at')->whereNull('used_at')->where('expires_at', '>', now());
     }
 
     public function tokenable(): MorphTo

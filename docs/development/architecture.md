@@ -143,6 +143,25 @@ of those loudly instead of failing silently. It also gives every signal in one
 cascade the same correlation id, so an entire chain of consequences can be read
 back as one story.
 
+## Links for people without an account
+
+A customer can add files to a storing or answer a quote without logging in, through
+a link sent by mail. All of that runs on one mechanism, and a new case is a new
+purpose, not a new mechanism:
+
+- **`AccessToken`** is one link, for one record (a morph) and one purpose. Only the
+  hash is stored; the tenant is part of the link, because the visitor has no session.
+- **`AccessTokenPurpose`** is the purpose: its route, how long a link lasts, and
+  whether it **answers once**. A link that answers once is used up by
+  `AccessToken::useUp($answer)`, atomically, and keeps the answer in its payload;
+  opened again it shows that it was answered instead of asking again.
+- **`ResolveAccessToken`** (`->middleware('accesstoken:quote.response')`) opens the
+  tenant from the link and puts the token in the container, or shows the expired or
+  answered page. The controller behind it only does what is particular to its record.
+- **`LinkMailer`** issues the link and sends the mail with the button under the text;
+  if the mail does not go out it withdraws the link and throws `LinkNotSent`, and the
+  caller records nothing.
+
 ## The front end
 
 `resources/js/Pages/**` mirrors the routes. `app.js` finds the right page and

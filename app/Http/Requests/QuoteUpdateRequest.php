@@ -27,7 +27,11 @@ class QuoteUpdateRequest extends FormRequest
         return [
             ...$this->quoteFieldRules($quote->customer_id),
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'quote_date' => ['sometimes', 'required', 'date', ...($kept_valid_until ? ['before_or_equal:' . $kept_valid_until] : [])],
+            'customer_picks_options' => ['sometimes', 'boolean'],
+            'quote_date' => [
+                'sometimes', 'required', 'date',
+                ...($kept_valid_until ? ['before_or_equal:' . $kept_valid_until] : []),
+            ],
             'valid_until' => ['sometimes', 'nullable', 'date', 'after_or_equal:' . $quote_date],
         ];
     }

@@ -15,10 +15,26 @@
             </p>
         </div>
         <div v-if="can.update" class="flex flex-wrap gap-2">
+            <Link v-if="serviceOrder" :href="`/serviceorders/${serviceOrder.id}`"
+                class="px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800">
+                Werkbon {{ serviceOrder.number }}
+            </Link>
+            <button v-else-if="quote.status === 'Geaccepteerd' && can.createServiceOrder" type="button" @click="convert"
+                class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700">
+                Werkbon maken
+            </button>
+            <button v-if="quote.status !== 'Geaccepteerd'" type="button" @click="sending = true"
+                class="px-3 py-2 rounded-md text-sm font-medium bg-lavoro-blue text-white hover:opacity-90">
+                {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
+            </button>
+            <button v-if="acceptable" type="button" @click="accepting = true"
+                class="px-3 py-2 rounded-md text-sm font-medium border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950">
+                Akkoord vastleggen
+            </button>
             <button v-for="status in nextStatuses" :key="status" type="button" @click="moveTo(status)"
                 :class="status === 'Concept'
                     ? 'border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
-                    : 'bg-lavoro-blue text-white hover:opacity-90'"
+                    : 'border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'"
                 class="px-3 py-2 rounded-md text-sm font-medium">
                 {{ STATUS_ACTIONS[status] }}
             </button>
@@ -32,6 +48,10 @@
     <p v-if="!editable && can.update" class="mb-4 text-sm text-gray-500 dark:text-slate-400">
         Deze offerte is {{ quote.status.toLowerCase() }}. Zet hem terug naar concept om hem aan te passen.
     </p>
+
+    <QuoteSendDrawer v-if="can.update" v-model="sending" :quote-id="quote.id" :defaults="sendDefaults" />
+    <QuoteAcceptDialog v-if="can.update" v-model="accepting" :quote-id="quote.id" :lines="lines" :totals="totals"
+        :default-name="quote.contact?.full_name ?? ''" :can-create-service-order="can.createServiceOrder" />
 
     <TwoThirdsOneThird>
         <template #main>
@@ -75,6 +95,25 @@
         </template>
 
         <template #sidebar>
+            <BoxComponent v-if="quote.accepted_name" class="mb-4">
+                <SectionHeader :icon="PenLineIcon" title="Akkoord" chapter="signoff"
+                    :subtitle="`${quote.accepted_name}, ${acceptedVia}, ${nlDate(quote.decided_at)}`" />
+                <img v-if="quote.accepted_signature" :src="quote.accepted_signature" alt="Handtekening"
+                    class="w-full rounded border border-gray-200 dark:border-slate-700 bg-white" />
+            </BoxComponent>
+
+            <BoxComponent v-if="answers.length" class="mb-4">
+                <SectionHeader :icon="MessageSquareIcon" title="Reacties van de klant" chapter="remarks" />
+                <div v-for="(answer, index) in answers" :key="index"
+                    class="py-2 text-sm border-b last:border-b-0 border-gray-100 dark:border-slate-800">
+                    <div class="font-medium">
+                        {{ answer.name }} {{ answer.kind === 'accepted' ? 'ging akkoord' : 'vroeg een wijziging' }}
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">{{ nlDate(answer.answered_at) }} · {{ answer.recipient }}</div>
+                    <p v-if="answer.message" class="mt-1 whitespace-pre-line">{{ answer.message }}</p>
+                </div>
+            </BoxComponent>
+
             <BoxComponent>
                 <SectionHeader :icon="EuroIcon" title="Totaal" chapter="financial" />
                 <dl class="text-sm divide-y divide-gray-100 dark:divide-slate-800">
@@ -105,6 +144,11 @@
             <BoxComponent class="mt-4">
                 <SectionHeader :icon="InfoIcon" title="Gegevens" chapter="customer" />
                 <div class="flex flex-col gap-3">
+                    <label class="flex items-center justify-between gap-2 text-sm">
+                        <span>Klant kiest zelf de opties</span>
+                        <SwitchComponent v-model="form.customer_picks_options" :disabled="!canEdit"
+                            @update:model-value="save('customer_picks_options')" />
+                    </label>
                     <div>
                         <span class="text-xs font-bold text-slate-400">Titel</span>
                         <TextInput v-model="form.title" :disabled="!canEdit" @change="save('title')"
@@ -155,9 +199,9 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
-import { EuroIcon, HistoryIcon, InfoIcon, ListIcon, TextIcon } from '@lucide/vue'
+import { EuroIcon, HistoryIcon, InfoIcon, ListIcon, MessageSquareIcon, PenLineIcon, TextIcon } from '@lucide/vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
@@ -167,6 +211,9 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
 import QuoteAddBar from '@/Components/Quotes/QuoteAddBar.vue'
+import QuoteAcceptDialog from '@/Components/Quotes/QuoteAcceptDialog.vue'
+import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
+import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import { nlCurrency, nlDate, quoteStatusClass } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -174,18 +221,26 @@ const props = defineProps({
     lines: { type: Array, required: true },
     totals: { type: Object, required: true },
     vatRates: { type: Array, required: true },
+    answers: { type: Array, default: () => [] },
+    acceptedVia: { type: String, default: null },
+    sendDefaults: { type: Object, required: true },
+    serviceOrder: { type: Object, default: null },
+    acceptable: { type: Boolean, default: false },
     nextStatuses: { type: Array, default: () => [] },
     editable: { type: Boolean, default: false },
     can: { type: Object, required: true },
 })
 
+/** What a plain status button says. Sending and accepting have buttons of their own. */
 const STATUS_ACTIONS = {
     Concept: 'Terug naar concept',
     Verzonden: 'Markeer als verzonden',
-    Geaccepteerd: 'Geaccepteerd',
     Afgewezen: 'Afgewezen',
     Vervallen: 'Vervallen',
 }
+
+const sending = ref(false)
+const accepting = ref(false)
 
 const textarea = 'mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2 disabled:bg-gray-50 dark:disabled:bg-slate-800'
 
@@ -200,6 +255,7 @@ const form = useForm({
     project_id: props.quote.project_id,
     intro_text: props.quote.intro_text,
     closing_text: props.quote.closing_text,
+    customer_picks_options: props.quote.customer_picks_options,
 })
 
 const locationOptions = computed(() => (props.quote.customer.locations ?? []).map(location => ({
@@ -230,6 +286,11 @@ watch(() => [form.location_id, form.contact_id, form.project_id], () => {
 
 function moveTo(status) {
     router.patch(`/quotes/${props.quote.id}/status`, { status }, { preserveScroll: true })
+}
+
+function convert() {
+    if (!confirm(`Van offerte ${props.quote.number} een werkbon maken?`)) return
+    router.post(`/quotes/${props.quote.id}/service-order`)
 }
 
 function destroy() {

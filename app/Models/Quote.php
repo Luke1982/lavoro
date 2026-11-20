@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Quotes\QuoteTotals;
+use App\Enums\QuoteAcceptedVia;
 use App\Enums\QuoteStatuses;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasOwner;
@@ -11,6 +12,7 @@ use App\Support\QuoteNumbers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,7 +35,14 @@ class Quote extends Model
         'valid_until',
         'intro_text',
         'closing_text',
+        'customer_picks_options',
     ];
+
+    /**
+     * A signature is a person's handwriting: the quote page shows it to who may
+     * see the quote, and nothing else carries it.
+     */
+    protected $hidden = ['accepted_signature'];
 
     protected array $activity_labels = [
         'number' => 'Offertenummer',
@@ -46,6 +55,7 @@ class Quote extends Model
         'valid_until' => 'Geldig tot',
         'intro_text' => 'Openingstekst',
         'closing_text' => 'Slottekst',
+        'customer_picks_options' => 'Klant kiest zelf de opties',
     ];
 
     protected array $activity_relations = [
@@ -55,11 +65,15 @@ class Quote extends Model
         'project_id' => ['project', 'number'],
     ];
 
-    /** Reported by QuoteStatusChanged, which also stamps these two. */
+    /** Reported by QuoteStatusChanged and its kind, which stamp these along with the status. */
     protected array $activity_ignore = [
         'status',
         'sent_at',
         'decided_at',
+        'accepted_name',
+        'accepted_signature',
+        'accepted_via',
+        'service_order_id',
     ];
 
     protected function casts(): array
@@ -68,7 +82,9 @@ class Quote extends Model
             'quote_date' => 'date:Y-m-d',
             'valid_until' => 'date:Y-m-d',
             'sent_at' => 'datetime',
+            'accepted_via' => QuoteAcceptedVia::class,
             'decided_at' => 'datetime',
+            'customer_picks_options' => 'boolean',
         ];
     }
 
@@ -89,6 +105,17 @@ class Quote extends Model
     public function statusEnum(): QuoteStatuses
     {
         return QuoteStatuses::from($this->status);
+    }
+
+    /**
+     * Where a plain status button may take this quote now. None once a werkbon
+     * was made from it: then it stays accepted.
+     *
+     * @return array<int, QuoteStatuses>
+     */
+    public function statusesByHand(): array
+    {
+        return $this->service_order_id === null ? $this->statusEnum()->nextByHand() : [];
     }
 
     public function label(): string
@@ -114,6 +141,36 @@ class Quote extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function serviceOrder(): BelongsTo
+    {
+        return $this->belongsTo(ServiceOrder::class);
+    }
+
+    /** The links the customer was sent. */
+    public function accessTokens(): MorphMany
+    {
+        return $this->morphMany(AccessToken::class, 'tokenable')->latest();
+    }
+
+    /** The links the customer answered on, newest first. */
+    public function answeredLinks(): MorphMany
+    {
+        return $this->accessTokens()->whereNotNull('used_at');
+    }
+
+    /**
+     * Every link to this quote that could still be answered stops working,
+     * except the one just sent: what they showed is no longer what is offered,
+     * or there is a newer link to it.
+     */
+    public function withdrawLinks(?AccessToken $except = null): void
+    {
+        $this->accessTokens()->usable()
+            ->when($except, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->get()
+            ->each->revoke();
     }
 
     public function lines(): HasMany

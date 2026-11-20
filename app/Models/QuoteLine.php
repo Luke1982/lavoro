@@ -34,6 +34,7 @@ class QuoteLine extends Model
         'vat_percent',
         'discount_percent',
         'is_optional',
+        'is_chosen',
     ];
 
     protected $hidden = self::MARGIN_ATTRIBUTES;
@@ -47,7 +48,17 @@ class QuoteLine extends Model
             'vat_percent' => 'float',
             'discount_percent' => 'float',
             'is_optional' => 'boolean',
+            'is_chosen' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether the line is part of what is offered and counted: every line that
+     * is not optional, and an optional one the customer chose.
+     */
+    public function isIncluded(): bool
+    {
+        return !$this->is_optional || $this->is_chosen === true;
     }
 
     public function kindEnum(): QuoteLineKinds

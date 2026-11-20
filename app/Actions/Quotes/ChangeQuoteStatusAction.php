@@ -2,11 +2,14 @@
 
 namespace App\Actions\Quotes;
 
+use App\Domain\Quotes\QuoteGuard;
 use App\Domain\Signals\Quotes\QuoteStatusChanged;
 use App\Domain\Signals\Signals;
 use App\Enums\QuoteStatuses;
 use App\Exceptions\Refusal;
 use App\Models\Quote;
+use App\Models\QuoteLine;
+use Closure;
 
 /**
  * Moves a quote to another status, along the paths QuoteStatuses allows. Sending
@@ -15,17 +18,30 @@ use App\Models\Quote;
  *
  * Like projects, the status only moves from the one this request saw, so two
  * people pressing "geaccepteerd" at once leave one line on the timeline.
+ *
+ * Leaving "geaccepteerd" undoes the acceptance: the name, signature and chosen
+ * options go, and the trail keeps who signed. Once a werkbon was made from the
+ * quote, it stays accepted.
  */
 class ChangeQuoteStatusAction
 {
-    private const STAMPS = ['status', 'sent_at', 'decided_at'];
-
-    public function execute(Quote $quote, QuoteStatuses $status, ?string $reason = null): void
-    {
+    /**
+     * @param  array<string, mixed>  $with  further columns that move along, such as who accepted
+     * @param  (Closure(Quote, string, string): QuoteStatusChanged)|null  $announce  the fact as it should be told,
+     *                                                                               when it is more than a status
+     * @return bool whether it moved
+     */
+    public function execute(
+        Quote $quote,
+        QuoteStatuses $status,
+        ?string $reason = null,
+        array $with = [],
+        ?Closure $announce = null,
+    ): bool {
         $previous = $quote->statusEnum();
 
         if ($previous === $status) {
-            return;
+            return false;
         }
 
         if (!in_array($status, $previous->next(), true)) {
@@ -35,8 +51,12 @@ class ChangeQuoteStatusAction
             );
         }
 
-        if ($status === QuoteStatuses::verzonden && $quote->totals()->isEmpty()) {
-            throw new Refusal('Offerte ' . $quote->number . ' heeft nog geen regels met een bedrag.');
+        if ($previous === QuoteStatuses::geaccepteerd && $quote->service_order_id !== null) {
+            throw new Refusal('Van offerte ' . $quote->number . ' is al een werkbon gemaakt; hij blijft geaccepteerd.');
+        }
+
+        if ($status === QuoteStatuses::verzonden) {
+            QuoteGuard::offersSomething($quote);
         }
 
         $changes = [
@@ -46,6 +66,10 @@ class ChangeQuoteStatusAction
                 $status->isDecided() => ['decided_at' => now()],
                 default => ['decided_at' => null],
             },
+            ...($previous === QuoteStatuses::geaccepteerd
+                ? ['accepted_name' => null, 'accepted_signature' => null, 'accepted_via' => null]
+                : []),
+            ...$with,
         ];
 
         $moved = Quote::whereKey($quote->getKey())
@@ -53,11 +77,20 @@ class ChangeQuoteStatusAction
             ->update([...$changes, 'updated_at' => now()]);
 
         if ($moved === 0) {
-            return;
+            return false;
         }
 
-        $quote->forceFill($changes)->syncOriginalAttributes(self::STAMPS);
+        if ($previous === QuoteStatuses::geaccepteerd) {
+            QuoteLine::where('quote_id', $quote->id)->update(['is_chosen' => null]);
+            $quote->unsetRelation('lines');
+        }
 
-        Signals::dispatch(new QuoteStatusChanged($quote, $previous->value, $status->value, $reason));
+        $quote->forceFill($changes)->syncOriginalAttributes(array_keys($changes));
+
+        Signals::dispatch($announce
+            ? $announce($quote, $previous->value, $status->value)
+            : new QuoteStatusChanged($quote, $previous->value, $status->value, $reason));
+
+        return true;
     }
 }

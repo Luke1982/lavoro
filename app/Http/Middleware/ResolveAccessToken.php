@@ -59,6 +59,13 @@ class ResolveAccessToken
             abort(404);
         }
 
+        if ($token->purpose->answersOnce() && $token->isUsedUp()) {
+            return Inertia::render('Public/LinkAnsweredPage', [
+                'purpose' => $token->purpose->label(),
+                'answered_on' => $token->used_at,
+            ])->toResponse($request)->setStatusCode(410);
+        }
+
         if ($token->isExpired()) {
             return Inertia::render('Public/LinkExpiredPage', [
                 'purpose' => $token->purpose->label(),

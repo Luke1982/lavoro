@@ -6,6 +6,8 @@ use App\Actions\Quotes\ChangeQuoteStatusAction;
 use App\Actions\Quotes\CreateQuoteAction;
 use App\Actions\Quotes\DeleteQuoteAction;
 use App\Actions\Quotes\UpdateQuoteAction;
+use App\Domain\Quotes\QuoteLineTree;
+use App\Domain\Quotes\QuoteMail;
 use App\Domain\Quotes\VatRates;
 use App\Enums\QuoteStatuses;
 use App\Http\Requests\QuoteDestroyRequest;
@@ -15,6 +17,7 @@ use App\Http\Requests\QuoteStoreRequest;
 use App\Http\Requests\QuoteUpdateRequest;
 use App\Models\Quote;
 use App\Models\QuoteLine;
+use App\Models\ServiceOrder;
 use App\Traits\OffersCustomerPicker;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
@@ -22,6 +25,8 @@ use Illuminate\Support\Arr;
 class QuoteController extends Controller
 {
     use OffersCustomerPicker;
+
+    private const LIST_COLUMNS = ['id', 'number', 'title', 'status', 'quote_date', 'valid_until'];
 
     public function index(QuoteReadRequest $request)
     {
@@ -35,7 +40,7 @@ class QuoteController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn (Quote $quote) => [
-                ...Arr::only($quote->attributesToArray(), ['id', 'number', 'title', 'status', 'quote_date', 'valid_until']),
+                ...Arr::only($quote->attributesToArray(), self::LIST_COLUMNS),
                 'customer' => $quote->customer?->only(['id', 'name']),
                 'total' => $quote->totals()->net_cents / 100,
             ]);
@@ -53,10 +58,13 @@ class QuoteController extends Controller
         $see_margins = $request->user()->can('seeMargins', Quote::class);
 
         $quote->load([
-            'customer:id,name,city',
+            'customer:id,name,city,email,quotes_email',
             'customer.locations:id,customer_id,title,address,city',
             'customer.contacts',
             'customer.projects:id,customer_id,number,title',
+            'contact',
+            'serviceOrder',
+            'answeredLinks',
             'lines',
             'activities' => fn ($query) => $query->visibleTo($request->user())
                 ->with(['user:id,name', 'fieldChanges'])
@@ -67,21 +75,30 @@ class QuoteController extends Controller
             $quote->lines->each->makeVisible(QuoteLine::MARGIN_ATTRIBUTES);
         }
 
-        $lines = $this->tree($quote);
+        $lines = QuoteLineTree::of($quote);
         $totals = $quote->totals()->toArray($see_margins);
-        $quote->unsetRelation('lines');
+        $answers = $quote->answeredLinks->map->answerSummary()->values();
+        $service_order = $quote->serviceOrder?->only(['id', 'number']);
+        $quote->unsetRelation('lines')->unsetRelation('answeredLinks')->unsetRelation('serviceOrder')
+            ->makeVisible('accepted_signature');
 
         return inertia('Quotes/ShowPage', [
             'quote' => $quote,
             'lines' => $lines,
             'totals' => $totals,
             'vatRates' => VatRates::ALL,
-            'nextStatuses' => array_map(fn (QuoteStatuses $status) => $status->value, $quote->statusEnum()->next()),
+            'answers' => $answers,
+            'acceptedVia' => $quote->accepted_via?->phrase(),
+            'serviceOrder' => $service_order,
+            'sendDefaults' => QuoteMail::defaults($quote),
+            'nextStatuses' => array_map(fn (QuoteStatuses $status) => $status->value, $quote->statusesByHand()),
             'editable' => $quote->statusEnum()->allowsEditing(),
+            'acceptable' => $quote->statusEnum()->allowsAccepting(),
             'can' => [
                 'update' => $request->user()->can('update', $quote),
                 'delete' => $request->user()->can('delete', $quote),
                 'seeMargins' => $see_margins,
+                'createServiceOrder' => $request->user()->can('create', ServiceOrder::class),
             ],
         ]);
     }
@@ -106,7 +123,8 @@ class QuoteController extends Controller
     {
         $change->execute($quote, $request->enum('status', QuoteStatuses::class));
 
-        return redirect()->back()->with('success', 'Offerte ' . $quote->number . ' is nu ' . mb_strtolower($quote->status) . '.');
+        return redirect()->back()
+            ->with('success', 'Offerte ' . $quote->number . ' is nu ' . mb_strtolower($quote->status) . '.');
     }
 
     public function destroy(QuoteDestroyRequest $request, Quote $quote, DeleteQuoteAction $delete)
@@ -126,32 +144,11 @@ class QuoteController extends Controller
                 ->where('number', 'like', $like)
                 ->orWhere('title', 'like', $like)
                 ->orWhereHas('customer', fn (Builder $customer) => $customer->where('name', 'like', $like))))
-            ->when($list['customer'], fn (Builder $query, int $customer_id) => $query->where('customer_id', $customer_id))
+            ->when($list['customer'], fn (Builder $query, int $id) => $query->where('customer_id', $id))
             ->when(match ($list['status']) {
                 QuoteReadRequest::OPEN => QuoteStatuses::openValues(),
                 QuoteReadRequest::EVERY_STATUS => null,
                 default => [$list['status']],
             }, fn (Builder $query, array $statuses) => $query->whereIn('status', $statuses));
-    }
-
-    /**
-     * The lines as the screen draws them: each line at the top, with the
-     * materials that came along with it underneath.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function tree(Quote $quote): array
-    {
-        $row = fn (QuoteLine $line) => [...$line->toArray(), 'net' => $line->netCents() / 100];
-        $children = $quote->lines->whereNotNull('parent_id')->groupBy('parent_id');
-
-        return $quote->lines
-            ->whereNull('parent_id')
-            ->map(fn (QuoteLine $line) => [
-                ...$row($line),
-                'children' => $children->get($line->id, collect())->map($row)->values()->all(),
-            ])
-            ->values()
-            ->all();
     }
 }

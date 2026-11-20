@@ -11,8 +11,9 @@ use Illuminate\Support\Collection;
  * disagree by a cent. VAT is counted per rate over the sum of its lines, the way
  * an invoice states it, not per line.
  *
- * Optional lines, and the materials under an optional product, are what the
- * customer may add: they are summed apart and are not in the total. The cost
+ * Optional lines the customer did not choose, and the materials under such a
+ * product, are what the customer may still add: they are summed apart and are
+ * not in the total. The cost
  * and margin are only for whoever may see margins.
  */
 final class QuoteTotals
@@ -31,10 +32,10 @@ final class QuoteTotals
     /** @param Collection<int, QuoteLine> $lines */
     public static function of(Collection $lines): self
     {
-        $optional_ids = $lines->where('is_optional', true)->pluck('id')->all();
+        $left_out_ids = $lines->reject(fn (QuoteLine $line) => $line->isIncluded())->pluck('id')->all();
 
         [$optional, $included] = $lines->partition(
-            fn (QuoteLine $line) => $line->is_optional || in_array($line->parent_id, $optional_ids, true)
+            fn (QuoteLine $line) => !$line->isIncluded() || in_array($line->parent_id, $left_out_ids, true)
         );
 
         $vat = $included
