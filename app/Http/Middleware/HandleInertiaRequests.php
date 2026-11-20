@@ -7,6 +7,7 @@ use App\Models\Assistant;
 use App\Models\Central\Package;
 use App\Models\GeneralSetting;
 use App\Models\InternalAnnouncement;
+use App\Models\LedgerAccount;
 use App\Models\Ticket;
 use App\Support\PageTitle;
 use Illuminate\Http\Request;
@@ -130,6 +131,14 @@ class HandleInertiaRequests extends Middleware
                 ? InternalAnnouncement::openFor($request->user())
                     ?->only(['id', 'title', 'body'])
                 : null,
+            /**
+             * The parts of Lavoro that only exist once something is set up,
+             * for a menu entry's "feature": ledger accounts while a connection
+             * exchanges them. A function, so a redirect does not pay for it.
+             */
+            'features' => fn () => $request->user() && tenancy()->initialized
+                ? ['ledger_accounts' => LedgerAccount::inUse()]
+                : [],
             /** Also on a partial reload: app.js puts it in the tab after every visit. */
             'title' => Inertia::always(fn () => PageTitle::for($request)),
             /** For the link on the login screen, which Google Play requires in the app. */

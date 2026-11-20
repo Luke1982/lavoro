@@ -87,10 +87,14 @@ export function useMenu() {
      * daar niet genoeg, zoals bij technisch beheer.
      *
      * module gaat aan alles vooraf: een betaalde module die de klant niet heeft
-     * staat voor niemand in het menu, ook niet voor een beheerder.
+     * staat voor niemand in het menu, ook niet voor een beheerder. feature net
+     * zo: een onderdeel dat pas bestaat als er iets voor is ingesteld, zoals
+     * grootboekrekeningen zodra een koppeling ze uitwisselt. Welke dat zijn
+     * zegt de server in props.features.
      */
     const maySee = (item) => {
         if (item.module && !(page.props.tenant?.modules ?? []).includes(item.module)) return false
+        if (item.feature && !page.props.features?.[item.feature]) return false
         if (item.superadminOnly) return isSuperAdmin.value
         if (item.adminOnly) return isAdmin.value
         if (item.explicitPermission) return (page.props.auth?.permissions || []).includes(item.explicitPermission)

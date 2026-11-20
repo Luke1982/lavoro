@@ -73,7 +73,9 @@ Exact sales order line has no account field, so only invoices carry it.
 
 The field on materials and products shows only while an active connection
 exchanges ledger accounts (`LedgerAccount::inUse()`; `choices()` returns null
-otherwise), and so does the link to the list on that connection's card. Products carry the account for when
+otherwise), and so do the link on that connection's card and the menu entry:
+`"feature": "ledger_accounts"` in `menu.json`, which `useMenu` checks against
+the `features` prop that `HandleInertiaRequests` shares. Products carry the account for when
 products themselves are invoiced: a werkbon sends materials only, so nothing
 reads a product's account yet. An account still chosen on a material or
 product cannot be removed (`LedgerAccountController::destroy`, and a

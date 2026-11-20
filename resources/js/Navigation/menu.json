@@ -204,7 +204,8 @@
                     "children": [
                         { "id": "algemeneinstellingen", "label": "Algemeen", "href": "/admin/settings", "adminOnly": true },
                         { "id": "agendatoegang", "label": "Agenda-toegang", "href": "/admin/calendar-grants", "adminOnly": true },
-                        { "id": "koppelingen", "label": "Koppelingen", "href": "/integrations", "permission": "integration.manage" },
+                        { "id": "koppelingen", "label": "Koppelingen", "href": "/integrations", "permission": "integration.manage", "exact": true },
+                        { "id": "grootboekrekeningen", "label": "Grootboekrekeningen", "href": "/integrations/ledger-accounts", "permission": "integration.manage", "feature": "ledger_accounts" },
                         { "id": "extravelden", "label": "Extra velden", "href": "/customfields", "permission": "customfield.read" },
                         { "id": "meldingsvoorkeuren", "label": "Meldingen", "href": "/notificationsubscriptions" }
                     ]

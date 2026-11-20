@@ -175,6 +175,17 @@ class LedgerAccountTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->where('ledgerAccounts', null));
     }
 
+    public function test_the_menu_offers_the_list_only_while_a_connection_exchanges_them(): void
+    {
+        $this->manager()->get('/integrations')
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('features.ledger_accounts', true));
+
+        $this->exchange(read: false, write: false);
+
+        $this->manager()->get('/integrations')
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('features.ledger_accounts', false));
+    }
+
     public function test_a_werkbon_line_goes_onto_the_account_of_its_material(): void
     {
         FakeConnector::$ledger_accounts = ['gb-1' => ['code' => '8000', 'name' => 'Omzet']];
