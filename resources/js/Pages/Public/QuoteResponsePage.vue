@@ -189,7 +189,7 @@ const props = defineProps({
     layout: { type: Object, required: true },
     /** Who makes the quote: name, address, KvK, VAT number, IBAN. */
     seller: { type: Object, default: () => ({}) },
-    /** The general terms it is offered under, by name; the file comes from the link. */
+    /** The general terms it is offered under: { kind, name, url? }; a file comes through the link. */
     terms: { type: Object, default: null },
     /** For a private customer: the 14 days to change their mind, and the model form. */
     withdrawal: { type: Object, default: null },
@@ -219,7 +219,18 @@ const hasChoices = computed(() => props.lines.some(isChoosable))
 
 const linkUrl = page.url.split('?')[0]
 const pdfUrl = computed(() => props.pdf_url ?? `${linkUrl}/pdf`)
-const termsUrl = computed(() => (props.preview_of ? '/quote-terms' : `${linkUrl}/voorwaarden`))
+/** Kept on the company's own page: that page; otherwise the file, through the link or, in a preview, the settings. */
+const termsUrl = computed(() => {
+    if (props.terms?.kind === 'link') return props.terms.url
+    return props.preview_of ? '/quote-terms' : `${linkUrl}/voorwaarden`
+})
+
+const termsSentence = computed(() => {
+    if (!props.terms) return null
+    return props.terms.kind === 'link'
+        ? `Op deze offerte zijn onze algemene voorwaarden van toepassing. U leest ze op ${props.terms.url}.`
+        : `Op deze offerte zijn onze algemene voorwaarden van toepassing (${props.terms.name}). U ontvangt ze bij deze offerte.`
+})
 
 /** The terms an installation quote has to state, those it states. */
 const agreements = computed(() => [
@@ -227,7 +238,7 @@ const agreements = computed(() => [
     { label: 'Start', value: props.quote.start_period },
     { label: 'Duur', value: props.quote.duration },
     { label: 'Betaling', value: props.quote.payment_terms },
-    { label: 'Voorwaarden', value: props.terms ? `Op deze offerte zijn onze algemene voorwaarden van toepassing (${props.terms.name}).` : null },
+    { label: 'Voorwaarden', value: termsSentence.value },
 ].filter(agreement => agreement.value))
 
 const sellerLine = computed(() => [

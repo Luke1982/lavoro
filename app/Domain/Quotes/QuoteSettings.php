@@ -2,7 +2,9 @@
 
 namespace App\Domain\Quotes;
 
+use App\Enums\QuoteTermsKinds;
 use App\Models\GeneralSetting;
+use App\Support\RichText;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,9 +13,11 @@ use Illuminate\Support\Facades\Storage;
  * customer sees, the payment terms, the hourly rate a werkbon's hours are
  * offered at, the follow-up, and the company's general terms.
  *
- * The terms are a PDF on the tenant's private disk. A new upload is stored
+ * The terms come one of three ways: a PDF on the tenant's private disk, a text
+ * written here, or a link to the company's own page. A new upload is stored
  * beside the old one rather than over it: a version sent before still names the
- * file the customer was given, and that file has to stay what it was.
+ * file the customer was given, and that file has to stay what it was. A text is
+ * frozen into each version as it was sent.
  */
 final class QuoteSettings
 {
@@ -26,6 +30,8 @@ final class QuoteSettings
     public const DEFAULT_EXPIRY_NOTICE_DAYS = 3;
 
     private const TERMS_FOLDER = 'quote-terms';
+
+    private const TERMS_NAME = 'Algemene voorwaarden';
 
     /** @return array<string, bool> */
     public static function layout(): array
@@ -62,23 +68,43 @@ final class QuoteSettings
         return self::days('quote_expiry_notice_days', self::DEFAULT_EXPIRY_NOTICE_DAYS);
     }
 
-    /** @return array{name: string, path: string}|null the general terms every quote goes out with */
+    /**
+     * The general terms every quote goes out with, in the way chosen, or null
+     * when there are none: nothing chosen, or the chosen way has nothing in it.
+     * A PDF is named by the file it is stored in, a text carries the text, a
+     * link its address; each version freezes this as it was.
+     *
+     * @return array{kind: string, name: string, path?: string, html?: string, url?: string}|null
+     */
     public static function terms(): ?array
     {
-        $path = GeneralSetting::get('quote_terms_path');
-
-        return $path
-            ? ['name' => (string) GeneralSetting::get('quote_terms_name', 'Algemene voorwaarden.pdf'), 'path' => $path]
-            : null;
+        return match (self::termsKind()) {
+            QuoteTermsKinds::pdf => self::pdfTerms(),
+            QuoteTermsKinds::text => self::textTerms(),
+            QuoteTermsKinds::link => self::linkTerms(),
+            null => null,
+        };
     }
 
+    /** The way chosen; before there was a choice, an uploaded PDF was the only way. */
+    public static function termsKind(): ?QuoteTermsKinds
+    {
+        $kind = GeneralSetting::get('quote_terms_kind');
+
+        return $kind === null
+            ? (GeneralSetting::get('quote_terms_path') ? QuoteTermsKinds::pdf : null)
+            : QuoteTermsKinds::tryFrom($kind);
+    }
+
+    /** A new PDF, which from now on is the way the terms come along. */
     public static function storeTerms(UploadedFile $file): void
     {
         GeneralSetting::set('quote_terms_path', Storage::disk('local')->putFile(self::TERMS_FOLDER, $file));
         GeneralSetting::set('quote_terms_name', $file->getClientOriginalName());
+        GeneralSetting::set('quote_terms_kind', QuoteTermsKinds::pdf->value);
     }
 
-    /** Quotes go out without terms from now on; the file stays for the versions that named it. */
+    /** The PDF is gone from the settings; the file stays for the versions that named it. */
     public static function removeTerms(): void
     {
         GeneralSetting::set('quote_terms_path', '');
@@ -95,7 +121,10 @@ final class QuoteSettings
             'hourly_rate' => self::hourlyRate(),
             'reminder_days' => self::reminderDays(),
             'expiry_notice_days' => self::expiryNoticeDays(),
-            'terms_name' => self::terms()['name'] ?? null,
+            'terms_kind' => self::termsKind()?->value,
+            'terms_name' => (string) GeneralSetting::get('quote_terms_name', '') ?: null,
+            'terms_text' => (string) GeneralSetting::get('quote_terms_text', ''),
+            'terms_url' => (string) GeneralSetting::get('quote_terms_url', ''),
         ];
     }
 
@@ -105,10 +134,41 @@ final class QuoteSettings
         foreach ($values as $key => $value) {
             GeneralSetting::set('quote_' . $key, match (true) {
                 $key === 'layout' => json_encode(QuoteLayout::complete($value, self::layout())),
+                $key === 'terms_text' => RichText::clean($value) ?? '',
                 $value === null => '',
                 default => $value,
             });
         }
+    }
+
+    /** @return array{kind: string, name: string, path: string}|null */
+    private static function pdfTerms(): ?array
+    {
+        $path = GeneralSetting::get('quote_terms_path');
+
+        return $path ? [
+            'kind' => QuoteTermsKinds::pdf->value,
+            'name' => (string) GeneralSetting::get('quote_terms_name', self::TERMS_NAME . '.pdf'),
+            'path' => $path,
+        ] : null;
+    }
+
+    /** @return array{kind: string, name: string, html: string}|null */
+    private static function textTerms(): ?array
+    {
+        $html = GeneralSetting::get('quote_terms_text');
+
+        return $html
+            ? ['kind' => QuoteTermsKinds::text->value, 'name' => self::TERMS_NAME . '.pdf', 'html' => $html]
+            : null;
+    }
+
+    /** @return array{kind: string, name: string, url: string}|null */
+    private static function linkTerms(): ?array
+    {
+        $url = GeneralSetting::get('quote_terms_url');
+
+        return $url ? ['kind' => QuoteTermsKinds::link->value, 'name' => $url, 'url' => $url] : null;
     }
 
     /** A blank stored value means "off"; a value never stored means the default. */

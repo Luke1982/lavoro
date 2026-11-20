@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Quotes\QuoteFiles;
 use App\Domain\Quotes\QuoteLayout;
 use App\Domain\Quotes\QuoteSettings;
 use App\Http\Requests\QuoteLostReasonSaveRequest;
@@ -19,8 +20,7 @@ use App\Http\Requests\QuoteUnitUpdateRequest;
 use App\Models\QuoteLostReason;
 use App\Models\QuoteTemplate;
 use App\Models\QuoteUnit;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * The settings that hold for every quote, chapter by chapter: what a quote
@@ -70,13 +70,9 @@ class QuoteSettingsController extends Controller
     }
 
     /** The general terms as they stand, for whoever may read quotes: the preview of a quote links to them. */
-    public function terms(QuoteReadRequest $request): StreamedResponse
+    public function terms(QuoteReadRequest $request): Response
     {
-        $terms = QuoteSettings::terms();
-
-        abort_if($terms === null || !Storage::disk('local')->exists($terms['path']), 404);
-
-        return Storage::disk('local')->response($terms['path'], $terms['name']);
+        return QuoteFiles::open(QuoteSettings::terms());
     }
 
     public function storeUnit(QuoteUnitStoreRequest $request)

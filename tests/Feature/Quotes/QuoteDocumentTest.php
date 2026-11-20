@@ -69,7 +69,7 @@ class QuoteDocumentTest extends TestCase
 
         $this->signOut();
         $this->get($link)->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('terms', ['name' => 'Voorwaarden.pdf'])
+            ->where('terms', ['kind' => 'pdf', 'name' => 'Voorwaarden.pdf'])
             ->missing('quote.cost_price'));
         $this->get($link . '/voorwaarden')->assertOk();
         $this->get($link . '/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');

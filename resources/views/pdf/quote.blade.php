@@ -277,7 +277,17 @@
             <tr><td class="label">Stelposten</td><td>Een stelpost is een bedrag dat nog niet vaststaat. Wij verrekenen het achteraf op basis van de werkelijke kosten.</td></tr>
         @endif
         @if ($document['terms'])
-            <tr><td class="label">Voorwaarden</td><td>Op deze offerte zijn onze algemene voorwaarden van toepassing ({{ $document['terms']['name'] }}). U ontvangt ze bij deze offerte.</td></tr>
+            <tr>
+                <td class="label">Voorwaarden</td>
+                <td>
+                    Op deze offerte zijn onze algemene voorwaarden van toepassing.
+                    @if ($document['terms']['kind'] === 'link')
+                        U leest ze op {{ $document['terms']['url'] }}.
+                    @else
+                        U ontvangt ze bij deze offerte ({{ $document['terms']['name'] }}).
+                    @endif
+                </td>
+            </tr>
         @endif
         @if ($document['withdrawal'])
             <tr><td class="label">Bedenktijd</td><td>U hebt {{ $document['withdrawal']['days'] }} dagen bedenktijd nadat u akkoord geeft. Zie Herroepingsrecht hieronder.</td></tr>

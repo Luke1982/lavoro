@@ -58,11 +58,7 @@ class QuoteResponseController extends Controller
 
     public function terms(AccessToken $access_token): Response
     {
-        $terms = QuoteFiles::terms($this->documentFor($access_token));
-
-        abort_if($terms === null, 404);
-
-        return QuoteFiles::inline($terms);
+        return QuoteFiles::open($this->documentFor($access_token)['terms']);
     }
 
     public function accept(

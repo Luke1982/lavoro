@@ -34,6 +34,19 @@ final class QuotePdf
         return $pdf->output();
     }
 
+    /** General terms written as a text, on paper under the company's logo, to hand over with a quote. */
+    public static function renderTerms(string $html): string
+    {
+        $pdf = Pdf::loadView('pdf.quote-terms', [
+            'html' => $html,
+            'logo' => Company::pdfLogo(),
+            'seller' => Company::main()?->details() ?? [],
+        ])->setPaper('a4');
+        $pdf->getDomPDF()->getOptions()->set(['defaultFont' => 'Helvetica', 'isFontSubsettingEnabled' => true]);
+
+        return $pdf->output();
+    }
+
     /**
      * The photos of the lines at the top, small, by image id. A photo removed
      * from the catalogue since is simply not drawn.

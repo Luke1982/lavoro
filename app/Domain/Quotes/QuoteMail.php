@@ -2,6 +2,7 @@
 
 namespace App\Domain\Quotes;
 
+use App\Enums\QuoteTermsKinds;
 use App\Models\Company;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
@@ -43,6 +44,7 @@ final class QuoteMail
             . '<p>Hierbij ontvangt u onze offerte ' . e($quote->number) . ' voor ' . e($quote->title) . '. '
             . 'Met de knop hieronder bekijkt u de offerte. Daar kunt u ook direct akkoord geven, '
             . 'of laten weten wat u anders zou willen.</p>'
+            . self::aboutTerms(QuoteSettings::terms())
             . self::closing();
     }
 
@@ -60,6 +62,7 @@ final class QuoteMail
             . ($quote->valid_until
                 ? '<p>De offerte is geldig tot en met ' . $quote->valid_until->format('d-m-Y') . '.</p>'
                 : '')
+            . self::aboutTerms($version->document()['terms'])
             . self::closing();
     }
 
@@ -77,7 +80,24 @@ final class QuoteMail
             . 'In de bijlage vindt u de offerte met uw handtekening.</p>'
             . ($cooling_off ? '<p>U hebt bedenktijd tot en met ' . $cooling_off->format('d-m-Y') . '. Hoe u de '
                 . 'overeenkomst in die tijd herroept, leest u onder Herroepingsrecht in de offerte.</p>' : '')
+            . self::aboutTerms($quote->signedDocument()['terms'] ?? null)
             . self::closing();
+    }
+
+    /**
+     * Where the customer finds the general terms the mail goes with: in the
+     * attachments, or on the company's own page.
+     *
+     * @param  array<string, mixed>|null  $terms
+     */
+    private static function aboutTerms(?array $terms): string
+    {
+        return match (true) {
+            $terms === null => '',
+            $terms['kind'] === QuoteTermsKinds::link->value => '<p>Op deze offerte zijn onze algemene voorwaarden van '
+                . 'toepassing. U leest ze op <a href="' . e($terms['url']) . '">' . e($terms['url']) . '</a>.</p>',
+            default => '<p>Onze algemene voorwaarden vindt u in de bijlage.</p>',
+        };
     }
 
     private static function greeting(Quote $quote): string

@@ -2,9 +2,11 @@
 
 namespace App\Domain\Quotes;
 
+use App\Enums\QuoteTermsKinds;
 use App\Models\Company;
 use App\Models\Quote;
 use App\Models\QuoteVersion;
+use Illuminate\Support\Arr;
 
 /**
  * A quote as the customer receives it: the heading, who makes it, the texts,
@@ -12,8 +14,9 @@ use App\Models\QuoteVersion;
  * internal. The customer's page, the PDF and the preview a colleague opens all
  * show exactly this, and a version freezes it.
  *
- * The general terms are named with the file they are stored in, so the version
- * can hand out that same file later; the page only ever gets the name. What of()
+ * The general terms are frozen with what the version needs to hand them out
+ * again later: the file they are stored in, the text, or the page; the page
+ * only ever gets their kind, name and address. What of()
  * gives is complete; complete() fills in what a version frozen before the quote
  * said all this lacks.
  */
@@ -65,6 +68,9 @@ final class QuoteForCustomer
             'terms' => null,
             'withdrawal' => null,
             ...$snapshot,
+            'terms' => isset($snapshot['terms'])
+                ? ['kind' => QuoteTermsKinds::pdf->value, ...$snapshot['terms']]
+                : null,
             'layout' => QuoteLayout::complete($snapshot['layout'] ?? null),
             'quote' => [
                 'is_consumer' => false,
@@ -98,14 +104,19 @@ final class QuoteForCustomer
     }
 
     /**
-     * What the customer's page gets: the snapshot without where the terms are stored.
+     * What the customer's page gets: the terms by kind, name and the page they
+     * are kept on, never where a file is stored or the text itself, which the
+     * link hands over as a file.
      *
      * @param  array<string, mixed>  $document  a completed snapshot
      * @return array<string, mixed>
      */
     public static function forPage(array $document): array
     {
-        return [...$document, 'terms' => $document['terms'] ? ['name' => $document['terms']['name']] : null];
+        return [
+            ...$document,
+            'terms' => $document['terms'] ? Arr::only($document['terms'], ['kind', 'name', 'url']) : null,
+        ];
     }
 
     /** Where the work is, when it is not the customer's own address. */

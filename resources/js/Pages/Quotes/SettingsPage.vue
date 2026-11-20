@@ -83,29 +83,7 @@
             </template>
 
             <template #chapter-2>
-                <BoxComponent class="max-w-2xl">
-                    <SectionHeader :icon="ScaleIcon" title="Algemene voorwaarden" chapter="documents"
-                        subtitle="Gaan als PDF mee met elke offerte, en bij het akkoord vinkt de klant aan ze te hebben ontvangen. Dat moet volgens de wet vóór of bij het tekenen." />
-                    <div v-if="settings.terms_name" class="flex items-center justify-between gap-3 rounded-lg ring-1 ring-gray-200 dark:ring-slate-700 px-3 py-2">
-                        <a href="/quote-terms" target="_blank" class="inline-flex min-w-0 items-center gap-2 text-sm font-medium text-lavoro-blue hover:underline">
-                            <FileTextIcon class="size-4 shrink-0" /> <span class="truncate">{{ settings.terms_name }}</span>
-                        </a>
-                        <button type="button" @click="removeTerms" class="text-sm text-red-600 hover:underline">Weghalen</button>
-                    </div>
-                    <p v-else class="text-sm text-gray-500 dark:text-slate-400">Nog geen algemene voorwaarden. Offertes gaan zonder de deur uit.</p>
-                    <form class="mt-4 flex flex-wrap items-center gap-2" @submit.prevent="uploadTerms">
-                        <input type="file" accept="application/pdf" @change="(event) => terms.terms = event.target.files[0]"
-                            class="block flex-1 text-sm text-gray-900 dark:text-slate-100" />
-                        <button type="submit" :disabled="!terms.terms || terms.processing"
-                            class="inline-flex items-center gap-1.5 rounded-lg bg-lavoro-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                            <UploadIcon class="size-4" /> {{ settings.terms_name ? 'Vervangen' : 'Uploaden' }}
-                        </button>
-                    </form>
-                    <p v-if="terms.errors.terms" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ terms.errors.terms }}</p>
-                    <p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
-                        Vervangen geldt voor wat je vanaf nu verstuurt. Een klant die eerder een offerte kreeg, houdt de voorwaarden van toen.
-                    </p>
-                </BoxComponent>
+                <QuoteTermsSettings :settings="settings" />
             </template>
 
             <template #chapter-3>
@@ -166,7 +144,7 @@ import { ref, watch } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import {
-    BellRingIcon, BookmarkIcon, CircleXIcon, FileTextIcon, RulerIcon, ScaleIcon, SettingsIcon, UploadIcon,
+    BellRingIcon, BookmarkIcon, CircleXIcon, FileTextIcon, RulerIcon, ScaleIcon, SettingsIcon,
 } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
@@ -175,6 +153,7 @@ import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import QuoteSettingsAddRow from '@/Components/Quotes/QuoteSettingsAddRow.vue'
 import QuoteSettingsRow from '@/Components/Quotes/QuoteSettingsRow.vue'
+import QuoteTermsSettings from '@/Components/Quotes/QuoteTermsSettings.vue'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
@@ -218,16 +197,5 @@ function order(list, rows) {
 
 function patchReason(reason, changes) {
     router.patch(`/quote-settings/reasons/${reason.id}`, changes, { preserveScroll: true })
-}
-
-const terms = useForm({ terms: null })
-
-function uploadTerms() {
-    terms.post('/quote-settings/terms', { preserveScroll: true, forceFormData: true, onSuccess: () => terms.reset() })
-}
-
-function removeTerms() {
-    if (!confirm('De algemene voorwaarden weghalen? Offertes gaan dan zonder voorwaarden de deur uit.')) return
-    router.delete('/quote-settings/terms', { preserveScroll: true })
 }
 </script>
