@@ -1,6 +1,11 @@
 <template>
     <div class="min-h-screen bg-slate-100 dark:bg-slate-800 py-8 px-4">
         <div class="mx-auto w-full max-w-3xl">
+            <div v-if="preview_of"
+                class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-200 ring-1 ring-amber-200 dark:ring-amber-800">
+                <span><strong>Voorbeeld.</strong> {{ preview_note ?? 'Zo ziet de klant deze offerte.' }} Reageren kan hier niet.</span>
+                <a :href="preview_of" class="font-semibold underline">Terug naar de offerte</a>
+            </div>
             <div class="rounded-2xl bg-white dark:bg-slate-900 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden">
                 <header class="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
                     <img v-if="company?.logo_url" :src="company.logo_url" :alt="company.name" class="h-9 w-auto" />
@@ -10,7 +15,7 @@
                 <div class="px-6 py-6">
                     <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ quote.title }}</h1>
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Offerte {{ quote.number }} voor {{ quote.contact || quote.customer }}, {{ nlDate(quote.quote_date) }}
+                        Offerte {{ quote.number }}<template v-if="version">, versie {{ version }}</template> voor {{ quote.contact || quote.customer }}, {{ nlDate(quote.quote_date) }}
                         <template v-if="quote.valid_until">· geldig tot en met {{ nlDate(quote.valid_until) }}</template>
                     </p>
 
@@ -18,7 +23,7 @@
                         {{ flash.error }}
                     </p>
 
-                    <div v-if="quote.intro_text" class="mt-6 whitespace-pre-line text-sm text-slate-700 dark:text-slate-300">{{ quote.intro_text }}</div>
+                    <div v-if="quote.intro_text" class="rich-text mt-6 text-sm text-slate-700 dark:text-slate-300" v-html="quote.intro_text" />
 
                     <QuoteDocument v-model="accept.options" class="mt-6" :lines="lines" :totals="totals" :pickable="open && quote.customer_picks_options" />
 
@@ -26,7 +31,7 @@
                         Vink de opties aan die u erbij wilt; het totaal rekent mee.
                     </p>
 
-                    <div v-if="quote.closing_text" class="mt-6 whitespace-pre-line text-sm text-slate-700 dark:text-slate-300">{{ quote.closing_text }}</div>
+                    <div v-if="quote.closing_text" class="rich-text mt-6 text-sm text-slate-700 dark:text-slate-300" v-html="quote.closing_text" />
 
                     <div v-if="!open" class="mt-8 rounded-xl bg-amber-50 dark:bg-amber-900/20 px-4 py-4 text-sm text-amber-800 dark:text-amber-200">
                         Op deze offerte kunt u niet meer reageren. Neem gerust contact met ons op.
@@ -46,7 +51,7 @@
                                 <SignaturePad ref="pad" v-model="accept.signature" class="mt-1" />
                                 <p v-if="accept.errors.signature" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ accept.errors.signature }}</p>
                             </div>
-                            <button type="submit" :disabled="accept.processing"
+                            <button type="submit" :disabled="accept.processing || Boolean(preview_of)"
                                 class="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-bold text-white hover:bg-green-700 disabled:opacity-60">
                                 Akkoord met deze offerte
                             </button>
@@ -64,7 +69,7 @@
                                     class="mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2" />
                                 <p v-if="changes.errors.message" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ changes.errors.message }}</p>
                             </div>
-                            <button type="submit" :disabled="changes.processing"
+                            <button type="submit" :disabled="changes.processing || Boolean(preview_of)"
                                 class="w-full rounded-lg bg-lavoro-blue px-4 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60">
                                 Wijziging vragen
                             </button>
@@ -88,6 +93,7 @@ import QuoteDocument from '@/Components/Quotes/QuoteDocument.vue'
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
+import { countedOptions as counted } from '@/Components/Quotes/quoteColumns'
 import { nlDate } from '@/Utilities/Utilities'
 
 /**
@@ -100,6 +106,12 @@ const props = defineProps({
     totals: { type: Object, required: true },
     open: { type: Boolean, default: false },
     expires_on: { type: String, default: null },
+    /** Set when a colleague opens the page as a preview: where to go back to. Nothing can be sent from it. */
+    preview_of: { type: String, default: null },
+    /** What the preview banner says, for an earlier version: when it went out and to whom. */
+    preview_note: { type: String, default: null },
+    /** The version this page shows, when it shows one that was sent. */
+    version: { type: Number, default: null },
 })
 
 const ANSWERS = [
@@ -114,11 +126,12 @@ const hasOptions = computed(() => props.lines.some(line => line.is_optional))
 
 const answer = ref('accept')
 const pad = ref(null)
-const accept = useForm({ name: '', signature: '', options: [] })
+const accept = useForm({ name: '', signature: '', options: counted(props.lines) })
 const changes = useForm({ name: '', message: '' })
 
 /** The signature as drawn, also when nobody pressed save under it. */
 function send(form, path) {
+    if (props.preview_of) return
     if (form === accept && pad.value && !pad.value.isEmpty()) {
         accept.signature = pad.value.getDataUrl()
     }

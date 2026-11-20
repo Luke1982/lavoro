@@ -45,6 +45,7 @@ import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import QuoteDocument from '@/Components/Quotes/QuoteDocument.vue'
+import { countedOptions } from '@/Components/Quotes/quoteColumns'
 
 /**
  * The customer says yes in front of whoever made the quote, and signs on the
@@ -68,6 +69,7 @@ watch(open, (opened) => {
     form.reset()
     form.clearErrors()
     form.name = props.defaultName
+    form.options = countedOptions(props.lines)
     form.make_service_order = props.canCreateServiceOrder
 }, { immediate: true })
 

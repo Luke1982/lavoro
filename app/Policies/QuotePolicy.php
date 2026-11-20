@@ -49,6 +49,12 @@ class QuotePolicy
         return self::licensed() && $user->hasPermission('quote.manage_defaults');
     }
 
+    /** The settings that hold for every quote: the units, for now. */
+    public function manageSettings(User $user): bool
+    {
+        return self::licensed() && $user->hasPermission('quote.manage_settings');
+    }
+
     public static function licensed(): bool
     {
         return tenancy()->initialized && tenancy()->tenant->hasModule('quotes');

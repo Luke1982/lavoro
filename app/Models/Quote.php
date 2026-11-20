@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\CleanHtml;
+use App\Domain\Quotes\QuoteForCustomer;
 use App\Domain\Quotes\QuoteTotals;
 use App\Enums\QuoteAcceptedVia;
 use App\Enums\QuoteStatuses;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +39,7 @@ class Quote extends Model
         'intro_text',
         'closing_text',
         'customer_picks_options',
+        'default_vat_percent',
     ];
 
     /**
@@ -55,7 +59,8 @@ class Quote extends Model
         'valid_until' => 'Geldig tot',
         'intro_text' => 'Openingstekst',
         'closing_text' => 'Slottekst',
-        'customer_picks_options' => 'Klant kiest zelf de opties',
+        'customer_picks_options' => 'Klant mag opties selecteren',
+        'default_vat_percent' => 'Standaard btw-tarief',
     ];
 
     protected array $activity_relations = [
@@ -73,6 +78,7 @@ class Quote extends Model
         'accepted_name',
         'accepted_signature',
         'accepted_via',
+        'accepted_version_id',
         'service_order_id',
     ];
 
@@ -80,11 +86,14 @@ class Quote extends Model
     {
         return [
             'quote_date' => 'date:Y-m-d',
+            'intro_text' => CleanHtml::class,
+            'closing_text' => CleanHtml::class,
             'valid_until' => 'date:Y-m-d',
             'sent_at' => 'datetime',
             'accepted_via' => QuoteAcceptedVia::class,
             'decided_at' => 'datetime',
             'customer_picks_options' => 'boolean',
+            'default_vat_percent' => 'float',
         ];
     }
 
@@ -146,6 +155,41 @@ class Quote extends Model
     public function serviceOrder(): BelongsTo
     {
         return $this->belongsTo(ServiceOrder::class);
+    }
+
+    /** What the customer was shown, newest first. */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(QuoteVersion::class)->orderByDesc('number');
+    }
+
+    public function acceptedVersion(): BelongsTo
+    {
+        return $this->belongsTo(QuoteVersion::class, 'accepted_version_id');
+    }
+
+    /**
+     * Freezes the quote as the customer sees it now, as the next version: when it
+     * is sent, with the address and the link, or when it is accepted on a screen
+     * without having been sent like this.
+     */
+    public function recordVersion(?string $recipient = null, ?AccessToken $link = null): QuoteVersion
+    {
+        $this->unsetRelation('lines');
+
+        return $this->versions()->create([
+            'number' => (int) $this->versions()->max('number') + 1,
+            'snapshot' => QuoteForCustomer::of($this),
+            'recipient' => $recipient,
+            'access_token_id' => $link?->id,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    /** Brochures, drawings and the like that belong with the quote. */
+    public function documents(): MorphToMany
+    {
+        return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
     }
 
     /** The links the customer was sent. */

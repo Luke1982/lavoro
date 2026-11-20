@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Quotes\VatRates;
 use App\Http\Requests\Concerns\ValidatesQuoteFields;
 use App\Models\Quote;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class QuoteUpdateRequest extends FormRequest
 {
@@ -28,6 +30,7 @@ class QuoteUpdateRequest extends FormRequest
             ...$this->quoteFieldRules($quote->customer_id),
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'customer_picks_options' => ['sometimes', 'boolean'],
+            'default_vat_percent' => ['sometimes', 'required', Rule::in(VatRates::ALL)],
             'quote_date' => [
                 'sometimes', 'required', 'date',
                 ...($kept_valid_until ? ['before_or_equal:' . $kept_valid_until] : []),

@@ -8,6 +8,7 @@ use App\Enums\QuoteAcceptedVia;
 use App\Enums\QuoteStatuses;
 use App\Models\AccessToken;
 use App\Models\Quote;
+use App\Models\QuoteVersion;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * front of someone, and a concept will do.
  *
  * The options: who may choose them chooses which optional lines are taken. On
- * the link that is the customer, when the quote lets them; otherwise none are.
+ * the link that is the customer, when the quote lets them; otherwise the ones
+ * the quote already counts (ticked "telt mee" by whoever made it) are taken.
  */
 class AcceptQuoteAction
 {
@@ -40,18 +42,24 @@ class AcceptQuoteAction
         QuoteGuard::offersSomething($quote);
 
         if ($link && !$quote->customer_picks_options) {
-            $chosen_ids = [];
+            $chosen_ids = $quote->lines()->where('is_optional', true)->where('is_chosen', true)->pluck('id')->all();
         }
 
         DB::transaction(function () use ($quote, $name, $signature, $chosen_ids, $link, $via) {
             $link?->useUp(['kind' => 'accepted', 'name' => $name]);
+            $version = $this->versionAccepted($quote, $link);
 
             $chosen = $this->choose($quote, array_map('intval', $chosen_ids));
 
             $this->change_status->execute(
                 $quote,
                 QuoteStatuses::geaccepteerd,
-                with: ['accepted_name' => $name, 'accepted_signature' => $signature, 'accepted_via' => $via->value],
+                with: [
+                    'accepted_name' => $name,
+                    'accepted_signature' => $signature,
+                    'accepted_via' => $via->value,
+                    'accepted_version_id' => $version->id,
+                ],
                 announce: fn (Quote $quote, string $previous, string $new) => new QuoteAccepted(
                     $quote,
                     $previous,
@@ -59,9 +67,24 @@ class AcceptQuoteAction
                     $name,
                     $via,
                     $chosen,
+                    $version->number,
                 ),
             );
         });
+    }
+
+    /**
+     * The version said yes to: the one the link showed; in the app, the one last
+     * sent when the quote has not changed since (a sent quote cannot change),
+     * and otherwise the quote as it stands, recorded now.
+     */
+    private function versionAccepted(Quote $quote, ?AccessToken $link): QuoteVersion
+    {
+        $shown = $link
+            ? QuoteVersion::where('access_token_id', $link->id)->first()
+            : ($quote->statusEnum()->awaitsAnswer() ? $quote->versions()->first() : null);
+
+        return $shown ?? $quote->recordVersion();
     }
 
     /**

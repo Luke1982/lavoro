@@ -18,6 +18,7 @@ class QuoteSentToCustomer extends QuoteStatusChanged
         string $new_status,
         public string $recipient,
         public ?\DateTimeInterface $expires_at,
+        public int $version = 1,
     ) {
         parent::__construct($quote, $previous_status, $new_status);
     }
@@ -39,13 +40,13 @@ class QuoteSentToCustomer extends QuoteStatusChanged
 
     public function activityDescription(): ?string
     {
-        return 'Offerte ' . $this->quote->label() . ' per e-mail verstuurd aan ' . $this->recipient
+        return 'Versie ' . $this->version . ' van offerte ' . $this->quote->label() . ' per e-mail verstuurd aan ' . $this->recipient
             . ($this->expires_at ? ', de link werkt tot en met ' . $this->expires_at->format('d-m-Y') : '');
     }
 
     public function activityMetadata(): ?array
     {
-        return ['recipient' => $this->recipient];
+        return ['recipient' => $this->recipient, 'version' => $this->version];
     }
 
     public function changes(): array

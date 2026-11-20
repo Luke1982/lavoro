@@ -25,13 +25,19 @@ class AddProductToQuoteAction
 {
     /**
      * @param  array<int, array{default_id: int, quantity: float|int|string}>  $chosen
+     * @param  bool  $optional  offered as an option the customer may take
      */
-    public function execute(Quote $quote, Product $product, float $quantity, array $chosen = []): QuoteLine
-    {
+    public function execute(
+        Quote $quote,
+        Product $product,
+        float $quantity,
+        array $chosen = [],
+        bool $optional = false,
+    ): QuoteLine {
         QuoteGuard::editable($quote);
 
-        return DB::transaction(function () use ($quote, $product, $quantity, $chosen) {
-            $line = $quote->addLine(QuoteLineDrafts::forProduct($product, $quantity));
+        return DB::transaction(function () use ($quote, $product, $quantity, $chosen, $optional) {
+            $line = $quote->addLine([...QuoteLineDrafts::forProduct($quote, $product, $quantity), 'is_optional' => $optional]);
             $defaults = $product->materialDefaults()->with('material.usageUnit')->get()->keyBy('id');
             $materials = [];
 
@@ -39,7 +45,9 @@ class AddProductToQuoteAction
                 $default = $defaults->get($choice['default_id']);
 
                 if ($default?->prompt->isAsked()) {
-                    $materials[] = $line->addChild(QuoteLineDrafts::forMaterial($default->material, (float) $choice['quantity']));
+                    $materials[] = $line->addChild(
+                        QuoteLineDrafts::forMaterial($quote, $default->material, (float) $choice['quantity'])
+                    );
                 }
             }
 

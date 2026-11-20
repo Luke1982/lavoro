@@ -24,6 +24,8 @@ class QuoteLineChanged extends QuoteLineSignal
         'vat_percent' => 'Btw',
         'discount_percent' => 'Korting',
         'is_optional' => 'Optioneel',
+        'is_chosen' => 'Telt mee',
+        'details' => 'Toelichting',
     ];
 
     /** @param array<string, array{0: mixed, 1: mixed}> $fields field => [before, after] */
@@ -80,7 +82,7 @@ class QuoteLineChanged extends QuoteLineSignal
     {
         return match (true) {
             $value === null => null,
-            $field === 'is_optional' => $value ? 'Ja' : 'Nee',
+            in_array($field, ['is_optional', 'is_chosen'], true) => $value ? 'Ja' : 'Nee',
             in_array($field, ['unit_price', 'cost_price'], true) => Money::euros($value),
             in_array($field, ['vat_percent', 'discount_percent'], true) => Quantity::human($value) . '%',
             $field === 'quantity' => Quantity::human($value),

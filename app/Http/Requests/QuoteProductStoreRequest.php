@@ -21,6 +21,7 @@ class QuoteProductStoreRequest extends FormRequest
         return [
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
+            'is_optional' => ['sometimes', 'boolean'],
             'materials' => ['sometimes', 'array'],
             'materials.*.default_id' => [
                 'required',

@@ -130,7 +130,17 @@
             "label": "Verkoop",
             "accent": "verkoop",
             "items": [
-                { "id": "offertes", "label": "Offertes", "icon": "FilePen", "href": "/quotes", "permission": "quote.read", "module": "quotes" }
+                {
+                    "id": "offertes",
+                    "label": "Offertes",
+                    "icon": "FilePen",
+                    "href": "/quotes",
+                    "permission": "quote.read",
+                    "module": "quotes",
+                    "children": [
+                        { "id": "offerte-instellingen", "label": "Instellingen", "href": "/quote-settings", "permission": "quote.manage_settings", "module": "quotes" }
+                    ]
+                }
             ]
         },
         {

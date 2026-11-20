@@ -6,6 +6,7 @@ use App\Actions\Quotes\ChangeQuoteStatusAction;
 use App\Actions\Quotes\CreateQuoteAction;
 use App\Actions\Quotes\DeleteQuoteAction;
 use App\Actions\Quotes\UpdateQuoteAction;
+use App\Domain\Quotes\QuoteForCustomer;
 use App\Domain\Quotes\QuoteLineTree;
 use App\Domain\Quotes\QuoteMail;
 use App\Domain\Quotes\VatRates;
@@ -15,8 +16,11 @@ use App\Http\Requests\QuoteReadRequest;
 use App\Http\Requests\QuoteStatusUpdateRequest;
 use App\Http\Requests\QuoteStoreRequest;
 use App\Http\Requests\QuoteUpdateRequest;
+use App\Models\MaterialUsageUnit;
 use App\Models\Quote;
 use App\Models\QuoteLine;
+use App\Models\QuoteUnit;
+use App\Models\QuoteVersion;
 use App\Models\ServiceOrder;
 use App\Traits\OffersCustomerPicker;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,6 +69,9 @@ class QuoteController extends Controller
             'contact',
             'serviceOrder',
             'answeredLinks',
+            'documents.category',
+            'documents.user:id,name',
+            'versions.createdBy:id,name',
             'lines',
             'activities' => fn ($query) => $query->visibleTo($request->user())
                 ->with(['user:id,name', 'fieldChanges'])
@@ -79,7 +86,16 @@ class QuoteController extends Controller
         $totals = $quote->totals()->toArray($see_margins);
         $answers = $quote->answeredLinks->map->answerSummary()->values();
         $service_order = $quote->serviceOrder?->only(['id', 'number']);
-        $quote->unsetRelation('lines')->unsetRelation('answeredLinks')->unsetRelation('serviceOrder')
+        $versions = $quote->versions->map(fn (QuoteVersion $version) => [
+            'id' => $version->id,
+            'number' => $version->number,
+            'created_at' => $version->created_at,
+            'recipient' => $version->recipient,
+            'by' => $version->createdBy?->name,
+            'net' => $version->snapshot['totals']['net'] ?? null,
+            'accepted' => $version->id === $quote->accepted_version_id,
+        ])->values();
+        $quote->unsetRelation('lines')->unsetRelation('answeredLinks')->unsetRelation('serviceOrder')->unsetRelation('versions')
             ->makeVisible('accepted_signature');
 
         return inertia('Quotes/ShowPage', [
@@ -87,7 +103,9 @@ class QuoteController extends Controller
             'lines' => $lines,
             'totals' => $totals,
             'vatRates' => VatRates::ALL,
+            'units' => self::units(),
             'answers' => $answers,
+            'versions' => $versions,
             'acceptedVia' => $quote->accepted_via?->phrase(),
             'serviceOrder' => $service_order,
             'sendDefaults' => QuoteMail::defaults($quote),
@@ -100,6 +118,30 @@ class QuoteController extends Controller
                 'seeMargins' => $see_margins,
                 'createServiceOrder' => $request->user()->can('create', ServiceOrder::class),
             ],
+        ]);
+    }
+
+    /** The quote as the customer will see it, opened by whoever makes it: the same page, without the answer. */
+    public function preview(QuoteReadRequest $request, Quote $quote)
+    {
+        return inertia('Public/QuoteResponsePage', [
+            ...QuoteForCustomer::of($quote),
+            'open' => true,
+            'preview_of' => route('quotes.show', $quote),
+        ]);
+    }
+
+    /** A version as the customer received it, opened by a colleague: frozen, nothing to send from it. */
+    public function version(QuoteReadRequest $request, Quote $quote, QuoteVersion $version)
+    {
+        return inertia('Public/QuoteResponsePage', [
+            ...$version->snapshot,
+            'version' => $version->number,
+            'open' => true,
+            'preview_of' => route('quotes.show', $quote),
+            'preview_note' => 'Versie ' . $version->number . ', ' . ($version->recipient
+                ? 'verstuurd op ' . $version->created_at->format('d-m-Y') . ' aan ' . $version->recipient
+                : 'vastgelegd op ' . $version->created_at->format('d-m-Y')) . '.',
         ]);
     }
 
@@ -132,6 +174,21 @@ class QuoteController extends Controller
         $delete->execute($quote);
 
         return redirect()->route('quotes.index')->with('success', 'Offerte verwijderd.');
+    }
+
+    /**
+     * The units a line is offered in: the company's own, in their order, and the
+     * usage units of the materials, which material lines carry.
+     *
+     * @return array<int, string>
+     */
+    private static function units(): array
+    {
+        return QuoteUnit::orderBy('position')->pluck('name')
+            ->merge(MaterialUsageUnit::orderBy('name')->pluck('name'))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /** @param array{search: string, status: string, customer: ?int} $list */

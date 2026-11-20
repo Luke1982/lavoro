@@ -4,17 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Actions\Quotes\AcceptQuoteAction;
 use App\Actions\Quotes\RequestQuoteChangesAction;
-use App\Domain\Quotes\QuoteLineTree;
+use App\Domain\Quotes\QuoteForCustomer;
 use App\Http\Requests\QuoteResponseAcceptRequest;
 use App\Http\Requests\QuoteResponseChangesRequest;
 use App\Models\AccessToken;
 use App\Models\Quote;
+use App\Models\QuoteVersion;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Response;
 
 /**
  * The page where a customer without an account looks at a quote and answers
- * it, once: accept, with name and signature, or ask for a change.
+ * it, once: accept, with name and signature, or ask for a change. It shows the
+ * version the link went out with, frozen, whatever the quote became since.
  *
  * Whoever gets here came past the middleware with the link; the token is in the
  * container and the quote hangs off it. The page shows what the customer
@@ -26,17 +28,10 @@ class QuoteResponseController extends Controller
     public function show(AccessToken $access_token): Response
     {
         $quote = $this->quoteFor($access_token);
+        $version = QuoteVersion::where('access_token_id', $access_token->id)->first();
 
         return inertia('Public/QuoteResponsePage', [
-            'quote' => [
-                ...$quote->only(['number', 'title', 'intro_text', 'closing_text', 'customer_picks_options']),
-                'quote_date' => $quote->quote_date?->toDateString(),
-                'valid_until' => $quote->valid_until?->toDateString(),
-                'customer' => $quote->customer?->name,
-                'contact' => $quote->contact?->full_name,
-            ],
-            'lines' => QuoteLineTree::of($quote, for_customer: true),
-            'totals' => $quote->totals()->toArray(with_margin: false),
+            ...($version ? [...$version->snapshot, 'version' => $version->number] : QuoteForCustomer::of($quote)),
             'open' => $quote->statusEnum()->awaitsAnswer(),
             'expires_on' => $access_token->expires_at?->toIso8601String(),
         ]);

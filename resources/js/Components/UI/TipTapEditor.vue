@@ -18,8 +18,8 @@
                 Plaatshouder invoegen...
             </button>
         </div>
-        <EditorContent :editor="editor"
-            class="rich-text px-3 py-2 min-h-[10rem] text-sm focus:outline-none [&_.ProseMirror]:focus:outline-none" />
+        <EditorContent :editor="editor" :class="compact ? 'min-h-[3.5rem]' : 'min-h-[10rem]'"
+            class="rich-text px-3 py-2 text-sm focus:outline-none [&_.ProseMirror]:focus:outline-none" />
     </div>
 </template>
 
@@ -37,8 +37,11 @@ const props = defineProps({
     modelValue: { type: String, default: '' },
     placeholders: { type: Array, default: null },
     hasError: { type: Boolean, default: false },
+    /** Low, for a field inside a row, such as the paragraph of a text line on a quote. */
+    compact: { type: Boolean, default: false },
 })
-const emit = defineEmits(['update:modelValue'])
+/** blur: the person left the editor, for a form that saves a field the moment it is left. */
+const emit = defineEmits(['update:modelValue', 'blur'])
 
 function buildMentionExtension() {
     return Mention.extend({
@@ -143,6 +146,7 @@ const editor = useEditor({
     onUpdate: ({ editor: currentEditor }) => {
         emit('update:modelValue', currentEditor.getHTML())
     },
+    onBlur: () => emit('blur'),
 })
 
 function insertPlaceholderTrigger() {

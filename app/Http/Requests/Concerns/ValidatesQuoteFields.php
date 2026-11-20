@@ -27,8 +27,8 @@ trait ValidatesQuoteFields
                     ->where('contactable_id', $customer_id),
             ],
             'project_id' => ['sometimes', 'nullable', Rule::exists('projects', 'id')->where('customer_id', $customer_id)],
-            'intro_text' => ['sometimes', 'nullable', 'string', 'max:10000'],
-            'closing_text' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'intro_text' => ['sometimes', 'nullable', 'string', 'max:20000'],
+            'closing_text' => ['sometimes', 'nullable', 'string', 'max:20000'],
         ];
     }
 

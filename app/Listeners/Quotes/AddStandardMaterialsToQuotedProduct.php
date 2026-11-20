@@ -27,6 +27,7 @@ class AddStandardMaterialsToQuotedProduct
             ->with('material.usageUnit')
             ->get()
             ->map(fn (ProductMaterialDefault $default) => $signal->line->addChild(QuoteLineDrafts::forMaterial(
+                $signal->quote,
                 $default->material,
                 round($default->quantity * $signal->line->quantity, 2),
             )))

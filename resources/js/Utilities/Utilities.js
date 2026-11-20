@@ -243,11 +243,25 @@ export const quoteStatusClass = (status) => {
     const map = {
         Concept: "text-gray-500 dark:text-slate-400",
         Verzonden: "text-blue-600 dark:text-blue-400",
+        "Wijziging gevraagd": "text-amber-700 dark:text-amber-400",
         Geaccepteerd: "text-green-600 dark:text-green-400",
         Afgewezen: "text-red-600 dark:text-red-400",
         Vervallen: "text-amber-600 dark:text-amber-400",
     };
     return map[status] || "";
+};
+
+/** De status van een offerte als pilletje: achtergrond en tekst in dezelfde kleur. */
+export const quoteStatusPillClass = (status) => {
+    const map = {
+        Concept: "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300",
+        Verzonden: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+        "Wijziging gevraagd": "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+        Geaccepteerd: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+        Afgewezen: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+        Vervallen: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    };
+    return map[status] || map.Concept;
 };
 
 // Single source of truth for maintenance-contract status presentation.

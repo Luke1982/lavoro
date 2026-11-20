@@ -1,227 +1,357 @@
 <template>
     <BreadcrumbComponent :items="[{ label: 'Offertes', href: '/quotes' }, { label: quote.number }]" />
 
-    <div class="mt-6 mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold truncate">{{ quote.title }}</h1>
-                <span class="text-sm" :class="quoteStatusClass(quote.status)">{{ quote.status }}</span>
+    <header class="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div class="flex min-w-0 flex-1 gap-4">
+            <div class="hidden sm:flex size-16 shrink-0 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30">
+                <FileTextIcon class="size-8 text-lavoro-blue" />
             </div>
-            <p class="text-sm text-gray-500 dark:text-slate-400">
-                {{ quote.number }} ·
-                <Link :href="`/customers/${quote.customer.id}`" class="text-lavoro-darkerblue">{{ quote.customer.name }}</Link>
-                · {{ nlDate(quote.quote_date) }}
-                <template v-if="quote.valid_until"> · geldig tot {{ nlDate(quote.valid_until) }}</template>
-            </p>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-900 dark:text-slate-100">{{ quote.number }}</span>
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" :class="quoteStatusPillClass(quote.status)">
+                        {{ quote.status }}
+                    </span>
+                    <span v-if="versions.length" class="rounded-full bg-gray-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-slate-300"
+                        v-tooltip="'De laatste versie die de klant kreeg'">
+                        Versie {{ versions[0].number }}
+                    </span>
+                </div>
+                <input v-if="canEdit" v-model="form.title" @change="save('title')" aria-label="Titel"
+                    class="mt-1 w-full max-w-2xl rounded-lg border-0 bg-white dark:bg-slate-900 px-3 py-1.5 text-2xl font-bold ring-1 ring-inset ring-gray-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600" />
+                <h1 v-else class="mt-1 text-2xl font-bold">{{ quote.title }}</h1>
+                <p v-if="form.errors.title" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.title }}</p>
+                <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600 dark:text-slate-400">
+                    <Link :href="`/customers/${quote.customer.id}`" class="inline-flex items-center gap-1.5 hover:text-lavoro-blue">
+                        <UserIcon class="size-4" /> {{ quote.customer.name }}
+                    </Link>
+                    <span class="inline-flex items-center gap-1.5"><CalendarIcon class="size-4" /> {{ nlDateLong(quote.quote_date) }}</span>
+                    <span v-if="quote.valid_until" class="inline-flex items-center gap-1.5">
+                        <CalendarCheckIcon class="size-4" /> Geldig tot {{ nlDateLong(quote.valid_until) }}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div v-if="can.update" class="flex flex-wrap gap-2">
-            <Link v-if="serviceOrder" :href="`/serviceorders/${serviceOrder.id}`"
-                class="px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800">
-                Werkbon {{ serviceOrder.number }}
-            </Link>
-            <button v-else-if="quote.status === 'Geaccepteerd' && can.createServiceOrder" type="button" @click="convert"
-                class="px-3 py-2 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700">
-                Werkbon maken
-            </button>
+
+        <div v-if="can.update" class="flex flex-wrap items-center gap-2">
+            <DropdownMenu v-if="nextStatuses.length || (can.delete && !quote.sent_at)" placement="bottom-end" width-class="w-60"
+                title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`">
+                <template #button>
+                    <EllipsisIcon class="size-5" />
+                </template>
+                <MenuItem v-for="status in nextStatuses" :key="status" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active)" @click="moveTo(status)">{{ STATUS_ACTIONS[status] }}</button>
+                </MenuItem>
+                <MenuItem v-if="can.delete && !quote.sent_at" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active, true)" @click="destroy">
+                        <Trash2Icon class="size-4" /> Verwijderen
+                    </button>
+                </MenuItem>
+            </DropdownMenu>
+            <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="[BUTTON, OUTLINE]">
+                <EyeIcon class="size-4" /> Voorbeeld
+            </a>
             <button v-if="quote.status !== 'Geaccepteerd'" type="button" @click="sending = true"
-                class="px-3 py-2 rounded-md text-sm font-medium bg-lavoro-blue text-white hover:opacity-90">
+                :class="[BUTTON, 'bg-lavoro-blue text-white hover:opacity-90']">
                 {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
             </button>
             <button v-if="acceptable" type="button" @click="accepting = true"
-                class="px-3 py-2 rounded-md text-sm font-medium border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950">
-                Akkoord vastleggen
+                :class="[BUTTON, 'border border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400']">
+                <CheckIcon class="size-4" /> Akkoord vastleggen
             </button>
-            <button v-for="status in nextStatuses" :key="status" type="button" @click="moveTo(status)"
-                :class="status === 'Concept'
-                    ? 'border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
-                    : 'border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'"
-                class="px-3 py-2 rounded-md text-sm font-medium">
-                {{ STATUS_ACTIONS[status] }}
-            </button>
-            <button v-if="can.delete && !quote.sent_at" type="button" @click="destroy"
-                class="px-3 py-2 rounded-md text-sm font-medium text-red-600 border border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-950">
-                Verwijderen
+            <Link v-if="serviceOrder" :href="`/serviceorders/${serviceOrder.id}`" :class="[BUTTON, OUTLINE]">
+                <ClipboardCheckIcon class="size-4" /> Werkbon {{ serviceOrder.number }}
+            </Link>
+            <button v-else-if="quote.status === 'Geaccepteerd' && can.createServiceOrder" type="button" @click="convert"
+                :class="[BUTTON, 'bg-green-600 text-white hover:bg-green-700']">
+                <ClipboardCheckIcon class="size-4" /> Werkbon maken
             </button>
         </div>
-    </div>
+    </header>
 
-    <p v-if="!editable && can.update" class="mb-4 text-sm text-gray-500 dark:text-slate-400">
-        Deze offerte is {{ quote.status.toLowerCase() }}. Zet hem terug naar concept om hem aan te passen.
+    <p v-if="!editable && can.update" class="mt-4 rounded-lg bg-slate-100 dark:bg-slate-800 px-4 py-2 text-sm text-gray-600 dark:text-slate-300">
+        Deze offerte is {{ quote.status.toLowerCase() }}. Zet hem via het menu terug naar concept om hem aan te passen.
     </p>
 
     <QuoteSendDrawer v-if="can.update" v-model="sending" :quote-id="quote.id" :defaults="sendDefaults" />
     <QuoteAcceptDialog v-if="can.update" v-model="accepting" :quote-id="quote.id" :lines="lines" :totals="totals"
         :default-name="quote.contact?.full_name ?? ''" :can-create-service-order="can.createServiceOrder" />
 
-    <TwoThirdsOneThird>
+    <TwoThirdsOneThird class="mt-6">
         <template #main>
-            <BoxComponent padding="px-0 py-0 sm:px-0 sm:pb-0 xl:px-0 xl:pt-0 xl:pb-0">
-                <div class="p-4">
-                    <SectionHeader :icon="ListIcon" title="Regels" chapter="products" flush
-                        subtitle="Prijzen zijn overgenomen uit de catalogus op het moment van toevoegen." />
-                </div>
-                <div class="hidden md:grid grid-cols-12 gap-2 px-4 pb-2 text-xs font-bold text-gray-500 dark:text-slate-400">
-                    <div class="col-span-4">Omschrijving</div>
-                    <div class="col-span-1 text-right">Aantal</div>
-                    <div class="col-span-1">Eenheid</div>
-                    <div class="col-span-2 text-right">Prijs</div>
-                    <div class="col-span-1 text-right">Korting</div>
-                    <div class="col-span-1">Btw</div>
-                    <div class="col-span-1 text-right">Totaal</div>
-                </div>
-                <template v-for="line in lines" :key="line.id + '-' + line.updated_at">
-                    <QuoteLineRow :quote-id="quote.id" :line="line" :vat-rates="vatRates" :editable="canEdit"
-                        :see-margins="can.seeMargins" />
-                    <QuoteLineRow v-for="child in line.children" :key="child.id + '-' + child.updated_at"
-                        :quote-id="quote.id" :line="child" :vat-rates="vatRates" child :editable="canEdit"
-                        :see-margins="can.seeMargins" :muted="line.is_optional" />
-                </template>
-                <p v-if="!lines.length" class="px-4 py-6 text-sm text-center text-gray-400 dark:text-slate-500">
-                    Nog niets aangeboden.
-                </p>
-                <QuoteAddBar v-if="canEdit" :quote-id="quote.id" />
-            </BoxComponent>
+            <ChaptersComponent>
+                <ChapterHeaders>
+                    <ChapterHeader v-for="(chapter, index) in CHAPTERS" :key="chapter.label" :index="index">
+                        <span class="inline-flex items-center gap-2">
+                            <component :is="chapter.icon" class="size-4" />
+                            {{ chapter.label }}<template v-if="chapter.label === 'Bijlagen' && quote.documents.length"> ({{ quote.documents.length }})</template>
+                        </span>
+                    </ChapterHeader>
+                </ChapterHeaders>
+                <ChapterContents>
+                    <template #chapter-0>
+                        <BoxComponent padding="px-0 pt-0 pb-2 sm:px-0 sm:pb-2 xl:px-0 xl:pt-0 xl:pb-2" class="flow-root">
+                            <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
+                                <SectionHeader :icon="FileTextIcon" title="Offerteregels" chapter="financial" flush class="min-w-0 flex-1"
+                                    subtitle="Stel hier de inhoud van de offerte samen. Bepaal per regel of deze optioneel is en meetelt in het totaal." />
+                                <div class="flex shrink-0 gap-2">
+                                    <button v-if="hasPanels" type="button" @click="toggleAllPanels" :class="[SMALL_BUTTON, OUTLINE]">
+                                        <ArrowDownIcon class="size-4 transition-transform" :class="allOpen ? 'rotate-180' : ''" />
+                                        {{ allOpen ? 'Alles inklappen' : 'Alles uitvouwen' }}
+                                    </button>
+                                    <button v-if="rows.length > 1" type="button" @click="compact = !compact"
+                                        :class="[SMALL_BUTTON, compact ? 'border border-lavoro-blue bg-blue-50 text-lavoro-blue dark:bg-slate-800' : OUTLINE]"
+                                        v-tooltip="'Alleen de namen, om makkelijk te verslepen'">
+                                        <ArrowDownUpIcon class="size-4" /> Volgorde
+                                    </button>
+                                </div>
+                            </div>
 
-            <BoxComponent class="mt-4">
-                <SectionHeader :icon="TextIcon" title="Teksten" chapter="details"
-                    subtitle="Boven en onder de regels, zoals de klant ze leest." />
-                <label class="text-xs font-bold text-slate-400">Openingstekst</label>
-                <textarea v-model="form.intro_text" :disabled="!canEdit" @change="save('intro_text')" rows="4"
-                    :class="textarea" />
-                <label class="mt-3 block text-xs font-bold text-slate-400">Slottekst</label>
-                <textarea v-model="form.closing_text" :disabled="!canEdit" @change="save('closing_text')" rows="4"
-                    :class="textarea" />
-            </BoxComponent>
+                            <div v-if="rows.length && !compact"
+                                class="hidden md:flex items-center gap-2 px-5 pb-1 text-xs font-semibold text-gray-500 dark:text-slate-400">
+                                <div class="flex-1" />
+                                <div :class="COLUMNS.quantity" class="text-center">Aantal</div>
+                                <div :class="COLUMNS.unit">Eenheid</div>
+                                <div :class="COLUMNS.price" class="text-right">Prijs</div>
+                                <div :class="COLUMNS.vat">Btw</div>
+                                <div :class="COLUMNS.total" class="text-right">Totaal</div>
+                                <div :class="COLUMNS.actions" />
+                            </div>
+
+                            <draggable v-model="rows" handle=".draghandle" :animation="150" :disabled="!canEdit"
+                                class="space-y-1 px-2 pb-2" @end="reorder">
+                                <QuoteLineRow v-for="line in rows" :key="line.id + '-' + line.updated_at" :quote-id="quote.id"
+                                    :line="line" :vat-rates="vatRates" :units="units" :editable="canEdit" :see-margins="can.seeMargins"
+                                    :compact="compact" class="border-t first:border-t-0 border-gray-100 dark:border-slate-800">
+                                    <QuoteMaterialsPanel v-if="line.kind === 'product' && !compact && (line.children.length || canEdit)"
+                                        :quote-id="quote.id" :product="line" :units="units" :editable="canEdit"
+                                        :open="openPanels[line.id] ?? true" @update:open="(value) => openPanels[line.id] = value" />
+                                </QuoteLineRow>
+                            </draggable>
+
+                            <div v-if="!rows.length" class="px-5 py-10 text-center text-sm text-gray-400 dark:text-slate-500">
+                                <FileTextIcon class="mx-auto mb-2 size-10" />
+                                Nog niets aangeboden. Begin met een product, een dienst of een tekst.
+                            </div>
+
+                            <QuoteAddBar v-if="canEdit" :quote-id="quote.id" />
+                        </BoxComponent>
+                    </template>
+
+                    <template #chapter-1>
+                        <BoxComponent>
+                            <SectionHeader :icon="FileTextIcon" title="Aanhef & slot" chapter="details"
+                                subtitle="Boven en onder de regels, zoals de klant ze leest." />
+                            <template v-if="canEdit">
+                                <label class="text-xs font-bold text-slate-400">Aanhef</label>
+                                <TipTapEditor v-model="texts.intro_text" class="mt-1" :has-error="Boolean(texts.errors.intro_text)" />
+                                <label class="mt-4 block text-xs font-bold text-slate-400">Slot</label>
+                                <TipTapEditor v-model="texts.closing_text" class="mt-1" :has-error="Boolean(texts.errors.closing_text)" />
+                                <p v-for="error in texts.errors" :key="error" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                                <div class="mt-4 flex justify-end">
+                                    <button type="button" @click="saveTexts" :disabled="!texts.isDirty || texts.processing"
+                                        :class="[BUTTON, 'bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50']">
+                                        Opslaan
+                                    </button>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div v-if="quote.intro_text" class="rich-text text-sm" v-html="quote.intro_text" />
+                                <div v-if="quote.closing_text" class="rich-text mt-4 text-sm" v-html="quote.closing_text" />
+                                <p v-if="!quote.intro_text && !quote.closing_text" class="text-sm text-gray-400">Geen aanhef of slot.</p>
+                            </template>
+                        </BoxComponent>
+                    </template>
+
+                    <template #chapter-2>
+                        <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id"
+                            documentable-type="\App\Models\Quote" title="Bijlagen" subtitle="Tekeningen, brochures en andere stukken bij deze offerte." />
+                    </template>
+
+                    <template #chapter-3>
+                        <BoxComponent>
+                            <SectionHeader :icon="SettingsIcon" title="Instellingen" chapter="details"
+                                subtitle="Wanneer de offerte gemaakt is en hoe lang hij geldig is." />
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <span class="text-xs font-bold text-slate-400">Offertedatum</span>
+                                    <TextInput v-model="form.quote_date" type="date" :disabled="!canEdit" @change="save('quote_date')"
+                                        :has-error="Boolean(form.errors.quote_date)" :error-message="form.errors.quote_date" />
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-slate-400">Geldig tot en met</span>
+                                    <TextInput v-model="form.valid_until" type="date" :disabled="!canEdit" @change="save('valid_until')"
+                                        :has-error="Boolean(form.errors.valid_until)" :error-message="form.errors.valid_until" />
+                                </div>
+                            </div>
+                        </BoxComponent>
+                    </template>
+                </ChapterContents>
+            </ChaptersComponent>
         </template>
 
         <template #sidebar>
-            <BoxComponent v-if="quote.accepted_name" class="mb-4">
-                <SectionHeader :icon="PenLineIcon" title="Akkoord" chapter="signoff"
-                    :subtitle="`${quote.accepted_name}, ${acceptedVia}, ${nlDate(quote.decided_at)}`" />
-                <img v-if="quote.accepted_signature" :src="quote.accepted_signature" alt="Handtekening"
-                    class="w-full rounded border border-gray-200 dark:border-slate-700 bg-white" />
-            </BoxComponent>
-
-            <BoxComponent v-if="answers.length" class="mb-4">
-                <SectionHeader :icon="MessageSquareIcon" title="Reacties van de klant" chapter="remarks" />
-                <div v-for="(answer, index) in answers" :key="index"
-                    class="py-2 text-sm border-b last:border-b-0 border-gray-100 dark:border-slate-800">
-                    <div class="font-medium">
-                        {{ answer.name }} {{ answer.kind === 'accepted' ? 'ging akkoord' : 'vroeg een wijziging' }}
-                    </div>
-                    <div class="text-xs text-gray-500 dark:text-slate-400">{{ nlDate(answer.answered_at) }} · {{ answer.recipient }}</div>
-                    <p v-if="answer.message" class="mt-1 whitespace-pre-line">{{ answer.message }}</p>
-                </div>
-            </BoxComponent>
-
-            <BoxComponent>
-                <SectionHeader :icon="EuroIcon" title="Totaal" chapter="financial" />
-                <dl class="text-sm divide-y divide-gray-100 dark:divide-slate-800">
-                    <div class="flex justify-between py-1.5">
-                        <dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.net) }}</dd>
-                    </div>
-                    <div v-for="row in totals.vat" :key="row.rate" class="flex justify-between py-1.5 text-gray-500">
-                        <dt>Btw {{ row.rate }}% over {{ nlCurrency(row.net) }}</dt><dd class="tabular-nums">{{ nlCurrency(row.vat) }}</dd>
-                    </div>
-                    <div class="flex justify-between py-1.5 font-bold">
-                        <dt>Totaal incl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.gross) }}</dd>
-                    </div>
-                    <div v-if="totals.optional_net" class="flex justify-between py-1.5 text-amber-700 dark:text-amber-400">
-                        <dt>Optioneel, excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.optional_net) }}</dd>
-                    </div>
-                    <template v-if="can.seeMargins">
-                        <div class="flex justify-between py-1.5 text-gray-500">
-                            <dt>Inkoop</dt><dd class="tabular-nums">{{ nlCurrency(totals.cost) }}</dd>
+            <div class="space-y-4">
+                <BoxComponent>
+                    <SectionHeader :icon="EuroIcon" title="Totaal" chapter="financial" />
+                    <dl class="space-y-1 text-sm">
+                        <div class="flex justify-between px-3 py-1"><dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.net) }}</dd></div>
+                        <div v-for="row in totals.vat" :key="row.rate" class="flex justify-between px-3 py-1 text-gray-600 dark:text-slate-400">
+                            <dt>Btw {{ nlQuantity(row.rate) }}%</dt><dd class="tabular-nums">{{ nlCurrency(row.vat) }}</dd>
                         </div>
-                        <div class="flex justify-between py-1.5 text-gray-500">
-                            <dt>Marge</dt>
-                            <dd class="tabular-nums">{{ nlCurrency(totals.margin) }}<span v-if="totals.net"> ({{ marginShare }})</span></dd>
+                        <div class="flex justify-between rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-base font-bold text-green-900 dark:text-green-200">
+                            <dt>Totaal incl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.gross) }}</dd>
                         </div>
-                    </template>
-                </dl>
-            </BoxComponent>
+                        <div v-if="totals.optional_net" class="flex justify-between px-3 pt-2 text-sky-700 dark:text-sky-400">
+                            <dt>Opties die niet meetellen</dt><dd class="tabular-nums">{{ nlCurrency(totals.optional_net) }}</dd>
+                        </div>
+                        <template v-if="can.seeMargins">
+                            <div class="flex justify-between px-3 pt-2 text-gray-500"><dt>Inkoop</dt><dd class="tabular-nums">{{ nlCurrency(totals.cost) }}</dd></div>
+                            <div class="flex justify-between px-3 text-gray-500">
+                                <dt>Marge</dt>
+                                <dd class="tabular-nums">{{ nlCurrency(totals.margin) }}<span v-if="totals.net"> ({{ marginShare }})</span></dd>
+                            </div>
+                        </template>
+                    </dl>
+                </BoxComponent>
 
-            <BoxComponent class="mt-4">
-                <SectionHeader :icon="InfoIcon" title="Gegevens" chapter="customer" />
-                <div class="flex flex-col gap-3">
-                    <label class="flex items-center justify-between gap-2 text-sm">
-                        <span>Klant kiest zelf de opties</span>
+                <BoxComponent v-if="quote.accepted_name">
+                    <SectionHeader :icon="PenLineIcon" title="Akkoord" chapter="signoff"
+                        :subtitle="`${quote.accepted_name}, ${acceptedVia}, ${nlDate(quote.decided_at)}`" />
+                    <img v-if="quote.accepted_signature" :src="quote.accepted_signature" alt="Handtekening"
+                        class="w-full rounded border border-gray-200 dark:border-slate-700 bg-white" />
+                </BoxComponent>
+
+                <BoxComponent v-if="versions.length">
+                    <SectionHeader :icon="LayersIcon" title="Versies" chapter="documents"
+                        subtitle="Wat de klant elke keer kreeg, zoals hij het zag." />
+                    <ul class="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                        <li v-for="version in versions" :key="version.id" class="flex items-start justify-between gap-3 py-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 font-medium">
+                                    Versie {{ version.number }}
+                                    <span v-if="version.accepted"
+                                        class="rounded-full bg-green-100 dark:bg-green-900/40 px-2 py-0.5 text-xs text-green-700 dark:text-green-300">
+                                        Geaccepteerd
+                                    </span>
+                                </div>
+                                <div class="truncate text-xs text-gray-500 dark:text-slate-400">
+                                    {{ nlDate(version.created_at) }} · {{ version.recipient ?? 'in de app' }}
+                                    <template v-if="version.net !== null"> · {{ nlCurrency(version.net) }} excl. btw</template>
+                                </div>
+                            </div>
+                            <a :href="`/quotes/${quote.id}/versions/${version.id}`" target="_blank"
+                                class="shrink-0 text-xs font-semibold text-lavoro-blue hover:underline">Bekijken</a>
+                        </li>
+                    </ul>
+                </BoxComponent>
+
+                <BoxComponent v-if="answers.length">
+                    <SectionHeader :icon="MessageSquareIcon" title="Reacties van de klant" chapter="remarks" />
+                    <div v-for="(answer, index) in answers" :key="index"
+                        class="py-2 text-sm border-b last:border-b-0 border-gray-100 dark:border-slate-800">
+                        <div class="font-medium">{{ answer.name }} {{ answer.kind === 'accepted' ? 'ging akkoord' : 'vroeg een wijziging' }}</div>
+                        <div class="text-xs text-gray-500 dark:text-slate-400">{{ nlDate(answer.answered_at) }} · {{ answer.recipient }}</div>
+                        <p v-if="answer.message" class="mt-1 whitespace-pre-line">{{ answer.message }}</p>
+                    </div>
+                </BoxComponent>
+
+                <BoxComponent>
+                    <SectionHeader :icon="SettingsIcon" title="Offerte-instellingen" chapter="details" />
+                    <label class="flex items-start justify-between gap-3">
+                        <span>
+                            <span class="block text-sm font-semibold">Klant mag opties selecteren</span>
+                            <span class="block text-xs text-gray-500 dark:text-slate-400">
+                                De klant kan optionele onderdelen aan- of uitzetten. Het totaal wordt automatisch aangepast.
+                            </span>
+                        </span>
                         <SwitchComponent v-model="form.customer_picks_options" :disabled="!canEdit"
                             @update:model-value="save('customer_picks_options')" />
                     </label>
-                    <div>
-                        <span class="text-xs font-bold text-slate-400">Titel</span>
-                        <TextInput v-model="form.title" :disabled="!canEdit" @change="save('title')"
-                            :has-error="Boolean(form.errors.title)" :error-message="form.errors.title" />
+                    <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-slate-800 pt-4">
+                        <span class="inline-flex items-center gap-1 text-sm">
+                            Standaard btw-tarief
+                            <InfoIcon class="size-4 text-gray-400" v-tooltip="'Het tarief waarmee nieuwe regels beginnen. Bestaande regels houden het hunne.'" />
+                        </span>
+                        <select v-model.number="form.default_vat_percent" :disabled="!canEdit" @change="save('default_vat_percent')"
+                            :class="[BOXED_FIELD, 'w-24']" aria-label="Standaard btw-tarief">
+                            <option v-for="rate in vatRates" :key="rate" :value="rate">{{ rate }}%</option>
+                        </select>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <span class="text-xs font-bold text-slate-400">Offertedatum</span>
-                            <TextInput v-model="form.quote_date" type="date" :disabled="!canEdit"
-                                @change="save('quote_date')"
-                                :has-error="Boolean(form.errors.quote_date)" :error-message="form.errors.quote_date" />
-                        </div>
-                        <div>
-                            <span class="text-xs font-bold text-slate-400">Geldig tot</span>
-                            <TextInput v-model="form.valid_until" type="date" :disabled="!canEdit"
-                                @change="save('valid_until')"
-                                :has-error="Boolean(form.errors.valid_until)" :error-message="form.errors.valid_until" />
-                        </div>
-                    </div>
-                    <div>
-                        <span class="text-xs font-bold text-slate-400">Locatie</span>
-                        <ComboBox :options="locationOptions" v-model="form.location_id" placeholder="Hoofdadres van de klant"
-                            :disabled="!canEdit"
-                            :has-error="Boolean(form.errors.location_id)" :error-message="form.errors.location_id" />
-                    </div>
-                    <div>
-                        <span class="text-xs font-bold text-slate-400">Contactpersoon</span>
-                        <ComboBox :options="contactOptions" v-model="form.contact_id" placeholder="Geen contactpersoon"
-                            :disabled="!canEdit"
-                            :has-error="Boolean(form.errors.contact_id)" :error-message="form.errors.contact_id" />
-                    </div>
-                    <div>
-                        <span class="text-xs font-bold text-slate-400">Project</span>
-                        <ComboBox :options="projectOptions" v-model="form.project_id" placeholder="Geen project"
-                            :disabled="!canEdit"
-                            :has-error="Boolean(form.errors.project_id)" :error-message="form.errors.project_id" />
-                    </div>
-                </div>
-            </BoxComponent>
+                </BoxComponent>
 
-            <BoxComponent class="mt-4">
-                <SectionHeader :icon="HistoryIcon" title="Tijdlijn" chapter="timeline" />
-                <TimelineComponent v-if="quote.activities?.length" :activities="quote.activities" />
-                <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
-            </BoxComponent>
+                <BoxComponent>
+                    <SectionHeader :icon="InfoIcon" title="Gegevens" chapter="customer" />
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Locatie</span>
+                            <ComboBox :options="locationOptions" v-model="form.location_id" placeholder="Hoofdadres van de klant"
+                                :disabled="!canEdit" :has-error="Boolean(form.errors.location_id)" :error-message="form.errors.location_id" />
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Contactpersoon</span>
+                            <ComboBox :options="contactOptions" v-model="form.contact_id" placeholder="Geen contactpersoon"
+                                :disabled="!canEdit" :has-error="Boolean(form.errors.contact_id)" :error-message="form.errors.contact_id" />
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-400">Project</span>
+                            <ComboBox :options="projectOptions" v-model="form.project_id" placeholder="Geen project"
+                                :disabled="!canEdit" :has-error="Boolean(form.errors.project_id)" :error-message="form.errors.project_id" />
+                        </div>
+                    </div>
+                </BoxComponent>
+
+                <BoxComponent>
+                    <SectionHeader :icon="HistoryIcon" title="Tijdlijn" chapter="timeline" />
+                    <TimelineComponent v-if="quote.activities?.length" :activities="quote.activities" :limit="3" />
+                    <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
+                </BoxComponent>
+            </div>
         </template>
     </TwoThirdsOneThird>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
-import { EuroIcon, HistoryIcon, InfoIcon, ListIcon, MessageSquareIcon, PenLineIcon, TextIcon } from '@lucide/vue'
-import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
+import { MenuItem } from '@headlessui/vue'
+import { VueDraggableNext as draggable } from 'vue-draggable-next'
+import {
+    ArrowDownIcon, ArrowDownUpIcon, CalendarCheckIcon, CalendarIcon, CheckIcon, ClipboardCheckIcon, EllipsisIcon, EuroIcon,
+    EyeIcon, FileTextIcon, HistoryIcon, InfoIcon, LayersIcon, ListIcon, MessageSquareIcon, PaperclipIcon, PenLineIcon, SettingsIcon,
+    Trash2Icon, UserIcon,
+} from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
-import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
-import SectionHeader from '@/Components/UI/SectionHeader.vue'
-import TextInput from '@/Components/UI/TextInput.vue'
-import ComboBox from '@/Components/UI/ComboBox.vue'
-import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
-import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
-import QuoteAddBar from '@/Components/Quotes/QuoteAddBar.vue'
+import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
+import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
+import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
+import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
+import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
 import QuoteAcceptDialog from '@/Components/Quotes/QuoteAcceptDialog.vue'
+import QuoteAddBar from '@/Components/Quotes/QuoteAddBar.vue'
+import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
+import QuoteMaterialsPanel from '@/Components/Quotes/QuoteMaterialsPanel.vue'
 import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
+import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
+import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
+import ComboBox from '@/Components/UI/ComboBox.vue'
+import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
+import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
-import { nlCurrency, nlDate, quoteStatusClass } from '@/Utilities/Utilities'
+import TextInput from '@/Components/UI/TextInput.vue'
+import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
+import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
+import { nlCurrency, nlDate, nlQuantity, quoteStatusPillClass } from '@/Utilities/Utilities'
 
 const props = defineProps({
     quote: { type: Object, required: true },
     lines: { type: Array, required: true },
     totals: { type: Object, required: true },
     vatRates: { type: Array, required: true },
+    units: { type: Array, default: () => [] },
     answers: { type: Array, default: () => [] },
+    versions: { type: Array, default: () => [] },
     acceptedVia: { type: String, default: null },
     sendDefaults: { type: Object, required: true },
     serviceOrder: { type: Object, default: null },
@@ -231,6 +361,13 @@ const props = defineProps({
     can: { type: Object, required: true },
 })
 
+const CHAPTERS = [
+    { label: 'Regels', icon: ListIcon },
+    { label: 'Aanhef & slot', icon: FileTextIcon },
+    { label: 'Bijlagen', icon: PaperclipIcon },
+    { label: 'Instellingen', icon: SettingsIcon },
+]
+
 /** What a plain status button says. Sending and accepting have buttons of their own. */
 const STATUS_ACTIONS = {
     Concept: 'Terug naar concept',
@@ -239,12 +376,33 @@ const STATUS_ACTIONS = {
     Vervallen: 'Vervallen',
 }
 
+const BUTTON = 'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors'
+const SMALL_BUTTON = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium'
+const OUTLINE = 'border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
+
 const sending = ref(false)
 const accepting = ref(false)
-
-const textarea = 'mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-gray-300 dark:ring-slate-600 dark:bg-slate-900 text-sm p-2 disabled:bg-gray-50 dark:disabled:bg-slate-800'
+const compact = ref(false)
 
 const canEdit = computed(() => props.editable && props.can.update)
+
+/** The lines in the order they are dragged to; the server's order again after every reload. */
+const rows = ref([...props.lines])
+watch(() => props.lines, (lines) => { rows.value = [...lines] })
+
+/** Which products have their materials open: all, until someone closes one. */
+const openPanels = reactive({})
+const hasPanels = computed(() => rows.value.some(line => line.kind === 'product'))
+const allOpen = computed(() => rows.value.filter(line => line.kind === 'product').every(line => openPanels[line.id] ?? true))
+
+function toggleAllPanels() {
+    const open = !allOpen.value
+    rows.value.filter(line => line.kind === 'product').forEach(line => { openPanels[line.id] = open })
+}
+
+function reorder() {
+    router.put(`/quotes/${props.quote.id}/lines/order`, { line_ids: rows.value.map(line => line.id) }, { preserveScroll: true })
+}
 
 const form = useForm({
     title: props.quote.title,
@@ -253,10 +411,20 @@ const form = useForm({
     location_id: props.quote.location_id,
     contact_id: props.quote.contact_id,
     project_id: props.quote.project_id,
-    intro_text: props.quote.intro_text,
-    closing_text: props.quote.closing_text,
     customer_picks_options: props.quote.customer_picks_options,
+    default_vat_percent: props.quote.default_vat_percent,
 })
+
+/**
+ * The opening and closing text are saved together with a button: an editor
+ * changes with every keystroke, and saving each one would fill the timeline.
+ * The server cleans the HTML; what comes back is what the customer will see.
+ */
+const texts = useForm({ intro_text: props.quote.intro_text ?? '', closing_text: props.quote.closing_text ?? '' })
+
+function saveTexts() {
+    texts.patch(`/quotes/${props.quote.id}`, { preserveScroll: true, onSuccess: () => texts.defaults() })
+}
 
 const locationOptions = computed(() => (props.quote.customer.locations ?? []).map(location => ({
     id: location.id,
@@ -272,6 +440,11 @@ const projectOptions = computed(() => (props.quote.customer.projects ?? []).map(
 })))
 
 const marginShare = computed(() => Math.round((props.totals.margin / props.totals.net) * 100) + '%')
+
+/** "19 nov 2026", as the heading writes a date. */
+const nlDateLong = (date) => (date
+    ? new Date(date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '')
+    : '')
 
 function save(name) {
     if ((form[name] ?? null) === (props.quote[name] ?? null)) return

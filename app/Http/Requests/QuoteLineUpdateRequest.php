@@ -31,6 +31,8 @@ class QuoteLineUpdateRequest extends FormRequest
             'vat_percent' => ['sometimes', 'required', Rule::in(VatRates::ALL)],
             'discount_percent' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
             'is_optional' => ['sometimes', 'boolean'],
+            'is_chosen' => ['sometimes', 'boolean'],
+            'details' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ];
     }
 

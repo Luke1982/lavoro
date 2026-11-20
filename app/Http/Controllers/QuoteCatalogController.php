@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * What can be offered, searched as the person types: active products and
- * materials in one list, with their sale price. A product carries its standard
+ * materials in one list, with their sale price, or only one of the two. A product carries its standard
  * materials, so the screen can ask about them the moment it is picked.
  */
 class QuoteCatalogController extends Controller
@@ -22,8 +22,9 @@ class QuoteCatalogController extends Controller
     public function __invoke(QuoteCatalogSearchRequest $request, Quote $quote): JsonResponse
     {
         $like = '%' . trim((string) $request->validated('q', '')) . '%';
+        $only = $request->validated('only');
 
-        $products = Product::query()
+        $products = $only === 'materials' ? collect() : Product::query()
             ->where('active', true)
             ->where(fn (Builder $query) => $query
                 ->where('model', 'like', $like)
@@ -42,7 +43,7 @@ class QuoteCatalogController extends Controller
                 'defaults' => $product->materialDefaults->map(fn (ProductMaterialDefault $default) => $default->toOption()),
             ]);
 
-        $materials = Material::query()
+        $materials = $only === 'products' ? collect() : Material::query()
             ->where('is_active', true)
             ->where(fn (Builder $query) => $query->where('name', 'like', $like)->orWhere('code', 'like', $like))
             ->with('usageUnit')

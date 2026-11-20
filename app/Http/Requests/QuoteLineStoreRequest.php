@@ -29,6 +29,18 @@ class QuoteLineStoreRequest extends FormRequest
             'unit_price' => ['sometimes', 'nullable', 'numeric', 'min:-9999999', 'max:9999999'],
             'cost_price' => $this->costPriceRules(),
             'vat_percent' => ['sometimes', 'nullable', Rule::in(VatRates::ALL)],
+            'details' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'is_optional' => ['sometimes', 'boolean'],
+            'parent_id' => [
+                'sometimes',
+                'nullable',
+                'prohibited_if:kind,' . QuoteLineKinds::text->value,
+                'prohibits:is_optional',
+                Rule::exists('quote_lines', 'id')
+                    ->where('quote_id', $this->route('quote')->id)
+                    ->where('kind', QuoteLineKinds::product->value)
+                    ->whereNull('parent_id'),
+            ],
         ];
     }
 
@@ -38,6 +50,8 @@ class QuoteLineStoreRequest extends FormRequest
             ...$this->costPriceMessages(),
             'material_id.required_if' => 'Kies een materiaal.',
             'description.required_unless' => 'Vul een omschrijving in.',
+            'parent_id.exists' => 'Een materiaal of eigen regel hangt alleen onder een product van deze offerte.',
+            'parent_id.prohibited_if' => 'Een tekst hangt niet onder een product.',
         ];
     }
 }

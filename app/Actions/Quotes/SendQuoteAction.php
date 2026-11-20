@@ -20,8 +20,10 @@ use Illuminate\Support\Facades\DB;
  * the new mail is out, the link sent before stops working, so there is only
  * ever one way to answer, and it shows what is offered now.
  *
- * The link lasts as long as the quote is valid. The mail goes before anything
- * is recorded: if it does not go out, the quote is as it was.
+ * Every send is a new version: the quote frozen as the customer gets it, which
+ * the link then shows. The link lasts as long as the quote is valid. The mail
+ * goes before anything is recorded: if it does not go out, the quote is as it
+ * was.
  */
 class SendQuoteAction
 {
@@ -57,6 +59,7 @@ class SendQuoteAction
 
         DB::transaction(function () use ($quote, $to, $issued) {
             $quote->withdrawLinks(except: $issued->token);
+            $version = $quote->recordVersion($to, $issued->token);
 
             $announce = fn (Quote $quote, string $previous, string $new) => new QuoteSentToCustomer(
                 $quote,
@@ -64,6 +67,7 @@ class SendQuoteAction
                 $new,
                 $to,
                 $issued->token->expires_at,
+                $version->number,
             );
 
             if (!$this->change_status->execute($quote, QuoteStatuses::verzonden, announce: $announce)) {

@@ -69,6 +69,7 @@ use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteDecisionController;
 use App\Http\Controllers\QuoteLineController;
 use App\Http\Controllers\QuoteResponseController;
+use App\Http\Controllers\QuoteSettingsController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoutePlanController;
@@ -241,8 +242,17 @@ Route::group(
          * question again for every path that does not come through here.
          */
         Route::middleware('tenant.module:quotes')->group(function () {
+            Route::get('quote-settings', [QuoteSettingsController::class, 'index'])->name('quote-settings.index');
+            Route::post('quote-settings/units', [QuoteSettingsController::class, 'storeUnit'])->name('quote-settings.units.store');
+            Route::put('quote-settings/units/order', [QuoteSettingsController::class, 'orderUnits'])->name('quote-settings.units.order');
+            Route::patch('quote-settings/units/{unit}', [QuoteSettingsController::class, 'updateUnit'])->name('quote-settings.units.update');
+            Route::delete('quote-settings/units/{unit}', [QuoteSettingsController::class, 'destroyUnit'])->name('quote-settings.units.destroy');
             Route::resource('quotes', QuoteController::class)->except(['create', 'edit']);
             Route::patch('quotes/{quote}/status', [QuoteController::class, 'status'])->name('quotes.status');
+            Route::get('quotes/{quote}/preview', [QuoteController::class, 'preview'])->name('quotes.preview');
+            Route::get('quotes/{quote}/versions/{version}', [QuoteController::class, 'version'])
+                ->scopeBindings()
+                ->name('quotes.version');
             Route::post('quotes/{quote}/send', [QuoteDecisionController::class, 'send'])
                 ->middleware('throttle:10,1')
                 ->name('quotes.send');
@@ -255,6 +265,8 @@ Route::group(
                 ->name('quotes.products.store');
             Route::scopeBindings()->group(function () {
                 Route::post('quotes/{quote}/lines', [QuoteLineController::class, 'store'])->name('quotes.lines.store');
+                Route::put('quotes/{quote}/lines/order', [QuoteLineController::class, 'reorder'])
+                    ->name('quotes.lines.order');
                 Route::patch('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'update'])
                     ->name('quotes.lines.update');
                 Route::delete('quotes/{quote}/lines/{line}', [QuoteLineController::class, 'destroy'])

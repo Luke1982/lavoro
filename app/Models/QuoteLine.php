@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\QuoteLineKinds;
+use App\Support\RichText;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +29,7 @@ class QuoteLine extends Model
         'item_id',
         'position',
         'description',
+        'details',
         'quantity',
         'unit',
         'unit_price',
@@ -59,6 +62,17 @@ class QuoteLine extends Model
     public function isIncluded(): bool
     {
         return !$this->is_optional || $this->is_chosen === true;
+    }
+
+    /**
+     * The paragraph under a text line comes from the editor and is shown as HTML,
+     * so it is cleaned on its way in. Under any other line it is plain text.
+     */
+    protected function details(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value, array $attributes) => ($attributes['kind'] ?? $this->kind) === QuoteLineKinds::text->value
+            ? RichText::clean($value)
+            : $value);
     }
 
     public function kindEnum(): QuoteLineKinds

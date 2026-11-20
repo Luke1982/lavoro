@@ -8,7 +8,6 @@ use App\Domain\Signals\Signals;
 use App\Enums\QuoteStatuses;
 use App\Exceptions\Refusal;
 use App\Models\Quote;
-use App\Models\QuoteLine;
 use Closure;
 
 /**
@@ -19,9 +18,10 @@ use Closure;
  * Like projects, the status only moves from the one this request saw, so two
  * people pressing "geaccepteerd" at once leave one line on the timeline.
  *
- * Leaving "geaccepteerd" undoes the acceptance: the name, signature and chosen
- * options go, and the trail keeps who signed. Once a werkbon was made from the
- * quote, it stays accepted.
+ * Leaving "geaccepteerd" undoes the acceptance: the name and signature go, and
+ * the trail keeps who signed. The options that were taken stay ticked, as the
+ * starting point for the next answer. Once a werkbon was made from the quote,
+ * it stays accepted.
  */
 class ChangeQuoteStatusAction
 {
@@ -67,7 +67,7 @@ class ChangeQuoteStatusAction
                 default => ['decided_at' => null],
             },
             ...($previous === QuoteStatuses::geaccepteerd
-                ? ['accepted_name' => null, 'accepted_signature' => null, 'accepted_via' => null]
+                ? ['accepted_name' => null, 'accepted_signature' => null, 'accepted_via' => null, 'accepted_version_id' => null]
                 : []),
             ...$with,
         ];
@@ -78,11 +78,6 @@ class ChangeQuoteStatusAction
 
         if ($moved === 0) {
             return false;
-        }
-
-        if ($previous === QuoteStatuses::geaccepteerd) {
-            QuoteLine::where('quote_id', $quote->id)->update(['is_chosen' => null]);
-            $quote->unsetRelation('lines');
         }
 
         $quote->forceFill($changes)->syncOriginalAttributes(array_keys($changes));

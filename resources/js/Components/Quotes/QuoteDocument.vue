@@ -1,44 +1,46 @@
 <template>
     <div class="text-sm">
-        <div class="hidden sm:grid grid-cols-12 gap-2 pb-2 text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-            <div class="col-span-6">Omschrijving</div>
-            <div class="col-span-2 text-right">Aantal</div>
-            <div class="col-span-2 text-right">Prijs</div>
-            <div class="col-span-2 text-right">Totaal</div>
+        <div class="hidden sm:flex gap-3 pb-2 text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex-1">Omschrijving</div>
+            <div :class="CELL.quantity">Aantal</div>
+            <div :class="CELL.price">Prijs</div>
+            <div :class="CELL.total">Totaal</div>
         </div>
 
         <template v-for="line in lines" :key="line.id">
-            <div v-if="line.kind === 'text'" class="pt-4 pb-1 font-semibold text-slate-800 dark:text-slate-100">
-                {{ line.description }}
+            <div v-if="line.kind === 'text'" class="pt-4 pb-1">
+                <div class="font-semibold text-slate-800 dark:text-slate-100">{{ line.description }}</div>
+                <div v-if="line.details" class="rich-text text-slate-600 dark:text-slate-300" v-html="line.details" />
             </div>
             <template v-else>
-                <div class="grid grid-cols-12 gap-2 py-2 border-b border-slate-100 dark:border-slate-800"
+                <div class="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 py-2 border-b border-slate-100 dark:border-slate-800"
                     :class="isOut(line) ? 'text-slate-400 dark:text-slate-500' : ''">
-                    <label class="col-span-12 sm:col-span-6 flex items-start gap-2"
+                    <label class="flex min-w-0 flex-1 basis-full sm:basis-auto items-start gap-2"
                         :class="line.is_optional && pickable ? 'cursor-pointer' : ''">
                         <input v-if="line.is_optional && pickable" type="checkbox" class="mt-1"
                             :checked="chosen.includes(line.id)" @change="toggle(line.id)" />
-                        <span>
+                        <span class="min-w-0">
                             {{ line.description }}
-                            <span v-if="line.is_optional" class="ml-1 text-xs text-amber-600 dark:text-amber-400">optie</span>
-                            <span v-if="line.discount_percent" class="ml-1 text-xs text-slate-500">
-                                {{ nlQuantity(line.discount_percent) }}% korting
-                            </span>
+                            <span v-if="line.is_optional" class="ml-1 rounded-full bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 text-xs text-sky-700 dark:text-sky-300">optie</span>
+                            <span v-if="line.discount_percent" class="ml-1 text-xs text-slate-500">{{ nlQuantity(line.discount_percent) }}% korting</span>
+                            <span v-if="line.details" class="block text-xs text-slate-500 dark:text-slate-400 whitespace-pre-line">{{ line.details }}</span>
                         </span>
                     </label>
-                    <div class="col-span-4 sm:col-span-2 sm:text-right tabular-nums">
-                        {{ nlQuantity(line.quantity) }} {{ line.unit }}
+                    <div class="ml-auto flex gap-3">
+                        <div :class="CELL.quantity">{{ nlQuantity(line.quantity) }} {{ line.unit }}</div>
+                        <div :class="CELL.price">{{ nlCurrency(line.unit_price) }}</div>
+                        <div :class="CELL.total" class="font-medium">{{ nlCurrency(line.net) }}</div>
                     </div>
-                    <div class="col-span-4 sm:col-span-2 text-right tabular-nums">{{ nlCurrency(line.unit_price) }}</div>
-                    <div class="col-span-4 sm:col-span-2 text-right tabular-nums font-medium">{{ nlCurrency(line.net) }}</div>
                 </div>
                 <div v-for="child in line.children" :key="child.id"
-                    class="grid grid-cols-12 gap-2 py-1.5 pl-6 text-xs border-b border-slate-100 dark:border-slate-800"
+                    class="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 py-1.5 text-xs border-b border-slate-100 dark:border-slate-800"
                     :class="isOut(line) ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'">
-                    <div class="col-span-12 sm:col-span-6">{{ child.description }}</div>
-                    <div class="col-span-4 sm:col-span-2 sm:text-right tabular-nums">{{ nlQuantity(child.quantity) }} {{ child.unit }}</div>
-                    <div class="col-span-4 sm:col-span-2 text-right tabular-nums">{{ nlCurrency(child.unit_price) }}</div>
-                    <div class="col-span-4 sm:col-span-2 text-right tabular-nums">{{ nlCurrency(child.net) }}</div>
+                    <div class="min-w-0 flex-1 basis-full sm:basis-auto pl-6">{{ child.description }}</div>
+                    <div class="ml-auto flex gap-3">
+                        <div :class="CELL.quantity">{{ nlQuantity(child.quantity) }} {{ child.unit }}</div>
+                        <div :class="CELL.price">{{ nlCurrency(child.unit_price) }}</div>
+                        <div :class="CELL.total">{{ nlCurrency(child.net) }}</div>
+                    </div>
                 </div>
             </template>
         </template>
@@ -61,10 +63,11 @@ import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
 
 /**
  * A quote as the customer reads it: the lines, the materials under a product,
- * and the totals. With pickable, an optional line gets a box to tick, and the
- * totals follow what is ticked: what the server counted, plus each ticked
- * option and its materials, with the VAT counted again per rate the way the
- * server does it, over the sum and not per line.
+ * and the totals. The options that count start ticked (the parent passes them
+ * in); with pickable, every option gets a box, and the totals follow what is
+ * ticked: what the server counted, plus each option ticked since and minus each
+ * one unticked, with the VAT counted again per rate the way the server does it,
+ * over the sum and not per line.
  */
 const props = defineProps({
     lines: { type: Array, required: true },
@@ -74,7 +77,14 @@ const props = defineProps({
 
 const chosen = defineModel({ type: Array, default: () => [] })
 
-const isOut = (line) => line.is_optional && line.is_chosen !== true && !chosen.value.includes(line.id)
+/** Fixed widths, so the materials under a product, indented, still line up with the product above them. */
+const CELL = {
+    quantity: 'w-24 shrink-0 text-right tabular-nums',
+    price: 'w-28 shrink-0 text-right tabular-nums',
+    total: 'w-28 shrink-0 text-right tabular-nums',
+}
+
+const isOut = (line) => line.is_optional && !chosen.value.includes(line.id)
 
 function toggle(id) {
     chosen.value = chosen.value.includes(id) ? chosen.value.filter(other => other !== id) : [...chosen.value, id]
@@ -87,11 +97,13 @@ const live = computed(() => {
     let net = cents(props.totals.net)
 
     props.lines
-        .filter(line => line.is_optional && line.is_chosen !== true && chosen.value.includes(line.id))
-        .flatMap(line => [line, ...line.children])
-        .forEach(line => {
-            net += cents(line.net)
-            per_rate.set(Number(line.vat_percent), (per_rate.get(Number(line.vat_percent)) ?? 0) + cents(line.net))
+        .filter(line => line.is_optional && (line.is_chosen === true) !== chosen.value.includes(line.id))
+        .forEach(option => {
+            const sign = chosen.value.includes(option.id) ? 1 : -1
+            ;[option, ...option.children].forEach(line => {
+                net += sign * cents(line.net)
+                per_rate.set(Number(line.vat_percent), (per_rate.get(Number(line.vat_percent)) ?? 0) + sign * cents(line.net))
+            })
         })
 
     const vat = [...per_rate.entries()]

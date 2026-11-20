@@ -1,27 +1,41 @@
 <template>
-    <div class="flex flex-col gap-3 p-4 border-t border-gray-200 dark:border-slate-700 md:flex-row md:items-end">
-        <div class="flex-grow">
-            <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Product of materiaal</span>
-            <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter
-                :searching="searching" placeholder="Zoek op merk, model, naam of code" empty-message="Typ om te zoeken"
-                @change="search" />
-        </div>
-        <div class="md:w-28">
-            <span class="text-xs font-bold text-slate-400 dark:text-slate-300">Aantal</span>
-            <TextInput v-model="quantity" type="number" />
-        </div>
-        <button type="button" @click="add" :disabled="!picked || busy"
-            class="px-4 py-2 rounded-md text-sm font-medium bg-lavoro-blue text-white hover:opacity-90 disabled:opacity-50">
-            Toevoegen
-        </button>
-        <div class="flex gap-2">
-            <button v-for="(label, kind) in OWN_LINES" :key="kind" type="button" @click="addOwn(kind)" :disabled="busy"
-                class="px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800">
-                {{ label }}
+    <div class="m-4 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-900/60 p-3">
+        <div class="flex flex-wrap items-center gap-2">
+            <DropdownMenu placement="bottom-start" width-class="w-60" title="Regel toevoegen"
+                button-class="inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-base font-semibold text-lavoro-blue hover:bg-blue-50 dark:hover:bg-slate-800">
+                <template #button>
+                    <PlusIcon class="size-5" /> Regel toevoegen <ChevronDownIcon class="size-4" />
+                </template>
+                <MenuItem v-for="kind in KINDS_TO_ADD" :key="kind.key" v-slot="{ active }">
+                    <button type="button" :class="menuItem(active)" @click="start(kind.key)">
+                        <component :is="kind.icon" class="size-4" /> {{ kind.label }}
+                    </button>
+                </MenuItem>
+            </DropdownMenu>
+            <div class="flex-1" />
+            <button v-for="kind in KINDS_TO_ADD" :key="kind.key" type="button" @click="start(kind.key)" :disabled="busy"
+                class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
+                :class="mode === kind.key
+                    ? 'border-lavoro-blue bg-blue-50 dark:bg-slate-800 text-lavoro-blue'
+                    : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'">
+                <component :is="kind.icon" class="size-4" /> {{ kind.label }}
             </button>
         </div>
+
+        <div v-if="mode === 'catalog' || mode === 'option'" class="mt-3 flex flex-col gap-2 md:flex-row md:items-start">
+            <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter class="flex-1"
+                :searching="searching" placeholder="Zoek op merk, model, naam of code" empty-message="Typ om te zoeken"
+                @change="search" />
+            <div :class="COLUMNS.quantity">
+                <TextInput v-model="quantity" type="number" aria-label="Aantal" />
+            </div>
+            <button type="button" @click="add" :disabled="!picked || busy"
+                class="rounded-md bg-lavoro-blue px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
+                {{ mode === 'option' ? 'Als optie toevoegen' : 'Toevoegen' }}
+            </button>
+        </div>
+        <p v-if="error" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
-    <p v-if="error" class="px-4 pb-3 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
     <CompanionMaterialsDialog :open="asking" :product="picked" :quantity="Number(quantity) || 1"
         :errors="productForm.errors" :processing="productForm.processing" @cancel="asking = false" @confirm="addProduct" />
@@ -29,61 +43,63 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import axios from 'axios'
-import { debounce } from 'lodash'
 import { useForm } from '@inertiajs/vue3'
+import { MenuItem } from '@headlessui/vue'
+import { AlignLeftIcon, ChevronDownIcon, PackageIcon, PlusIcon, StarIcon, WrenchIcon } from '@lucide/vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
+import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import CompanionMaterialsDialog from '@/Components/Quotes/CompanionMaterialsDialog.vue'
-import { nlCurrency } from '@/Utilities/Utilities'
+import { COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
+import { useQuoteCatalog } from '@/Components/Quotes/useQuoteCatalog'
 
 /**
- * Putting something on a quote. Products and materials are found in one field.
- * A product with materials to ask about opens the question first; one whose
- * materials all come along by themselves, or that has none, goes straight on.
+ * Putting something on a quote. A product or material is searched for, and an
+ * option is the same search with the line marked optional; a product with
+ * materials to ask about opens the question first. A line of one's own and a
+ * text go on at once, to be filled in where they land.
  */
 const props = defineProps({
     quoteId: { type: Number, required: true },
 })
 
-const OWN_LINES = { free: 'Eigen regel', text: 'Tekst' }
+const KINDS_TO_ADD = [
+    { key: 'catalog', label: 'Product of materiaal', icon: PackageIcon },
+    { key: 'free', label: 'Dienst / eigen regel', icon: WrenchIcon },
+    { key: 'text', label: 'Tekstregel', icon: AlignLeftIcon },
+    { key: 'option', label: 'Optionele regel', icon: StarIcon },
+]
 
-const results = ref([])
-const searching = ref(false)
+const mode = ref(null)
 const choice = ref(null)
 const quantity = ref(1)
 const asking = ref(false)
 
-const productForm = useForm({ product_id: null, quantity: 1, materials: [] })
-const lineForm = useForm({ kind: null, material_id: null, quantity: 1, description: null })
+const { options, searching, search, find } = useQuoteCatalog(props.quoteId)
+const picked = computed(() => find(choice.value))
 
-const picked = computed(() => results.value.find(item => item.key === choice.value) ?? null)
+const productForm = useForm({ product_id: null, quantity: 1, materials: [], is_optional: false })
+const lineForm = useForm({ kind: null, material_id: null, quantity: 1, unit: null, description: null, is_optional: false })
+
 const busy = computed(() => productForm.processing || lineForm.processing)
 const error = computed(() => productForm.errors.product_id || productForm.errors.quantity
     || lineForm.errors.material_id || lineForm.errors.quantity || null)
+const optional = computed(() => mode.value === 'option')
 
-const options = computed(() => results.value.map(item => ({
-    id: item.key,
-    name: `${item.type === 'product' ? 'Product' : 'Materiaal'}: ${item.name}, ${nlCurrency(item.price)}`
-        + (item.defaults?.length ? ` (+${item.defaults.length} materialen)` : ''),
-})))
-
-const search = debounce(async (q) => {
-    if (!q) return
-    searching.value = true
-    try {
-        results.value = (await axios.get(`/quotes/${props.quoteId}/catalog`, { params: { q } })).data
-    } finally {
-        searching.value = false
+function start(kind) {
+    if (kind === 'free' || kind === 'text') {
+        mode.value = null
+        addOwn(kind)
+        return
     }
-}, 200)
+    mode.value = mode.value === kind ? null : kind
+}
 
 function add() {
     if (picked.value.type === 'material') {
-        lineForm.kind = 'material'
-        lineForm.material_id = picked.value.id
-        lineForm.quantity = quantity.value
-        lineForm.description = null
+        Object.assign(lineForm, {
+            kind: 'material', material_id: picked.value.id, quantity: quantity.value, unit: null, description: null, is_optional: optional.value,
+        })
         lineForm.post(`/quotes/${props.quoteId}/lines`, { preserveScroll: true, onSuccess: reset })
         return
     }
@@ -96,9 +112,7 @@ function add() {
 }
 
 function addProduct(materials) {
-    productForm.product_id = picked.value.id
-    productForm.quantity = quantity.value
-    productForm.materials = materials
+    Object.assign(productForm, { product_id: picked.value.id, quantity: quantity.value, materials, is_optional: optional.value })
     productForm.post(`/quotes/${props.quoteId}/products`, {
         preserveScroll: true,
         onSuccess: () => { asking.value = false; reset() },
@@ -106,10 +120,14 @@ function addProduct(materials) {
 }
 
 function addOwn(kind) {
-    lineForm.kind = kind
-    lineForm.material_id = null
-    lineForm.quantity = kind === 'text' ? 0 : 1
-    lineForm.description = kind === 'text' ? 'Nieuwe tekst' : 'Nieuwe regel'
+    Object.assign(lineForm, {
+        kind,
+        material_id: null,
+        quantity: kind === 'text' ? 0 : 1,
+        unit: kind === 'text' ? null : 'uur',
+        description: kind === 'text' ? 'Nieuwe kop' : 'Nieuwe regel',
+        is_optional: false,
+    })
     lineForm.post(`/quotes/${props.quoteId}/lines`, { preserveScroll: true })
 }
 

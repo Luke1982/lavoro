@@ -17,6 +17,9 @@ class QuoteCatalogSearchRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['q' => ['nullable', 'string', 'max:255']];
+        return [
+            'q' => ['nullable', 'string', 'max:255'],
+            'only' => ['nullable', 'in:products,materials'],
+        ];
     }
 }
