@@ -8,6 +8,7 @@ use App\Models\Asset;
 use App\Models\MaintenanceContract;
 use App\Models\Product;
 use App\Models\ProductType;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -20,14 +21,21 @@ use Illuminate\Support\Str;
  */
 final class PricedMachines
 {
-    /** @return array<int, array<string, mixed>> */
+    private const ASSET_RELATIONS = ['product.brand', 'product.productAttributeValueables.value', 'linkedLocation'];
+
+    private const PRELOADED = 'pricedAssets';
+
+    /**
+     * The machines of a contract as they are now, or as preload() read them for
+     * a whole list of contracts at once.
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public static function forContract(MaintenanceContract $contract): array
     {
-        $assets = $contract->assets()->with([
-            'product.brand',
-            'product.productAttributeValueables.value',
-            'linkedLocation',
-        ])->get();
+        $assets = $contract->relationLoaded(self::PRELOADED)
+            ? $contract->getRelation(self::PRELOADED)->loadMissing(self::ASSET_RELATIONS)
+            : $contract->assets()->with(self::ASSET_RELATIONS)->get();
         $type_paths = ProductType::pathMap();
 
         return $assets->map(function (Asset $asset) use ($contract, $type_paths) {
@@ -42,10 +50,29 @@ final class PricedMachines
                 'detail' => self::detail($type_path, $asset->serial_number ? 'serienummer ' . $asset->serial_number : null, $address),
                 'address_key' => $asset->location_id ? 'location-' . $asset->location_id : 'customer',
                 'address_label' => $address,
-                'visits_per_year' => self::timesPerYear($frequency, $days),
+                'visits_per_year' => ContractInterval::timesPerYear($frequency, $days),
                 ...self::productFacts($asset->product),
             ];
         })->values()->all();
+    }
+
+    /**
+     * Reads the machines of many contracts in a few queries for all of them, so
+     * pricing each one afterwards costs none of its own. Kept beside a
+     * contract's own assets rather than in them: code that read those and then
+     * took a machine off must never be priced on what it read before.
+     *
+     * @param  Collection<int, MaintenanceContract>  $contracts
+     */
+    public static function preload(Collection $contracts): void
+    {
+        $loaded = MaintenanceContract::with(['assets' => fn ($query) => $query->with(self::ASSET_RELATIONS)])
+            ->findMany($contracts->pluck('id')->all())
+            ->keyBy('id');
+
+        foreach ($contracts as $contract) {
+            $contract->setRelation(self::PRELOADED, $loaded->get($contract->id)?->assets ?? new EloquentCollection);
+        }
     }
 
     /**
@@ -78,7 +105,7 @@ final class PricedMachines
                     'detail' => self::detail($type_path, 'voorbeeldklant, adres ' . $address),
                     'address_key' => 'address-' . $address,
                     'address_label' => 'Adres ' . $address,
-                    'visits_per_year' => self::timesPerYear($frequency, $frequency_days),
+                    'visits_per_year' => ContractInterval::timesPerYear($frequency, $frequency_days),
                     ...$facts,
                 ];
             }
@@ -99,17 +126,6 @@ final class PricedMachines
     private static function detail(?string ...$parts): string
     {
         return implode(' · ', array_filter($parts));
-    }
-
-    /** How often something with this interval happens in a year; nothing set counts as once. */
-    public static function timesPerYear(?string $interval, ?int $days): float
-    {
-        return match ($interval) {
-            ContractInterval::maandelijks->value => 12.0,
-            ContractInterval::halfjaarlijks->value => 2.0,
-            ContractInterval::aangepast->value => $days ? round(365 / $days, 4) : 1.0,
-            default => 1.0,
-        };
     }
 
     /** @return array<string, mixed> */

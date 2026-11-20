@@ -66,11 +66,14 @@ class ReadPriceFormulasTool implements Tool
     {
         $formulas = PriceFormula::with('latestVersion')->withCount('contracts')->orderBy('name')->get();
         $content = [
-            'werking' => 'Blokken zijn verbonden met lijnen van een uitgang naar een ingang van dezelfde soort: '
-                . 'machines of number. Meer lijnen op één ingang tellen op. Alleen wat in output_periodic (prijs '
-                . 'per prijsperiode van het contract) en output_one_time aankomt, telt. Werk met de rest-uitgang '
-                . 'van een filter verder, zodat elke machine één prijs krijgt. Bedragen zijn euro\'s exclusief btw. '
-                . 'Probeer een formule met try_price_formula en stel hem dan voor met save_price_formula.',
+            'werking' => 'Een lijn gaat van een uitgang naar een ingang die hem aanneemt: machines naar machines, '
+                . 'number naar number. Een machines-uitgang mag ook naar een number-ingang, die dan de machines '
+                . 'telt (8 machines is 8): machines.machines -> prijs.quantity rekent per machine. Number-lijnen '
+                . 'op één ingang tellen op; machines-lijnen op één ingang worden samengevoegd, en elke machine '
+                . 'telt één keer. Alleen wat in output_periodic (prijs per prijsperiode van het contract) en '
+                . 'output_one_time aankomt, telt. Werk met de rest-uitgang van een filter verder, zodat elke '
+                . 'machine één prijs krijgt. Bedragen zijn euro\'s exclusief btw. Probeer een formule met '
+                . 'try_price_formula en stel hem dan voor met save_price_formula.',
             'blokken' => CompactFormula::catalogue(),
             'formules' => $formulas->map(fn (PriceFormula $formula) => [
                 'formula_id' => $formula->id,
@@ -97,10 +100,7 @@ class ReadPriceFormulasTool implements Tool
                 'link' => '/priceformulas/' . $formula->id,
                 ...app(CompactFormula::class)->fromGraph($formula->latestVersion?->graph ?? []),
                 'contracten_op_oudere_versie' => $call->user->can('seeFinancials', MaintenanceContract::class)
-                    ? $formula->contracts()
-                        ->where('price_formula_version_id', '!=', $formula->latestVersion?->id)
-                        ->notEnded()
-                        ->count()
+                    ? $formula->contractsBehind()->notEnded()->count()
                     : null,
             ];
         }

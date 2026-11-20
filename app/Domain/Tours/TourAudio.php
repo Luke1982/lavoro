@@ -4,6 +4,7 @@ namespace App\Domain\Tours;
 
 use App\Domain\Tours\Speech\SpeechDriver;
 use App\Domain\Tours\Speech\SpokenLine;
+use App\Support\AudioProbe;
 use Closure;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -256,17 +257,7 @@ class TourAudio
 
     private function duration(string $path): float
     {
-        $result = Process::run([
-            $this->ffprobe, '-v', 'error', '-show_entries', 'format=duration',
-            '-of', 'default=noprint_wrappers=1:nokey=1', $path,
-        ]);
-
-        $seconds = (float) trim($result->output());
-        if ($result->failed() || $seconds <= 0) {
-            throw new RuntimeException('ffprobe kon de lengte van ' . $path . ' niet lezen: ' . trim($result->errorOutput()));
-        }
-
-        return $seconds;
+        return (new AudioProbe($this->ffprobe))->duration($path);
     }
 
     /**

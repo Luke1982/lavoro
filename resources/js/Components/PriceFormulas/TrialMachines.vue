@@ -21,7 +21,7 @@
                 </button>
             </div>
             <MachinePicker v-model:product-type-id="line.product_type_id" v-model:product-id="line.product_id"
-                v-bind="pickerProps" all-label="Kies een producttype" stacked />
+                v-bind="pickerProps" />
         </div>
         <button type="button" class="mt-2 text-sm font-medium text-lavoro-blue hover:underline dark:text-blue-400"
             @click="sample.push({ quantity: 1, product_type_id: null, product_id: null, address: sample.at(-1)?.address ?? 1 })">
@@ -36,8 +36,9 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import MachinePicker from '@/Components/PriceFormulas/MachinePicker.vue'
 
 /**
- * Made-up machines to try a template's formula on. Machines on the same address
- * number stand together, which is what a combination or a per-address line needs.
+ * The machines of the made-up customer the test bench tries the formula on.
+ * Machines on the same address number stand together, which is what a
+ * combination or a per-address line needs.
  */
 const sample = defineModel({ type: Array, required: true })
 

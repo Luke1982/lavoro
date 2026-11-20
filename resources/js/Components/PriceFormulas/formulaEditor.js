@@ -1,10 +1,11 @@
-import { nlCurrency } from '@/Utilities/Utilities'
-
 /**
  * What the blocks of the price formula editor share: how a block reads in one
  * line, how a number on a wire is written, the colour of each kind of block,
  * and the graph as the server stores it.
  */
+
+import { nlCurrency } from '@/Utilities/Utilities'
+
 /** The look of a plain select in the editor's panels, next to the shared inputs. */
 export const SELECT_CLASS = 'block w-full rounded-md border-0 bg-white py-1.5 pl-2 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 sm:text-sm dark:bg-slate-900 dark:text-white dark:ring-slate-500'
 
@@ -29,7 +30,7 @@ const numberFormat = new Intl.NumberFormat('nl-NL', { maximumFractionDigits: 2 }
 
 export const formatNumber = value => numberFormat.format(Number(value) || 0)
 
-export const formatResult = value => nlCurrency(value)
+export const machineCount = count => (count === 1 ? '1 machine' : `${count} machines`)
 
 /** A field's value, or the catalogue's default while the block has none of its own. */
 export function settingOf(node, definition, key) {
@@ -67,7 +68,7 @@ export function summarize(node, definition, names) {
         case 'catalog_value': return option('field')
         case 'tiers': {
             const steps = (get('steps') || []).length
-            return `${formatResult(get('amount'))} per stuk` + (steps ? `, ${steps} ${steps === 1 ? 'stap' : 'stappen'}` : '')
+            return `${nlCurrency(get('amount'))} per stuk` + (steps ? `, ${steps} ${steps === 1 ? 'stap' : 'stappen'}` : '')
         }
         case 'percentage': return `${formatNumber(get('percent'))}%`
         case 'round': return `op ${option('step')}, ${option('direction')}`

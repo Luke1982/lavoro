@@ -1,5 +1,5 @@
 <template>
-    <button type="button" :disabled="busy || starting" :title="label" :aria-label="label"
+    <button type="button" :disabled="starting || (busy && !recording)" :title="label" :aria-label="label"
         class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium ring-1 disabled:opacity-60"
         :class="recording
             ? 'bg-rose-50 text-rose-700 ring-rose-300 dark:bg-rose-900/30 dark:text-rose-200 dark:ring-rose-700'
@@ -7,7 +7,7 @@
         @click="toggle">
         <StopIcon v-if="recording" class="size-4 animate-pulse text-rose-600" />
         <MicrophoneIcon v-else class="size-4 text-rose-600 dark:text-rose-400" />
-        {{ busy ? 'Omzetten…' : recording ? clock : unsent ? 'Opnieuw omzetten' : 'Inspreken' }}
+        {{ recording ? clock : busy ? 'Omzetten…' : unsent ? 'Opnieuw omzetten' : 'Inspreken' }}
     </button>
 </template>
 
@@ -28,6 +28,9 @@ import { StopIcon } from '@heroicons/vue/24/solid'
  * while someone looks at an earlier conversation. A recording that could not be
  * sent, for a dropped connection or a busy supplier, is kept: the next press
  * sends it again instead of asking to speak five minutes over.
+ *
+ * A memo dropped on the panel while recording is written out beside it: the
+ * button stays a stop button, and each upload only answers for its own audio.
  */
 const emit = defineEmits(['text', 'error'])
 
@@ -35,7 +38,8 @@ const MAX_SECONDS = 300
 
 const recording = ref(false)
 const starting = ref(false)
-const busy = ref(false)
+const uploads = ref(0)
+const busy = computed(() => uploads.value > 0)
 const seconds = ref(0)
 
 let recorder = null
@@ -48,6 +52,8 @@ const unsent = ref(null)
 
 const label = computed(() => {
     if (recording.value) return 'Stoppen en omzetten in tekst'
+    if (starting.value) return 'Microfoon aanzetten…'
+    if (busy.value) return 'Omzetten in tekst…'
 
     return unsent.value ? 'De opname opnieuw omzetten in tekst' : 'Inspreken: vertel wat je wilt'
 })
@@ -83,15 +89,23 @@ async function start() {
     }
 
     const chunks = []
-    const thisRecorder = new MediaRecorder(stream)
-    thisRecorder.ondataavailable = event => event.data.size && chunks.push(event.data)
-    thisRecorder.onstop = () => {
-        const type = thisRecorder.mimeType || 'audio/webm'
+    let thisRecorder
+    try {
+        thisRecorder = new MediaRecorder(stream)
+        thisRecorder.ondataavailable = event => event.data.size && chunks.push(event.data)
+        thisRecorder.onstop = () => {
+            stopClock()
+            const type = thisRecorder.mimeType || 'audio/webm'
+            release()
+            transcribe(new Blob(chunks, { type }), 'opname.' + (type.includes('mp4') ? 'm4a' : 'webm'))
+        }
+        thisRecorder.start()
+    } catch {
         release()
-        transcribe(new Blob(chunks, { type }), 'opname.' + (type.includes('mp4') ? 'm4a' : 'webm'))
+        emit('error', 'Opnemen lukte niet in deze browser. Probeer het nog eens, of kies een opname met Bestand.')
+        return
     }
     recorder = thisRecorder
-    recorder.start()
 
     seconds.value = 0
     recording.value = true
@@ -101,10 +115,18 @@ async function start() {
     }, 1000)
 }
 
+/**
+ * The recording ends when the recorder says it has, also when the microphone
+ * went away by itself, so a second press can never start a new one in between.
+ */
 function stop() {
+    if (recorder?.state === 'recording') recorder.stop()
+    else stopClock()
+}
+
+function stopClock() {
     clearInterval(timer)
     recording.value = false
-    if (recorder?.state === 'recording') recorder.stop()
 }
 
 function release() {
@@ -114,22 +136,23 @@ function release() {
 
 /** Writes out a recording, made here or picked as a file. */
 async function transcribe(audio, name) {
-    busy.value = true
-    const form = new FormData()
-    form.append('audio', audio, name)
+    uploads.value++
 
     try {
+        const form = new FormData()
+        form.append('audio', audio, name)
         const { data } = await axios.post('/assistant/transcribe', form)
-        unsent.value = null
+        if (unsent.value?.audio === audio) unsent.value = null
         emit('text', data.text)
     } catch (error) {
         const status = error.response?.status
         const passing = error.response?.data?.retry || !status || status === 429 || status >= 500
-        unsent.value = passing ? { audio, name } : null
+        if (passing) unsent.value = { audio, name }
+        else if (unsent.value?.audio === audio) unsent.value = null
         const errors = error.response?.data?.errors
         emit('error', errors ? Object.values(errors).flat()[0] : (error.response?.data?.message ?? 'Omzetten in tekst lukte niet. Probeer het nog eens.'))
     } finally {
-        busy.value = false
+        uploads.value--
     }
 }
 

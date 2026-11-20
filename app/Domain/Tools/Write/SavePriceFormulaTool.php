@@ -14,10 +14,9 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Domain\Tools\Write\Concerns\ValidatesLikeTheForm;
 use App\Http\Requests\PriceFormulaStoreRequest;
-use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
 use App\Models\User;
-use Illuminate\Support\Str;
+use App\Support\Counted;
 
 /**
  * Saves a price formula the assistant built from somebody's description: a new
@@ -113,36 +112,30 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             : ToolResult::failedWith(['fouten' => $problems], 'De formule klopt nog niet: ' . implode(' ', $problems));
     }
 
+    /** Saving as a new version leaves every running contract on an older one, at the price it has now. */
     public function previewOf(ToolCall $call): string
     {
         $formula = $this->formulaOf($call);
         $graph = $this->drafted($call, $formula)['graph'];
         $lines = app(CompactFormula::class)->describe($graph);
-        $waiting = 0;
+        $behind = 0;
 
         if ($formula === null) {
             $head = 'Nieuwe prijsformule "' . trim((string) $call->stringArgument('name')) . '" aanmaken';
         } else {
-            $latest = $formula->latestVersion;
-            $new_version = $latest
-                && SavePriceFormulaGraphAction::pricing($latest->graph) !== SavePriceFormulaGraphAction::pricing($graph)
-                && MaintenanceContract::where('price_formula_version_id', $latest->id)->exists();
-            $waiting = $new_version
-                ? MaintenanceContract::where('price_formula_version_id', $latest->id)->notEnded()->count()
-                : 0;
+            $new_version = SavePriceFormulaGraphAction::makesNewVersion($formula, $graph);
+            $behind = ($new_version ? $formula->contracts() : $formula->contractsBehind())->notEnded()->count();
             $head = 'Prijsformule "' . $formula->name . '" opslaan';
 
             if ($new_version) {
-                $head .= ' als versie ' . ($latest->number + 1);
+                $head .= ' als versie ' . ($formula->latestVersion->number + 1);
             }
         }
 
-        $head .= ' (' . $this->counted(count($lines), 'blok', 'blokken') . ').';
+        $head .= ' (' . Counted::of(count($lines), 'blok', 'blokken') . ').';
 
-        if ($waiting > 0) {
-            $head .= ' ' . Str::ucfirst($this->counted($waiting, 'contract blijft', 'contracten blijven')) . ' op versie '
-                . $latest->number . ' en ' . ($waiting === 1 ? 'houdt zijn' : 'houden hun')
-                . ' prijs tot je ' . ($waiting === 1 ? 'het' : 'ze') . ' bijwerkt.';
+        if ($behind > 0) {
+            $head .= ' ' . SavePriceFormulaGraphAction::behindNotice($behind);
         }
 
         return $head . "\n- " . implode("\n- ", $lines);
@@ -165,13 +158,13 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             $message = 'Prijsformule "' . $formula->name . '" aangemaakt.';
         } else {
             $formula->update(array_filter(['name' => $name ?: null, 'description' => $description]));
-            ['version' => $version] = app(SavePriceFormulaGraphAction::class)->execute($formula, $graph, $call->user);
-            $waiting = $formula->contracts()->where('price_formula_version_id', '!=', $version->id)->notEnded()->count();
+            ['version' => $version, 'behind' => $behind] = app(SavePriceFormulaGraphAction::class)
+                ->execute($formula, $graph, $call->user);
             $message = 'Prijsformule "' . $formula->name . '" opgeslagen als versie ' . $version->number . '.';
 
-            if ($waiting > 0) {
-                $message .= ' ' . Str::ucfirst($this->counted($waiting, 'contract staat', 'contracten staan'))
-                    . ' nog op een oudere versie; bijwerken kan met apply_price_formula of op de pagina van de formule.';
+            if ($behind > 0) {
+                $message .= ' ' . SavePriceFormulaGraphAction::behindNotice($behind)
+                    . ' Bijwerken kan met apply_price_formula of op de pagina van de formule.';
             }
         }
 

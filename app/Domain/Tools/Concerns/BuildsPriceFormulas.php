@@ -33,7 +33,7 @@ trait BuildsPriceFormulas
             'wires' => [
                 'type' => 'array',
                 'items' => ['type' => 'string'],
-                'description' => 'Lijnen als "blok.uitgang -> blok.ingang", zoals "filter.match -> aantal.machines".',
+                'description' => 'Lijnen als "blok.uitgang -> blok.ingang", zoals "filter.match -> prijs.quantity".',
             ],
         ];
     }
@@ -51,11 +51,5 @@ trait BuildsPriceFormulas
     private function euro(?float $amount): string
     {
         return $amount === null ? 'niets' : Money::euros($amount);
-    }
-
-    /** "één contract", "3 contracten": a count as a person would write it. */
-    private function counted(int $count, string $one, string $many): string
-    {
-        return $count === 1 ? 'één ' . $one : $count . ' ' . $many;
     }
 }

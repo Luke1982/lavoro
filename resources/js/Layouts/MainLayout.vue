@@ -142,6 +142,7 @@ import { usePushNotifications } from '@/Composables/usePushNotifications.js'
 import { useWebPush } from '@/Composables/useWebPush.js'
 import { useDeepLinks } from '@/Composables/useDeepLinks.js'
 import { useHeaderReveal } from '@/Composables/useHeaderReveal.js'
+import { confirmLeaving } from '@/Utilities/historyGuard'
 
 const canUseAssistant = computed(() => usePage().props?.auth?.can?.use_assistant === true)
 
@@ -206,12 +207,6 @@ const dismissGoogleBanner = () => {
 const sidebarOpen = ref(false)
 
 /**
- * Duurt merkbaar lang, want er wordt van alles afgebroken voordat we weggaan.
- * Zonder terugkoppeling lijkt de knop kapot en drukt iedereen twee keer, dus de
- * stand gaat aan voordat het eerste trage stuk begint en gaat niet meer uit:
- * hierna verlaten we de pagina toch.
- */
-/**
  * Terug naar de vorige pagina, zoals de terugknop van de browser die een app op
  * een telefoon niet heeft. Wie hier binnenkwam zonder vorige pagina, vanuit een
  * link of een melding, gaat naar het begin.
@@ -224,28 +219,49 @@ const goBack = () => {
     }
 }
 
+const LOGOUT_PATH = '/logout'
+
+/**
+ * Duurt merkbaar lang, want er wordt van alles afgebroken voordat we weggaan.
+ * Zonder terugkoppeling lijkt de knop kapot en drukt iedereen twee keer, dus de
+ * stand gaat aan voordat het eerste trage stuk begint.
+ *
+ * Eerst mag de open pagina zeggen of er werk verloren gaat. Daarna pas het
+ * afbreken: wie dan nog blijft, zou ingelogd zijn zonder locatie, meldingen of
+ * service worker. Een ja geldt ook voor het bezoek aan /logout zelf, dus de
+ * vraag komt niet twee keer. Lukt het afmelden toch niet, dan staan we nog op
+ * een ingelogde pagina en gaat de stand weer uit, zodat het opnieuw kan.
+ */
 const logout = async () => {
-    if (loggingOut.value) return
+    if (loggingOut.value || !confirmLeaving(LOGOUT_PATH)) return
 
     setLoggingOut(true)
 
-    await stop_tracking()
+    try {
+        await stop_tracking()
 
-    // Voor het afmelden, want daarna is de service worker weg en kan het
-    // abonnement niet meer opgezegd worden — de server zou dan een regel houden
-    // die nooit meer iets kan bezorgen.
-    try { await disable_web_push() } catch (e) { console.error('Push unsubscribe failed:', e) }
-    await unregister_push()
+        // Voor het afmelden, want daarna is de service worker weg en kan het
+        // abonnement niet meer opgezegd worden — de server zou dan een regel houden
+        // die nooit meer iets kan bezorgen.
+        try { await disable_web_push() } catch (e) { console.error('Push unsubscribe failed:', e) }
+        await unregister_push()
 
-    if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations()
-        for (const registration of registrations) {
-            registration.unregister()
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations()
+            for (const registration of registrations) {
+                registration.unregister()
+            }
         }
+        const caches = await window.caches.keys()
+        await Promise.all(caches.map(cache => window.caches.delete(cache)))
+    } catch (e) {
+        console.error('Logout cleanup failed:', e)
     }
-    const caches = await window.caches.keys()
-    await Promise.all(caches.map(cache => window.caches.delete(cache)))
 
-    router.get('/logout')
+    router.get(LOGOUT_PATH, {}, {
+        onFinish: () => {
+            if (page.props.auth?.user) setLoggingOut(false)
+        },
+    })
 }
 </script>

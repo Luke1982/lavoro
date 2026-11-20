@@ -1,11 +1,9 @@
 <template>
-    <div :class="['grid grid-cols-1 gap-2', !stacked && 'sm:grid-cols-2']">
-        <ComboBox :options="typeOptions" :model-value="productTypeId" :placeholder="allLabel" :disabled="disabled"
-            :has-error="Boolean(typeError)" :error-message="typeError ?? ''"
+    <div class="grid grid-cols-1 gap-2">
+        <ComboBox :options="typeOptions" :model-value="productTypeId" placeholder="Kies een producttype" :disabled="disabled"
             @update:model-value="pickType" />
         <ComboBox :options="modelOptions" :model-value="productId" placeholder="Of een bepaald model" :disabled="disabled"
             :has-external-searching="productsUseAjax" :searching="searching"
-            :has-error="Boolean(modelError)" :error-message="modelError ?? ''"
             @change="search" @update:model-value="pickModel" />
     </div>
 </template>
@@ -26,12 +24,7 @@ const props = defineProps({
     productTypes: { type: Array, default: () => [] },
     productOptions: { type: Array, default: () => [] },
     productsUseAjax: { type: Boolean, default: false },
-    allLabel: { type: String, default: 'Alle machines' },
-    /** One picker under the other, for a narrow column. */
-    stacked: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
-    typeError: { type: String, default: null },
-    modelError: { type: String, default: null },
 })
 
 const emit = defineEmits(['update:productTypeId', 'update:productId'])

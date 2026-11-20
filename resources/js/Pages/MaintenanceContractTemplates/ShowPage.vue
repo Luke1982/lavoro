@@ -39,8 +39,8 @@
                     <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
                         <template v-if="hasFormula">
                             Een contract van dit sjabloon krijgt de nieuwste versie van deze formule.
-                            <Link v-if="hasPermission('priceformula.read')" :href="`/priceformulas/${form.price_formula_id}`"
-                                class="underline">Formule openen</Link>
+                            <Link v-if="hasPermission('priceformula.read') && template.price_formula_id"
+                                :href="`/priceformulas/${template.price_formula_id}`" class="underline">Formule openen</Link>
                         </template>
                         <template v-else>Met een formule wordt de prijs berekend uit de machines op het contract.</template>
                     </p>

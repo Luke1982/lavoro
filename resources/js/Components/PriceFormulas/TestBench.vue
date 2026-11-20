@@ -43,20 +43,16 @@
             <template v-else-if="results">
                 <p class="flex justify-between font-bold text-gray-900 dark:text-white">
                     <span>Prijs per periode</span>
-                    <span class="tabular-nums">{{ results.periodic === null ? 'geen blok' : formatResult(results.periodic) }}</span>
+                    <span class="tabular-nums">{{ results.periodic === null ? 'geen blok' : nlCurrency(results.periodic) }}</span>
                 </p>
                 <p class="mt-1 flex justify-between text-gray-700 dark:text-slate-300">
                     <span>Eenmalige kosten</span>
-                    <span class="tabular-nums">{{ results.one_time === null ? 'geen blok' : formatResult(results.one_time) }}</span>
+                    <span class="tabular-nums">{{ results.one_time === null ? 'geen blok' : nlCurrency(results.one_time) }}</span>
                 </p>
                 <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                    Over {{ results.machine_count === 1 ? '1 machine' : `${results.machine_count} machines` }}.
+                    Over {{ machineCount(results.machine_count) }}.
                 </p>
-                <p v-if="results.unpriced.length" data-tour="formula.bench.unpriced"
-                    class="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                    Niet meegeteld, dus gratis: {{ results.unpriced.slice(0, 6).join(', ') }}<template
-                        v-if="results.unpriced.length > 6"> en {{ results.unpriced.length - 6 }} meer</template>.
-                </p>
+                <UnpricedMachines v-if="results.unpriced.length" :machines="results.unpriced" data-tour="formula.bench.unpriced" />
             </template>
             <p v-else class="text-gray-500 dark:text-slate-400">Bezig met rekenen…</p>
         </div>
@@ -68,7 +64,9 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
 import TrialMachines from '@/Components/PriceFormulas/TrialMachines.vue'
-import { SELECT_CLASS, formatNumber, formatResult } from './formulaEditor'
+import UnpricedMachines from '@/Components/PriceFormulas/UnpricedMachines.vue'
+import { nlCurrency } from '@/Utilities/Utilities'
+import { SELECT_CLASS, formatNumber, machineCount } from './formulaEditor'
 
 /**
  * Where a formula is tried out while it is built: on a made-up customer or on a

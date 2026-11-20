@@ -60,7 +60,7 @@ export function createNarrator() {
             if (recording.version !== chapter.version || !Array.isArray(recording.steps)) return
             const byText = new Map(recording.steps.map((step) => [step.text, step]))
             if (chapter.steps.some((step) => !byText.has(step.say))) return
-            const sound = await fetch('/tours/' + tourId + '/' + recording.audio)
+            const sound = await fetch('/tours/' + tourId + '/' + recording.audio, { cache: 'no-cache' })
             if (!sound.ok) return
             const blob = await sound.blob()
             if (!audio) {

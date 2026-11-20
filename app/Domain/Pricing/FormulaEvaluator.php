@@ -11,10 +11,13 @@ use App\Models\ProductType;
  * new version cost" on a contract all come from here.
  *
  * Blocks are worked out from the results backwards, each once. The machines
- * that reach a block pricing them along the way (Aantal, Catalogusprijs,
- * Onderhoudsbeurten, a Combinatie) are noted; whatever machine reaches none is
- * reported, because it costs nothing and that is rarely what was meant. Blocks
- * not wired to a result are still worked out for the editor, but price nothing.
+ * priced along the way are noted: those wired into a number, which counts them,
+ * those reaching Catalogusprijs or Onderhoudsbeurten, and those in a Combinatie
+ * whose count is used. Once a formula prices per machine at all, or leaves the
+ * Machines block unwired, every machine priced nowhere is reported, because it
+ * costs nothing and that is rarely what was meant; a formula charging only per
+ * address or a fixed amount reports none. Blocks not wired to a result are
+ * still worked out for the editor, but price nothing.
  *
  * A machine is the array PricedMachines makes. The context carries the inputs
  * filled in on the contract, by block id, and the contract's own figures.
@@ -43,7 +46,13 @@ final class FormulaEvaluator
 
     private bool $tracking = true;
 
-    private bool $pricing_block_reached = false;
+    private bool $prices_per_machine = false;
+
+    /** @var array<string, true> ids of the blocks with a line going out */
+    private array $wired_from = [];
+
+    /** A block of a type this code does not know: the graph can be shown, but not priced. */
+    private bool $unreadable = false;
 
     /** @var array<int, array<string, mixed>> */
     private array $machines = [];
@@ -59,13 +68,13 @@ final class FormulaEvaluator
      * @param  array<int, array<string, mixed>>  $machines
      * @param  array{inputs?: array<string, mixed>, periods_per_year?: float, months?: int}  $context
      * @return array{nodes: array<string, array<string, mixed>>, periodic: ?float, one_time: ?float,
-     *     unpriced: array<int, string>, problems: array<int, string>, machine_count: int}
+     *     unpriced: array<int, string>, problems: array<int, string>, readable: bool, machine_count: int}
      */
     public function evaluate(array $graph, array $machines, array $context = []): array
     {
         $this->reset($graph, $machines, $context);
 
-        $results = ['output_periodic' => null, 'output_one_time' => null];
+        $results = array_fill_keys(NodeCatalog::resultTypes(), null);
 
         foreach ($this->nodes as $id => $node) {
             if (array_key_exists($node['type'], $results)) {
@@ -77,6 +86,10 @@ final class FormulaEvaluator
             fn (string $id) => "'" . $this->labelOf($id) . "': " . $this->errors[$id],
             array_keys($this->errors)
         ));
+
+        if ($this->unreadable) {
+            $problems[] = 'Deze formule bevat een blok dat niet meer bestaat en kan daardoor nu geen prijs uitrekenen.';
+        }
         $this->tracking = false;
         $shown = [];
 
@@ -88,7 +101,7 @@ final class FormulaEvaluator
             ];
         }
 
-        $unpriced = $this->pricing_block_reached
+        $unpriced = $this->prices_per_machine || $this->machinesLeftLoose()
             ? array_values(array_map(
                 fn (array $machine) => $machine['label'],
                 array_filter($this->machines, fn (array $machine) => !isset($this->priced[$machine['key']]))
@@ -101,8 +114,16 @@ final class FormulaEvaluator
             'one_time' => $results['output_one_time'] === null ? null : round($results['output_one_time'], 2),
             'unpriced' => $unpriced,
             'problems' => $problems,
+            'readable' => !$this->unreadable,
             'machine_count' => count($this->machines),
         ];
+    }
+
+    private function machinesLeftLoose(): bool
+    {
+        return collect($this->nodes)->contains(
+            fn (array $node, string $id) => $node['type'] === 'machines' && !isset($this->wired_from[$id])
+        );
     }
 
     private function labelOf(string $id): string
@@ -121,18 +142,23 @@ final class FormulaEvaluator
         $this->errors = [];
         $this->priced = [];
         $this->tracking = true;
-        $this->pricing_block_reached = false;
+        $this->prices_per_machine = false;
+        $this->wired_from = [];
+        $this->unreadable = false;
         $this->context = $context;
 
         foreach ($graph['nodes'] ?? [] as $node) {
             if (NodeCatalog::definition((string) ($node['type'] ?? '')) !== null) {
                 $this->nodes[(string) $node['id']] = $node;
+            } else {
+                $this->unreadable = true;
             }
         }
 
         foreach ($graph['edges'] ?? [] as $edge) {
             if (isset($this->nodes[$edge['source']], $this->nodes[$edge['target']])) {
                 $this->incoming[$edge['target']][$edge['targetHandle']][] = $edge;
+                $this->wired_from[$edge['source']] = true;
             }
         }
 
@@ -149,9 +175,7 @@ final class FormulaEvaluator
         }
 
         if (isset($this->visiting[$id])) {
-            $this->errors[$id] = 'Deze blokken vormen samen een kring. Haal een van de lijnen weg.';
-
-            return [];
+            return $this->refuse($id, 'Deze blokken vormen samen een kring. Haal een van de lijnen weg.', []);
         }
 
         $this->visiting[$id] = true;
@@ -167,8 +191,7 @@ final class FormulaEvaluator
     {
         foreach ($outputs as $handle => $value) {
             if (is_float($value) && !is_finite($value)) {
-                $this->errors[$id] = 'De uitkomst is te groot om mee te rekenen.';
-                $outputs[$handle] = 0.0;
+                $outputs[$handle] = $this->refuse($id, 'De uitkomst is te groot om mee te rekenen.');
             }
         }
 
@@ -195,7 +218,6 @@ final class FormulaEvaluator
             'filter_attribute' => $this->split($id, $node, 'product_attribute_id', 'Kies een kenmerk.',
                 fn (array $machine, $attribute_id) => $this->attributeMatches($node, $machine, (int) $attribute_id)),
             'combination' => $this->combination($id, $node),
-            'count' => ['value' => (float) count($this->pricedFrom($id))],
             'addresses' => ['value' => $this->addressCount($id)],
             'catalog_value' => ['value' => (float) array_sum(array_map(
                 fn (array $machine) => (float) ($machine[$this->setting($node, 'field')] ?? 0),
@@ -224,9 +246,7 @@ final class FormulaEvaluator
         $setting = $this->setting($node, $key);
 
         if ($setting === null || $setting === '') {
-            $this->errors[$id] = $missing;
-
-            return ['match' => [], 'rest' => $machines];
+            return $this->refuse($id, $missing, ['match' => [], 'rest' => $machines]);
         }
 
         $match = [];
@@ -292,9 +312,7 @@ final class FormulaEvaluator
         ));
 
         if ($components === []) {
-            $this->errors[$id] = 'Geef aan waaruit de combinatie bestaat.';
-
-            return ['count' => 0.0, 'used' => [], 'rest' => $machines];
+            return $this->refuse($id, 'Geef aan waaruit de combinatie bestaat.', ['count' => 0.0, 'used' => [], 'rest' => $machines]);
         }
 
         $by_address = [];
@@ -323,7 +341,7 @@ final class FormulaEvaluator
 
                     while ($needed > 0 && $cursors[$index] < count($queues[$index])) {
                         $machine = $queues[$index][$cursors[$index]++];
-                        $key = 'm' . $machine['key'];
+                        $key = $machine['key'];
 
                         if (!isset($picked[$key]) && !isset($used[$key])) {
                             $picked[$key] = $machine;
@@ -346,7 +364,7 @@ final class FormulaEvaluator
             'used' => array_values($used),
             'rest' => array_values(array_filter(
                 $machines,
-                fn (array $machine) => !isset($used['m' . $machine['key']])
+                fn (array $machine) => !isset($used[$machine['key']])
             )),
         ];
     }
@@ -490,7 +508,7 @@ final class FormulaEvaluator
             return;
         }
 
-        $this->pricing_block_reached = true;
+        $this->prices_per_machine = true;
 
         foreach ($machines as $machine) {
             $this->priced[$machine['key']] = true;
@@ -503,39 +521,55 @@ final class FormulaEvaluator
         $machines = [];
 
         foreach ($this->incoming[$id][$handle] ?? [] as $edge) {
-            foreach ($this->outputsOf($edge['source'])[$edge['sourceHandle']] ?? [] as $machine) {
-                $machines['m' . $machine['key']] = $machine;
-            }
+            $machines += array_column($this->outputsOf($edge['source'])[$edge['sourceHandle']] ?? [], null, 'key');
         }
 
         return array_values($machines);
     }
 
-    /** The numbers wired into the handle added up, its fallback setting, or null for nothing at all. */
+    /**
+     * The numbers wired into the handle added up, its fallback setting, or null
+     * for nothing at all. Machines wired into a number count as how many there
+     * are, each once, and count as priced from then on: that is what wiring
+     * them to a price means. An input that only compares, as in "Als … dan",
+     * counts them without pricing them.
+     */
     private function numberIn(string $id, string $handle): ?float
     {
+        $node = $this->nodes[$id];
+        $input = collect(NodeCatalog::definition($node['type'])['inputs'])->firstWhere('id', $handle);
         $edges = $this->incoming[$id][$handle] ?? [];
 
         if ($edges === []) {
-            $node = $this->nodes[$id];
-            $input = collect(NodeCatalog::definition($node['type'])['inputs'])->firstWhere('id', $handle);
-
             return isset($input['fallback']) ? (float) $this->setting($node, $input['fallback']) : null;
         }
 
+        $prices = empty($input['compares']);
         $sum = 0.0;
+        $machines = null;
 
         foreach ($edges as $edge) {
             $outputs = $this->outputsOf($edge['source']);
             $value = $outputs[$edge['sourceHandle']] ?? 0.0;
+
+            if (is_array($value)) {
+                $machines = ($machines ?? []) + array_column($value, null, 'key');
+
+                continue;
+            }
+
             $sum += is_numeric($value) ? (float) $value : 0.0;
 
-            if ($this->nodes[$edge['source']]['type'] === 'combination' && $edge['sourceHandle'] === 'count') {
+            if ($prices && $this->nodes[$edge['source']]['type'] === 'combination' && $edge['sourceHandle'] === 'count') {
                 $this->notePriced($outputs['used'] ?? []);
             }
         }
 
-        return $sum;
+        if ($prices && $machines !== null) {
+            $this->notePriced($machines);
+        }
+
+        return $sum + count($machines ?? []);
     }
 
     /** A setting left empty takes the catalogue's default, as the editor shows it. */
@@ -552,11 +586,12 @@ final class FormulaEvaluator
         return $field['default'] ?? null;
     }
 
-    private function refuse(string $id, string $message): float
+    /** Notes what keeps a block from working, and gives what it stands in with. */
+    private function refuse(string $id, string $message, mixed $instead = 0.0): mixed
     {
         $this->errors[$id] = $message;
 
-        return 0.0;
+        return $instead;
     }
 
     private function display(mixed $value): array

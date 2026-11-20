@@ -9,8 +9,10 @@ namespace App\Domain\Pricing;
  * each block out by its type, so a block exists in all three or in none.
  *
  * Two things flow along the wires: machines (a set of machines on the contract)
- * and numbers. A wire only joins two ends of the same kind. Several wires into
- * one input add up: numbers are summed, machines are put together.
+ * and numbers. A wire joins two ends of the same kind, or machines into a
+ * number, which counts them. Several wires into one input add up: numbers are
+ * summed, machines are put together and each counted once. An input marked
+ * "compares" counts machines without pricing them.
  *
  * A number input with a fallback takes that setting while nothing is wired to
  * it, so "× 1,21" needs no separate block for the 1,21.
@@ -22,6 +24,12 @@ final class NodeCatalog
     public const MACHINES = 'machines';
 
     public const NUMBER = 'number';
+
+    /** Which kinds of input each kind of output may be wired into. */
+    public const CONNECTS = [
+        self::MACHINES => [self::MACHINES, self::NUMBER],
+        self::NUMBER => [self::NUMBER],
+    ];
 
     /**
      * The settings that point at a record: the table it lives in, the name the
@@ -151,14 +159,6 @@ final class NodeCatalog
                     ['key' => 'components', 'label' => 'Bestaat uit', 'type' => 'components', 'default' => []],
                 ],
             ],
-            'count' => [
-                'label' => 'Aantal',
-                'category' => 'count',
-                'description' => 'Telt de machines die je erop aansluit.',
-                'inputs' => $machines_in,
-                'outputs' => $value_out,
-                'fields' => [],
-            ],
             'addresses' => [
                 'label' => 'Aantal adressen',
                 'category' => 'count',
@@ -272,8 +272,9 @@ final class NodeCatalog
                 'category' => 'math',
                 'description' => 'Vergelijkt twee getallen. Klopt het, dan krijg je de waarde bij Dan, anders die bij Anders.',
                 'inputs' => [
-                    ['id' => 'value', 'label' => 'Als', 'kind' => self::NUMBER],
-                    ['id' => 'compare', 'label' => 'Vergeleken met', 'kind' => self::NUMBER, 'fallback' => 'compare'],
+                    ['id' => 'value', 'label' => 'Als', 'kind' => self::NUMBER, 'compares' => true],
+                    ['id' => 'compare', 'label' => 'Vergeleken met', 'kind' => self::NUMBER, 'fallback' => 'compare',
+                        'compares' => true],
                     ['id' => 'then', 'label' => 'Dan', 'kind' => self::NUMBER, 'fallback' => 'then'],
                     ['id' => 'else', 'label' => 'Anders', 'kind' => self::NUMBER, 'fallback' => 'else'],
                 ],
@@ -351,7 +352,10 @@ final class NodeCatalog
             ->all();
     }
 
-    /** @return array{categories: array<string, string>, types: array<int, array<string, mixed>>} */
+    /**
+     * @return array{categories: array<string, string>, types: array<int, array<string, mixed>>,
+     *     connects: array<string, array<int, string>>}
+     */
     public static function forEditor(): array
     {
         $types = [];
@@ -360,13 +364,25 @@ final class NodeCatalog
             $types[] = ['type' => $type, ...$definition];
         }
 
-        return ['categories' => self::CATEGORIES, 'types' => $types];
+        return ['categories' => self::CATEGORIES, 'types' => $types, 'connects' => self::CONNECTS];
     }
 
     /** @return array<string, string> */
     public static function comparisons(): array
     {
         return ['>=' => '≥', '>' => '>', '=' => '=', '!=' => '≠', '<' => '<', '<=' => '≤'];
+    }
+
+    /** Whether an output of one kind may be wired into an input of another; a number never becomes machines. */
+    public static function connects(string $output_kind, string $input_kind): bool
+    {
+        return in_array($input_kind, self::CONNECTS[$output_kind] ?? [], true);
+    }
+
+    /** @return array<int, string> the block types whose value is the formula's outcome */
+    public static function resultTypes(): array
+    {
+        return array_keys(array_filter(self::definitions(), fn (array $definition) => $definition['category'] === 'result'));
     }
 
     /**
@@ -380,15 +396,13 @@ final class NodeCatalog
         return [
             'nodes' => [
                 ['id' => 'machines', 'type' => 'machines', 'position' => ['x' => 0, 'y' => 80], 'data' => []],
-                ['id' => 'count', 'type' => 'count', 'position' => ['x' => 340, 'y' => 80], 'data' => []],
-                ['id' => 'price', 'type' => 'tiers', 'position' => ['x' => 680, 'y' => 60],
+                ['id' => 'price', 'type' => 'tiers', 'position' => ['x' => 340, 'y' => 60],
                     'data' => ['amount' => 50, 'steps' => [], 'mode' => 'graduated']],
-                ['id' => 'periodic', 'type' => 'output_periodic', 'position' => ['x' => 1020, 'y' => 80], 'data' => []],
+                ['id' => 'periodic', 'type' => 'output_periodic', 'position' => ['x' => 680, 'y' => 80], 'data' => []],
             ],
             'edges' => [
-                self::starterEdge('e1', 'machines', 'machines', 'count', 'machines'),
-                self::starterEdge('e2', 'count', 'value', 'price', 'quantity'),
-                self::starterEdge('e3', 'price', 'value', 'periodic', 'value'),
+                self::starterEdge('e1', 'machines', 'machines', 'price', 'quantity'),
+                self::starterEdge('e2', 'price', 'value', 'periodic', 'value'),
             ],
         ];
     }

@@ -271,14 +271,14 @@ class WriteToolGateTest extends TestCase
                 'name' => 'Per machine ' . Str::random(8),
                 'blocks' => [
                     ['id' => 'machines', 'type' => 'machines'],
-                    ['id' => 'count', 'type' => 'count'],
                     ['id' => 'price', 'type' => 'tiers', 'settings' => ['amount' => 50]],
                     ['id' => 'result', 'type' => 'output_periodic'],
                 ],
-                'wires' => ['machines.machines -> count.machines', 'count.value -> price.quantity', 'price.value -> result.value'],
+                'wires' => ['machines.machines -> price.quantity', 'price.value -> result.value'],
             ],
             'apply_price_formula' => [
                 'formula_id' => app(CreatePriceFormulaAction::class)->execute('Gate ' . Str::random(8), null, null, null)->id,
+                'version' => 1,
                 'contract_ids' => [MaintenanceContract::factory()->create(['customer_id' => $customer->id])->id],
             ],
             default => [],

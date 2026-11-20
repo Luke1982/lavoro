@@ -7,7 +7,7 @@
     "chapters": [
         {
             "id": "scherm",
-            "version": 1,
+            "version": 2,
             "title": "Het scherm",
             "summary": "Naam en versie, de blokken, het canvas, het paneel rechts en wat de formule kost.",
             "actions": [
@@ -45,8 +45,8 @@
                         ]
                     },
                     "title": "De blokken",
-                    "text": "Links staan alle **blokken**, in vijf groepen met elk een eigen kleur. **Bronnen**: hier begint het, bijvoorbeeld met de machines. **Filters**: machines opsplitsen, zoals airco's apart van warmtepompen. **Tellen**: van machines een getal maken, zoals '6 airco's'. **Rekenen**: van dat getal een bedrag maken, zoals 6 × €50. **Resultaat**: de prijs die op het contract komt. Sleep een blok naar het canvas, of klik erop.",
-                    "say": "Links staan de blokken, in vijf groepen. Bij \"bronnen\" begint het, bijvoorbeeld met de machines. Met \"filters\" splits je machines op, zoals airco's apart van warmtepompen. Met \"tellen\" maak je van machines een getal. Met \"rekenen\" maak je van dat getal een bedrag. En \"resultaat\" is de prijs die op het contract komt.",
+                    "text": "Links staan alle **blokken**, in vijf groepen met elk een eigen kleur. **Bronnen**: hier begint het, bijvoorbeeld met de machines. **Filters**: machines opsplitsen, zoals airco's apart van warmtepompen. **Tellen**: iets anders van de machines tellen dan hun aantal, zoals op hoeveel adressen ze staan. **Rekenen**: van een aantal een bedrag maken, zoals 6 × €50. **Resultaat**: de prijs die op het contract komt. Sleep een blok naar het canvas, of klik erop.",
+                    "say": "Links staan de blokken, in vijf groepen. Bij \"bronnen\" begint het, bijvoorbeeld met de machines. Met \"filters\" splits je machines op, zoals airco's apart van warmtepompen. Met \"tellen\" maak je van de machines een getal, zoals het aantal adressen. Met \"rekenen\" maak je van een aantal een bedrag. En \"resultaat\" is de prijs die op het contract komt.",
                     "marks": [
                         {
                             "spot": "formula.palette.source",
@@ -105,6 +105,7 @@
                     "skipIfMissing": true,
                     "requires": {
                         "permissions": [
+                            "maintenancecontract.read",
                             "maintenancecontract.see_financials"
                         ]
                     },
@@ -116,9 +117,9 @@
         },
         {
             "id": "lijnen",
-            "version": 1,
+            "version": 2,
             "title": "Blokken en lijnen",
-            "summary": "Ingangen en uitgangen, blauwe en grijze lijnen, een lijn trekken, en wat niet kan.",
+            "summary": "Ingangen en uitgangen, blauwe en grijze lijnen, een lijn trekken, machines tellen, en wat niet kan.",
             "actions": [
                 "keepCanvas"
             ],
@@ -127,24 +128,24 @@
                     "spot": "formula.node.machines",
                     "action": "stageUnwired",
                     "title": "Een blok",
-                    "text": "Elk blok heeft bovenaan een gekleurde balk met zijn naam; de kleur laat zien uit welke groep het komt. **Ingangen** zitten links, **uitgangen** rechts. Wat links binnenkomt, verwerkt het blok, en de uitkomst gaat er rechts uit. Het blok **Aantal** krijgt bijvoorbeeld links machines binnen en geeft rechts een getal: hoeveel machines het zijn.",
-                    "say": "Elk blok heeft een gekleurde balk met zijn naam. Links zitten de ingangen, rechts de uitgangen. Het blok \"aantal\" krijgt bijvoorbeeld links machines binnen, en geeft rechts een getal: hoeveel machines het zijn."
+                    "text": "Elk blok heeft bovenaan een gekleurde balk met zijn naam; de kleur laat zien uit welke groep het komt. **Ingangen** zitten links, **uitgangen** rechts. Wat links binnenkomt, verwerkt het blok, en de uitkomst gaat er rechts uit. **Prijs per stuk** krijgt bijvoorbeeld links een aantal binnen en geeft rechts een bedrag: 8 stuks × €50 = €400.",
+                    "say": "Elk blok heeft een gekleurde balk met zijn naam. Links zitten de ingangen, rechts de uitgangen. Het blok \"prijs per stuk\" krijgt bijvoorbeeld links een aantal binnen, en geeft rechts een bedrag: acht stuks keer vijftig euro is vierhonderd euro."
                 },
                 {
                     "spot": "formula.handle.machinesOut",
                     "action": "stageUnwired",
                     "title": "Blauw en grijs",
-                    "text": "Er lopen twee soorten dingen over de lijnen. Een **blauw rondje** is voor **machines**: een groep machines, zoals 'alle airco's van deze klant'. Een **grijs blokje** is voor een **getal**: een aantal, zoals 6, of een bedrag, zoals €300.",
-                    "say": "Er lopen twee soorten dingen over de lijnen. Een blauw rondje is voor machines, zoals alle airco's van een klant. Een grijs blokje is voor een getal: een aantal, zoals zes, of een bedrag, zoals driehonderd euro.",
+                    "text": "Er lopen twee soorten dingen over de lijnen. Een **blauw rondje** is voor **machines**: een groep machines, zoals 'alle airco's van deze klant'. Een **grijs blokje** is voor een **getal**: een aantal, zoals 6, of een bedrag, zoals €300. Een blauwe lijn mag ook naar een grijs blokje: dan worden de machines geteld.",
+                    "say": "Er lopen twee soorten dingen over de lijnen. Een blauw rondje is voor machines, zoals alle airco's van een klant. Een grijs blokje is voor een getal: een aantal, zoals zes, of een bedrag, zoals driehonderd euro. Een blauwe lijn mag ook naar een grijs blokje: dan worden de machines geteld.",
                     "marks": [
                         {
-                            "spot": "formula.handle.countOut",
+                            "spot": "formula.handle.priceOut",
                             "when": "grijs blokje"
                         }
                     ]
                 },
                 {
-                    "spot": "formula.node.count",
+                    "spot": "formula.node.price",
                     "action": [
                         "stageUnwired",
                         "wireLater"
@@ -155,25 +156,36 @@
                         ]
                     },
                     "title": "Een lijn trekken",
-                    "text": "Je verbindt twee blokken door van een **uitgang** naar een **ingang** te slepen. Kijk: de machines gaan nu naar het blok **Aantal**, en dat telt ze. Een lijn weghalen? Klik erop en druk op Backspace.",
-                    "say": "Je verbindt twee blokken door van een uitgang naar een ingang te slepen. Kijk: de machines gaan nu naar het blok \"aantal\", en dat telt ze.",
+                    "text": "Je verbindt twee blokken door van een **uitgang** naar een **ingang** te slepen. Kijk: de machines gaan nu rechtstreeks naar **Prijs per stuk**. Een lijn weghalen? Klik erop en druk op Backspace.",
+                    "say": "Je verbindt twee blokken door van een uitgang naar een ingang te slepen. Kijk: de machines gaan nu rechtstreeks naar het blok \"prijs per stuk\".",
                     "aid": {
                         "type": "ghost",
                         "from": "formula.handle.machinesOut",
-                        "to": "formula.handle.countIn",
+                        "to": "formula.handle.priceIn",
                         "land": "same"
                     }
                 },
                 {
-                    "spot": "formula.node.count",
+                    "spot": "formula.handle.priceIn",
+                    "action": "stageBasis",
+                    "title": "Blauw naar grijs: de machines worden geteld",
+                    "text": "Hier gaat een blauwe lijn naar een grijze ingang. Dat mag: de machines worden dan **geteld**. 8 machines worden het getal 8, en **Prijs per stuk** maakt daar 8 × €50 = €400 van. Dat geldt voor elke grijze ingang. Verbind je de machines met **Als … dan**, dan vergelijkt dat blok het aantal machines, bijvoorbeeld '5 of meer'. Andersom kan niet: van een getal kun je geen machines maken.",
+                    "say": "Hier gaat een blauwe lijn naar een grijs blokje: een ingang voor een getal. Dat mag: de machines worden dan geteld. Acht machines worden het getal acht, en \"prijs per stuk\" maakt daar vierhonderd euro van. Bij \"als, dan\" vergelijkt het blok zo het aantal machines. Andersom kan niet: van een getal kun je geen machines maken."
+                },
+                {
+                    "spot": "formula.node.price",
                     "action": "stageBasis",
                     "title": "Waarden op de blokken",
-                    "text": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt, en bij elke ingang wat erin gaat. Heeft de voorbeeldklant 8 machines, dan staat er bij **Aantal** een 8, en bij **Prijs per stuk** 8 × €50 = €400. Zo controleer je bij elk blok of het uitrekent wat je bedoelt. Klik op een aantal machines, zoals '8 machines', en je ziet welke het zijn: merk en model, type, serienummer en adres.",
-                    "say": "Zodra er iets binnenkomt, zie je bij elke uitgang wat eruit komt. Heeft de voorbeeldklant acht machines, dan staat er bij \"aantal\" het getal acht. Bij \"prijs per stuk\" staat dan vierhonderd euro, want acht keer vijftig euro is vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt.",
+                    "text": "Zodra er iets binnenkomt, zie je bij elke ingang en uitgang wat erdoor gaat. Bij **Prijs per stuk** staat links een 8: de getelde machines. Rechts staat €400. Zo controleer je bij elk blok of het uitrekent wat je bedoelt. Klik op '8 machines' om te zien welke het zijn: merk en model, type, serienummer en adres.",
+                    "say": "Zodra er iets binnenkomt, zie je bij elke ingang en elke uitgang wat erdoor gaat. Bij \"prijs per stuk\" staat links een acht: de getelde machines. Rechts staat vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt. Klik op het aantal machines om te zien welke het zijn.",
                     "marks": [
                         {
-                            "spot": "formula.node.price",
+                            "spot": "formula.node.result",
                             "when": "elk blok"
+                        },
+                        {
+                            "spot": "formula.handle.machinesOut",
+                            "when": "het aantal machines"
                         }
                     ]
                 },
@@ -181,20 +193,14 @@
                     "spot": "formula.canvas",
                     "action": "stageBasis",
                     "title": "Wat niet kan",
-                    "text": "Een lijn verbindt alleen dingen van dezelfde soort: machines met machines, en getallen met getallen. Een lijn die in een kring terugloopt naar het blok waar hij begon, kan ook niet. Komen er **meerdere lijnen op één ingang**, dan worden ze samengevoegd: getallen worden opgeteld (€300 plus €60 is €360) en groepen machines worden bij elkaar gevoegd.",
-                    "say": "Een lijn verbindt alleen dingen van dezelfde soort: machines met machines, en getallen met getallen. Komen er meerdere lijnen op één ingang, dan worden getallen opgeteld. Komt er driehonderd euro binnen en zestig euro, dan wordt dat driehonderdzestig euro.",
-                    "marks": [
-                        {
-                            "spot": "formula.edges.machines",
-                            "when": "machines met machines"
-                        }
-                    ]
+                    "text": "Een grijze uitgang kan niet naar een blauwe ingang: een getal is geen groep machines. Een lijn die in een kring terugloopt naar het blok waar hij begon, kan ook niet. Komen er **meerdere lijnen op één ingang**, dan worden ze samengevoegd: getallen worden opgeteld (€300 plus €60 is €360), en machines worden bij elkaar genomen, waarbij elke machine maar één keer telt.",
+                    "say": "Een grijze uitgang kan niet naar een blauwe ingang, want een getal is geen groep machines. Komen er meerdere lijnen op één ingang, dan worden ze samengevoegd. Komt er driehonderd euro binnen en zestig euro, dan wordt dat driehonderdzestig euro. Bij machines telt elke machine maar één keer mee."
                 },
                 {
-                    "spot": "formula.node.count",
+                    "spot": "formula.node.price",
                     "action": [
                         "stageBasis",
-                        "selectCount"
+                        "selectPrice"
                     ],
                     "title": "Aanklikken",
                     "text": "Klik op een blok, en rechts verschijnen zijn **instellingen**. Bovenaan geef je het een **eigen naam**, zoals 'Airco per stuk', zodat je later nog weet waar het voor is. Onderaan staat **Blok verwijderen**; met Backspace kan het ook.",
@@ -326,7 +332,7 @@
                     ]
                 },
                 {
-                    "spot": "formula.node.restCount",
+                    "spot": "formula.node.price",
                     "action": "stageFilter",
                     "title": "Geen machine dubbel",
                     "text": "Gebruik **Overige** voor de rest, zoals hier: machines van dit type kosten €50 per stuk, alle andere €30. Voor de klant met 6 en 2 machines is dat 6 × €50 + 2 × €30 = €300 + €60 = €360. Zo krijgt elke machine precies één prijs, en reken je nooit een machine dubbel. Wil je een derde prijs, zet dan achter **Overige** nog een filter.",
@@ -423,19 +429,19 @@
         },
         {
             "id": "tellen",
-            "version": 1,
+            "version": 2,
             "title": "Tellen",
-            "summary": "Machines en adressen tellen, catalogusprijzen optellen, onderhoudsbeurten tellen, en machines die niets kosten.",
+            "summary": "Machines tellen, adressen tellen, catalogusprijzen optellen, onderhoudsbeurten tellen, en machines die niets kosten.",
             "actions": [
                 "keepCanvas"
             ],
             "steps": [
                 {
-                    "spot": "formula.node.count",
+                    "spot": "formula.handle.priceIn",
                     "action": "stageFilter",
-                    "title": "Aantal",
-                    "text": "**Aantal** telt de machines die binnenkomen en maakt er een getal van: 6 machines worden het getal 6. Dat getal gaat meestal door naar **Prijs per stuk**, dat er een bedrag van maakt.",
-                    "say": "Het blok \"aantal\" telt de machines die binnenkomen: zes machines worden het getal zes. Dat getal gaat meestal door naar het blok \"prijs per stuk\", dat er een bedrag van maakt."
+                    "title": "Machines tellen",
+                    "text": "Wil je alleen het aantal machines? Dan heb je geen blok nodig: een blauwe lijn naar een grijze ingang telt ze. Hier gaan de 6 machines van dit type naar **Prijs per stuk**, en die rekent met het getal 6. De blokken in deze groep tellen iets anders: op hoeveel adressen de machines staan, wat ze samen waard zijn en hoe vaak ze onderhoud krijgen.",
+                    "say": "Wil je alleen het aantal machines? Dan heb je geen blok nodig: een blauwe lijn naar een grijze ingang telt ze. De blokken in deze groep tellen iets anders: op hoeveel adressen de machines staan, wat ze samen waard zijn, en hoe vaak ze onderhoud krijgen."
                 },
                 {
                     "spot": "formula.node.addresses",
@@ -494,14 +500,14 @@
                     ],
                     "skipIfMissing": true,
                     "title": "Wat niets kost",
-                    "text": "Komt een machine bij **geen enkel** blok uit de groep Tellen aan, dan rekent de formule er niets voor. Hier is het blok **Machines** nog nergens op aangesloten, dus kosten alle 8 machines niets. Dat staat in het geel bij het proberen, en later ook op het contract, zodat je het niet over het hoofd ziet.",
-                    "say": "Komt een machine bij geen enkel blok uit de groep \"tellen\" aan, dan rekent de formule er niets voor. Hier is het blok \"machines\" nog nergens op aangesloten, dus kosten alle machines niets. Dat zie je in het geel bij het proberen."
+                    "text": "Rekent de formule per machine, dan moet elke machine ergens een prijs krijgen: via een grijze ingang, de **Catalogusprijs** of de **Onderhoudsbeurten per jaar**. Een machine die nergens een prijs krijgt, kost niets en staat in het geel, bij het proberen en later ook op het contract. Let op: **Aantal adressen** telt adressen en geen machines, en de vergelijking van **Als … dan** geeft geen prijs. Hier is het blok **Machines** nog nergens op aangesloten, dus kosten alle 8 machines niets.",
+                    "say": "Worden machines nergens geteld, dan rekent de formule er niets voor. Hier is het blok \"machines\" nog nergens op aangesloten, dus kosten alle machines niets. Dat zie je in het geel bij het proberen."
                 }
             ]
         },
         {
             "id": "rekenen",
-            "version": 1,
+            "version": 2,
             "title": "Rekenen",
             "summary": "Prijs per stuk en de staffel, optellen, vermenigvuldigen, delen, aftrekken, korting, minimum en maximum, afronden en als-dan.",
             "actions": [
@@ -515,8 +521,8 @@
                         "selectPrice"
                     ],
                     "title": "Prijs per stuk",
-                    "text": "**Prijs per stuk** maakt van een aantal een bedrag. Hier kost elke machine van dit type €50. Komen er 6 binnen, dan komt er 6 × €50 = €300 uit.",
-                    "say": "Het blok \"prijs per stuk\" maakt van een aantal een bedrag. Hier kost elke machine van dit type vijftig euro per stuk. Komen er zes binnen, dan komt er driehonderd euro uit.",
+                    "text": "**Prijs per stuk** maakt van een aantal een bedrag. Hier kost elke machine van dit type €50. Sluit de machines er rechtstreeks op aan, dan worden ze vanzelf geteld. Komen er 6 binnen, dan komt er 6 × €50 = €300 uit.",
+                    "say": "Het blok \"prijs per stuk\" maakt van een aantal een bedrag. Hier kost elke machine van dit type vijftig euro per stuk. Komen er zes machines binnen, dan komt er driehonderd euro uit.",
                     "marks": [
                         {
                             "spot": "formula.settings.amount",
@@ -632,8 +638,8 @@
                         "selectCondition"
                     ],
                     "title": "Als … dan",
-                    "text": "**Als … dan** vergelijkt een getal met een ander getal. Klopt de vergelijking, dan geeft het blok de waarde bij **Dan**, en anders de waarde bij **Anders**. Hier: zijn er 5 machines of meer, dan −€25, anders €0. Een klant met 8 machines krijgt dus €25 korting: 8 × €50 = €400, min €25 is €375. Een klant met 4 machines krijgt geen korting.",
-                    "say": "Het blok \"als, dan\" vergelijkt twee getallen. Klopt de vergelijking, dan geeft het blok de waarde bij \"dan\", en anders de waarde bij \"anders\". Hier krijgt de klant vanaf vijf machines vijfentwintig euro korting. Met acht machines betaalt de klant dus driehonderdvijfenzeventig euro, in plaats van vierhonderd.",
+                    "text": "**Als … dan** vergelijkt een getal met een ander getal. Klopt de vergelijking, dan geeft het blok de waarde bij **Dan**, en anders de waarde bij **Anders**. Hier gaan de machines rechtstreeks naar **Als**, dus vergelijkt het blok het aantal machines: bij 5 of meer geeft het −€25, anders €0. Een klant met 8 machines krijgt dus €25 korting: 8 × €50 = €400, min €25 is €375. Een klant met 4 machines krijgt geen korting.",
+                    "say": "Het blok \"als, dan\" vergelijkt een getal met een ander getal. Sluit je de machines rechtstreeks aan, dan vergelijkt het blok het aantal machines. Klopt de vergelijking, dan geeft het blok de waarde bij \"dan\", en anders de waarde bij \"anders\". Hier krijgt de klant vanaf vijf machines vijfentwintig euro korting. Met acht machines betaalt de klant dus driehonderdvijfenzeventig euro, in plaats van vierhonderd.",
                     "marks": [
                         {
                             "spot": "formula.settings.compare",
@@ -708,7 +714,10 @@
                 },
                 {
                     "spot": "formula.bench.inputs",
-                    "action": "fillExampleInput",
+                    "action": [
+                        "showTrialPanel",
+                        "fillExampleInput"
+                    ],
                     "title": "Invoer proberen",
                     "text": "Heeft de formule **invoer per contract**, dan vul je die hier in om te zien wat het doet. Hier zijn 2 extra bezoeken ingevuld: de prijs gaat 2 × €60 = €120 omhoog, van €360 naar €480. Laat je het veld leeg, dan geldt de standaardwaarde.",
                     "say": "Heeft de formule invoer per contract, dan vul je die hier in. Hier zijn twee extra bezoeken ingevuld: de prijs gaat honderdtwintig euro omhoog, van driehonderdzestig naar vierhonderdtachtig euro. Laat je het veld leeg, dan geldt de standaardwaarde."
@@ -726,6 +735,7 @@
                     "skipIfMissing": true,
                     "requires": {
                         "permissions": [
+                            "maintenancecontract.read",
                             "maintenancecontract.see_financials"
                         ]
                     },
@@ -783,6 +793,7 @@
             "summary": "Welke contracten deze formule gebruiken, wat ze met de nieuwste versie kosten, en ze bijwerken.",
             "requires": {
                 "permissions": [
+                    "maintenancecontract.read",
                     "maintenancecontract.see_financials"
                 ]
             },

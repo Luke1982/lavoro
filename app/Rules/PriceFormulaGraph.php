@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * A price formula's graph as the calculator can work it out: blocks it knows,
- * settings it can read, wires joining an output to an input of the same kind,
- * at most one of each result, and no wire that leads back to where it came from.
+ * settings it can read, wires joining an output to an input that takes it
+ * (machines into a number are counted), at most one of each result, and no
+ * wire that leads back to where it came from.
  *
  * Each problem names the block it is about, so it can be found on the canvas.
  */
@@ -20,9 +21,20 @@ class PriceFormulaGraph implements ValidationRule
 
     private const MAX_EDGES = 500;
 
-    private const MAX_NUMBER = 1_000_000_000;
+    /** The largest amount or setting a formula takes; inputs filled in on a contract keep to it too. */
+    public const MAX_NUMBER = 1_000_000_000;
 
     private const MAX_TITLE = 100;
+
+    private const MAX_ID = 64;
+
+    private const MAX_TEXT = 255;
+
+    private const MAX_STEPS = 20;
+
+    private const MAX_COMPONENTS = 10;
+
+    private const MAX_COMPONENT_QUANTITY = 100;
 
     private const EDGE_ENDS = ['source', 'sourceHandle', 'target', 'targetHandle'];
 
@@ -56,7 +68,7 @@ class PriceFormulaGraph implements ValidationRule
             $id = $node['id'] ?? null;
             $definition = is_array($node) ? NodeCatalog::definition((string) ($node['type'] ?? '')) : null;
 
-            if (!is_string($id) || $id === '' || strlen($id) > 64 || $definition === null) {
+            if (!is_string($id) || $id === '' || strlen($id) > self::MAX_ID || $definition === null) {
                 $problems[] = 'Er staat een onbekend blok in de formule.';
 
                 continue;
@@ -100,7 +112,7 @@ class PriceFormulaGraph implements ValidationRule
             }
         }
 
-        foreach (['output_periodic', 'output_one_time'] as $result) {
+        foreach (NodeCatalog::resultTypes() as $result) {
             $count = count(array_filter($nodes, fn ($node) => ($node['type'] ?? null) === $result));
 
             if ($count > 1) {
@@ -140,7 +152,7 @@ class PriceFormulaGraph implements ValidationRule
             'number' => is_numeric($value) && abs((float) $value) < self::MAX_NUMBER
                 ? null
                 : $label . ' moet een getal zijn.',
-            'text' => is_string($value) && mb_strlen($value) <= 255 ? null : $label . ' is te lang.',
+            'text' => is_string($value) && mb_strlen($value) <= self::MAX_TEXT ? null : $label . ' is te lang.',
             'select' => is_scalar($value) && array_key_exists((string) $value, $field['options'])
                 ? null
                 : $label . ' heeft een ongeldige keuze.',
@@ -152,8 +164,8 @@ class PriceFormulaGraph implements ValidationRule
 
     private function tiersProblem(mixed $steps): ?string
     {
-        if (!is_array($steps) || count($steps) > 20) {
-            return 'de staffel heeft hoogstens 20 stappen.';
+        if (!is_array($steps) || count($steps) > self::MAX_STEPS) {
+            return 'de staffel heeft hoogstens ' . self::MAX_STEPS . ' stappen.';
         }
 
         foreach ($steps as $step) {
@@ -172,15 +184,15 @@ class PriceFormulaGraph implements ValidationRule
 
     private function componentsProblem(mixed $components, array &$references): ?string
     {
-        if (!is_array($components) || count($components) > 10) {
-            return 'een combinatie bestaat uit hoogstens 10 onderdelen.';
+        if (!is_array($components) || count($components) > self::MAX_COMPONENTS) {
+            return 'een combinatie bestaat uit hoogstens ' . self::MAX_COMPONENTS . ' onderdelen.';
         }
 
         foreach ($components as $component) {
             $quantity = $component['quantity'] ?? null;
 
-            if (!is_numeric($quantity) || (int) $quantity < 1 || (int) $quantity > 100) {
-                return 'elk onderdeel van de combinatie heeft een aantal van 1 tot 100.';
+            if (!is_numeric($quantity) || (int) $quantity < 1 || (int) $quantity > self::MAX_COMPONENT_QUANTITY) {
+                return 'elk onderdeel van de combinatie heeft een aantal van 1 tot ' . self::MAX_COMPONENT_QUANTITY . '.';
             }
 
             if (!is_numeric($component['product_id'] ?? 0) || !is_numeric($component['product_type_id'] ?? 0)) {
@@ -234,7 +246,7 @@ class PriceFormulaGraph implements ValidationRule
             if ($output === null || $input === null) {
                 $problems[] = "De lijn van '" . $source['label'] . "' naar '" . $target['label']
                     . "' zit niet aan een ingang of uitgang vast.";
-            } elseif ($output['kind'] !== $input['kind']) {
+            } elseif (!NodeCatalog::connects($output['kind'], $input['kind'])) {
                 $problems[] = "'" . $source['label'] . "' geeft " . $this->kindName($output['kind'])
                     . ", maar '" . $target['label'] . "' verwacht daar " . $this->kindName($input['kind']) . '.';
             }

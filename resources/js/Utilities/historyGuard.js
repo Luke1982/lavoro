@@ -8,6 +8,7 @@
  * can still say no.
  */
 let guard = null
+let leaving = null
 
 export function installHistoryGuard() {
     window.addEventListener('popstate', (event) => {
@@ -25,4 +26,27 @@ export function guardHistory(decide) {
     return () => {
         if (guard === decide) guard = null
     }
+}
+
+/**
+ * Lets the open page answer for a way out that has to be asked about before it
+ * starts (see confirmLeaving). `ask` gets the path that is about to be visited
+ * and returns whether the person agrees. Returns the function that stops it.
+ */
+export function guardLeaving(ask) {
+    leaving = ask
+
+    return () => {
+        if (leaving === ask) leaving = null
+    }
+}
+
+/**
+ * Asks the open page whether it may be left for `path`. Logging out tears down
+ * location tracking, push and the caches before it visits anything; asked only
+ * at that visit, a no would keep the person logged in with all of that gone.
+ * A yes covers the visit to `path` that follows, so it is not asked twice.
+ */
+export function confirmLeaving(path) {
+    return leaving ? leaving(path) : true
 }

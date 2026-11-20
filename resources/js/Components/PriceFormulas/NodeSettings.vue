@@ -27,22 +27,10 @@
                 </select>
             </template>
 
-            <ComboBox v-else-if="field.type === 'product_type'" :label="field.label" :options="productTypes"
-                :model-value="value(field)" placeholder="Kies een producttype" :disabled="readonly"
-                @update:model-value="v => set(field.key, v)" />
-
-            <ComboBox v-else-if="field.type === 'product'" :label="field.label" :options="modelOptions"
-                :model-value="value(field)" placeholder="Kies een model" :disabled="readonly"
-                :has-external-searching="productsUseAjax" :searching="searching" @change="search"
-                @update:model-value="v => set(field.key, v)" />
-
-            <ComboBox v-else-if="field.type === 'brand'" :label="field.label" :options="brands"
-                :model-value="value(field)" placeholder="Kies een merk" :disabled="readonly"
-                @update:model-value="v => set(field.key, v)" />
-
-            <ComboBox v-else-if="field.type === 'attribute'" :label="field.label" :options="attributes"
-                :model-value="value(field)" placeholder="Kies een kenmerk" :disabled="readonly"
-                @update:model-value="v => set(field.key, v)" />
+            <ComboBox v-else-if="pickers[field.type]" :label="field.label" :options="pickers[field.type].options"
+                :model-value="value(field)" :placeholder="pickers[field.type].placeholder" :disabled="readonly"
+                :has-external-searching="pickers[field.type].searchesServer" :searching="pickers[field.type].searching"
+                @change="query => pickers[field.type].search?.(query)" @update:model-value="v => set(field.key, v)" />
 
             <div v-else-if="field.type === 'tiers'">
                 <p class="text-sm font-medium text-gray-900 dark:text-gray-300">{{ field.label }}</p>
@@ -86,7 +74,7 @@
                     </div>
                     <MachinePicker :product-type-id="component.product_type_id" :product-id="component.product_id"
                         :product-types="productTypes" :product-options="productOptions"
-                        :products-use-ajax="productsUseAjax" all-label="Kies een producttype" stacked :disabled="readonly"
+                        :products-use-ajax="productsUseAjax" :disabled="readonly"
                         @update:product-type-id="v => setItem(field, index, 'product_type_id', v)"
                         @update:product-id="v => setItem(field, index, 'product_id', v)" />
                 </div>
@@ -105,6 +93,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import TextInput from '@/Components/UI/TextInput.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -132,6 +121,20 @@ const { options: modelOptions, searching, search } =
 const value = field => settingOf(props.node, props.definition, field.key)
 const list = field => value(field) ?? []
 
+/** The settings that point at a record: what each one picks from, and what it says while nothing is picked. */
+const pickers = computed(() => ({
+    product_type: { options: props.productTypes, placeholder: 'Kies een producttype' },
+    product: {
+        options: modelOptions.value,
+        placeholder: 'Kies een model',
+        searchesServer: props.productsUseAjax,
+        searching: searching.value,
+        search,
+    },
+    brand: { options: props.brands, placeholder: 'Kies een merk' },
+    attribute: { options: props.attributes, placeholder: 'Kies een kenmerk' },
+}))
+
 /** The value of a kenmerk filter is compared in the unit of that kenmerk, so the label says which. */
 function labelOf(field) {
     if (field.key !== 'value' || props.node.type !== 'filter_attribute') return field.label
@@ -154,9 +157,16 @@ function removeItem(field, index) {
     set(field.key, list(field).filter((_, i) => i !== index))
 }
 
+/** A new staffel starts its first step at this piece, and every next step this many pieces further on. */
+const FIRST_STEP_FROM = 6
+const STEP_SIZE = 5
+
 function addStep(field) {
     const last = list(field).at(-1)
-    set(field.key, [...list(field), { from: last ? Number(last.from) + 5 : 6, amount: last?.amount ?? value({ key: 'amount' }) ?? 0 }])
+    set(field.key, [...list(field), {
+        from: last ? Number(last.from) + STEP_SIZE : FIRST_STEP_FROM,
+        amount: last?.amount ?? settingOf(props.node, props.definition, 'amount') ?? 0,
+    }])
 }
 
 function addComponent(field) {

@@ -20,21 +20,10 @@ class PriceFormulaPreviewRequest extends FormRequest
 
     public function authorize(): bool
     {
-        if (!$this->user()->can('viewAny', PriceFormula::class)) {
-            return false;
-        }
-
-        $contract_id = $this->input('maintenance_contract_id');
-
-        if (!$contract_id) {
-            return true;
-        }
-
-        $contract = MaintenanceContract::find($contract_id);
-
-        return $contract === null
-            || ($this->user()->can('view', $contract)
-                && $this->user()->can('seeFinancials', MaintenanceContract::class));
+        return $this->user()->can('tryOn', [
+            PriceFormula::class,
+            MaintenanceContract::find($this->input('maintenance_contract_id')),
+        ]);
     }
 
     public function rules(): array
@@ -56,7 +45,7 @@ class PriceFormulaPreviewRequest extends FormRequest
             'price_interval' => ['nullable', 'string', $intervals],
             'frequency' => ['nullable', 'string', $intervals],
             'inputs' => ['nullable', 'array'],
-            'inputs.*' => ['nullable', 'numeric', 'between:-1000000000,1000000000'],
+            'inputs.*' => ['nullable', 'numeric', 'between:' . -PriceFormulaGraph::MAX_NUMBER . ',' . PriceFormulaGraph::MAX_NUMBER],
         ];
     }
 }

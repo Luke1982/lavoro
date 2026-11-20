@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\MaintenanceContract;
+use App\Rules\PriceFormulaGraph;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -24,7 +25,7 @@ class MaintenanceContractPriceFormulaUpdateRequest extends FormRequest
             'price_formula_id' => ['sometimes', 'nullable', 'integer', 'exists:price_formulas,id'],
             'to_latest' => ['sometimes', 'boolean'],
             'inputs' => ['sometimes', 'nullable', 'array'],
-            'inputs.*' => ['nullable', 'numeric', 'between:-1000000000,1000000000'],
+            'inputs.*' => ['nullable', 'numeric', 'between:' . -PriceFormulaGraph::MAX_NUMBER . ',' . PriceFormulaGraph::MAX_NUMBER],
         ];
     }
 }

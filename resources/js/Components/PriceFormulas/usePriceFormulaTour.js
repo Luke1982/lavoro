@@ -14,6 +14,10 @@ import { tourSample, tourStage } from './tourExamples'
  * is the person's own formula: the page judges unsaved work by that one, so an
  * example can never be saved, and leaving still warns about real changes.
  *
+ * `reshaping()` is true while the tour swaps what is on the canvas. The
+ * selection is cleared and put back on the way, which is not the person
+ * choosing a block, so the page leaves its panel alone and the tour sets it.
+ *
  * The ghost of a wire being drawn takes about this long to reach its end.
  */
 const WIRE_LANDS_AFTER = 3600
@@ -22,6 +26,16 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
     const touring = ref(false)
     const heldGraph = ref(null)
     let timers = []
+    let reshaping = false
+
+    function reshape(change) {
+        reshaping = true
+        try {
+            change()
+        } finally {
+            reshaping = false
+        }
+    }
 
     const later = (milliseconds, fn) => timers.push(setTimeout(fn, milliseconds))
 
@@ -40,18 +54,25 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
             viewport: flow.getViewport(),
             bench: cloneDeep({ ...bench }),
             panel: panel.value,
+            selected: flow.getSelectedNodes.value.map(node => node.id),
         }
         heldGraph.value = kept.graph
         touring.value = true
 
         return async () => {
             clearTimers()
-            flow.removeSelectedNodes(flow.getSelectedNodes.value)
-            flow.setNodes(nodesOf(kept.graph))
-            flow.setEdges(edgesOf(kept.graph))
-            Object.assign(bench, kept.bench)
-            panel.value = kept.panel
+            reshape(() => {
+                flow.removeSelectedNodes(flow.getSelectedNodes.value)
+                flow.setNodes(nodesOf(kept.graph))
+                flow.setEdges(edgesOf(kept.graph))
+                Object.assign(bench, kept.bench)
+                panel.value = kept.panel
+            })
             await nextTick()
+            reshape(() => {
+                const back = kept.selected.map(id => flow.findNode(id)).filter(Boolean)
+                if (back.length) flow.addSelectedNodes(back)
+            })
             flow.setViewport(kept.viewport)
             touring.value = false
             heldGraph.value = null
@@ -60,14 +81,17 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
 
     /**
      * Puts one example formula on the canvas, tried on the example customer. A
-     * block that was lit up stays lit up when it is in the next stage too.
+     * block that was lit up stays lit up when it is in the next stage too; one
+     * that is not leaves nothing to set, so the try-out shows instead.
      */
     function showStage(name) {
         const selected = flow.getSelectedNodes.value.map(node => node.id)
         const graph = tourStage(name, tourTypes())
-        flow.removeSelectedNodes(flow.getSelectedNodes.value)
-        flow.setNodes(nodesOf(graph))
-        flow.setEdges(edgesOf(graph))
+        reshape(() => {
+            flow.removeSelectedNodes(flow.getSelectedNodes.value)
+            flow.setNodes(nodesOf(graph))
+            flow.setEdges(edgesOf(graph))
+        })
         Object.assign(bench, {
             mode: 'sample',
             sample: tourSample(tourTypes()),
@@ -75,10 +99,11 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
             frequency: 'Jaarlijks',
             inputs: {},
         })
-        later(0, () => {
+        later(0, () => reshape(() => {
             const stillThere = selected.map(id => flow.findNode(id)).filter(Boolean)
             if (stillThere.length) flow.addSelectedNodes(stillThere)
-        })
+            else if (selected.length) panel.value = 'test'
+        }))
         fitAll()
 
         return null
@@ -102,7 +127,7 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
 
     /** Draws the wire the person watches being drawn, once the hand gets there; going back takes it away. */
     function wireLater() {
-        const wire = { source: 'tour-machines', sourceHandle: 'machines', target: 'tour-count', targetHandle: 'machines' }
+        const wire = { source: 'tour-machines', sourceHandle: 'machines', target: 'tour-price', targetHandle: 'quantity' }
         later(WIRE_LANDS_AFTER, () => connect(wire))
 
         return () => {
@@ -163,7 +188,6 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
         stageFull: () => showStage('full'),
         wireLater,
         selectMachines: () => selectExample('machines'),
-        selectCount: () => selectExample('count'),
         selectPrice: () => selectExample('price'),
         selectFilter: () => selectExample('filter'),
         selectCombination: () => selectExample('combination'),
@@ -178,7 +202,7 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
         selectCatalog: () => selectExample('catalog'),
         selectContract: () => selectExample('contract'),
         focusStart: () => focusExamples('machines', 'combination', 'filter'),
-        focusMiddle: () => focusExamples('count', 'rest-count', 'price', 'rest-price', 'package', 'callout', 'extra'),
+        focusMiddle: () => focusExamples('price', 'rest-price', 'package', 'callout', 'extra'),
         focusEnd: () => focusExamples('sum', 'discount', 'minimum', 'round', 'result', 'startup', 'once'),
         showTrialPanel,
         tryOnContract,
@@ -186,8 +210,6 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
     }, {
         spots: {
             'formula.node.machines': node('machines'),
-            'formula.node.count': node('count'),
-            'formula.node.restCount': node('rest-count'),
             'formula.node.price': node('price'),
             'formula.node.restPrice': node('rest-price'),
             'formula.node.result': node('result'),
@@ -212,8 +234,8 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
             'formula.node.contract': node('contract'),
             'formula.node.perPeriod': node('per-period'),
             'formula.handle.machinesOut': handle('machines', 'machines', 'source'),
-            'formula.handle.countIn': handle('count', 'machines', 'target'),
-            'formula.handle.countOut': handle('count', 'value', 'source'),
+            'formula.handle.priceIn': handle('price', 'quantity', 'target'),
+            'formula.handle.priceOut': handle('price', 'value', 'source'),
             'formula.handle.filterMatch': handle('filter', 'match', 'source'),
             'formula.handle.filterRest': handle('filter', 'rest', 'source'),
             'formula.handle.discountPart': handle('discount', 'part', 'source'),
@@ -245,5 +267,5 @@ export function usePriceFormulaTour({ flow, canvasRef, panel, bench, tourTypes, 
         },
     })
 
-    return { touring, heldGraph, clearTimers }
+    return { touring, heldGraph, reshaping: () => reshaping, clearTimers }
 }

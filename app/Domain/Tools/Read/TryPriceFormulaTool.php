@@ -71,14 +71,10 @@ class TryPriceFormulaTool implements Tool
     /** Trying it on a real contract shows that contract's money. */
     public function authorize(User $user, array $arguments): bool
     {
-        if (!$user->can('viewAny', PriceFormula::class)) {
-            return false;
-        }
-
-        $contract = MaintenanceContract::find($arguments['maintenance_contract_id'] ?? null);
-
-        return $contract === null
-            || ($user->can('view', $contract) && $user->can('seeFinancials', MaintenanceContract::class));
+        return $user->can('tryOn', [
+            PriceFormula::class,
+            MaintenanceContract::find($arguments['maintenance_contract_id'] ?? null),
+        ]);
     }
 
     public function requiresConfirmation(): bool

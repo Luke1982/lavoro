@@ -32,10 +32,10 @@
                 class="flex flex-col gap-3 rounded-lg bg-amber-50 p-3 text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-900/30 dark:text-amber-200">
                 <p>
                     Er is een nieuwere versie van {{ priceFormula.name }} (versie {{ priceFormula.newer.version }}).
-                    Daarmee wordt de prijs {{ formatResult(priceFormula.newer.result.periodic ?? 0) }} per periode
-                    (nu {{ formatResult(priceFormula.result.periodic ?? 0) }})<template
+                    Daarmee wordt de prijs {{ nlCurrency(priceFormula.newer.result.periodic ?? 0) }} per periode
+                    (nu {{ nlCurrency(priceFormula.result.periodic ?? 0) }})<template
                         v-if="priceFormula.newer.result.one_time !== priceFormula.result.one_time">, eenmalig
-                        {{ priceFormula.newer.result.one_time === null ? 'niets' : formatResult(priceFormula.newer.result.one_time) }}</template>.
+                        {{ priceFormula.newer.result.one_time === null ? 'niets' : nlCurrency(priceFormula.newer.result.one_time) }}</template>.
                 </p>
                 <button v-if="canUpdate" type="button" :disabled="example || form.processing"
                     class="flex-none rounded-md bg-amber-600 px-3 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-60"
@@ -65,8 +65,8 @@
 
             <div v-if="drifted" class="flex flex-col gap-3 rounded-lg bg-sky-50 p-3 text-sky-900 sm:flex-row sm:items-center sm:justify-between dark:bg-sky-900/30 dark:text-sky-200">
                 <p>
-                    De formule komt nu op {{ formatResult(priceFormula.result.periodic ?? 0) }} per periode, maar het contract staat op
-                    {{ formatResult(storedPrice) }}. Dat gebeurt als er in de catalogus iets aan een machine is veranderd.
+                    De formule komt nu op {{ nlCurrency(priceFormula.result.periodic ?? 0) }} per periode, maar het contract staat op
+                    {{ nlCurrency(storedPrice) }}. Dat gebeurt als er in de catalogus iets aan een machine is veranderd.
                 </p>
                 <button v-if="canUpdate" type="button" :disabled="form.processing"
                     class="flex-none rounded-md bg-sky-600 px-3 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-60"
@@ -78,22 +78,17 @@
             <div class="rounded-lg bg-gray-50 p-3 dark:bg-slate-900/60" data-tour="contract.formula.result">
                 <p class="flex justify-between font-bold text-gray-900 dark:text-white">
                     <span>Prijs per periode</span>
-                    <span class="tabular-nums">{{ formatResult(priceFormula.result.periodic ?? 0) }}</span>
+                    <span class="tabular-nums">{{ nlCurrency(priceFormula.result.periodic ?? 0) }}</span>
                 </p>
                 <p v-if="priceFormula.result.one_time !== null" class="mt-1 flex justify-between text-gray-700 dark:text-slate-300">
                     <span>Eenmalige kosten</span>
-                    <span class="tabular-nums">{{ formatResult(priceFormula.result.one_time) }}</span>
+                    <span class="tabular-nums">{{ nlCurrency(priceFormula.result.one_time) }}</span>
                 </p>
                 <ul v-if="priceFormula.result.problems?.length"
                     class="mt-2 space-y-0.5 rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-800 dark:bg-red-900/30 dark:text-red-300">
                     <li v-for="problem in priceFormula.result.problems" :key="problem">{{ problem }}</li>
                 </ul>
-                <p v-if="priceFormula.result.unpriced.length"
-                    class="mt-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                    De formule telt {{ priceFormula.result.unpriced.length === 1 ? 'deze machine' : 'deze machines' }} niet mee:
-                    {{ priceFormula.result.unpriced.slice(0, 6).join(', ') }}<template
-                        v-if="priceFormula.result.unpriced.length > 6"> en {{ priceFormula.result.unpriced.length - 6 }} meer</template>.
-                </p>
+                <UnpricedMachines v-if="priceFormula.result.unpriced.length" :machines="priceFormula.result.unpriced" />
             </div>
         </template>
     </div>
@@ -105,7 +100,9 @@ import { Link, useForm } from '@inertiajs/vue3'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
-import { formatNumber, formatResult } from '@/Components/PriceFormulas/formulaEditor'
+import UnpricedMachines from '@/Components/PriceFormulas/UnpricedMachines.vue'
+import { formatNumber } from '@/Components/PriceFormulas/formulaEditor'
+import { nlCurrency } from '@/Utilities/Utilities'
 
 /**
  * The price formula of one contract: which formula and version price it, what

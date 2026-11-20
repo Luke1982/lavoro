@@ -5,6 +5,7 @@ namespace App\Domain\Tools\Write;
 use App\Actions\Pricing\LinkContractPriceFormulaAction;
 use App\Actions\Pricing\UpgradeContractsToLatestVersionAction;
 use App\Domain\Pricing\ContractPricing;
+use App\Domain\Pricing\PricedMachines;
 use App\Domain\Tools\ChecksBeforeConfirming;
 use App\Domain\Tools\Concerns\BuildsPriceFormulas;
 use App\Domain\Tools\Confirmable;
@@ -16,6 +17,7 @@ use App\Models\MaintenanceContract;
 use App\Models\MaintenanceContractTemplate;
 use App\Models\PriceFormula;
 use App\Models\User;
+use App\Support\Counted;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -37,8 +39,8 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
     public function description(): string
     {
         return 'Zet een prijsformule op onderhoudscontracten en contractsjablonen, of werkt de lopende contracten '
-            . 'op een oudere versie bij naar de nieuwste. Contracten krijgen de nieuwste versie en een nieuwe '
-            . 'prijs. Er gebeurt nog niets: de gebruiker krijgt een bevestigingsknop.';
+            . 'op een oudere versie bij naar de nieuwste. Er gebeurt nog niets: de gebruiker krijgt een '
+            . 'bevestigingsknop.';
     }
 
     public function inputSchema(): array
@@ -57,10 +59,11 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
                 'template_ids' => $ids('Contractsjablonen die deze formule krijgen.'),
                 'upgrade_outdated' => [
                     'type' => 'boolean',
-                    'description' => 'Alle lopende contracten op een oudere versie bijwerken.',
+                    'description' => 'Lopende contracten op een oudere versie bijwerken.',
                 ],
+                'version' => ['type' => 'integer', 'description' => 'Versie van de formule die je las.'],
             ],
-            'required' => ['formula_id'],
+            'required' => ['formula_id', 'version'],
             'additionalProperties' => false,
         ];
     }
@@ -78,9 +81,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
 
         return $contracts->every(fn (MaintenanceContract $contract) => $user->can('update', $contract))
             && $templates->every(fn (MaintenanceContractTemplate $template) => $user->can('update', $template))
-            && (!$upgrades || ($formula !== null
-                && $user->can('update', $formula)
-                && $user->can('update', new MaintenanceContract)));
+            && (!$upgrades || ($formula !== null && $user->can('upgradeContracts', $formula)));
     }
 
     public static function difficulty(): int
@@ -98,6 +99,10 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         return [ToolProfile::planner, ToolProfile::administrator];
     }
 
+    /**
+     * Refused when the formula has a newer version than the one the assistant
+     * read: the prices it would confirm are not the prices that would be saved.
+     */
     public function refusalBeforeConfirming(ToolCall $call): ?ToolResult
     {
         $formula = $this->formulaOf($call);
@@ -106,15 +111,20 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             return ToolResult::notFound('Prijsformule #' . ($call->integerArgument('formula_id') ?? '?'));
         }
 
+        $read_version = $call->integerArgument('version');
         $contracts = $this->contractsOf($call);
         $templates = $this->templatesOf($call);
         $missing_contracts = array_diff($call->integerListArgument('contract_ids'), $contracts->modelKeys());
         $missing_templates = array_diff($call->integerListArgument('template_ids'), $templates->modelKeys());
 
         return match (true) {
+            $read_version !== $formula->latestVersion->number => ToolResult::failed(
+                'Prijsformule "' . $formula->name . '" staat nu op versie ' . $formula->latestVersion->number
+                . ', niet op versie ' . ($read_version ?? '?') . '. Lees hem opnieuw met price_formulas en pas dan die '
+                . 'versie toe.'
+            ),
             $missing_contracts !== [] => ToolResult::notFound((count($missing_contracts) === 1 ? 'Contract ' : 'Contracten ') . implode(', ', $missing_contracts)),
             $missing_templates !== [] => ToolResult::notFound((count($missing_templates) === 1 ? 'Sjabloon ' : 'Sjablonen ') . implode(', ', $missing_templates)),
-            /** Every contract with its price now and with the newest version: nobody agrees to a number unseen. */
             $this->affected($call, $formula)->isEmpty() && $templates->isEmpty() => ToolResult::failed(
                 'Er is niets bij te werken: er zijn geen contracten of sjablonen opgegeven, en er staat geen lopend '
                 . 'contract op een oudere versie.'
@@ -128,9 +138,12 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
     {
         $formula = $this->formulaOf($call);
         $pricing = app(ContractPricing::class);
+        $affected = $this->affected($call, $formula);
         $lines = [];
 
-        foreach ($this->affected($call, $formula) as $contract) {
+        PricedMachines::preload($affected);
+
+        foreach ($affected as $contract) {
             $new = $pricing->evaluate($contract, $formula->latestVersion);
             $lines[] = $contract->display_title . ': ' . $this->euro((float) $contract->getRawOriginal('price'))
                 . ' → ' . $this->euro($new['periodic'] ?? 0.0) . ' per periode'
@@ -145,6 +158,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             . "\n- " . implode("\n- ", $lines);
     }
 
+    /** All of it or nothing: a refusal halfway must not leave some contracts moved and others not. */
     public function execute(ToolCall $call): ToolResult
     {
         if ($refusal = $this->refusalBeforeConfirming($call)) {
@@ -152,17 +166,11 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         }
 
         $formula = $this->formulaOf($call);
+        $contracts = $this->contractsOf($call);
         $templates = $this->templatesOf($call);
 
-        /** All of it or nothing: a refusal halfway must not leave some contracts moved and others not. */
-        [$prices, $upgraded] = DB::transaction(function () use ($call, $formula, $templates) {
-            $link = app(LinkContractPriceFormulaAction::class);
-            $prices = [];
-
-            foreach ($this->contractsOf($call) as $contract) {
-                $link->execute($contract, $formula->latestVersion);
-                $prices[] = $contract->display_title . ': ' . $this->euro((float) $contract->fresh()->price);
-            }
+        $upgraded = DB::transaction(function () use ($call, $formula, $contracts, $templates) {
+            app(LinkContractPriceFormulaAction::class)->executeMany($contracts, $formula->latestVersion);
 
             $upgraded = $call->argument('upgrade_outdated')
                 ? app(UpgradeContractsToLatestVersionAction::class)->execute($formula)
@@ -170,13 +178,18 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
 
             $templates->each->update(['price_formula_id' => $formula->id]);
 
-            return [$prices, $upgraded];
+            return $upgraded;
         });
 
+        $prices = $contracts
+            ->map(fn (MaintenanceContract $contract) => $contract->display_title . ': '
+                . $this->euro((float) $contract->fresh()->price))
+            ->all();
+
         $summary = 'Prijsformule "' . $formula->name . '" toegepast op '
-            . $this->counted(count($prices), 'contract', 'contracten')
-            . ($upgraded ? ', ' . $this->counted($upgraded, 'contract', 'contracten') . ' bijgewerkt naar de nieuwste versie' : '')
-            . ' en ' . $this->counted($templates->count(), 'sjabloon', 'sjablonen') . '. De nieuwe prijzen staan op de tijdlijn van '
+            . Counted::of(count($prices), 'contract', 'contracten')
+            . ($upgraded ? ', ' . Counted::of($upgraded, 'contract', 'contracten') . ' bijgewerkt naar de nieuwste versie' : '')
+            . ' en ' . Counted::of($templates->count(), 'sjabloon', 'sjablonen') . '. De nieuwe prijzen staan op de tijdlijn van '
             . 'elk contract.';
 
         return ToolResult::ok([
@@ -220,10 +233,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             return $contracts;
         }
 
-        $outdated = $formula->contracts()->with('customer')
-            ->where('price_formula_version_id', '!=', $formula->latestVersion->id)
-            ->notEnded()
-            ->get();
+        $outdated = $formula->contractsBehind()->with('customer')->notEnded()->get();
 
         return $contracts->concat($outdated)->unique('id')->values();
     }

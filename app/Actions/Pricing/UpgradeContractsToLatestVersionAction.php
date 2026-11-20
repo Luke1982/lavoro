@@ -2,9 +2,7 @@
 
 namespace App\Actions\Pricing;
 
-use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Moves contracts on an older version of a formula to its newest one, each
@@ -24,8 +22,7 @@ class UpgradeContractsToLatestVersionAction
             return 0;
         }
 
-        $contracts = MaintenanceContract::query()
-            ->whereIn('price_formula_version_id', $formula->versions()->where('id', '!=', $latest->id)->select('id'))
+        $contracts = $formula->contractsBehind()
             ->when(
                 $contract_ids !== null,
                 fn ($query) => $query->whereKey($contract_ids),
@@ -34,11 +31,7 @@ class UpgradeContractsToLatestVersionAction
             ->with('priceFormulaVersion.formula')
             ->get();
 
-        DB::transaction(function () use ($contracts, $latest) {
-            foreach ($contracts as $contract) {
-                $this->link->execute($contract, $latest);
-            }
-        });
+        $this->link->executeMany($contracts, $latest);
 
         return $contracts->count();
     }

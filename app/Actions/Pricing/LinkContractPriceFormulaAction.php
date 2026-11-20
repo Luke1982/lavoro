@@ -21,6 +21,13 @@ use Illuminate\Support\Facades\DB;
  */
 class LinkContractPriceFormulaAction
 {
+    /**
+     * Each contract raises a few signals: the formula it moved to, the history
+     * of the record, and the new price. A hundred stay well under what one unit
+     * of work may raise.
+     */
+    private const CONTRACTS_PER_SIGNAL_UNIT = 100;
+
     public function __construct(private readonly RecalculateContractPriceAction $recalculate) {}
 
     /** @param array<string, mixed>|null $inputs null keeps what is filled in now */
@@ -36,26 +43,19 @@ class LinkContractPriceFormulaAction
             $previous_inputs = $contract->price_formula_inputs ?? [];
             $previous_one_time = $contract->one_time_price;
             $wanted = $inputs ?? $previous_inputs;
-
+            $same_version = $previous_version?->id === $version?->id;
             $fields = $version ? ContractPricing::inputsOf($version->graph) : [];
+
             $kept = [];
+            $input_changes = [];
             foreach ($fields as $field) {
                 if (isset($wanted[$field['id']]) && is_numeric($wanted[$field['id']])) {
                     $kept[$field['id']] = (float) $wanted[$field['id']];
                 }
-            }
 
-            $contract->forceFill([
-                'price_formula_version_id' => $version?->id,
-                'price_formula_inputs' => $kept === [] ? null : $kept,
-                ...($version === null ? ['one_time_price' => null] : []),
-            ])->save();
-
-            $input_changes = [];
-            foreach ($fields as $field) {
                 $old = $previous_inputs[$field['id']] ?? null;
                 $new = $kept[$field['id']] ?? null;
-                if ($previous_version?->id === $version?->id && (string) $old !== (string) $new) {
+                if ($same_version && (string) $old !== (string) $new) {
                     $input_changes[] = [
                         'name' => $field['name'],
                         'old' => $old,
@@ -65,7 +65,13 @@ class LinkContractPriceFormulaAction
                 }
             }
 
-            if ($previous_version?->id !== $version?->id || $input_changes !== []) {
+            $contract->forceFill([
+                'price_formula_version_id' => $version?->id,
+                'price_formula_inputs' => $kept === [] ? null : $kept,
+                ...($version === null ? ['one_time_price' => null] : []),
+            ])->save();
+
+            if (!$same_version || $input_changes !== []) {
                 Signals::dispatch(new ContractPriceFormulaChanged(
                     $contract,
                     $previous_version?->displayName(),
@@ -77,6 +83,33 @@ class LinkContractPriceFormulaAction
 
             $contract->setRelation('priceFormulaVersion', $version);
             $this->recalculate->execute($contract, even_if_ended: true);
+        });
+    }
+
+    /**
+     * Many contracts onto one version, all of them or none. One request may
+     * raise only so many signals, against a cascade running away, and moving a
+     * few hundred contracts would reach that ceiling and leave the rest without
+     * a line on their timeline. This work is bounded by the contracts given, so
+     * every hundred of them start a fresh count; never inside a signal's own
+     * chain, where starting over would break the loop detection.
+     *
+     * @param  iterable<int, MaintenanceContract>  $contracts
+     */
+    public function executeMany(iterable $contracts, PriceFormulaVersion $version): void
+    {
+        $signals = app(Signals::class);
+
+        DB::transaction(function () use ($contracts, $version, $signals) {
+            foreach (collect($contracts)->chunk(self::CONTRACTS_PER_SIGNAL_UNIT) as $chunk) {
+                if ($signals->currentChain() === []) {
+                    $signals->startFresh();
+                }
+
+                foreach ($chunk as $contract) {
+                    $this->execute($contract, $version);
+                }
+            }
         });
     }
 }

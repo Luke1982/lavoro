@@ -11,8 +11,8 @@
             <p>
                 {{ outdated.length === 1 ? 'Eén lopend contract staat' : `${outdated.length} lopende contracten staan` }} nog op een
                 oudere versie en {{ outdated.length === 1 ? 'houdt zijn' : 'houden hun' }} prijs tot je bijwerkt.
-                Met versie {{ latestVersion }} gaat het totaal per periode van {{ formatResult(totals.now) }}
-                naar {{ formatResult(totals.then) }}.
+                Met versie {{ latestVersion }} gaat het totaal per periode van {{ nlCurrency(totals.now) }}
+                naar {{ nlCurrency(totals.then) }}.
             </p>
             <button v-if="canUpgrade" type="button" :disabled="locked"
                 class="flex-none rounded-md bg-amber-600 px-3 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50"
@@ -37,12 +37,12 @@
                     <BadgeComponent v-if="contract.ended" color="gray" :has-dot="false" class="ml-2">afgelopen</BadgeComponent>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="tabular-nums text-gray-700 dark:text-slate-200">{{ formatResult(contract.price) }}</span>
+                    <span class="tabular-nums text-gray-700 dark:text-slate-200">{{ nlCurrency(contract.price) }}</span>
                     <template v-if="contract.new_price !== null">
                         <span class="text-gray-400">→</span>
                         <span class="tabular-nums font-semibold"
                             :class="contract.new_price > contract.price ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'">
-                            {{ formatResult(contract.new_price) }}
+                            {{ nlCurrency(contract.new_price) }}
                         </span>
                         <button v-if="canUpgrade" type="button" :disabled="locked"
                             class="text-sm font-medium text-lavoro-blue hover:underline disabled:opacity-50 disabled:hover:no-underline dark:text-blue-400"
@@ -57,8 +57,8 @@
         <ModalDialog v-model:open="confirmAll" title="Contracten bijwerken" max-width-class="sm:max-w-md">
             <p class="text-sm text-gray-600 dark:text-slate-300">
                 {{ outdated.length === 1 ? 'Eén contract gaat' : `${outdated.length} contracten gaan` }} naar versie {{ latestVersion }}.
-                {{ outdated.length === 1 ? 'Het kost' : 'Samen kosten ze' }} dan {{ formatResult(totals.then) }} per periode in plaats
-                van {{ formatResult(totals.now) }}. De nieuwe prijs komt op de tijdlijn van elk contract.
+                {{ outdated.length === 1 ? 'Het kost' : 'Samen kosten ze' }} dan {{ nlCurrency(totals.then) }} per periode in plaats
+                van {{ nlCurrency(totals.now) }}. De nieuwe prijs komt op de tijdlijn van elk contract.
             </p>
             <template #footer>
                 <div class="flex justify-end gap-2">
@@ -84,7 +84,7 @@ import { Link, router } from '@inertiajs/vue3'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import { useTour } from '@/Composables/useTour'
-import { formatResult } from './formulaEditor'
+import { nlCurrency } from '@/Utilities/Utilities'
 
 /**
  * The contracts priced by a formula. Those still running on an older version

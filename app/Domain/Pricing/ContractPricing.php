@@ -2,6 +2,7 @@
 
 namespace App\Domain\Pricing;
 
+use App\Enums\ContractInterval;
 use App\Models\MaintenanceContract;
 use App\Models\PriceFormulaVersion;
 use Carbon\Carbon;
@@ -65,7 +66,7 @@ final class ContractPricing
 
         return $this->evaluator->evaluate($graph, PricedMachines::forSample($sample, $frequency), [
             'inputs' => $inputs,
-            'periods_per_year' => PricedMachines::timesPerYear($price_interval, null),
+            'periods_per_year' => ContractInterval::timesPerYear($price_interval, null),
             'months' => self::OPEN_ENDED_MONTHS,
         ]);
     }
@@ -82,7 +83,7 @@ final class ContractPricing
 
         return [
             'inputs' => $contract->price_formula_inputs ?? [],
-            'periods_per_year' => PricedMachines::timesPerYear(
+            'periods_per_year' => ContractInterval::timesPerYear(
                 $contract->price_interval?->value,
                 $contract->price_interval_days
             ),

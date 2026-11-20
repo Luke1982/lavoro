@@ -32,43 +32,6 @@ function graph(nodes, edges) {
     return { nodes, edges }
 }
 
-/** Every machine at one price: the shape a new formula starts from. */
-function basis({ wired = true } = {}) {
-    return graph([
-        node('machines', 'machines', 0, 1),
-        node('count', 'count', 1, 1),
-        node('price', 'tiers', 2, 1, { title: 'Per machine', amount: 50, steps: [], mode: 'graduated' }),
-        node('result', 'output_periodic', 3, 1),
-    ], [
-        ...(wired ? [edge('machines', 'machines', 'count', 'machines')] : []),
-        edge('count', 'value', 'price', 'quantity'),
-        edge('price', 'value', 'result', 'value'),
-    ])
-}
-
-/** One type at its own price, everything else at another. */
-function filtered(types, { steps = [], resultColumn = 5 } = {}) {
-    return graph([
-        node('machines', 'machines', 0, 1),
-        node('filter', 'filter_type', 1, 1, { title: types[0]?.short ?? 'Filter op type', product_type_id: types[0]?.id ?? null }),
-        node('count', 'count', 2, 0.4),
-        node('rest-count', 'count', 2, 1.8),
-        node('price', 'tiers', 3, 0.3, { title: (types[0]?.short ?? 'Dit type') + ' per stuk', amount: 50, steps, mode: 'graduated' }),
-        node('rest-price', 'tiers', 3, 1.8, { title: 'Overige per stuk', amount: 30, steps: [], mode: 'graduated' }),
-        node('sum', 'sum', 4, 1),
-        node('result', 'output_periodic', resultColumn, 1),
-    ], [
-        edge('machines', 'machines', 'filter', 'machines'),
-        edge('filter', 'match', 'count', 'machines'),
-        edge('filter', 'rest', 'rest-count', 'machines'),
-        edge('count', 'value', 'price', 'quantity'),
-        edge('rest-count', 'value', 'rest-price', 'quantity'),
-        edge('price', 'value', 'sum', 'values'),
-        edge('rest-price', 'value', 'sum', 'values'),
-        ...(resultColumn === 5 ? [edge('sum', 'value', 'result', 'value')] : []),
-    ])
-}
-
 function merge(...graphs) {
     const nodes = new Map()
     const edges = new Map()
@@ -87,6 +50,42 @@ function moved(part, columns, rows = 0) {
     })), part.edges)
 }
 
+/** The staffel the examples use: from the third piece on, 40 instead of 50. */
+const TIERED = [{ from: 3, amount: 40 }]
+
+/** The price per period, taking what block `from` comes to. */
+function pricedFrom(from, column, row = 1) {
+    return graph([node('result', 'output_periodic', column, row)], [edge(from, 'value', 'result', 'value')])
+}
+
+/**
+ * Every machine at one price: the shape a new formula starts from. The machines
+ * go straight into the price, which counts them.
+ */
+function basis({ wired = true } = {}) {
+    return merge(graph([
+        node('machines', 'machines', 0, 1),
+        node('price', 'tiers', 1, 1, { title: 'Per machine', amount: 50, steps: [], mode: 'graduated' }),
+    ], wired ? [edge('machines', 'machines', 'price', 'quantity')] : []), pricedFrom('price', 2))
+}
+
+/** One type at its own price, everything else at another, added up. */
+function filtered(types, { steps = [] } = {}) {
+    return graph([
+        node('machines', 'machines', 0, 1),
+        node('filter', 'filter_type', 1, 1, { title: types[0]?.name ?? 'Filter op type', product_type_id: types[0]?.id ?? null }),
+        node('price', 'tiers', 2, 0.3, { title: (types[0]?.name ?? 'Dit type') + ' per stuk', amount: 50, steps, mode: 'graduated' }),
+        node('rest-price', 'tiers', 2, 1.8, { title: 'Overige per stuk', amount: 30, steps: [], mode: 'graduated' }),
+        node('sum', 'sum', 3, 1),
+    ], [
+        edge('machines', 'machines', 'filter', 'machines'),
+        edge('filter', 'match', 'price', 'quantity'),
+        edge('filter', 'rest', 'rest-price', 'quantity'),
+        edge('price', 'value', 'sum', 'values'),
+        edge('rest-price', 'value', 'sum', 'values'),
+    ])
+}
+
 function callOut() {
     return graph([
         node('addresses', 'addresses', 1, 3),
@@ -98,20 +97,20 @@ function callOut() {
     ])
 }
 
+/** Pairs on one address at a package price first; what is left goes through the filter. */
 function combination(types) {
-    const withFilter = moved(filtered(types, { steps: [{ from: 3, amount: 40 }] }), 1)
-    const shifted = graph(withFilter.nodes.filter((item) => item.id !== 'tour-machines'), withFilter.edges.filter((item) => item.source !== 'tour-machines'))
+    const sold = moved(filtered(types, { steps: TIERED }), 1)
 
-    return merge(shifted, graph([
+    return merge(graph(sold.nodes, sold.edges.filter((item) => item.source !== 'tour-machines')), graph([
         node('machines', 'machines', 0, 1),
         node('combination', 'combination', 1, 1, {
-            title: (types[0]?.short ?? 'Type A') + ' + ' + (types[1]?.short ?? 'type B'),
+            title: (types[0]?.name ?? 'Type A') + ' + ' + (types[1]?.name ?? 'type B'),
             components: [
                 { product_type_id: types[0]?.id ?? null, product_id: null, quantity: 1 },
                 { product_type_id: types[1]?.id ?? null, product_id: null, quantity: 1 },
             ],
         }),
-        node('package', 'multiply', 3, -0.9, { title: 'Pakketprijs', b: 120 }),
+        node('package', 'multiply', 3, -1, { title: 'Pakketprijs', b: 120 }),
     ], [
         edge('machines', 'machines', 'combination', 'machines'),
         edge('combination', 'rest', 'filter', 'machines'),
@@ -120,112 +119,91 @@ function combination(types) {
     ]))
 }
 
-function adjusted(types) {
-    return merge(filtered(types, { steps: [{ from: 3, amount: 40 }], resultColumn: 8 }), callOut(), graph([
-        node('discount', 'percentage', 5, 1, { title: 'Contractkorting', percent: -5 }),
-        node('minimum', 'minimum', 6, 1, { title: 'Nooit onder honderd', b: 100 }),
-        node('round', 'round', 7, 1, { step: '5', direction: 'up' }),
+/** Five percent off the sum, never under a hundred, rounded up to five euros. */
+function adjustments(column) {
+    return graph([
+        node('discount', 'percentage', column, 1, { title: 'Contractkorting', percent: -5 }),
+        node('minimum', 'minimum', column + 1, 1, { title: 'Nooit onder honderd', b: 100 }),
+        node('round', 'round', column + 2, 1, { step: '5', direction: 'up' }),
     ], [
         edge('sum', 'value', 'discount', 'value'),
         edge('discount', 'result', 'minimum', 'a'),
         edge('minimum', 'value', 'round', 'value'),
-        edge('round', 'value', 'result', 'value'),
-    ]))
-}
-
-function condition() {
-    return graph([
-        node('machines', 'machines', 0, 1),
-        node('count', 'count', 1, 1),
-        node('price', 'tiers', 2, 0.3, { title: 'Per machine', amount: 50, steps: [], mode: 'graduated' }),
-        node('condition', 'condition', 2, 1.8, { title: 'Vanaf vijf machines', operator: '>=', compare: 5, then: -25, else: 0 }),
-        node('sum', 'sum', 3, 1),
-        node('result', 'output_periodic', 4, 1),
-    ], [
-        edge('machines', 'machines', 'count', 'machines'),
-        edge('count', 'value', 'price', 'quantity'),
-        edge('count', 'value', 'condition', 'value'),
-        edge('price', 'value', 'sum', 'values'),
-        edge('condition', 'value', 'sum', 'values'),
-        edge('sum', 'value', 'result', 'value'),
     ])
 }
 
-function input(types) {
-    return merge(filtered(types), graph([
-        node('input', 'input', 2, 3.2, { name: 'Extra bezoeken per jaar', default: 0 }),
-        node('extra', 'multiply', 3, 3.2, { title: 'Extra bezoeken', b: 60 }),
+/** The machines go into the price and into the comparison; both count them. */
+function condition() {
+    return merge(graph([
+        node('machines', 'machines', 0, 1),
+        node('price', 'tiers', 1, 0.3, { title: 'Per machine', amount: 50, steps: [], mode: 'graduated' }),
+        node('condition', 'condition', 1, 1.8, { title: 'Vanaf vijf machines', operator: '>=', compare: 5, then: -25, else: 0 }),
+        node('sum', 'sum', 2, 1),
+    ], [
+        edge('machines', 'machines', 'price', 'quantity'),
+        edge('machines', 'machines', 'condition', 'value'),
+        edge('price', 'value', 'sum', 'values'),
+        edge('condition', 'value', 'sum', 'values'),
+    ]), pricedFrom('sum', 3))
+}
+
+/** Extra visits filled in per contract, at sixty euros each. */
+function extraVisits(column, row) {
+    return graph([
+        node('input', 'input', column, row, { name: 'Extra bezoeken per jaar', default: 0 }),
+        node('extra', 'multiply', column + 1, row, { title: 'Extra bezoeken', b: 60 }),
     ], [
         edge('input', 'value', 'extra', 'a'),
         edge('extra', 'value', 'sum', 'values'),
-    ]))
-}
-
-function oneTime() {
-    return merge(basis(), graph([
-        node('startup', 'number', 2, 2.4, { title: 'Opstartkosten', value: 150 }),
-        node('once', 'output_one_time', 3, 2.4),
-    ], [
-        edge('startup', 'value', 'once', 'value'),
-    ]))
-}
-
-function catalog() {
-    return graph([
-        node('machines', 'machines', 0, 1),
-        node('catalog', 'catalog_value', 1, 1, { field: 'retail_price' }),
-        node('share', 'multiply', 2, 1, { title: 'Acht procent per jaar', b: 0.08 }),
-        node('result', 'output_periodic', 3, 1),
-    ], [
-        edge('machines', 'machines', 'catalog', 'machines'),
-        edge('catalog', 'value', 'share', 'a'),
-        edge('share', 'value', 'result', 'value'),
     ])
 }
 
-function visits() {
+/** A start-up fee of 150, charged once. */
+function startUp(column, row) {
     return graph([
+        node('startup', 'number', column, row, { title: 'Opstartkosten', value: 150 }),
+        node('once', 'output_one_time', column + 1, row),
+    ], [
+        edge('startup', 'value', 'once', 'value'),
+    ])
+}
+
+function catalog() {
+    return merge(graph([
+        node('machines', 'machines', 0, 1),
+        node('catalog', 'catalog_value', 1, 1, { field: 'retail_price' }),
+        node('share', 'multiply', 2, 1, { title: 'Acht procent per jaar', b: 0.08 }),
+    ], [
+        edge('machines', 'machines', 'catalog', 'machines'),
+        edge('catalog', 'value', 'share', 'a'),
+    ]), pricedFrom('share', 3))
+}
+
+function visits() {
+    return merge(graph([
         node('machines', 'machines', 0, 1),
         node('visits', 'visits', 1, 1),
         node('per-visit', 'tiers', 2, 1, { title: 'Per beurt', amount: 45, steps: [], mode: 'graduated' }),
         node('contract', 'contract', 2, 2.4),
         node('per-period', 'divide', 3, 1.4, { title: 'Per prijsperiode', b: 1 }),
-        node('result', 'output_periodic', 4, 1.4),
     ], [
         edge('machines', 'machines', 'visits', 'machines'),
         edge('visits', 'value', 'per-visit', 'quantity'),
         edge('per-visit', 'value', 'per-period', 'a'),
         edge('contract', 'periods', 'per-period', 'b'),
-        edge('per-period', 'value', 'result', 'value'),
-    ])
+    ]), pricedFrom('per-period', 4, 1.4))
 }
 
 /** Everything together: the formula the last chapter walks through. */
 function full(types) {
-    const base = combination(types)
-    const withoutResult = graph(
-        base.nodes.filter((item) => item.id !== 'tour-result'),
-        base.edges.filter((item) => item.target !== 'tour-result'),
+    return merge(
+        combination(types),
+        moved(callOut(), 0, 0.3),
+        extraVisits(2, 4.2),
+        adjustments(5),
+        pricedFrom('round', 8),
+        startUp(7, 2.6),
     )
-
-    return merge(withoutResult, moved(callOut(), 0, 0.3), graph([
-        node('input', 'input', 3, 4.2, { name: 'Extra bezoeken per jaar', default: 0 }),
-        node('extra', 'multiply', 4, 4.2, { title: 'Extra bezoeken', b: 60 }),
-        node('discount', 'percentage', 6, 1, { title: 'Contractkorting', percent: -5 }),
-        node('minimum', 'minimum', 7, 1, { title: 'Nooit onder honderd', b: 100 }),
-        node('round', 'round', 8, 1, { step: '5', direction: 'up' }),
-        node('result', 'output_periodic', 9, 1),
-        node('startup', 'number', 8, 2.6, { title: 'Opstartkosten', value: 150 }),
-        node('once', 'output_one_time', 9, 2.6),
-    ], [
-        edge('input', 'value', 'extra', 'a'),
-        edge('extra', 'value', 'sum', 'values'),
-        edge('sum', 'value', 'discount', 'value'),
-        edge('discount', 'result', 'minimum', 'a'),
-        edge('minimum', 'value', 'round', 'value'),
-        edge('round', 'value', 'result', 'value'),
-        edge('startup', 'value', 'once', 'value'),
-    ]))
 }
 
 /** Every stage by name; the rondleiding's actions put one of these on the canvas. */
@@ -233,14 +211,14 @@ export function tourStage(name, types) {
     switch (name) {
         case 'unwired': return basis({ wired: false })
         case 'basis': return basis()
-        case 'filter': return filtered(types)
-        case 'tiers': return filtered(types, { steps: [{ from: 3, amount: 40 }] })
-        case 'combination': return combination(types)
-        case 'callout': return merge(filtered(types), callOut())
-        case 'adjusted': return adjusted(types)
+        case 'filter': return merge(filtered(types), pricedFrom('sum', 4))
+        case 'tiers': return merge(filtered(types, { steps: TIERED }), pricedFrom('sum', 4))
+        case 'combination': return merge(combination(types), pricedFrom('sum', 5))
+        case 'callout': return merge(filtered(types), callOut(), pricedFrom('sum', 4))
+        case 'adjusted': return merge(filtered(types, { steps: TIERED }), callOut(), adjustments(4), pricedFrom('round', 7))
         case 'condition': return condition()
-        case 'input': return input(types)
-        case 'oneTime': return oneTime()
+        case 'input': return merge(filtered(types), extraVisits(1, 3.2), pricedFrom('sum', 4))
+        case 'oneTime': return merge(basis(), startUp(1, 2.4))
         case 'catalog': return catalog()
         case 'visits': return visits()
         case 'full': return full(types)

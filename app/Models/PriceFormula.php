@@ -50,6 +50,20 @@ class PriceFormula extends Model
         return $this->hasManyThrough(MaintenanceContract::class, PriceFormulaVersion::class);
     }
 
+    /**
+     * The contracts on an older version than the newest, which keep their price
+     * until somebody moves them. Ended ones included: add notEnded() for the
+     * ones still running. The newest version is looked up in the query itself,
+     * so it holds right after a save and inside withCount().
+     */
+    public function contractsBehind(): HasManyThrough
+    {
+        return $this->contracts()->where('price_formula_versions.number', '<', fn ($query) => $query
+            ->from('price_formula_versions as newest')
+            ->whereColumn('newest.price_formula_id', 'price_formula_versions.price_formula_id')
+            ->selectRaw('max(newest.number)'));
+    }
+
     public function templates(): HasMany
     {
         return $this->hasMany(MaintenanceContractTemplate::class);

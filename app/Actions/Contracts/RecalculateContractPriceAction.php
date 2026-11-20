@@ -13,7 +13,12 @@ use App\Models\MaintenanceContract;
  *
  * A contract that has ended keeps the price it ended with: a machine moving on
  * afterwards does not rewrite what was agreed. Only changing its formula or its
- * inputs reprices it, because then somebody asked for exactly that.
+ * inputs reprices it, because then somebody asked for exactly that. A formula
+ * holding a block this code cannot read prices nothing; the contract keeps its
+ * price until the formula can be read again.
+ *
+ * The price is saved without the automatic trail: the signal reports both
+ * fields, and says why they changed, which the automatic entry cannot.
  */
 class RecalculateContractPriceAction
 {
@@ -29,7 +34,7 @@ class RecalculateContractPriceAction
 
         $result = $this->pricing->evaluate($contract);
 
-        if ($result === null) {
+        if ($result === null || !$result['readable']) {
             return;
         }
 
@@ -43,10 +48,6 @@ class RecalculateContractPriceAction
             return;
         }
 
-        /**
-         * Saved without the automatic trail: the signal below reports both fields,
-         * and says why they changed, which the automatic entry cannot.
-         */
         $contract->forceFill([
             'price' => $new_price / 100,
             'one_time_price' => $new_one_time === null ? null : $new_one_time / 100,

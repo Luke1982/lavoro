@@ -7,6 +7,7 @@ use App\Actions\Pricing\SavePriceFormulaGraphAction;
 use App\Actions\Pricing\UpgradeContractsToLatestVersionAction;
 use App\Domain\Pricing\ContractPricing;
 use App\Domain\Pricing\NodeCatalog;
+use App\Domain\Pricing\PricedMachines;
 use App\Enums\ContractInterval;
 use App\Exceptions\Refusal;
 use App\Http\Requests\PriceFormulaDestroyRequest;
@@ -22,6 +23,7 @@ use App\Models\PriceFormula;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductType;
+use App\Support\Counted;
 use App\Support\NewMachineForm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -31,38 +33,19 @@ class PriceFormulaController extends Controller
 {
     public function index(PriceFormulaReadRequest $request)
     {
-        $per_version = fn ($query) => $query
-            ->join(
-                'price_formula_versions',
-                'price_formula_versions.id',
-                '=',
-                'maintenance_contracts.price_formula_version_id'
-            )
-            ->selectRaw('price_formula_versions.price_formula_id, price_formula_versions.number, count(*) as total')
-            ->groupBy('price_formula_versions.price_formula_id', 'price_formula_versions.number')
-            ->get()
-            ->groupBy('price_formula_id');
-        $contracts_per_version = $per_version(MaintenanceContract::query());
-        $running_per_version = $per_version(MaintenanceContract::query()->notEnded());
-
         $formulas = PriceFormula::with(['latestVersion', 'templates:id,name,price_formula_id'])
+            ->withCount(['contracts', 'contractsBehind as outdated_count' => fn ($query) => $query->notEnded()])
             ->orderBy('name')
             ->get()
-            ->map(function (PriceFormula $formula) use ($contracts_per_version, $running_per_version) {
-                $counts = $contracts_per_version->get($formula->id, collect());
-                $running = $running_per_version->get($formula->id, collect());
-                $latest = $formula->latestVersion?->number;
-
-                return [
-                    'id' => $formula->id,
-                    'name' => $formula->name,
-                    'description' => $formula->description,
-                    'version' => $latest,
-                    'contracts' => (int) $counts->sum('total'),
-                    'outdated' => (int) $running->filter(fn ($row) => (int) $row->number !== $latest)->sum('total'),
-                    'templates' => $formula->templates->pluck('name')->values(),
-                ];
-            });
+            ->map(fn (PriceFormula $formula) => [
+                'id' => $formula->id,
+                'name' => $formula->name,
+                'description' => $formula->description,
+                'version' => $formula->latestVersion?->number,
+                'contracts' => $formula->contracts_count,
+                'outdated' => $formula->outdated_count,
+                'templates' => $formula->templates->pluck('name')->values(),
+            ]);
 
         return inertia('PriceFormulas/IndexPage', ['formulas' => $formulas]);
     }
@@ -125,20 +108,17 @@ class PriceFormulaController extends Controller
      */
     public function updateGraph(PriceFormulaGraphUpdateRequest $request, PriceFormula $priceformula)
     {
-        ['version' => $version, 'is_new_version' => $is_new] = app(SavePriceFormulaGraphAction::class)
-            ->execute($priceformula, $request->validated('graph'), $request->user());
+        $saved = app(SavePriceFormulaGraphAction::class)->execute(
+            $priceformula,
+            $request->validated('graph'),
+            $request->user(),
+            $request->integer('version'),
+        );
 
-        $waiting = MaintenanceContract::query()
-            ->whereIn('price_formula_version_id', $priceformula->versions()->whereKeyNot($version->id)->select('id'))
-            ->notEnded()
-            ->count();
+        $message = $saved['is_new_version'] ? 'Opgeslagen als versie ' . $saved['version']->number . '.' : 'Opgeslagen.';
 
-        $message = $is_new ? 'Opgeslagen als versie ' . $version->number . '.' : 'Opgeslagen.';
-
-        if ($waiting > 0) {
-            $message .= ' ' . ($waiting === 1 ? '1 contract staat' : $waiting . ' contracten staan')
-                . ' nog op een oudere versie en ' . ($waiting === 1 ? 'houdt zijn' : 'houden hun')
-                . ' prijs tot je ' . ($waiting === 1 ? 'het' : 'ze') . ' bijwerkt.';
+        if ($saved['behind'] > 0) {
+            $message .= ' ' . SavePriceFormulaGraphAction::behindNotice($saved['behind']);
         }
 
         return redirect()->back()->with('success', $message);
@@ -150,7 +130,7 @@ class PriceFormulaController extends Controller
 
         if ($in_use > 0) {
             throw new Refusal(
-                'Deze formule kan niet worden verwijderd: ' . ($in_use === 1 ? 'één contract gebruikt' : $in_use . ' contracten gebruiken')
+                'Deze formule kan niet worden verwijderd: ' . Counted::of($in_use, 'contract gebruikt', 'contracten gebruiken')
                 . ' hem nog. Geef ' . ($in_use === 1 ? 'dat contract' : 'die contracten')
                 . ' eerst een andere formule of een vaste prijs.'
             );
@@ -196,7 +176,8 @@ class PriceFormulaController extends Controller
     /**
      * The contracts on this formula, and for each one still running on an older
      * version what the newest version would make its price. Worked out per
-     * contract, so it comes after the page rather than holding it up.
+     * contract, so it comes after the page rather than holding it up; the
+     * machines of all of them are read at once.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -204,14 +185,19 @@ class PriceFormulaController extends Controller
     {
         $latest = $formula->latestVersion;
         $pricing = app(ContractPricing::class);
-
-        return $formula->contracts()
+        $contracts = $formula->contracts()
             ->with(['customer:id,name', 'priceFormulaVersion'])
             ->orderByDesc('maintenance_contracts.start_date')
-            ->get()
-            ->map(function (MaintenanceContract $contract) use ($latest, $pricing) {
-                $outdated = $latest && $contract->priceFormulaVersion->number < $latest->number;
-                $new = $outdated && !$contract->hasEnded() ? $pricing->evaluate($contract, $latest) : null;
+            ->get();
+        $repriced = $contracts->filter(fn (MaintenanceContract $contract) => $latest
+            && $contract->priceFormulaVersion->number < $latest->number
+            && !$contract->hasEnded());
+
+        PricedMachines::preload($repriced);
+
+        return $contracts
+            ->map(function (MaintenanceContract $contract) use ($latest, $pricing, $repriced) {
+                $new = $repriced->contains($contract) ? $pricing->evaluate($contract, $latest) : null;
 
                 return [
                     'id' => $contract->id,
@@ -226,6 +212,7 @@ class PriceFormulaController extends Controller
                     'new_one_time_price' => $new ? $new['one_time'] : null,
                 ];
             })
+            ->values()
             ->all();
     }
 
@@ -248,7 +235,7 @@ class PriceFormulaController extends Controller
      * the most products, and never one inside the other, so a filter on the first
      * leaves the second for the rest.
      *
-     * @return array<int, array{id: int, name: string, short: string}>
+     * @return array<int, array{id: int, path: string, name: string}>
      */
     private function tourTypes(): array
     {
@@ -258,11 +245,11 @@ class PriceFormulaController extends Controller
         foreach (ProductType::withCount('products')->orderByDesc('products_count')->orderBy('name')->get() as $type) {
             $path = $paths[$type->id] ?? $type->name;
             $related = collect($chosen)->contains(
-                fn (array $other) => str_starts_with($path, $other['name']) || str_starts_with($other['name'], $path)
+                fn (array $other) => str_starts_with($path, $other['path']) || str_starts_with($other['path'], $path)
             );
 
             if (!$related) {
-                $chosen[] = ['id' => $type->id, 'name' => $path, 'short' => $type->name];
+                $chosen[] = ['id' => $type->id, 'path' => $path, 'name' => $type->name];
             }
 
             if (count($chosen) === 2) {

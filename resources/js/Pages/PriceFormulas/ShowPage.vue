@@ -64,10 +64,10 @@
             <div data-tour="formula.totals"
                 class="pointer-events-none absolute left-3 top-3 rounded-md bg-white/90 px-3 py-2 text-xs shadow-sm dark:bg-slate-800/90">
                 <p class="font-bold text-gray-900 dark:text-white">
-                    Per periode: {{ results?.periodic == null ? '—' : formatResult(results.periodic) }}
+                    Per periode: {{ results?.periodic == null ? '—' : nlCurrency(results.periodic) }}
                 </p>
                 <p class="text-gray-600 dark:text-slate-300">
-                    Eenmalig: {{ results?.one_time == null ? '—' : formatResult(results.one_time) }}
+                    Eenmalig: {{ results?.one_time == null ? '—' : nlCurrency(results.one_time) }}
                 </p>
                 <p class="text-gray-400">{{ onContract ? 'Op het gekozen contract' : 'Op de voorbeeldklant' }}</p>
             </div>
@@ -82,10 +82,10 @@
                     :readonly="!canUpdate" @remove="removeNodes([selectedNode.id])"
                     @change="data => updateNodeData(selectedNode.id, data, { replace: true })" />
                 <p v-else class="text-sm text-gray-500 dark:text-slate-400">
-                    Klik op een blok om het in te stellen. Trek een lijn van een uitgang (rechts) naar een ingang (links) van dezelfde kleur:
+                    Klik op een blok om het in te stellen. Trek een lijn van een uitgang (rechts) naar een ingang (links):
                     <span class="font-medium text-blue-600 dark:text-blue-400">blauw</span> zijn machines,
-                    <span class="font-medium text-slate-500">grijs</span> zijn getallen. Een lijn of blok weghalen doe je met
-                    Backspace.
+                    <span class="font-medium text-slate-500">grijs</span> zijn getallen. Gaat een blauwe lijn naar een grijze
+                    ingang, dan worden de machines geteld. Een lijn of blok weghalen doe je met Backspace.
                 </p>
             </template>
             <TestBench v-else v-model="bench" :input-blocks="inputBlocks" :test-contracts="testContracts"
@@ -163,9 +163,9 @@ import { usePriceFormulaTour } from '@/Components/PriceFormulas/usePriceFormulaT
 import { tourSample } from '@/Components/PriceFormulas/tourExamples'
 import { useLeaveGuard } from '@/Composables/useLeaveGuard'
 import {
-    DRAG_TYPE, EDITOR_KEY, PICKED_MODELS_KEY, edgeLook, formatResult, newNodeId, serializeGraph, settingsOf,
+    DRAG_TYPE, EDITOR_KEY, PICKED_MODELS_KEY, edgeLook, newNodeId, serializeGraph, settingOf, settingsOf,
 } from '@/Components/PriceFormulas/formulaEditor'
-import { hasPermission, nlDate } from '@/Utilities/Utilities'
+import { hasPermission, nlCurrency, nlDate } from '@/Utilities/Utilities'
 
 /**
  * The price formula editor. Blocks on a canvas, wired output to input; every
@@ -233,7 +233,7 @@ const bench = reactive({
     inputs: {},
 })
 
-const { touring, heldGraph, clearTimers } = usePriceFormulaTour({
+const { touring, heldGraph, reshaping, clearTimers } = usePriceFormulaTour({
     flow,
     canvasRef,
     panel,
@@ -282,7 +282,10 @@ const previewError = ref(null)
 provide(EDITOR_KEY, { definitions, results, names })
 provide(PICKED_MODELS_KEY, pickedModels)
 
-/** Whether a wire from a's output may go to b's input: same kind, and no way back from b to a. */
+/**
+ * Whether a wire from a's output may go to b's input: the same kind, or
+ * machines into a number, which counts them; and no way back from b to a.
+ */
 function isValidConnection(connection) {
     const source = findNode(connection.source)
     const target = findNode(connection.target)
@@ -290,7 +293,7 @@ function isValidConnection(connection) {
 
     const out = kindOf(source.type, connection.sourceHandle, 'source')
     const into = kindOf(target.type, connection.targetHandle, 'target')
-    if (!out || out !== into) return false
+    if (!props.catalog.connects[out]?.includes(into)) return false
 
     return !leadsTo(target.id, source.id)
 }
@@ -332,19 +335,33 @@ function onDrop(event) {
     if (type && definitions[type]) addBlock(type, screenToFlowCoordinate({ x: event.clientX, y: event.clientY }))
 }
 
+/** Half a block's width (w-64), so the block's middle lands in the middle of the view, not its left edge. */
+const HALF_BLOCK_WIDTH = 128
+
+/** Closer than this to a block already there, a new block would cover it. */
+const BLOCK_CLEARANCE = { x: 270, y: 150 }
+
+/** How far a new block moves down past each block in its way. */
+const BLOCK_STEP_DOWN = 160
+
 /** A clicked block goes in the middle of what is in view, below whatever already stands there. */
 function addAtCenter(type) {
     const rect = canvasRef.value.getBoundingClientRect()
-    const position = screenToFlowCoordinate({ x: rect.left + rect.width / 2 - 128, y: rect.top + rect.height / 3 })
-    const taken = point => nodes.value.some(node =>
-        Math.abs(node.position.x - point.x) < 270 && Math.abs(node.position.y - point.y) < 150)
+    const position = screenToFlowCoordinate({ x: rect.left + rect.width / 2 - HALF_BLOCK_WIDTH, y: rect.top + rect.height / 3 })
+    const taken = point => nodes.value.some(node => Math.abs(node.position.x - point.x) < BLOCK_CLEARANCE.x
+        && Math.abs(node.position.y - point.y) < BLOCK_CLEARANCE.y)
 
-    while (taken(position)) position.y += 160
+    while (taken(position)) position.y += BLOCK_STEP_DOWN
 
     addBlock(type, position)
 }
 
+/** The smallest zoom at which the text on a block can still be read. */
 const READABLE_ZOOM = 0.65
+
+/** Room between the canvas's left edge and the first block when a wide formula opens at its left end. */
+const READABLE_LEFT_MARGIN = 24
+
 let opened = false
 
 /**
@@ -364,16 +381,33 @@ async function openReadable() {
     const centreY = (rect.height / 2 - viewport.y) / viewport.zoom
     const left = Math.min(...nodes.value.map(node => node.position.x))
 
-    setViewport({ x: 24 - left * READABLE_ZOOM, y: rect.height / 2 - centreY * READABLE_ZOOM, zoom: READABLE_ZOOM })
+    setViewport({
+        x: READABLE_LEFT_MARGIN - left * READABLE_ZOOM,
+        y: rect.height / 2 - centreY * READABLE_ZOOM,
+        zoom: READABLE_ZOOM,
+    })
 }
 
 const selectedNode = computed(() => (getSelectedNodes.value.length === 1 ? getSelectedNodes.value[0] : null))
 
-watch(() => selectedNode.value?.id, id => { panel.value = id ? 'block' : 'test' })
+/**
+ * Choosing a block opens its settings; choosing none opens the try-out. Not
+ * while the rondleiding takes the canvas apart and puts it back, which clears
+ * and restores the selection on the way and sets the panel itself. Run at once
+ * rather than before the next render, so the rondleiding is still at work when
+ * this is asked.
+ */
+watch(() => selectedNode.value?.id, id => {
+    if (!reshaping()) panel.value = id ? 'block' : 'test'
+}, { flush: 'sync' })
 
 const inputBlocks = computed(() => nodes.value
     .filter(node => node.type === 'input')
-    .map(node => ({ id: node.id, name: node.data?.name || 'Invoer', default: Number(node.data?.default ?? 0) })))
+    .map(node => ({
+        id: node.id,
+        name: settingOf(node, definitions.input, 'name'),
+        default: Number(settingOf(node, definitions.input, 'default')),
+    })))
 
 const pickerProps = computed(() => ({
     productTypes: props.productTypes,
@@ -424,16 +458,37 @@ watch([priceShape, () => JSON.stringify(bench)], () => {
 const saving = ref(false)
 const saveError = ref(null)
 
+/**
+ * Says which version the changes were made on. Saved by someone else in the
+ * meantime, the server refuses rather than overwrite that version: a refusal
+ * comes back as the page with an error flashed, not as a field error, so the
+ * canvas only counts as saved without one.
+ */
+/**
+ * The version the canvas is built on. A save names it, so the server refuses
+ * when someone else saved after it; that stays so until this canvas is saved
+ * or thrown away, never by just pressing Opslaan again.
+ */
+const baseVersion = ref(props.version.number)
+
 function save() {
     if (touring.value) return
     saving.value = true
     saveError.value = null
     const graph = currentGraph.value
 
-    router.put(`/priceformulas/${props.formula.id}/graph`, { graph }, {
+    router.put(`/priceformulas/${props.formula.id}/graph`, { graph, version: baseVersion.value }, {
         preserveScroll: true,
         preserveState: true,
-        onSuccess: () => { savedGraph.value = JSON.stringify(graph) },
+        onSuccess: page => {
+            const refused = page.props.flash?.error
+            if (refused) {
+                saveError.value = refused
+                return
+            }
+            savedGraph.value = JSON.stringify(graph)
+            baseVersion.value = page.props.version.number
+        },
         onError: errors => { saveError.value = errors.graph ?? Object.values(errors)[0] },
         onFinish: () => { saving.value = false },
     })
@@ -444,6 +499,8 @@ function discard() {
     if (touring.value) return
     setNodes(nodesOf(props.version.graph))
     setEdges(edgesOf(props.version.graph))
+    savedGraph.value = JSON.stringify(serializeGraph(nodesOf(props.version.graph), edgesOf(props.version.graph)))
+    baseVersion.value = props.version.number
     saveError.value = null
 }
 

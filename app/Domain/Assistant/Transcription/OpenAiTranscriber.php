@@ -2,52 +2,50 @@
 
 namespace App\Domain\Assistant\Transcription;
 
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Response;
 
 /**
  * OpenAI's transcription. It does not say how long the recording was, so the
  * length is measured from the file itself.
  */
-class OpenAiTranscriber implements Transcriber
+class OpenAiTranscriber extends HttpTranscriber
 {
-    public function __construct(
-        private readonly ?string $key,
-        private readonly string $model,
-    ) {}
-
     public static function fromConfig(array $config): self
     {
         return new self($config['key'] ?? null, $config['model'] ?? 'gpt-4o-mini-transcribe');
     }
 
-    public function transcribe(string $path, string $mime_type, string $file_name): Transcription
+    protected function supplier(): string
     {
-        if (blank($this->key)) {
-            throw TranscriptionFailed::missingKey('OpenAI');
-        }
+        return 'OpenAI';
+    }
 
-        try {
-            $response = Http::withToken($this->key)
-                ->timeout(120)
-                ->attach('file', fopen($path, 'r'), $file_name, ['Content-Type' => $mime_type])
-                ->post('https://api.openai.com/v1/audio/transcriptions', [
-                    'model' => $this->model,
-                    'language' => 'nl',
-                    'response_format' => 'json',
-                ]);
-        } catch (ConnectionException $exception) {
-            throw TranscriptionFailed::unreachable('OpenAI', $exception);
-        }
+    protected function url(): string
+    {
+        return 'https://api.openai.com/v1/audio/transcriptions';
+    }
 
-        if ($response->failed()) {
-            throw TranscriptionFailed::from($response, 'OpenAI');
-        }
+    protected function headers(): array
+    {
+        return ['Authorization' => 'Bearer ' . $this->key];
+    }
 
-        return new Transcription(
-            text: trim((string) $response->json('text')),
-            seconds: RecordingLength::of($path),
-            model: 'openai:' . $this->model,
-        );
+    protected function fields(): array
+    {
+        return [
+            'model' => $this->model,
+            'language' => 'nl',
+            'response_format' => 'json',
+        ];
+    }
+
+    protected function seconds(Response $response, string $path): float
+    {
+        return RecordingLength::of($path);
+    }
+
+    protected function bookedAs(): string
+    {
+        return 'openai:' . $this->model;
     }
 }

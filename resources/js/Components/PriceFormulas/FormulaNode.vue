@@ -21,15 +21,17 @@
             </div>
             <div v-for="output in definition.outputs" :key="'out-' + output.id"
                 class="relative flex items-center justify-end gap-2 px-3 py-1">
-                <button v-if="output.kind === 'machines' && result?.outputs?.[output.id]?.count" type="button"
+                <button v-if="output.kind === 'machines' && result?.outputs?.[output.id]?.count" :ref="el => toggles[output.id] = el"
+                    type="button"
                     class="nodrag tabular-nums font-medium text-blue-600 underline decoration-dotted underline-offset-2 hover:text-blue-800 dark:text-blue-400"
-                    title="Welke machines" data-machine-toggle @click.stop="toggleList(output.id)">
+                    title="Welke machines" :aria-expanded="openList === output.id" :aria-controls="listId(output.id)"
+                    @click.stop="toggleList(output.id)">
                     {{ shown(output) }}
                 </button>
                 <span v-else-if="shown(output)" class="tabular-nums font-medium text-gray-900 dark:text-white">
                     {{ shown(output) }}
                 </span>
-                <div v-if="openList === output.id" ref="listRef"
+                <div v-if="openList === output.id" :id="listId(output.id)" ref="listRef"
                     class="nodrag nowheel absolute left-2 right-2 top-full z-10 mt-1 max-h-72 overflow-y-auto rounded-md bg-white p-2 text-left text-xs shadow-lg ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-600">
                     <p class="mb-1.5 font-semibold text-gray-900 dark:text-white">{{ output.label }}: {{ shown(output) }}</p>
                     <ul class="space-y-1.5">
@@ -48,16 +50,18 @@
         </div>
 
         <p v-if="isResult" class="px-3 pb-2 text-base font-bold tabular-nums text-gray-900 dark:text-white">
-            {{ resultValue === null ? '—' : formatResult(resultValue) }}
+            {{ resultValue === null ? '—' : nlCurrency(resultValue) }}
         </p>
         <p v-if="error" class="px-3 pb-2 text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 </template>
 
 <script setup>
-import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
+import { onClickOutside, onKeyStroke } from '@vueuse/core'
 import { Handle, Position } from '@vue-flow/core'
-import { CATEGORY_COLORS, EDITOR_KEY, formatNumber, formatResult, summarize } from './formulaEditor'
+import { nlCurrency } from '@/Utilities/Utilities'
+import { CATEGORY_COLORS, EDITOR_KEY, formatNumber, machineCount, summarize } from './formulaEditor'
 
 /**
  * One block on the canvas: its inputs on the left, its outputs on the right,
@@ -83,31 +87,39 @@ const resultValue = computed(() => result.value?.outputs?.value?.value ?? null)
 function shown(output) {
     const value = result.value?.outputs?.[output.id]
     if (!value) return ''
-    if (value.kind === 'machines') return value.count === 1 ? '1 machine' : `${value.count} machines`
+    if (value.kind === 'machines') return machineCount(value.count)
 
     return formatNumber(value.value)
 }
 
-/** Which output's machines are listed; clicking the count again, or anywhere else, closes it. */
+/**
+ * Which output's machines are listed. Clicking the count again closes it, and
+ * so do a click anywhere else and Escape, which hands the focus back to the
+ * count. A count that drops to nothing takes its list along.
+ */
 const openList = ref(null)
 const listRef = ref(null)
+const toggles = {}
+
+const listId = outputId => `formula-machines-${props.id}-${outputId}`
 
 function toggleList(id) {
     openList.value = openList.value === id ? null : id
 }
 
-function closeOutside(event) {
-    const list = Array.isArray(listRef.value) ? listRef.value[0] : listRef.value
-    if (event.target.closest?.('[data-machine-toggle]')) return
-    if (list && !list.contains(event.target)) openList.value = null
-}
-
-watch(openList, id => {
-    document.removeEventListener('pointerdown', closeOutside, true)
-    if (id) setTimeout(() => document.addEventListener('pointerdown', closeOutside, true))
+onClickOutside(() => listRef.value?.[0], () => { openList.value = null }, {
+    ignore: () => [toggles[openList.value]],
 })
 
-onBeforeUnmount(() => document.removeEventListener('pointerdown', closeOutside, true))
+onKeyStroke('Escape', () => {
+    if (!openList.value) return
+    toggles[openList.value]?.focus()
+    openList.value = null
+})
+
+watch(() => openList.value !== null && !result.value?.outputs?.[openList.value]?.count, gone => {
+    if (gone) openList.value = null
+})
 
 /**
  * The machines on an output: brand and model, with type, serial number and
