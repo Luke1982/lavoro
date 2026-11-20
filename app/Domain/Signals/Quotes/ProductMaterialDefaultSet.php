@@ -18,7 +18,9 @@ class ProductMaterialDefaultSet extends BaseSignal
 {
     private const LABELS = ['quantity' => 'Aantal per stuk', 'prompt' => 'Meenemen'];
 
-    /** @param array<string, array{0: mixed, 1: mixed}> $fields field => [before, after]; before is null for a new one */
+    /**
+     * @param  array<string, array{0: mixed, 1: mixed}>  $fields  field => [before, after]; before is null for a new one
+     */
     public function __construct(
         public Product $product,
         public ProductMaterialDefault $default,

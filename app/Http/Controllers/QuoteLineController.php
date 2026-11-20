@@ -46,15 +46,23 @@ class QuoteLineController extends Controller
         return redirect()->back();
     }
 
-    public function update(QuoteLineUpdateRequest $request, Quote $quote, QuoteLine $line, UpdateQuoteLineAction $update)
-    {
+    public function update(
+        QuoteLineUpdateRequest $request,
+        Quote $quote,
+        QuoteLine $line,
+        UpdateQuoteLineAction $update,
+    ) {
         $update->execute($line, $request->validated());
 
         return redirect()->back();
     }
 
-    public function destroy(QuoteLineDestroyRequest $request, Quote $quote, QuoteLine $line, RemoveQuoteLineAction $remove)
-    {
+    public function destroy(
+        QuoteLineDestroyRequest $request,
+        Quote $quote,
+        QuoteLine $line,
+        RemoveQuoteLineAction $remove,
+    ) {
         $remove->execute($line);
 
         return redirect()->back();

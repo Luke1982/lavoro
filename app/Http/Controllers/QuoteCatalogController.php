@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\QuoteCatalogSearchRequest;
 use App\Models\Material;
 use App\Models\Product;
-use App\Models\ProductMaterialDefault;
 use App\Models\Quote;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -40,7 +39,7 @@ class QuoteCatalogController extends Controller
                 'id' => $product->id,
                 'name' => $product->display_name,
                 'price' => (float) ($product->retail_price ?? 0),
-                'defaults' => $product->materialDefaults->map(fn (ProductMaterialDefault $default) => $default->toOption()),
+                'defaults' => $product->materialDefaults->map->toOption(),
             ]);
 
         $materials = $only === 'products' ? collect() : Material::query()

@@ -14,8 +14,12 @@ use App\Models\QuoteLine;
 class QuoteProductAdded extends QuoteLineSignal
 {
     /** @param array<int, QuoteLine> $chosen_materials */
-    public function __construct(Quote $quote, QuoteLine $line, public Product $product, public array $chosen_materials = [])
-    {
+    public function __construct(
+        Quote $quote,
+        QuoteLine $line,
+        public Product $product,
+        public array $chosen_materials = [],
+    ) {
         parent::__construct($quote, $line);
     }
 
@@ -38,7 +42,9 @@ class QuoteProductAdded extends QuoteLineSignal
     {
         $sentence = 'Product toegevoegd aan offerte ' . $this->quote->number . ': ' . self::summary($this->line);
 
-        return $this->chosen_materials === [] ? $sentence : $sentence . ', met ' . self::listOf($this->chosen_materials);
+        return $this->chosen_materials === []
+            ? $sentence
+            : $sentence . ', met ' . self::listOf($this->chosen_materials);
     }
 
     public function changes(): array

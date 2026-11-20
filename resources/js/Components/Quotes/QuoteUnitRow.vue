@@ -5,7 +5,7 @@
             <GripVerticalIcon class="size-4" />
         </button>
         <div class="min-w-0 flex-1">
-            <input v-model="form.name" @change="save" aria-label="Naam van de eenheid" :class="GHOST_FIELD" />
+            <input v-model="form.name" @change="save('name')" aria-label="Naam van de eenheid" :class="GHOST_FIELD" />
             <p v-if="form.errors.name" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.name }}</p>
         </div>
         <button type="button" @click="remove" v-tooltip="'Verwijderen'"
@@ -19,6 +19,7 @@
 import { router, useForm } from '@inertiajs/vue3'
 import { GripVerticalIcon, Trash2Icon } from '@lucide/vue'
 import { GHOST_FIELD } from '@/Components/Quotes/quoteColumns'
+import { useSaveField } from '@/Components/Quotes/useSaveField'
 
 /** One unit in the quote settings, renamed where it stands and saved the moment the field is left. */
 const props = defineProps({
@@ -27,10 +28,7 @@ const props = defineProps({
 
 const form = useForm({ name: props.unit.name })
 
-function save() {
-    if (form.name === props.unit.name) return
-    form.patch(`/quote-settings/units/${props.unit.id}`, { preserveScroll: true, preserveState: true })
-}
+const save = useSaveField(form, () => `/quote-settings/units/${props.unit.id}`, () => props.unit)
 
 function remove() {
     if (!confirm(`De eenheid "${props.unit.name}" verwijderen? Offertes die hem al gebruiken houden hem.`)) return

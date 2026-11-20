@@ -44,14 +44,20 @@ abstract class QuoteLineSignal extends BaseSignal implements QuoteSignal
             return (string) $line->description;
         }
 
-        return Quantity::human($line->quantity) . ' x ' . $line->description . " \u{E0} " . Money::euros($line->unit_price)
+        return self::counted($line) . " \u{E0} " . Money::euros($line->unit_price)
             . ($line->is_optional ? ' (optioneel)' : '');
     }
 
     /** @param array<int, QuoteLine> $lines */
     protected static function listOf(array $lines): string
     {
-        return implode(', ', array_map(fn (QuoteLine $line) => Quantity::human($line->quantity) . ' x ' . $line->description, $lines));
+        return implode(', ', array_map(fn (QuoteLine $line) => self::counted($line), $lines));
+    }
+
+    /** "2 x Muurbeugel" */
+    private static function counted(QuoteLine $line): string
+    {
+        return Quantity::human($line->quantity) . ' x ' . $line->description;
     }
 
     /**

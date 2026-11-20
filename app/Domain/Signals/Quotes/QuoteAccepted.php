@@ -37,7 +37,8 @@ class QuoteAccepted extends QuoteStatusChanged
 
     public function activityDescription(): ?string
     {
-        $sentence = $this->accepted_by . ' ging akkoord met versie ' . $this->version . ' van offerte ' . $this->quote->label()
+        $sentence = $this->accepted_by . ' ging akkoord met versie ' . $this->version
+            . ' van offerte ' . $this->quote->label()
             . ' ' . $this->accepted_via->phrase();
 
         return $this->chosen_options === [] ? $sentence : $sentence . ', met ' . implode(', ', $this->chosen_options);

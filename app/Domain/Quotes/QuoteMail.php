@@ -15,7 +15,11 @@ final class QuoteMail
     /** @return array{to: ?string, subject: string, body: string} what the drawer starts with */
     public static function defaults(Quote $quote): array
     {
-        return ['to' => self::defaultRecipient($quote), 'subject' => self::subject($quote), 'body' => self::body($quote)];
+        return [
+            'to' => self::defaultRecipient($quote),
+            'subject' => self::subject($quote),
+            'body' => self::body($quote),
+        ];
     }
 
     /** The contact person, then the customer's address for quotes, then its general one. */

@@ -19,9 +19,14 @@ use DOMText;
  */
 final class RichText
 {
-    private const KEPT = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'a'];
+    private const KEPT = [
+        'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'a',
+    ];
 
-    private const DROPPED = ['script', 'style', 'iframe', 'object', 'embed', 'template', 'svg', 'math', 'form', 'input', 'textarea', 'button', 'select'];
+    private const DROPPED = [
+        'script', 'style', 'iframe', 'object', 'embed', 'template', 'svg', 'math',
+        'form', 'input', 'textarea', 'button', 'select',
+    ];
 
     public static function clean(?string $html): ?string
     {
@@ -31,14 +36,41 @@ final class RichText
 
         $document = new DOMDocument;
         $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="UTF-8"><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $document->loadHTML(
+            '<?xml encoding="UTF-8"><div>' . $html . '</div>',
+            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD,
+        );
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
         $root = $document->getElementsByTagName('div')->item(0);
         self::scrub($root);
 
-        return implode('', array_map(fn (DOMNode $node) => $document->saveHTML($node), iterator_to_array($root->childNodes)));
+        $kept = array_map(fn (DOMNode $node) => $document->saveHTML($node), iterator_to_array($root->childNodes));
+
+        return implode('', $kept);
+    }
+
+    /**
+     * The same text without its markup, as a timeline or a search reads it: one
+     * line per paragraph or list item, entities turned back into characters.
+     */
+    public static function plain(?string $html): ?string
+    {
+        if ($html === null) {
+            return null;
+        }
+
+        $text = strip_tags(preg_replace('#<br\s*/?>|</(p|li|h[2-4]|blockquote)>#i', "\n", $html));
+        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $lines = array_filter(array_map('trim', explode("\n", $decoded)));
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    private static function isSafeLink(string $address): bool
+    {
+        return preg_match('/^(https?:|mailto:)/i', trim($address)) === 1;
     }
 
     private static function scrub(DOMNode $parent): void
@@ -67,7 +99,7 @@ final class RichText
             }
 
             foreach (iterator_to_array($node->attributes) as $attribute) {
-                if (!($tag === 'a' && $attribute->name === 'href' && preg_match('/^(https?:|mailto:)/i', trim($attribute->value)))) {
+                if (!($tag === 'a' && $attribute->name === 'href' && self::isSafeLink($attribute->value))) {
                     $node->removeAttribute($attribute->name);
                 }
             }

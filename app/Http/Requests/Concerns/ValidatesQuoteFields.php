@@ -18,7 +18,10 @@ trait ValidatesQuoteFields
     protected function quoteFieldRules(?int $customer_id): array
     {
         return [
-            'location_id' => ['sometimes', 'nullable', Rule::exists('locations', 'id')->where('customer_id', $customer_id)],
+            'location_id' => [
+                'sometimes', 'nullable',
+                Rule::exists('locations', 'id')->where('customer_id', $customer_id),
+            ],
             'contact_id' => [
                 'sometimes',
                 'nullable',
@@ -26,7 +29,10 @@ trait ValidatesQuoteFields
                     ->where('contactable_type', Customer::class)
                     ->where('contactable_id', $customer_id),
             ],
-            'project_id' => ['sometimes', 'nullable', Rule::exists('projects', 'id')->where('customer_id', $customer_id)],
+            'project_id' => [
+                'sometimes', 'nullable',
+                Rule::exists('projects', 'id')->where('customer_id', $customer_id),
+            ],
             'intro_text' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'closing_text' => ['sometimes', 'nullable', 'string', 'max:20000'],
         ];

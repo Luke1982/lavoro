@@ -67,7 +67,7 @@ class ChangeQuoteStatusAction
                 default => ['decided_at' => null],
             },
             ...($previous === QuoteStatuses::geaccepteerd
-                ? ['accepted_name' => null, 'accepted_signature' => null, 'accepted_via' => null, 'accepted_version_id' => null]
+                ? array_fill_keys(['accepted_name', 'accepted_signature', 'accepted_via', 'accepted_version_id'], null)
                 : []),
             ...$with,
         ];

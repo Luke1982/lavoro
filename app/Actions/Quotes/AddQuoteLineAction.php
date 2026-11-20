@@ -20,7 +20,9 @@ use Illuminate\Support\Arr;
  */
 class AddQuoteLineAction
 {
-    private const OWN_LINE_FIELDS = ['description', 'details', 'quantity', 'unit', 'unit_price', 'cost_price', 'vat_percent'];
+    private const OWN_LINE_FIELDS = [
+        'description', 'details', 'quantity', 'unit', 'unit_price', 'cost_price', 'vat_percent',
+    ];
 
     /** @param array<string, mixed> $data the validated fields */
     public function execute(Quote $quote, QuoteLineKinds $kind, array $data): QuoteLine
@@ -46,7 +48,7 @@ class AddQuoteLineAction
                     'details' => $data['details'] ?? null,
                     'quantity' => 0,
                 ],
-                QuoteLineKinds::product => throw new \LogicException('A product is offered through AddProductToQuoteAction.'),
+                QuoteLineKinds::product => throw new \LogicException('A product goes through AddProductToQuoteAction.'),
             },
             'is_optional' => (bool) ($data['is_optional'] ?? false),
         ];

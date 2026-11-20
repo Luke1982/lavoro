@@ -71,7 +71,7 @@ class QuoteController extends Controller
             'answeredLinks',
             'documents.category',
             'documents.user:id,name',
-            'versions.createdBy:id,name',
+            'versions',
             'lines',
             'activities' => fn ($query) => $query->visibleTo($request->user())
                 ->with(['user:id,name', 'fieldChanges'])
@@ -86,16 +86,10 @@ class QuoteController extends Controller
         $totals = $quote->totals()->toArray($see_margins);
         $answers = $quote->answeredLinks->map->answerSummary()->values();
         $service_order = $quote->serviceOrder?->only(['id', 'number']);
-        $versions = $quote->versions->map(fn (QuoteVersion $version) => [
-            'id' => $version->id,
-            'number' => $version->number,
-            'created_at' => $version->created_at,
-            'recipient' => $version->recipient,
-            'by' => $version->createdBy?->name,
-            'net' => $version->snapshot['totals']['net'] ?? null,
-            'accepted' => $version->id === $quote->accepted_version_id,
-        ])->values();
-        $quote->unsetRelation('lines')->unsetRelation('answeredLinks')->unsetRelation('serviceOrder')->unsetRelation('versions')
+        $versions = $quote->versions
+            ->map(fn (QuoteVersion $version) => $version->toListItem($quote->accepted_version_id))
+            ->values();
+        $quote->setRelations(Arr::only($quote->getRelations(), ['customer', 'contact', 'documents', 'activities']))
             ->makeVisible('accepted_signature');
 
         return inertia('Quotes/ShowPage', [

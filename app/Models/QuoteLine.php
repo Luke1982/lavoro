@@ -70,9 +70,11 @@ class QuoteLine extends Model
      */
     protected function details(): Attribute
     {
-        return Attribute::make(set: fn (?string $value, array $attributes) => ($attributes['kind'] ?? $this->kind) === QuoteLineKinds::text->value
-            ? RichText::clean($value)
-            : $value);
+        return Attribute::make(set: function (?string $value, array $attributes) {
+            $kind = $attributes['kind'] ?? $this->kind;
+
+            return $kind === QuoteLineKinds::text->value ? RichText::clean($value) : $value;
+        });
     }
 
     public function kindEnum(): QuoteLineKinds

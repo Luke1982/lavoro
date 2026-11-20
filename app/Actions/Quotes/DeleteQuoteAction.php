@@ -14,7 +14,9 @@ class DeleteQuoteAction
     public function execute(Quote $quote): void
     {
         if ($quote->sent_at !== null) {
-            throw new Refusal('Offerte ' . $quote->number . ' is al verstuurd. Wijs hem af in plaats van hem te verwijderen.');
+            throw new Refusal(
+                'Offerte ' . $quote->number . ' is al verstuurd. Wijs hem af in plaats van hem te verwijderen.'
+            );
         }
 
         $quote->delete();

@@ -11,7 +11,9 @@ use App\Models\Quote;
  */
 final class QuoteForCustomer
 {
-    /** @return array{quote: array<string, mixed>, lines: array<int, array<string, mixed>>, totals: array<string, mixed>} */
+    /**
+     * @return array{quote: array<string, mixed>, lines: array<int, array<string, mixed>>, totals: array<string, mixed>}
+     */
     public static function of(Quote $quote): array
     {
         $quote->loadMissing(['customer', 'contact', 'lines']);

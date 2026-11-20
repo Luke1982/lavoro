@@ -123,9 +123,10 @@ import { MenuItem } from '@headlessui/vue'
 import {
     AlignLeftIcon, EllipsisVerticalIcon, GripVerticalIcon, PackageIcon, PercentIcon, StarIcon, Trash2Icon, WrenchIcon,
 } from '@lucide/vue'
-import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
-import { BOXED_FIELD, COLUMNS, GHOST_FIELD, KINDS, NO_SPIN, menuItem } from '@/Components/Quotes/quoteColumns'
+import { BOXED_FIELD, COLUMNS, GHOST_FIELD, KINDS, NO_SPIN, menuItem, unitChoices } from '@/Components/Quotes/quoteColumns'
+import { useSaveField } from '@/Components/Quotes/useSaveField'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
+import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 import { imageFileUrl } from '@/Utilities/imageFiles'
 import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
@@ -152,7 +153,7 @@ const props = defineProps({
 const isText = computed(() => props.line.kind === 'text')
 const kind = computed(() => KINDS[props.line.is_optional ? 'optional' : props.line.kind] ?? KINDS.free)
 const placeholderIcon = computed(() => ({ product: PackageIcon, material: PackageIcon, text: AlignLeftIcon })[props.line.kind] ?? WrenchIcon)
-const unitOptions = computed(() => [...new Set([...props.units, props.line.unit].filter(Boolean))])
+const unitOptions = computed(() => unitChoices(props.units, props.line.unit))
 const url = computed(() => `/quotes/${props.quoteId}/lines/${props.line.id}`)
 
 const form = useForm({
@@ -168,11 +169,7 @@ const form = useForm({
 
 const discounting = ref(false)
 
-function save(name) {
-    if ((form[name] || null) === (props.line[name] || null)) return
-    form.transform(data => ({ [name]: data[name] === '' ? null : data[name] }))
-        .patch(url.value, { preserveScroll: true, preserveState: true })
-}
+const save = useSaveField(form, () => url.value, () => props.line)
 
 function patch(changes) {
     router.patch(url.value, changes, { preserveScroll: true })

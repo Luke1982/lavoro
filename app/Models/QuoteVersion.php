@@ -24,8 +24,21 @@ class QuoteVersion extends Model
         return $this->belongsTo(Quote::class);
     }
 
-    public function createdBy(): BelongsTo
+    /**
+     * As the quote page lists it: when, to whom and for how much, and whether it
+     * is the one that was accepted.
+     *
+     * @return array{id: int, number: int, created_at: mixed, recipient: ?string, net: ?float, accepted: bool}
+     */
+    public function toListItem(?int $accepted_version_id): array
     {
-        return $this->belongsTo(User::class, 'created_by')->withTrashed();
+        return [
+            'id' => $this->id,
+            'number' => $this->number,
+            'created_at' => $this->created_at,
+            'recipient' => $this->recipient,
+            'net' => $this->snapshot['totals']['net'] ?? null,
+            'accepted' => $this->id === $accepted_version_id,
+        ];
     }
 }

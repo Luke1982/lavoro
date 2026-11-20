@@ -36,7 +36,11 @@ final class QuoteLineTree
 
         $row = fn (QuoteLine $line) => $for_customer
             ? [...$line->only(self::FOR_CUSTOMER), 'net' => $line->netCents() / 100]
-            : [...$line->withoutRelations()->toArray(), 'net' => $line->netCents() / 100, 'image' => self::image($line)];
+            : [
+                ...$line->withoutRelations()->toArray(),
+                'net' => $line->netCents() / 100,
+                'image' => self::image($line),
+            ];
         $children = $quote->lines->whereNotNull('parent_id')->groupBy('parent_id');
 
         return $quote->lines

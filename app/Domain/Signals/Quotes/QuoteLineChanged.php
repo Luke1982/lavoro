@@ -7,6 +7,7 @@ use App\Models\Quote;
 use App\Models\QuoteLine;
 use App\Support\Money;
 use App\Support\Quantity;
+use App\Support\RichText;
 
 /**
  * A line on a quote changed: its quantity, price, discount, VAT or text. Every
@@ -82,6 +83,7 @@ class QuoteLineChanged extends QuoteLineSignal
     {
         return match (true) {
             $value === null => null,
+            $field === 'details' => RichText::plain((string) $value),
             in_array($field, ['is_optional', 'is_chosen'], true) => $value ? 'Ja' : 'Nee',
             in_array($field, ['unit_price', 'cost_price'], true) => Money::euros($value),
             in_array($field, ['vat_percent', 'discount_percent'], true) => Quantity::human($value) . '%',

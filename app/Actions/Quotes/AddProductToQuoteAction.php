@@ -37,7 +37,10 @@ class AddProductToQuoteAction
         QuoteGuard::editable($quote);
 
         return DB::transaction(function () use ($quote, $product, $quantity, $chosen, $optional) {
-            $line = $quote->addLine([...QuoteLineDrafts::forProduct($quote, $product, $quantity), 'is_optional' => $optional]);
+            $line = $quote->addLine([
+                ...QuoteLineDrafts::forProduct($quote, $product, $quantity),
+                'is_optional' => $optional,
+            ]);
             $defaults = $product->materialDefaults()->with('material.usageUnit')->get()->keyBy('id');
             $materials = [];
 

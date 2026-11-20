@@ -57,11 +57,14 @@ class Quote extends Model
         'project_id' => 'Project',
         'quote_date' => 'Offertedatum',
         'valid_until' => 'Geldig tot',
-        'intro_text' => 'Openingstekst',
-        'closing_text' => 'Slottekst',
+        'intro_text' => 'Aanhef',
+        'closing_text' => 'Slot',
         'customer_picks_options' => 'Klant mag opties selecteren',
         'default_vat_percent' => 'Standaard btw-tarief',
     ];
+
+    /** Editor HTML: the timeline reads it as plain text, the stored value keeps the markup. */
+    protected array $activity_html = ['intro_text', 'closing_text'];
 
     protected array $activity_relations = [
         'customer_id' => ['customer', 'name'],

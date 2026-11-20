@@ -16,8 +16,11 @@ use App\Support\PendingChanges;
 class SaveProductMaterialDefaultAction
 {
     /** @param array{material_id?: int, quantity?: float|int|string, prompt?: string} $data the validated fields */
-    public function execute(Product $product, array $data, ?ProductMaterialDefault $default = null): ProductMaterialDefault
-    {
+    public function execute(
+        Product $product,
+        array $data,
+        ?ProductMaterialDefault $default = null,
+    ): ProductMaterialDefault {
         $default ??= new ProductMaterialDefault([
             'product_id' => $product->id,
             'material_id' => $data['material_id'],
@@ -34,7 +37,12 @@ class SaveProductMaterialDefaultAction
 
         $default->save();
 
-        Signals::dispatch(new ProductMaterialDefaultSet($product->loadMissing('brand'), $default->load('material'), $is_new, $fields));
+        Signals::dispatch(new ProductMaterialDefaultSet(
+            $product->loadMissing('brand'),
+            $default->load('material'),
+            $is_new,
+            $fields,
+        ));
 
         return $default;
     }

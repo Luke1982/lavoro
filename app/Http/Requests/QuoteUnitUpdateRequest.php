@@ -16,7 +16,10 @@ class QuoteUnitUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:30', Rule::unique('quote_units', 'name')->ignore($this->route('unit'))],
+            'name' => [
+                'required', 'string', 'max:30',
+                Rule::unique('quote_units', 'name')->ignore($this->route('unit')),
+            ],
         ];
     }
 

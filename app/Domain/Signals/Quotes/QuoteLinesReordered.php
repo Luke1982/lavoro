@@ -57,6 +57,7 @@ class QuoteLinesReordered extends BaseSignal implements QuoteSignal
 
     public function activityDescription(): ?string
     {
-        return 'Volgorde van de regels van offerte ' . $this->quote->number . ' aangepast: ' . implode(', ', $this->order);
+        return 'Volgorde van de regels van offerte ' . $this->quote->number . ' aangepast: '
+            . implode(', ', $this->order);
     }
 }

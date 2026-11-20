@@ -4,6 +4,7 @@ namespace App\Models\Traits;
 
 use App\Domain\Signals\ModelChanged;
 use App\Domain\Signals\Signals;
+use App\Support\RichText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,7 @@ use Illuminate\Support\Str;
  *   protected array $activity_relations = ['customer_id' => ['customer', 'name']];
  *   protected array $activity_ignore = ['internal_token'];
  *   protected array $activity_permissions = ['price' => 'material.see_financials'];
+ *   protected array $activity_html = ['intro_text'];
  *
  * @mixin Model
  *
@@ -243,6 +245,10 @@ trait RecordsHistory
             [$relation_name, $display_column] = $relations[$field];
 
             return $this->resolveRelatedLabel($relation_name, $display_column, $value);
+        }
+
+        if (in_array($field, property_exists($this, 'activity_html') ? $this->activity_html : [], true)) {
+            return RichText::plain((string) $value);
         }
 
         if (is_bool($value) || $this->hasCast($field, ['bool', 'boolean'])) {

@@ -3,6 +3,11 @@ import { imageFileUrl } from '@/Utilities/imageFiles.js';
 
 export const nlDate = (date) => dayjs(date).format("DD-MM-YYYY");
 
+/** "19 nov 2026": a date in a heading, where 19-11-2026 reads like a code. */
+export const nlDateMedium = (date) => (date
+    ? new Date(date).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" }).replace(".", "")
+    : "");
+
 export const nlDateOrEmpty = (date) => {
     if (!date || date === "0000-00-00") return "";
     const parsed = dayjs(date);

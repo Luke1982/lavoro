@@ -25,9 +25,9 @@
                     <Link :href="`/customers/${quote.customer.id}`" class="inline-flex items-center gap-1.5 hover:text-lavoro-blue">
                         <UserIcon class="size-4" /> {{ quote.customer.name }}
                     </Link>
-                    <span class="inline-flex items-center gap-1.5"><CalendarIcon class="size-4" /> {{ nlDateLong(quote.quote_date) }}</span>
+                    <span class="inline-flex items-center gap-1.5"><CalendarIcon class="size-4" /> {{ nlDateMedium(quote.quote_date) }}</span>
                     <span v-if="quote.valid_until" class="inline-flex items-center gap-1.5">
-                        <CalendarCheckIcon class="size-4" /> Geldig tot {{ nlDateLong(quote.valid_until) }}
+                        <CalendarCheckIcon class="size-4" /> Geldig tot {{ nlDateMedium(quote.valid_until) }}
                     </span>
                 </div>
             </div>
@@ -81,10 +81,10 @@
         <template #main>
             <ChaptersComponent>
                 <ChapterHeaders>
-                    <ChapterHeader v-for="(chapter, index) in CHAPTERS" :key="chapter.label" :index="index">
+                    <ChapterHeader v-for="(chapter, index) in chapters" :key="chapter.label" :index="index">
                         <span class="inline-flex items-center gap-2">
                             <component :is="chapter.icon" class="size-4" />
-                            {{ chapter.label }}<template v-if="chapter.label === 'Bijlagen' && quote.documents.length"> ({{ quote.documents.length }})</template>
+                            {{ chapter.label }}<template v-if="chapter.count"> ({{ chapter.count }})</template>
                         </span>
                     </ChapterHeader>
                 </ChapterHeaders>
@@ -333,6 +333,7 @@ import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
 import QuoteMaterialsPanel from '@/Components/Quotes/QuoteMaterialsPanel.vue'
 import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
 import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
+import { useSaveField } from '@/Components/Quotes/useSaveField'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import BreadcrumbComponent from '@/Components/UI/BreadcrumbComponent.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
@@ -342,7 +343,7 @@ import SwitchComponent from '@/Components/UI/SwitchComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
-import { nlCurrency, nlDate, nlQuantity, quoteStatusPillClass } from '@/Utilities/Utilities'
+import { nlCurrency, nlDate, nlDateMedium, nlQuantity, quoteStatusPillClass } from '@/Utilities/Utilities'
 
 const props = defineProps({
     quote: { type: Object, required: true },
@@ -361,12 +362,12 @@ const props = defineProps({
     can: { type: Object, required: true },
 })
 
-const CHAPTERS = [
+const chapters = computed(() => [
     { label: 'Regels', icon: ListIcon },
     { label: 'Aanhef & slot', icon: FileTextIcon },
-    { label: 'Bijlagen', icon: PaperclipIcon },
+    { label: 'Bijlagen', icon: PaperclipIcon, count: props.quote.documents.length },
     { label: 'Instellingen', icon: SettingsIcon },
-]
+])
 
 /** What a plain status button says. Sending and accepting have buttons of their own. */
 const STATUS_ACTIONS = {
@@ -441,16 +442,7 @@ const projectOptions = computed(() => (props.quote.customer.projects ?? []).map(
 
 const marginShare = computed(() => Math.round((props.totals.margin / props.totals.net) * 100) + '%')
 
-/** "19 nov 2026", as the heading writes a date. */
-const nlDateLong = (date) => (date
-    ? new Date(date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '')
-    : '')
-
-function save(name) {
-    if ((form[name] ?? null) === (props.quote[name] ?? null)) return
-    form.transform(data => ({ [name]: data[name] === '' ? null : data[name] }))
-        .patch(`/quotes/${props.quote.id}`, { preserveScroll: true, preserveState: true })
-}
+const save = useSaveField(form, () => `/quotes/${props.quote.id}`, () => props.quote)
 
 /** Picking toggles: clicking the chosen location, contact or project again clears it. */
 watch(() => [form.location_id, form.contact_id, form.project_id], () => {

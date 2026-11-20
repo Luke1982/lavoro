@@ -15,8 +15,8 @@
                 <div class="px-6 py-6">
                     <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ quote.title }}</h1>
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Offerte {{ quote.number }}<template v-if="version">, versie {{ version }}</template> voor {{ quote.contact || quote.customer }}, {{ nlDate(quote.quote_date) }}
-                        <template v-if="quote.valid_until">· geldig tot en met {{ nlDate(quote.valid_until) }}</template>
+                        Offerte {{ quote.number }}<template v-if="version">, versie {{ version }}</template> voor {{ quote.contact || quote.customer }}, {{ nlDateMedium(quote.quote_date) }}
+                        <template v-if="quote.valid_until">· geldig tot en met {{ nlDateMedium(quote.valid_until) }}</template>
                     </p>
 
                     <p v-if="flash.error" class="mt-4 rounded-xl bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-800 dark:text-red-200">
@@ -94,7 +94,7 @@ import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { countedOptions as counted } from '@/Components/Quotes/quoteColumns'
-import { nlDate } from '@/Utilities/Utilities'
+import { nlDateMedium } from '@/Utilities/Utilities'
 
 /**
  * Where a customer without an account looks at a quote and answers it, once.

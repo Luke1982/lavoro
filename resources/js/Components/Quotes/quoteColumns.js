@@ -38,3 +38,6 @@ export const countedOptions = (lines) => lines.filter(line => line.is_optional &
 
 /** Een getalveld zonder de pijltjes van de browser, voor velden die rustig moeten ogen. */
 export const NO_SPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
+
+/** De eenheden om uit te kiezen, met die van de regel zelf erbij als die er niet meer tussen staat. */
+export const unitChoices = (units, current) => [...new Set([...units, current].filter(Boolean))]

@@ -26,7 +26,7 @@
     </div>
     <div :class="COLUMNS.vat" class="hidden md:block" />
     <div :class="COLUMNS.total" class="text-right tabular-nums">{{ nlCurrency(line.net) }}</div>
-    <div :class="COLUMNS.actions" class="flex justify-end">
+    <div :class="COLUMNS.actions" class="flex justify-end pr-3">
         <button v-if="editable" type="button" @click="remove" v-tooltip="'Verwijderen'"
             class="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-red-600">
             <Trash2Icon class="size-4" />
@@ -38,7 +38,8 @@
 import { computed } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { GripVerticalIcon, Trash2Icon } from '@lucide/vue'
-import { COLUMNS, GHOST_FIELD, NO_SPIN } from '@/Components/Quotes/quoteColumns'
+import { COLUMNS, GHOST_FIELD, NO_SPIN, unitChoices } from '@/Components/Quotes/quoteColumns'
+import { useSaveField } from '@/Components/Quotes/useSaveField'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
 
@@ -50,7 +51,7 @@ const props = defineProps({
     editable: { type: Boolean, default: false },
 })
 
-const unitOptions = computed(() => [...new Set([...props.units, props.line.unit].filter(Boolean))])
+const unitOptions = computed(() => unitChoices(props.units, props.line.unit))
 const url = computed(() => `/quotes/${props.quoteId}/lines/${props.line.id}`)
 
 const form = useForm({
@@ -60,11 +61,7 @@ const form = useForm({
     unit_price: props.line.unit_price,
 })
 
-function save(name) {
-    if ((form[name] ?? null) === (props.line[name] ?? null)) return
-    form.transform(data => ({ [name]: data[name] === '' ? null : data[name] }))
-        .patch(url.value, { preserveScroll: true, preserveState: true })
-}
+const save = useSaveField(form, () => url.value, () => props.line)
 
 function remove() {
     if (!confirm(`${props.line.description} van de offerte halen?`)) return

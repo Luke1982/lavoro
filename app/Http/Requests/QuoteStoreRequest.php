@@ -23,7 +23,10 @@ class QuoteStoreRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'customer_id' => ['required', 'exists:customers,id'],
             'quote_date' => ['sometimes', 'nullable', 'date'],
-            'valid_until' => ['sometimes', 'nullable', 'date', 'after_or_equal:' . ($this->input('quote_date') ?: Clock::today())],
+            'valid_until' => [
+                'sometimes', 'nullable', 'date',
+                'after_or_equal:' . ($this->input('quote_date') ?: Clock::today()),
+            ],
         ];
     }
 

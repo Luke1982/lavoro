@@ -53,7 +53,13 @@ class SendQuoteAction
             $quote,
             AccessTokenPurpose::quote_response,
             $to,
-            fn (string $url, ?string $expires_on) => new AccessLinkMail($subject, $body, $url, self::BUTTON, $expires_on),
+            fn (string $url, ?string $expires_on) => new AccessLinkMail(
+                $subject,
+                $body,
+                $url,
+                self::BUTTON,
+                $expires_on,
+            ),
             expires_at: $quote->valid_until?->copy()->endOfDay(),
         );
 
