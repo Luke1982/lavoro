@@ -2,8 +2,11 @@
 
 namespace App\Models\Traits;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Signals\ModelChanged;
+use App\Domain\Signals\PersonName;
 use App\Domain\Signals\Signals;
+use App\Models\User;
 use App\Support\RichText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -25,6 +28,7 @@ use Illuminate\Support\Str;
  *   protected array $activity_permissions = ['price' => 'material.see_financials'];
  *   protected array $activity_html = ['intro_text'];
  *   protected array $activity_formats = ['layout' => [QuoteLayout::class, 'describe']];
+ *   protected array $activity_dates = ['next_service_date'];
  *
  * @mixin Model
  *
@@ -60,7 +64,7 @@ trait RecordsHistory
     public function recordHistory(string $action): void
     {
         if ($action !== 'updated') {
-            Signals::dispatch(new ModelChanged($this, $action));
+            Signals::dispatch(new ModelChanged($this, $action, [], $this->historyPermission()));
 
             return;
         }
@@ -76,9 +80,46 @@ trait RecordsHistory
                 $this,
                 $action,
                 $group,
-                $permission === '' ? null : $permission,
+                $permission === '' ? $this->historyPermission() : $permission,
             ));
         }
+    }
+
+    /**
+     * The other records this model's history also belongs on. A model without a
+     * timeline of its own -- a task, an inspection -- is invisible unless it names
+     * one here: the trail only shows an entry on a record it is attached to, and the
+     * assistant only finds it through the same link.
+     *
+     * The action is passed in because what belongs where differs: a work order
+     * being created is news on the customer's timeline, every edit to it is not.
+     *
+     * @return array<int, Model|null>
+     */
+    public function historyTimelines(string $action): array
+    {
+        return [];
+    }
+
+    /**
+     * The permission needed to read anything this record's history says, or null
+     * when reading the record it lands on is enough. Its creation lands on the
+     * customer's timeline too, and somebody who may open the customer but not its
+     * quotes must not learn a quote exists. A field gated on its own keeps its gate.
+     */
+    public function historyPermission(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * What this record is called on another record's timeline, at the moment of
+     * the change: "Aangemaakt" on a customer means nothing without it. Copied into
+     * the entry, so a deleted or renamed record still reads correctly.
+     */
+    public function historyLabel(): ?string
+    {
+        return null;
     }
 
     /**
@@ -255,7 +296,7 @@ trait RecordsHistory
         $formats = property_exists($this, 'activity_formats') ? $this->activity_formats : [];
 
         if (isset($formats[$field])) {
-            return $formats[$field](is_string($value) ? json_decode($value, true) : $value);
+            return $formats[$field](is_string($value) && json_validate($value) ? json_decode($value, true) : $value);
         }
 
         if (is_bool($value) || $this->hasCast($field, ['bool', 'boolean'])) {
@@ -266,11 +307,38 @@ trait RecordsHistory
             return $value->format('d-m-Y H:i');
         }
 
+        if (($moment = $this->displayMoment($field, $value)) !== null) {
+            return $moment;
+        }
+
         if (is_array($value)) {
             return json_encode($value, JSON_UNESCAPED_UNICODE);
         }
 
         return (string) $value;
+    }
+
+    /**
+     * A date reads as 01-01-2026, not as the 2026-01-01 00:00:00 the database
+     * hands back. A moment with a time is stored in UTC and read in local time,
+     * or an appointment moved to 08:00 would be logged as moved to 06:00.
+     */
+    private function displayMoment(string $field, mixed $value): ?string
+    {
+        $dates = property_exists($this, 'activity_dates') ? $this->activity_dates : [];
+        $cast = in_array($field, $dates, true) ? 'date' : ($this->getCasts()[$field] ?? null);
+
+        if (!is_string($cast) || !preg_match('/^(immutable_)?(date|datetime|timestamp)(:|$)/', $cast, $kind)) {
+            return null;
+        }
+
+        try {
+            return $kind[2] === 'date'
+                ? (new \DateTimeImmutable((string) $value))->format('d-m-Y')
+                : Clock::toLocal((string) $value)->format('d-m-Y H:i');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function resolveRelatedLabel(string $relation_name, string $display_column, mixed $id): ?string
@@ -279,7 +347,13 @@ trait RecordsHistory
             return (string) $id;
         }
 
-        $related = $this->{$relation_name}()->getRelated()->newQuery()->find($id);
+        $related_model = $this->{$relation_name}()->getRelated();
+
+        if ($related_model instanceof User) {
+            return PersonName::of($id);
+        }
+
+        $related = $related_model->newQuery()->find($id);
 
         return $related?->{$display_column} ?? (string) $id;
     }

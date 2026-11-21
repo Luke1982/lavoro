@@ -7,8 +7,10 @@ use App\Models\Ticket;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Carries the statuses themselves rather than a finished sentence, so the change
- * lands as queryable rows and the wording stays this class's business.
+ * Carries the priorities themselves rather than a finished sentence, so the
+ * change lands as queryable rows and the wording stays this class's business.
+ * Told on the storing only: a priority is how urgently it is handled, not news
+ * at the customer.
  */
 class TicketPriorityChanged extends BaseSignal
 {

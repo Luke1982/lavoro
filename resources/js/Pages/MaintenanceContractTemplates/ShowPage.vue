@@ -107,6 +107,14 @@
                 @revert="form.clearErrors('auto_generate_interval_days')" />
         </div>
     </BoxComponent>
+
+    <BoxComponent class="mt-4">
+        <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+            subtitle="Wie wat veranderde aan dit sjabloon, op volgorde." chapter="timeline" />
+        <TimelineComponent v-if="template.activities?.length" :activities="template.activities"
+            subject-type="App\Models\MaintenanceContractTemplate" />
+        <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
+    </BoxComponent>
 </template>
 
 <script setup>
@@ -115,7 +123,9 @@ import { Link, useForm } from '@inertiajs/vue3'
 import {
     ChevronRightIcon, ClipboardDocumentListIcon, ClockIcon, DocumentDuplicateIcon,
 } from '@heroicons/vue/24/outline'
+import { TimelineIcon } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import SwitchComponent from '@/Components/UI/SwitchComponent.vue'

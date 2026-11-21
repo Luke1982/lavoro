@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ServiceCheckValueDestroyRequest;
+use App\Http\Requests\ServiceCheckValueOrderRequest;
 use App\Http\Requests\ServiceCheckValueStoreUpdateRequest;
 use App\Models\ServiceCheckValue;
-use Illuminate\Http\Request;
 
 class ServiceCheckValueController extends Controller
 {
@@ -13,13 +14,13 @@ class ServiceCheckValueController extends Controller
      */
     public function store(ServiceCheckValueStoreUpdateRequest $request)
     {
-        $highestorder = ServiceCheckValue::where('service_check_id', $request->service_check_id)
+        $highest_order = ServiceCheckValue::where('service_check_id', $request->service_check_id)
             ->max('order') ?? 0;
-            $data = $request->validated();
-        $data['order'] = $highestorder + 1;
-        $newservicecheckvalue = ServiceCheckValue::create($data);
+        $data = $request->validated();
+        $data['order'] = $highest_order + 1;
+        $value = ServiceCheckValue::create($data);
 
-        return redirect()->back()->with(['success' => 'Waarde is toegevoegd', 'extra' => $newservicecheckvalue]);
+        return redirect()->back()->with(['success' => 'Waarde is toegevoegd', 'extra' => $value]);
     }
 
     /**
@@ -37,7 +38,7 @@ class ServiceCheckValueController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ServiceCheckValue $servicecheckvalue)
+    public function destroy(ServiceCheckValueDestroyRequest $request, ServiceCheckValue $servicecheckvalue)
     {
         $servicecheckvalue->delete();
 
@@ -47,9 +48,9 @@ class ServiceCheckValueController extends Controller
     /**
      * Update the order of service check values.
      */
-    public function updateOrder(Request $request)
+    public function updateOrder(ServiceCheckValueOrderRequest $request)
     {
-        foreach ($request->payload as $value) {
+        foreach ($request->validated('payload') as $value) {
             ServiceCheckValue::where('id', $value['id'])->update(['order' => $value['order']]);
         }
 

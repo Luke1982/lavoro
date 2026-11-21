@@ -15,7 +15,7 @@
             <div v-for="brand in innerBrands" :key="brand.id" role="row"
                 class="grid grid-cols-12 p-4 text-sm border-b-lavoro-gray-150 dark:border-b-slate-800 border-b-2">
                 <div class="col-span-12 flex items-center">
-                    <EditableTextField :model-value="brand.name" :decoration="false"
+                    <EditableTextField :model-value="brand.name" :decoration="false" :readonly="!canUpdate"
                         @update="(val) => router.patch(`/brands/${brand.id}`, { name: val }, { preserveScroll: true, preserveState: true })">
                         <template #display>{{ brand.name }}</template>
                     </EditableTextField>
@@ -59,4 +59,5 @@ const brandFields = [
 ]
 
 const innerBrands = computed(() => props.brands?.data || [])
+const canUpdate = computed(() => hasPermission('brand.update'))
 </script>

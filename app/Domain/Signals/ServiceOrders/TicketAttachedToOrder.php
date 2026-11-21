@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TicketAttachedToOrder extends BaseSignal
 {
+    use NamesTheTicket;
+
     public function __construct(
         public ServiceOrder $service_order,
         public Ticket $ticket,
@@ -25,7 +27,7 @@ class TicketAttachedToOrder extends BaseSignal
 
     public static function label(): string
     {
-        return 'Ticket gekoppeld aan werkbon';
+        return 'Storing gekoppeld aan werkbon';
     }
 
     public function activityCategory(): string
@@ -40,13 +42,6 @@ class TicketAttachedToOrder extends BaseSignal
 
     public function activityDescription(): ?string
     {
-        return sprintf(
-            'Ticket gekoppeld: %s (%s %s %s, serienummer %s)',
-            $this->ticket->subject ?? ('Ticket #' . $this->ticket->id),
-            $this->asset?->product?->productType?->name ?? 'Type',
-            $this->asset?->product?->brand?->name ?? 'Merk',
-            $this->asset?->product?->model ?? '',
-            $this->asset?->serial_number ?? '-'
-        );
+        return 'Storing gekoppeld: ' . $this->ticketLabel();
     }
 }

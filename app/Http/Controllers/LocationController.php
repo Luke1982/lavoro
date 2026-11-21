@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Locations\CreateLocationAction;
+use App\Actions\Locations\DeleteLocationAction;
 use App\Domain\Search\SearchTerm;
 use App\Http\Requests\LocationDestroyRequest;
 use App\Http\Requests\LocationReadRequest;
@@ -67,13 +68,9 @@ class LocationController extends Controller
     public function destroy(LocationDestroyRequest $request, Location $location)
     {
         $disposition = $request->input('disposition', 'detach');
-        $target = $disposition === 'move' ? $request->input('target_location_id') : null;
+        $target = $disposition === 'move' ? $request->integer('target_location_id') : null;
 
-        $location->assets()->update(['location_id' => $target]);
-        $location->serviceOrders()->update(['location_id' => $target]);
-        $location->events()->update(['location_id' => $target]);
-
-        $location->delete();
+        app(DeleteLocationAction::class)->execute($location, $target);
 
         return redirect()->route('locations.index')->with('success', 'Locatie verwijderd.');
     }

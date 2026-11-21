@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\Domain\Contracts\ContractLabels;
+use App\Domain\Signals\Assets\AssetTransferred;
 use App\Domain\Signals\Contracts\ContractAssetDetachedByTransfer;
 use App\Domain\Signals\Signals;
 use App\Models\Asset;
+use App\Models\Customer;
 use App\Models\Location;
 use App\Models\MaintenanceContract;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -35,13 +39,14 @@ class AssetTransferService
     {
         $tree = $this->treeFor($roots);
         $root_ids = $roots->pluck('id')->all();
+        EloquentCollection::make($tree->all())->loadMissing('product.brand');
 
         $locations = Location::query()
             ->whereIn('id', $roots->pluck('location_id')->filter()->unique()->values())
             ->get()
             ->map(fn (Location $location) => [
                 'id' => $location->id,
-                'label' => $location->title ?: $location->addressLine(),
+                'label' => $location->displayName(),
             ])
             ->values()
             ->all();
@@ -50,7 +55,7 @@ class AssetTransferService
             'assets' => $tree
                 ->map(fn (Asset $asset) => [
                     'id' => $asset->id,
-                    'label' => $asset->serial_number ?: ('#' . $asset->id),
+                    'label' => ContractLabels::asset($asset),
                     'is_child' => !in_array($asset->id, $root_ids, true),
                 ])
                 ->values()
@@ -75,21 +80,28 @@ class AssetTransferService
         DB::transaction(function () use ($roots, $new_customer_id, $location_map) {
             $tree = $this->treeFor($roots);
 
+            $new_customer = Customer::find($new_customer_id);
+
             foreach ($roots as $root) {
+                $previous_customer = $root->customer;
+                $root->setRelation('customer', $new_customer);
+
                 $root->update([
                     'customer_id' => $new_customer_id,
                     'location_id' => $location_map[$root->location_id] ?? null,
                 ]);
+
+                if ($previous_customer?->id !== $new_customer_id) {
+                    Signals::dispatch(new AssetTransferred($root, $previous_customer, $new_customer));
+                }
             }
 
             foreach ($this->contractsLosing($tree, $new_customer_id) as $contract) {
-                $losing = $contract->assets
-                    ->whereIn('id', $tree->pluck('id'))
-                    ->map(fn (Asset $asset) => $asset->serial_number ?: ('#' . $asset->id));
+                $losing = $contract->assets->whereIn('id', $tree->pluck('id'))->values()->all();
 
                 $contract->assets()->detach($tree->pluck('id')->all());
 
-                Signals::dispatch(new ContractAssetDetachedByTransfer($contract, $losing->values()->all()));
+                Signals::dispatch(new ContractAssetDetachedByTransfer($contract, $losing));
             }
         });
     }

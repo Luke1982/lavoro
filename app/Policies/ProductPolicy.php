@@ -47,4 +47,9 @@ class ProductPolicy
 
         return false;
     }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('product.delete');
+    }
 }

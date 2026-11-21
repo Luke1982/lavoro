@@ -47,6 +47,9 @@ class Ticket extends Model
 
     protected array $activity_relations = [
         'asset_id' => ['asset', 'serial_number'],
+        'service_order_id' => ['serviceOrder', 'number'],
+        'created_by_id' => ['createdBy', 'name'],
+        'closed_by_id' => ['closedBy', 'name'],
     ];
 
     /**
@@ -110,6 +113,25 @@ class Ticket extends Model
         } finally {
             $this->status_reason = null;
         }
+    }
+
+    /**
+     * Its creation and removal are news on the customer's timeline, and its
+     * removal on the werkbon it was on too, where it was being worked on; every
+     * edit after that stays on its own.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return match ($action) {
+            'created' => [$this->asset?->resolvedCustomer()],
+            'deleted' => [$this->asset?->resolvedCustomer(), $this->serviceOrder],
+            default => [],
+        };
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Storing ' . ($this->subject ?: '#' . $this->id);
     }
 
     public function asset(): BelongsTo

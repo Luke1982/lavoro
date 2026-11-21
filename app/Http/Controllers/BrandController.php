@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Refusal;
+use App\Http\Requests\BrandDestroyRequest;
 use App\Http\Requests\BrandReadRequest;
 use App\Http\Requests\BrandStoreRequest;
+use App\Http\Requests\BrandUpdateRequest;
 use App\Models\Brand;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
@@ -65,15 +66,9 @@ class BrandController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Brand $brand)
+    public function update(BrandUpdateRequest $request, Brand $brand)
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->ignore($brand)],
-        ]);
-
-        $brand->update([
-            'name' => $request->name,
-        ]);
+        $brand->update($request->validated());
 
         return redirect()->route('brands.index')->with('success', 'Merk bijgewerkt.');
     }
@@ -81,8 +76,20 @@ class BrandController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Brand $brand)
+    public function destroy(BrandDestroyRequest $request, Brand $brand)
     {
+        $products = $brand->products()->count();
+
+        if ($products > 0) {
+            throw new Refusal(
+                'Merk ' . $brand->name . ' kan niet verwijderd worden: '
+                    . ($products === 1 ? 'er is nog 1 product' : 'er zijn nog ' . $products . ' producten')
+                    . ' van dit merk. Verwijderen zou ook '
+                    . ($products === 1 ? 'dat product en zijn machines' : 'die producten en hun machines')
+                    . ' bij klanten weghalen.'
+            );
+        }
+
         $brand->delete();
 
         return redirect()->route('brands.index')->with('success', 'Merk verwijderd.');

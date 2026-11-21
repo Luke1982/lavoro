@@ -2,12 +2,27 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HangsOffARecord;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
-    use HasFactory;
+    use HangsOffARecord, HasFactory;
+
+    /**
+     * The records a document can be filed on. An upload names its record by
+     * class, and the controller builds that class: anything not on this list
+     * must never get that far.
+     */
+    public const ATTACHABLE_TO = [
+        MaintenanceContract::class,
+        Product::class,
+        Project::class,
+        Quote::class,
+        ServiceOrder::class,
+        Ticket::class,
+    ];
 
     protected $fillable = [
         'name',

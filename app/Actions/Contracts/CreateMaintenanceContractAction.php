@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  * The screen creates the contract first and attaches machines one at a time
  * afterwards; a contract read off a signed quote arrives with its machines
  * already named. Both run through here, so either way the timeline opens with
- * "contract aangemaakt" followed by one line per machine.
+ * the contract's own "Aangemaakt" followed by one line per machine.
  *
  * The attributes are whatever MaintenanceContractStoreRequest's rules let
  * through: that request defines the shape, for the form and the assistant alike.

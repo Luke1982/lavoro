@@ -2,13 +2,39 @@
 
 namespace App\Models;
 
+use App\Models\Traits\RecordsHistory;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * A stretch of time someone cannot be planned: a holiday, or a fixed part of
+ * the week. Has no timeline of its own; its history is on the person.
+ */
 class UserUnavailability extends Model
 {
+    use RecordsHistory;
+
+    private const WEEKDAYS = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+
+    protected array $activity_labels = [
+        'user_id' => 'Medewerker',
+        'type' => 'Soort',
+        'label' => 'Omschrijving',
+        'day_of_week' => 'Dag',
+        'start_time' => 'Van',
+        'end_time' => 'Tot',
+        'repeat' => 'Herhaling',
+        'reference_date' => 'Eerste week',
+        'date' => 'Datum',
+        'end_date' => 'Tot en met',
+    ];
+
+    protected array $activity_relations = [
+        'user_id' => ['user', 'name'],
+    ];
+
     protected $fillable = [
         'user_id',
         'type',
@@ -34,6 +60,33 @@ class UserUnavailability extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return array<int, User|null> */
+    public function historyTimelines(string $action): array
+    {
+        return [$this->user()->withTrashed()->first()];
+    }
+
+    /** "Afwezig (Vakantie): 01-12-2026 t/m 05-12-2026" or "Afwezig: elke maandag 08:00-12:00". */
+    public function historyLabel(): ?string
+    {
+        $what = $this->label ? ' (' . $this->label . ')' : '';
+
+        if ($this->type === 'holiday') {
+            $until = $this->end_date && !$this->end_date->equalTo($this->date)
+                ? ' t/m ' . $this->end_date->format('d-m-Y')
+                : '';
+
+            return 'Afwezig' . $what . ': ' . $this->date?->format('d-m-Y') . $until;
+        }
+
+        $every = $this->repeat === 'biweekly' ? 'om de week op ' : 'elke ';
+        $times = $this->start_time
+            ? ' ' . substr((string) $this->start_time, 0, 5) . '-' . substr((string) $this->end_time, 0, 5)
+            : '';
+
+        return 'Afwezig' . $what . ': ' . $every . (self::WEEKDAYS[(int) $this->day_of_week] ?? '') . $times;
     }
 
     public function scopeForWeek(Builder $query, Carbon $weekStart, Carbon $weekEnd): Builder

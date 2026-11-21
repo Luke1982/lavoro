@@ -18,6 +18,11 @@ class QuoteExpiresSoon extends QuoteFact
         return 'Offerte verloopt binnenkort';
     }
 
+    public function activityCategory(): string
+    {
+        return 'warning';
+    }
+
     public static function coveredFields(): array
     {
         return ['expiry_noticed_for'];

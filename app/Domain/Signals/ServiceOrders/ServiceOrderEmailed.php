@@ -32,6 +32,12 @@ class ServiceOrderEmailed extends BaseSignal implements ServiceOrderSignal
         return $this->service_order;
     }
 
+    /** MarkSentToCustomer sets the flag because of this mail, which already says it went out. */
+    public static function coveredFields(): array
+    {
+        return ['sent_to_customer'];
+    }
+
     public function subject(): Model
     {
         return $this->service_order;

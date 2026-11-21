@@ -19,8 +19,6 @@ class DetachTicketFromServiceOrderAction
 
         $asset = $ticket->asset()->with(['product.brand', 'product.productType'])->first();
 
-        if ($asset) {
-            Signals::dispatch(new TicketDetachedFromOrder($service_order, $ticket, $asset));
-        }
+        Signals::dispatch(new TicketDetachedFromOrder($service_order, $ticket, $asset));
     }
 }

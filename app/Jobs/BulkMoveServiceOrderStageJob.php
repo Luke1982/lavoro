@@ -6,12 +6,12 @@ use App\Domain\ServiceOrders\BulkStageMove;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
+use App\Support\ActingAs;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Moves a large selection of werkbonnen to another stage in the background.
@@ -38,7 +38,7 @@ class BulkMoveServiceOrderStageJob implements ShouldQueue
     /**
      * Each werkbon is held to the same rules as in the request that asked for the
      * move, as the person who asked: without them there is nobody to ask for, so
-     * nothing moves.
+     * nothing moves. The history names them too, rather than the system.
      */
     public function handle(): void
     {
@@ -51,17 +51,7 @@ class BulkMoveServiceOrderStageJob implements ShouldQueue
             return;
         }
 
-        /**
-         * The signals raised below read the actor from the session, which a queue
-         * worker does not have. Restoring it keeps the history naming the person
-         * who asked for the move rather than the system.
-         */
-        Auth::setUser($actor);
-
-        try {
-            app(BulkStageMove::class)->move($actor, ServiceOrder::whereIn('id', $this->service_order_ids)->get(), $stage);
-        } finally {
-            Auth::forgetUser();
-        }
+        ActingAs::run($actor, fn () => app(BulkStageMove::class)
+            ->move($actor, ServiceOrder::whereIn('id', $this->service_order_ids)->get(), $stage));
     }
 }

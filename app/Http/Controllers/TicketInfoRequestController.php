@@ -7,7 +7,6 @@ use App\Domain\Access\LinkNotSent;
 use App\Domain\Signals\Signals;
 use App\Domain\Signals\Tickets\CustomerInfoRequested;
 use App\Enums\AccessTokenPurpose;
-use App\Enums\TicketStatusses;
 use App\Http\Requests\TicketInfoRequestReadRequest;
 use App\Http\Requests\TicketInfoRequestSendRequest;
 use App\Mail\TicketInfoRequestMail;
@@ -68,20 +67,16 @@ class TicketInfoRequestController extends Controller
             ], 500);
         }
 
-        DB::transaction(function () use ($ticket, $data, $requested, $issued) {
-            Signals::dispatch(new CustomerInfoRequested(
-                $ticket,
-                $data['to'],
-                $requested,
-                $issued->token->expires_at,
-            ));
-
-            $ticket->update(['status' => TicketStatusses::wacht_op_klant->value]);
-        });
+        DB::transaction(fn () => Signals::dispatch(new CustomerInfoRequested(
+            $ticket,
+            $data['to'],
+            $requested,
+            $issued->token->expires_at,
+        )));
 
         return response()->json([
             'message' => 'Aanvraag verzonden aan ' . $data['to'],
-            'status' => TicketStatusses::wacht_op_klant->value,
+            'status' => $ticket->fresh()->status,
         ]);
     }
 }

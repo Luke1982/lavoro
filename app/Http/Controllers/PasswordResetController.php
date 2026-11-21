@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\UserPasswordChanged;
 use App\Models\Central\UserTenantLookup;
 use App\Models\Tenant;
 use Illuminate\Auth\Events\PasswordReset;
@@ -60,6 +62,7 @@ class PasswordResetController extends Controller
             function ($user, $password) {
                 $user->forceFill(['password' => $password])->save();
                 event(new PasswordReset($user));
+                Signals::dispatch(new UserPasswordChanged($user, UserPasswordChanged::THROUGH_RESET_LINK));
             }
         );
 

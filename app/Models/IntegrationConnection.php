@@ -8,6 +8,9 @@ use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Connectors;
 use App\Domain\Integrations\DocumentForm;
 use App\Domain\Integrations\Leading;
+use App\Domain\Signals\Integrations\IntegrationCredentialsChanged;
+use App\Domain\Signals\Signals;
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\RecordsHistory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,6 +35,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 class IntegrationConnection extends Model
 {
+    use HasActivities;
     use RecordsHistory;
 
     protected $fillable = [
@@ -59,6 +63,43 @@ class IntegrationConnection extends Model
     ];
 
     protected array $activity_ignore = ['credentials', 'last_synced_at', 'last_error', 'last_error_at'];
+
+    /** The switches as the settings screen names them, not the JSON they are kept in. */
+    protected array $activity_formats = [
+        'settings' => [self::class, 'describeSettings'],
+    ];
+
+    /**
+     * The credential fields configure() filled in and forgetCredential() wiped
+     * since the last save, key => label: what IntegrationCredentialsChanged tells
+     * once the connection is saved. A token the connection renews itself is
+     * stored past both, and is no news.
+     *
+     * @var array<string, string>
+     */
+    private array $credentials_filled_in = [];
+
+    /** @var array<string, string> */
+    private array $credentials_cleared = [];
+
+    protected static function booted(): void
+    {
+        static::saved(function (IntegrationConnection $connection): void {
+            if ($connection->credentials_filled_in === [] && $connection->credentials_cleared === []) {
+                return;
+            }
+
+            $signal = new IntegrationCredentialsChanged(
+                $connection,
+                $connection->credentials_filled_in,
+                $connection->credentials_cleared,
+            );
+            $connection->credentials_filled_in = [];
+            $connection->credentials_cleared = [];
+
+            Signals::dispatch($signal);
+        });
+    }
 
     /**
      * Everything the connector can read is switched on to start with, nothing
@@ -111,7 +152,9 @@ class IntegrationConnection extends Model
     {
         $class = $this->connectorClass();
         $settings = array_replace_recursive($this->settings ?? [], $form['areas'] ?? []);
-        $credentials = $this->credentials();
+        $before = $this->credentials();
+        $credentials = $before;
+        $filled_in = [];
 
         foreach ($class::optionFields() as $field) {
             if (array_key_exists($field->key, $form['options'] ?? [])) {
@@ -120,17 +163,99 @@ class IntegrationConnection extends Model
         }
 
         foreach ($class::credentialFields() as $field) {
-            if (filled($form['credentials'][$field->key] ?? null)) {
-                $credentials[$field->key] = trim((string) $form['credentials'][$field->key]);
+            $value = trim((string) ($form['credentials'][$field->key] ?? ''));
+
+            if ($value !== '' && $value !== ($before[$field->key] ?? null)) {
+                $credentials[$field->key] = $value;
+                $filled_in[$field->key] = $field->label;
             }
         }
 
         $this->settings = $settings;
         $this->is_active = $form['is_active'] ?? $this->is_active;
 
-        if ($credentials !== $this->credentials()) {
+        if ($filled_in !== []) {
             $this->storeCredentials($credentials);
+            $this->credentials_filled_in = array_replace($this->credentials_filled_in, $filled_in);
         }
+    }
+
+    /**
+     * Wipes one key, password or code, as the settings screen asks. Like
+     * configure(), it only changes the connection; saving it stores the change
+     * and says which field went.
+     */
+    public function forgetCredential(string $key): void
+    {
+        $credentials = $this->credentials();
+
+        if (!filled($credentials[$key] ?? null)) {
+            return;
+        }
+
+        unset($credentials[$key]);
+        $this->storeCredentials($credentials);
+
+        $field = collect($this->connectorClass()::credentialFields())->firstWhere('key', $key);
+        $this->credentials_cleared[$key] = $field?->label ?? $key;
+    }
+
+    /**
+     * "Klanten: ophalen, versturen; Materialen: ophalen, Lavoro wint; Werkbonnen: als
+     * conceptfactuur". What is not switched on is named as such, so a change from
+     * on to off reads as one.
+     *
+     * @param  array<string, mixed>|null  $settings
+     */
+    public static function describeSettings(?array $settings): ?string
+    {
+        if ($settings === null) {
+            return null;
+        }
+
+        $parts = [];
+
+        foreach (Area::synced() as $area) {
+            $block = $settings[$area->value] ?? [];
+            $switches = array_filter([
+                !empty($block['read']) ? 'ophalen' : null,
+                !empty($block['write']) ? 'versturen' : null,
+                !empty($block['read']) && ($block['leading'] ?? null) === Leading::Lavoro->value ? 'Lavoro wint' : null,
+            ]);
+
+            $parts[] = $area->label() . ': ' . ($switches === [] ? 'uit' : implode(', ', $switches));
+        }
+
+        $form = DocumentForm::tryFrom((string) ($settings[Area::ServiceOrders->value]['form'] ?? ''));
+        $parts[] = Area::ServiceOrders->label() . ': ' . ($form ? 'als ' . mb_strtolower($form->label()) : 'niet versturen');
+
+        $labels = self::optionLabels();
+
+        foreach (array_filter($settings['options'] ?? [], fn ($value) => filled($value)) as $key => $value) {
+            $parts[] = ($labels[$key] ?? str_replace('_', ' ', (string) $key)) . ': '
+                . (is_scalar($value) ? $value : json_encode($value));
+        }
+
+        return implode('; ', $parts);
+    }
+
+    /**
+     * What each option is called on the settings screen. The format is handed the
+     * value alone, not the connection, so every connector's names are looked in.
+     *
+     * @return array<string, string>
+     */
+    private static function optionLabels(): array
+    {
+        $labels = [];
+
+        foreach (Connectors::all() as $class) {
+            foreach ($class::optionFields() as $field) {
+                $labels[$field->key] ??= $field->label;
+            }
+        }
+
+        return $labels;
     }
 
     public function links(): HasMany

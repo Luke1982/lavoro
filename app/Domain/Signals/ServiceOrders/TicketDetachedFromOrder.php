@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class TicketDetachedFromOrder extends BaseSignal
 {
+    use NamesTheTicket;
+
     public function __construct(
         public ServiceOrder $service_order,
         public Ticket $ticket,
         public ?Asset $asset,
+        public bool $order_deleted = false,
     ) {
         parent::__construct();
     }
@@ -25,7 +28,7 @@ class TicketDetachedFromOrder extends BaseSignal
 
     public static function label(): string
     {
-        return 'Ticket losgekoppeld van werkbon';
+        return 'Storing losgekoppeld van werkbon';
     }
 
     public function activityCategory(): string
@@ -40,13 +43,20 @@ class TicketDetachedFromOrder extends BaseSignal
 
     public function activityDescription(): ?string
     {
-        return sprintf(
-            'Ticket losgekoppeld: %s (%s %s %s, serienummer %s)',
-            $this->ticket->subject ?? ('Ticket #' . $this->ticket->id),
-            $this->asset?->product?->productType?->name ?? 'Type',
-            $this->asset?->product?->brand?->name ?? 'Merk',
-            $this->asset?->product?->model ?? '',
-            $this->asset?->serial_number ?? '-'
-        );
+        if ($this->order_deleted) {
+            return 'Storing losgekoppeld omdat werkbon ' . $this->service_order->number . ' is verwijderd: '
+                . $this->ticketLabel();
+        }
+
+        return 'Storing losgekoppeld: ' . $this->ticketLabel();
+    }
+
+    /**
+     * A werkbon being deleted takes its own timeline with it, so the storing it
+     * leaves behind is the only place that can still tell the story.
+     */
+    public function activityContext(): array
+    {
+        return $this->order_deleted ? [$this->ticket] : [];
     }
 }

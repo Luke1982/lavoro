@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HangsOffARecord;
 use App\Models\Traits\Shareable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -21,7 +21,23 @@ use Illuminate\Support\Facades\Storage;
  */
 class Image extends Model
 {
-    use HasFactory, Shareable;
+    use HangsOffARecord, HasFactory, Shareable;
+
+    /**
+     * The records an image can be added to. An upload names its record by class,
+     * and the controller builds that class: anything not on this list must never
+     * get that far.
+     */
+    public const ATTACHABLE_TO = [
+        Asset::class,
+        Event::class,
+        Material::class,
+        Product::class,
+        Project::class,
+        ServiceCheckInstance::class,
+        ServiceOrder::class,
+        Ticket::class,
+    ];
 
     protected $fillable = ['name', 'path', 'original_path', 'annotations', 'created_at', 'updated_at'];
 
@@ -62,22 +78,6 @@ class Image extends Model
     public function unannotatedPath(): string
     {
         return $this->original_path ?? $this->path;
-    }
-
-    /**
-     * The record the photo hangs from, read from the link itself rather than from
-     * whatever record a client says it is looking at.
-     */
-    public function attachedRecord(): ?Model
-    {
-        $link = DB::table('imageables')->where('image_id', $this->id)->first();
-        $model_class = $link?->imageable_type;
-
-        if ($model_class === null || !is_subclass_of($model_class, Model::class)) {
-            return null;
-        }
-
-        return $model_class::find($link->imageable_id);
     }
 
     private function forgetFile(?string $path): void

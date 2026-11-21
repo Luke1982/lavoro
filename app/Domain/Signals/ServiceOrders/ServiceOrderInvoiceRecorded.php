@@ -39,13 +39,13 @@ class ServiceOrderInvoiceRecorded extends BaseSignal implements ServiceOrderSign
         return $this->service_order;
     }
 
+    /**
+     * The werkbon's own trail already records the number, with the value before
+     * and after, and it is the one that also catches a correction later. This
+     * signal is here for what follows from it, not to say it a second time.
+     */
     public function activityDescription(): ?string
     {
-        return 'Extern factuurnummer vastgelegd: ' . $this->invoice_number;
-    }
-
-    public function activityCategory(): string
-    {
-        return 'status';
+        return null;
     }
 }

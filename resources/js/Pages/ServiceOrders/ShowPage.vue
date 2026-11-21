@@ -316,7 +316,7 @@
                         <BoxComponent v-if="timelineItems.length" class="mt-6">
                             <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                                 subtitle="Alles wat er op deze werkbon gebeurd is, op volgorde." chapter="timeline" />
-                            <TimelineComponent :activities="timelineItems" />
+                            <TimelineComponent :activities="timelineItems" subject-type="App\Models\ServiceOrder" />
                         </BoxComponent>
                         <BoxComponent v-if="eventWidgetEvents.length" class="mt-6" data-tour="werkbon.events">
                             <SectionHeader :icon="CalendarDaysIcon" title="Afspraken"
@@ -1431,6 +1431,13 @@ const timelineItems = computed(() => {
         created_at: a.created_at,
         executing_users: a.user ? [a.user] : [],
         via: a.via ?? null,
+        metadata: a.metadata ?? null,
+        event_key: a.event_key ?? null,
+        subject_type: a.subject_type ?? null,
+        subject_id: a.subject_id ?? null,
+        field_changes: a.field_changes ?? [],
+        actor_type: a.actor_type ?? null,
+        actor_name: a.actor_name ?? null,
     }));
     const evts = (props.serviceOrder.events || []).map(e => ({
         id: `evt-${e.id}`,

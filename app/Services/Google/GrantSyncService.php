@@ -4,7 +4,9 @@ namespace App\Services\Google;
 
 use App\Jobs\Google\BackfillCalendarJob;
 use App\Models\CalendarGrant;
+use App\Models\GoogleCalendarIntegration;
 use App\Models\GoogleSyncedCalendar;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -14,10 +16,20 @@ class GrantSyncService
     {
     }
 
+    /**
+     * Both people are read past every scope: in the customer's request a
+     * MajorLabel account does not resolve through the grant. Nothing is made
+     * for someone who has left.
+     */
     public function onGrantCreated(CalendarGrant $grant): void
     {
-        $viewer = $grant->viewerUser;
-        $owner = $grant->ownerUser;
+        $viewer = User::withoutGlobalScopes()->find($grant->viewer_user_id);
+        $owner = User::withoutGlobalScopes()->find($grant->owner_user_id);
+
+        if (!$viewer || !$owner || $viewer->trashed() || $owner->trashed()) {
+            return;
+        }
+
         $integration = $viewer->googleCalendarIntegration;
 
         if (!$integration || $integration->isDisabled()) {
@@ -54,25 +66,36 @@ class GrantSyncService
         BackfillCalendarJob::dispatch($cal->id);
     }
 
+    /**
+     * Runs after the grant is gone. Whatever Google says, the link to the
+     * calendar is removed here: as long as it exists the owner's appointments
+     * keep being pushed into it, to someone who may no longer see them.
+     *
+     * Goes by the ids on the grant and needs neither person: either may have
+     * left, or be an account the customer's request does not see, and the
+     * calendar has to go all the same.
+     */
     public function onGrantRevoked(CalendarGrant $grant): void
     {
-        $viewer = $grant->viewerUser;
-        $owner = $grant->ownerUser;
-        $integration = $viewer->googleCalendarIntegration;
+        $integration = GoogleCalendarIntegration::where('user_id', $grant->viewer_user_id)->first();
 
         if (!$integration) {
             return;
         }
 
         $cal = GoogleSyncedCalendar::where('google_calendar_integration_id', $integration->id)
-            ->where('owner_user_id', $owner->id)
+            ->where('owner_user_id', $grant->owner_user_id)
             ->first();
         if (!$cal) {
             return;
         }
 
         if ($cal->watch_channel_id && $cal->watch_resource_id) {
-            $this->api->stopWatch($integration, $cal->watch_channel_id, $cal->watch_resource_id);
+            try {
+                $this->api->stopWatch($integration, $cal->watch_channel_id, $cal->watch_resource_id);
+            } catch (\Throwable $e) {
+                Log::warning('stopWatch failed during grant revoke', ['error' => $e->getMessage()]);
+            }
         }
 
         try {

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ServiceOrders\AddServiceJobsAction;
+use App\Domain\Signals\ServiceOrders\ServiceJobCompleted;
 use App\Domain\Signals\ServiceOrders\ServiceJobEmailed;
+use App\Domain\Signals\ServiceOrders\ServiceJobReopened;
 use App\Domain\Signals\Signals;
 use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
@@ -176,27 +178,63 @@ class ServiceJobController extends Controller
         $data = $request->validated();
         $data['completed_by'] = Auth::user()->id;
 
-        DB::transaction(function () use ($jobs, $data, $request) {
+        DB::transaction(function () use ($jobs, $data) {
             foreach ($jobs as $job) {
-                $job->update($data);
-                $this->advanceServiceDate($job, $request->days_temporary_approval);
+                $this->complete($job, $data);
             }
         });
 
         return redirect()->back()->with('success', 'Alle keuringen opgeslagen.');
     }
 
-    private function advanceServiceDate(ServiceJob $job, ?int $tmpDays): ?int
+    /**
+     * Saves a keuring as done, and says so when that is news (ServiceJobCompleted::isNews):
+     * a finished keuring saved again as it was is not completed a second time. Moving the
+     * machine's next inspection date along with it is MoveMachineServiceDate's business.
+     *
+     * A finished keuring saved again with the same outcome and days -- completing a
+     * bundle saves its parts that were already done too -- keeps who finished it and
+     * when: saving it again is not doing it again.
+     */
+    private function complete(ServiceJob $job, array $data): void
     {
-        $days = $job->getDaysToAdvanceNextServiceDate($tmpDays);
-        if ($days === null) {
-            return null;
-        }
-        $job->asset->update([
-            'next_service_date' => Carbon::parse($job->asset->next_service_date)->addDays($days),
-        ]);
+        $previous_outcome = $job->outcome;
+        $previous_completed_on = $job->getRawOriginal('completed_on');
+        $previous_completed_by = $job->completed_by;
+        $previous_days_temporary_approval = $job->days_temporary_approval;
 
-        return $days;
+        if ($previous_completed_on !== null && !$this->changesTheConclusion($job, $data)) {
+            $data = Arr::except($data, ['completed_on', 'completed_by']);
+        }
+
+        $job->update($data);
+
+        $signal = new ServiceJobCompleted(
+            $job,
+            $previous_outcome,
+            $previous_completed_on,
+            $previous_completed_by === null ? null : (int) $previous_completed_by,
+            $previous_days_temporary_approval === null ? null : (int) $previous_days_temporary_approval,
+        );
+
+        if ($signal->isNews()) {
+            Signals::dispatch($signal);
+        }
+    }
+
+    /**
+     * Whether these values change what the keuring concluded: its outcome, or the days
+     * of its temporary approval. No days and 0 days are the same, as the form sends 0
+     * for an outcome that has none.
+     */
+    private function changesTheConclusion(ServiceJob $job, array $data): bool
+    {
+        $days = array_key_exists('days_temporary_approval', $data)
+            ? $data['days_temporary_approval']
+            : $job->days_temporary_approval;
+
+        return ($data['outcome'] ?? $job->outcome) !== $job->outcome
+            || (int) $days !== (int) $job->days_temporary_approval;
     }
 
     private function guardNoOutcomeWithDate(ServiceJobUpdateRequest $request)
@@ -270,18 +308,46 @@ class ServiceJobController extends Controller
 
         $data = $request->validated();
         $data['completed_by'] = Auth::user()->id;
-        $servicejob->update($data);
+        $service_date_before = $this->machineServiceDate($servicejob);
 
-        $days = $this->advanceServiceDate($servicejob, $request->days_temporary_approval);
-        $message = $days !== null
-            ? sprintf(
-                'De verloopdatum is met %d dagen verlengd naar %s.',
-                $days,
-                Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
-            )
-            : '';
+        DB::transaction(fn () => $this->complete($servicejob, $data));
 
-        return redirect()->back()->with('success', 'Keuring succesvol bijgewerkt. ' . $message);
+        $message = $this->serviceDateMessage($service_date_before, $this->machineServiceDate($servicejob));
+
+        return redirect()->back()->with('success', trim('Keuring succesvol bijgewerkt. ' . $message));
+    }
+
+    /** The machine's next service date as stored, read fresh: a listener may just have moved it. */
+    private function machineServiceDate(ServiceJob $servicejob): ?string
+    {
+        return $servicejob->asset()->value('next_service_date');
+    }
+
+    /** What happened to the machine's next service date, in the words of the flash message. */
+    private function serviceDateMessage(?string $before, ?string $after): string
+    {
+        if ($before === $after || $after === null) {
+            return '';
+        }
+
+        $new_date = Carbon::parse($after)->format('d-m-Y');
+
+        if ($before === null) {
+            return sprintf('De verloopdatum is gezet op %s.', $new_date);
+        }
+
+        $days = (int) Carbon::parse($before)->diffInDays(Carbon::parse($after), false);
+
+        if ($days === 0) {
+            return '';
+        }
+
+        return sprintf(
+            'De verloopdatum is met %d dagen %s naar %s.',
+            abs($days),
+            $days > 0 ? 'verlengd' : 'verkort',
+            $new_date
+        );
     }
 
     /**
@@ -295,27 +361,32 @@ class ServiceJobController extends Controller
         return redirect()->back()->with('success', 'Serienummer opgeslagen.');
     }
 
+    /**
+     * Opens a finished keuring again. One that was not finished has nothing to undo, so
+     * nothing is announced and the machine's date stays where it is.
+     */
     public function clearCompletedOn(ServiceJob $servicejob)
     {
-        $days = $servicejob->getDaysToAdvanceNextServiceDate(
-            $servicejob->days_temporary_approval
-        );
-        $message = '';
-        $servicejob->update([
-            'completed_on' => null,
-            'completed_by' => null,
-        ]);
-        if ($days !== null) {
-            $servicejob->asset->update([
-                'next_service_date' => Carbon::parse($servicejob->asset->next_service_date)
-                    ->subDays($days),
+        $previous_completed_on = $servicejob->getRawOriginal('completed_on');
+        $previous_completed_by = $servicejob->completed_by;
+        $service_date_before = $this->machineServiceDate($servicejob);
+
+        DB::transaction(function () use ($servicejob, $previous_completed_on, $previous_completed_by) {
+            $servicejob->update([
+                'completed_on' => null,
+                'completed_by' => null,
             ]);
-            $message = sprintf(
-                ' De verloopdatum is met %d dagen verkort naar %s.',
-                $days,
-                Carbon::parse($servicejob->asset->next_service_date)->format('d-m-Y')
-            );
-        }
+
+            if ($previous_completed_on !== null) {
+                Signals::dispatch(new ServiceJobReopened(
+                    $servicejob,
+                    $previous_completed_on,
+                    $previous_completed_by === null ? null : (int) $previous_completed_by,
+                ));
+            }
+        });
+
+        $message = $this->serviceDateMessage($service_date_before, $this->machineServiceDate($servicejob));
 
         return redirect()
             ->back()
@@ -323,7 +394,7 @@ class ServiceJobController extends Controller
                 'success',
                 sprintf(
                     'Datum van afronding succesvol verwijderd.%s Nu kan de keuring opnieuw worden uitgevoerd.',
-                    $message
+                    $message === '' ? '' : ' ' . $message
                 )
             );
     }
@@ -333,8 +404,10 @@ class ServiceJobController extends Controller
      */
     public function destroy(ServiceJob $servicejob)
     {
-        $servicejob->childJobs()->delete();
-        $servicejob->delete();
+        DB::transaction(function () use ($servicejob) {
+            $servicejob->childJobs->each->delete();
+            $servicejob->delete();
+        });
 
         return redirect()->back()->with('success', 'Keuring succesvol verwijderd.');
     }
@@ -374,11 +447,7 @@ class ServiceJobController extends Controller
 
         Mail::to($recipients)->send(new ServiceJobPdfMail($servicejob, $pdf->output()));
 
-        $servicejob->update(['sent_to_customer' => true]);
-
-        if ($servicejob->serviceOrder) {
-            Signals::dispatch(new ServiceJobEmailed($servicejob->serviceOrder, $servicejob, $recipients));
-        }
+        Signals::dispatch(new ServiceJobEmailed($servicejob->serviceOrder, $servicejob, $recipients));
 
         return redirect()->back()->with('success', 'Keuring verzonden naar: ' . implode(', ', $recipients));
     }

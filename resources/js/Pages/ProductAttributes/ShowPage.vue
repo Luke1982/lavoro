@@ -131,7 +131,7 @@
         <div class="mt-8 pt-4 border-t border-gray-200 dark:border-slate-700">
             <SectionHeader :icon="HistoryIcon" title="Geschiedenis"
                 subtitle="Wie wat veranderde aan dit kenmerk en zijn waarden." chapter="timeline" />
-            <TimelineComponent v-if="attribute.activities?.length" :activities="attribute.activities" />
+            <TimelineComponent v-if="attribute.activities?.length" :activities="attribute.activities" subject-type="App\Models\ProductAttribute" />
             <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
         </div>
 

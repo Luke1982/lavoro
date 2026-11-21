@@ -76,7 +76,6 @@ class DomainSignalListenersTest extends TestCase
             $order->customer_id,
             'Jansen BV',
             'Pietersen NV',
-            'Onderhoud 2026',
         ));
 
         $this->assertNull($order->fresh()->maintenance_contract_id);

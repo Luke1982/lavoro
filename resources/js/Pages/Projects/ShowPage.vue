@@ -449,7 +449,7 @@
             <BoxComponent class="mt-4" data-tour="project.history">
                 <SectionHeader :icon="ClockIcon" title="Geschiedenis"
                     subtitle="Wie wat veranderde aan dit project, zijn mijlpalen en zijn werkbonnen." chapter="timeline" border />
-                <TimelineComponent v-if="project.activities?.length" :activities="project.activities" />
+                <TimelineComponent v-if="project.activities?.length" :activities="project.activities" subject-type="App\Models\Project" />
                 <p v-else class="text-xs text-gray-500 dark:text-slate-500">Nog niets gebeurd.</p>
             </BoxComponent>
             </template>

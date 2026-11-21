@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Actions\Quotes\RemoveProductMaterialDefaultAction;
+use App\Actions\Suppliers\SupplierLinkAction;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
@@ -42,6 +44,8 @@ class Material extends Model
     ];
 
     protected array $activity_relations = [
+        'material_category_id' => ['category', 'name'],
+        'material_usage_unit_id' => ['usageUnit', 'name'],
         'ledger_account_id' => ['ledgerAccount', 'label'],
     ];
 
@@ -82,6 +86,54 @@ class Material extends Model
         'is_active' => 'boolean',
         'is_service' => 'boolean',
     ];
+
+    /**
+     * The suppliers it was bought from at the moment it was deleted. Its links to
+     * them are taken off before it goes, so they are read just before.
+     *
+     * @var array<int, Supplier>
+     */
+    private array $linked_before_delete = [];
+
+    /**
+     * A material that goes is taken off its suppliers and out of the standard
+     * materials of every product, one by one, so each of them says so on its
+     * timeline. Nothing else would: the supplier links are a morph pivot the
+     * database knows nothing about, and the standard materials would go by the
+     * database's cascade, in silence.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Material $material): void {
+            $links = app(SupplierLinkAction::class);
+            $material->linked_before_delete = $material->suppliers()->get()->all();
+
+            foreach ($material->linked_before_delete as $supplier) {
+                $links->unlink($material, $supplier);
+            }
+
+            $remove_default = app(RemoveProductMaterialDefaultAction::class);
+
+            ProductMaterialDefault::with(['product.brand', 'material'])
+                ->where('material_id', $material->id)
+                ->get()
+                ->each(fn (ProductMaterialDefault $default) => $remove_default->execute($default));
+        });
+    }
+
+    /**
+     * A material that is deleted takes its own timeline with it; the suppliers it
+     * was bought from say so.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return $action === 'deleted' ? $this->linked_before_delete : [];
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Materiaal ' . ($this->name ?? $this->id);
+    }
 
     public function category()
     {

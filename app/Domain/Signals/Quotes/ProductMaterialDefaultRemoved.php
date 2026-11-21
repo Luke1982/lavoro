@@ -34,7 +34,7 @@ class ProductMaterialDefaultRemoved extends BaseSignal
 
     public function activityCategory(): string
     {
-        return 'deleted';
+        return 'updated';
     }
 
     public function activityDescription(): ?string

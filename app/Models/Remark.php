@@ -2,11 +2,26 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HangsOffARecord;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class Remark extends Model
 {
+    use HangsOffARecord;
+
+    /**
+     * The records a remark can be placed on. A request names its record by class,
+     * and the controller builds that class: anything not on this list must never
+     * get that far.
+     */
+    public const ATTACHABLE_TO = [
+        Event::class,
+        MaintenanceContract::class,
+        ServiceCheckInstance::class,
+        ServiceOrder::class,
+        Ticket::class,
+    ];
+
     protected $fillable = [
         'user_id',
         'author_name',
@@ -35,14 +50,5 @@ class Remark extends Model
     public function isFromCustomer(): bool
     {
         return $this->user_id === null;
-    }
-
-    /** The record this remark was placed on, if it still exists. */
-    public function remarkable(): ?Model
-    {
-        $link = DB::table('remarkables')->where('remark_id', $this->id)->first();
-        $class = ltrim((string) $link?->remarkable_type, '\\');
-
-        return $link && class_exists($class) ? $class::find($link->remarkable_id) : null;
     }
 }

@@ -567,7 +567,7 @@
                         <span v-if="customer.activities?.length >= historyShown"
                             class="ml-2 text-xs text-gray-500 dark:text-slate-400">de laatste {{ historyShown }} wijzigingen</span>
                     </div>
-                    <TimelineComponent v-if="customer.activities?.length" :activities="customer.activities" link-service-orders />
+                    <TimelineComponent v-if="customer.activities?.length" :activities="customer.activities" link-service-orders subject-type="App\Models\Customer" />
                     <p v-else class="text-xs text-gray-500 dark:text-slate-500">Nog niets gebeurd.</p>
                 </BoxComponent>
             </template>

@@ -222,7 +222,7 @@
             <BoxComponent>
                 <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                     subtitle="Alles wat er met dit materiaal gebeurd is, op volgorde." chapter="timeline" />
-                <TimelineComponent :activities="activities" />
+                <TimelineComponent :activities="activities" subject-type="App\Models\Material" />
             </BoxComponent>
         </div>
     </div>

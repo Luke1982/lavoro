@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Signals;
 
-use App\Domain\Signals\BaseSignal;
 use Illuminate\Database\Eloquent\Model;
+use Tests\Concerns\BuildsEverySignal;
 use Tests\TestCase;
 
 /**
@@ -15,6 +15,8 @@ use Tests\TestCase;
  */
 class SignalShapeTest extends TestCase
 {
+    use BuildsEverySignal;
+
     private const REQUIRED_CHANGE_KEYS = ['field', 'label', 'old_value', 'new_value', 'old_label', 'new_label'];
 
     public function test_every_signal_that_reports_changes_returns_a_list_of_change_rows(): void
@@ -75,70 +77,5 @@ class SignalShapeTest extends TestCase
         }
 
         $this->assertSame([], $problems, "\n" . implode("\n", $problems) . "\n");
-    }
-
-    /**
-     * Builds a signal with empty models and neutral scalars. Enough to inspect its
-     * shape without touching the database.
-     */
-    private function instantiate(string $class): ?BaseSignal
-    {
-        $constructor = (new \ReflectionClass($class))->getConstructor();
-        $arguments = [];
-
-        foreach ($constructor?->getParameters() ?? [] as $parameter) {
-            $type = $parameter->getType();
-
-            if (!$type instanceof \ReflectionNamedType) {
-                return null;
-            }
-
-            $name = $type->getName();
-
-            $arguments[] = match (true) {
-                is_subclass_of($name, Model::class) => new $name,
-                $name === Model::class => new class extends Model {},
-                $name === 'string' => 'x',
-                $name === 'int' => 1,
-                $name === 'float' => 1.0,
-                $name === 'bool' => true,
-                $name === 'array' => [],
-                default => null,
-            };
-        }
-
-        try {
-            return new $class(...$arguments);
-        } catch (\Throwable) {
-            return null;
-        }
-    }
-
-    /** @return array<int, class-string<BaseSignal>> */
-    private function signalClasses(): array
-    {
-        $base = app_path('Domain/Signals');
-        $classes = [];
-
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base)) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $relative = str_replace([$base . DIRECTORY_SEPARATOR, '.php'], '', $file->getPathname());
-            $class = 'App\\Domain\\Signals\\' . str_replace(DIRECTORY_SEPARATOR, '\\', $relative);
-
-            if (!class_exists($class)) {
-                continue;
-            }
-
-            $reflection = new \ReflectionClass($class);
-
-            if (!$reflection->isAbstract() && $reflection->isSubclassOf(BaseSignal::class)) {
-                $classes[] = $class;
-            }
-        }
-
-        return $classes;
     }
 }

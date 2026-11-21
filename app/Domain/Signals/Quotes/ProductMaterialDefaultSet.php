@@ -47,7 +47,7 @@ class ProductMaterialDefaultSet extends BaseSignal
 
     public function activityCategory(): string
     {
-        return $this->is_new ? 'created' : 'update';
+        return $this->is_new ? 'created' : 'updated';
     }
 
     public function activityDescription(): ?string

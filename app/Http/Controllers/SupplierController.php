@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Supplier;
+use App\Http\Requests\SupplierDestroyRequest;
 use App\Http\Requests\SupplierReadRequest;
 use App\Http\Requests\SupplierStoreRequest;
 use App\Http\Requests\SupplierUpdateRequest;
-use App\Http\Requests\SupplierDestroyRequest;
+use App\Models\Supplier;
 
 class SupplierController extends Controller
 {
@@ -14,15 +14,14 @@ class SupplierController extends Controller
     {
         $search = $request->input('search');
 
-        $suppliers = Supplier::when($search !== null && $search !== '', fn ($query) =>
-            $query->where(fn ($q) =>
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%")
-                  ->orWhere('contact_person', 'like', "%{$search}%")
-                  ->orWhere('kvk_number', 'like', "%{$search}%")
-                  ->orWhere('vat_number', 'like', "%{$search}%")
-            ))
+        $suppliers = Supplier::query()
+            ->when($search !== null && $search !== '', fn ($query) => $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('city', 'like', "%{$search}%")
+                ->orWhere('contact_person', 'like', "%{$search}%")
+                ->orWhere('kvk_number', 'like', "%{$search}%")
+                ->orWhere('vat_number', 'like', "%{$search}%")))
             ->orderBy('name')
             ->paginate(25)
             ->appends(['search' => $search]);
@@ -38,6 +37,9 @@ class SupplierController extends Controller
             'products.brand',
             'products.productType',
             'materials',
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at'),
         ]);
 
         return inertia('Suppliers/ShowPage', [

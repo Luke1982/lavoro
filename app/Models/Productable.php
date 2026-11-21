@@ -44,4 +44,13 @@ class Productable extends MorphPivot
     {
         return $this->belongsTo(Product::class, 'productable_id');
     }
+
+    /**
+     * A line of a product's parts list. The same table also holds the aantallen a
+     * werkbon taak chose, under another productable_type, and those are not.
+     */
+    public function isComponent(): bool
+    {
+        return $this->productable_type === Product::class && $this->childProduct !== null;
+    }
 }

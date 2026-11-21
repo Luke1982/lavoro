@@ -10,24 +10,18 @@ use App\Models\MaintenanceContract;
  * How a contract's machines and frequencies are named on its timeline.
  *
  * The contract screen and the assistant both write these into the same trail,
- * and a machine that reads "Daikin FTXM25 (K1234)" when attached by hand and
- * "#812" when attached by the assistant is one machine with two histories.
+ * and a machine that reads "Daikin FTXM25 (serienummer K1234)" when attached by
+ * hand and "#812" when attached by the assistant is one machine with two
+ * histories. A machine is named the way its own history names it.
  */
 final class ContractLabels
 {
+    /** The machine by the name it has on every timeline. */
     public static function asset(Asset $asset): string
     {
         $asset->loadMissing('product.brand');
-        $name = trim(implode(' ', array_filter([
-            $asset->product?->brand?->name,
-            $asset->product?->model,
-        ])));
 
-        if ($asset->serial_number) {
-            return $name !== '' ? "{$name} ({$asset->serial_number})" : $asset->serial_number;
-        }
-
-        return $name !== '' ? $name : ('#' . $asset->id);
+        return $asset->historyLabel();
     }
 
     public static function frequency(?string $frequency, ?int $frequency_days): string

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesEventFeedbackImages;
 use App\Models\Image;
+use App\Rules\AttachableType;
 use App\Rules\WithinStorageQuota;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,7 +50,7 @@ class ImageStoreRequest extends FormRequest
             'images' => ['required', 'array', new WithinStorageQuota],
             'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'imageable_id' => 'required|integer',
-            'imageable_type' => 'required|string',
+            'imageable_type' => ['required', 'string', new AttachableType(Image::ATTACHABLE_TO, 'afbeelding')],
             'titles' => 'array',
             'titles.*' => 'nullable|string|max:255',
             'internal' => 'nullable|boolean',

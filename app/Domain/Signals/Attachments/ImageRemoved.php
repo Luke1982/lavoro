@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class ImageRemoved extends BaseSignal
 {
+    use ReachesTheRecordsTimeline;
+
     public function __construct(
         public Model $record,
         public int $image_id,
+        public ?string $image_name = null,
     ) {
         parent::__construct();
     }
@@ -29,13 +32,15 @@ class ImageRemoved extends BaseSignal
         return 'image';
     }
 
-    public function subject(): Model
-    {
-        return $this->record;
-    }
-
     public function activityDescription(): ?string
     {
-        return 'Afbeelding verwijderd';
+        $image = $this->image_name === null ? 'Afbeelding' : 'Afbeelding "' . $this->image_name . '"';
+
+        return $image . ' verwijderd' . $this->atCheckpoint();
+    }
+
+    public function activityMetadata(): ?array
+    {
+        return $this->withCheckpoint(['image_id' => $this->image_id]);
     }
 }

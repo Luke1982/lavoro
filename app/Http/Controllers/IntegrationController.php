@@ -7,6 +7,7 @@ use App\Domain\Integrations\Area;
 use App\Domain\Integrations\Connectors;
 use App\Domain\Integrations\Data\Field;
 use App\Domain\Integrations\Sync\Synchronizer;
+use App\Domain\Signals\Signals;
 use App\Http\Requests\Integrations\IntegrationIndexRequest;
 use App\Http\Requests\Integrations\IntegrationManageRequest;
 use App\Http\Requests\Integrations\IntegrationPullRequest;
@@ -77,7 +78,7 @@ class IntegrationController extends Controller
         $known = array_map(fn (Field $field) => $field->key, $integration->connectorClass()::credentialFields());
         abort_unless(in_array($key, $known, true), 404);
 
-        $integration->storeCredentials(array_diff_key($integration->credentials(), [$key => true]));
+        $integration->forgetCredential($key);
         $integration->save();
 
         return back()->with('success', 'Sleutel gewist.');
@@ -87,11 +88,12 @@ class IntegrationController extends Controller
      * By hand, from the list of customers, materials or ledger accounts, or
      * from this screen. Runs while
      * you wait, in one transaction: after a refusal nothing has changed, and
-     * the message says why.
+     * the message says why. As a batch: a first pull brings in every record
+     * there is, more than a request may otherwise announce.
      */
     public function pull(IntegrationPullRequest $request, IntegrationConnection $integration, string $area, Synchronizer $synchronizer): RedirectResponse
     {
-        $run = $synchronizer->pull($integration, Area::from($area));
+        $run = Signals::asBatch(fn () => $synchronizer->pull($integration, Area::from($area)));
 
         return back()->with('success', 'Uit ' . $integration->label() . ': ' . $run->summary() . '.');
     }

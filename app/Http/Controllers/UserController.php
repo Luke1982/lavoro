@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\UserPasswordChanged;
 use App\Http\Requests\UserDeleteRequest;
 use App\Http\Requests\UserRestoreRequest;
 use App\Http\Requests\UserStoreRequest;
@@ -10,9 +12,13 @@ use App\Models\Central\Package;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\UserAvatarService;
+use Illuminate\Database\Eloquent\Collection;
 
 class UserController extends Controller
 {
+    /** The newest entries the profile shows; the assistant still searches all of them. */
+    private const HISTORY_SHOWN = 100;
+
     public function index()
     {
         abort_unless(auth()->user()->can('viewAny', User::class), 403);
@@ -61,6 +67,8 @@ class UserController extends Controller
                 ->orderBy('day_of_week')
                 ->orderBy('date')
                 ->get(),
+            'activities' => $this->timeline($user),
+            'historyShown' => self::HISTORY_SHOWN,
         ]);
     }
 
@@ -78,8 +86,8 @@ class UserController extends Controller
         $package = Package::on('central')->where('key', $tenant->package_key)->first();
 
         return collect([
-            'field' => ['label' => 'Buitendienst', 'limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats],
-            'office' => ['label' => 'Binnendienst', 'limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats],
+            'field' => ['label' => User::seatTypeLabel('field'), 'limit' => (int) ($package->field_seats ?? 0) + (int) $tenant->extra_field_seats],
+            'office' => ['label' => User::seatTypeLabel('office'), 'limit' => (int) ($package->office_seats ?? 0) + (int) $tenant->extra_office_seats],
         ])->map(fn ($seat, $type) => $seat + ['used' => User::occupyingSeat($type)->count()])->all();
     }
 
@@ -90,7 +98,7 @@ class UserController extends Controller
         unset($data['avatar'], $data['role_ids']);
         $user = User::create($data);
         if ($role_ids !== null) {
-            $user->roles()->sync($role_ids);
+            $user->syncRoles($role_ids);
         }
 
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
@@ -105,8 +113,9 @@ class UserController extends Controller
             unset($data['password']);
         }
         $user->update($data);
+        $this->announcePasswordChange($user);
         if (array_key_exists('role_ids', $data)) {
-            $user->roles()->sync($data['role_ids']);
+            $user->syncRoles($data['role_ids']);
         }
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
 
@@ -159,6 +168,8 @@ class UserController extends Controller
                 ->orderBy('day_of_week')
                 ->orderBy('date')
                 ->get(),
+            'activities' => $this->timeline($user),
+            'historyShown' => self::HISTORY_SHOWN,
         ]);
     }
 
@@ -177,8 +188,32 @@ class UserController extends Controller
         }
 
         $user->update($data);
+        $this->announcePasswordChange($user);
         app(UserAvatarService::class)->save($user, request()->file('avatar'));
 
         return redirect()->route('me.edit')->with('success', 'Profiel bijgewerkt');
+    }
+
+    /** What happened to this person's account, as far as whoever looks may read it. */
+    private function timeline(User $user): Collection
+    {
+        return $user->activities()
+            ->visibleTo(auth()->user())
+            ->with(['user:id,name', 'fieldChanges'])
+            ->orderByDesc('activityables.created_at')
+            ->limit(self::HISTORY_SHOWN)
+            ->get();
+    }
+
+    private function announcePasswordChange(User $user): void
+    {
+        if (!$user->wasChanged('password')) {
+            return;
+        }
+
+        Signals::dispatch(new UserPasswordChanged(
+            $user,
+            $user->is(auth()->user()) ? UserPasswordChanged::BY_THEMSELVES : UserPasswordChanged::BY_SOMEONE_ELSE,
+        ));
     }
 }

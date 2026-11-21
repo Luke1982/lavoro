@@ -36,11 +36,17 @@
                                 <div v-if="event.byline" class="mt-0.5 text-[11px] text-gray-400 dark:text-slate-500">
                                     {{ event.byline }}
                                 </div>
+                                <div v-if="event.about" class="mt-0.5 text-[11px]">
+                                    <a v-if="event.about.href" :href="event.about.href"
+                                       class="text-blue-500 hover:underline">{{ event.about.label }}</a>
+                                    <span v-else class="text-gray-500 dark:text-slate-400">{{ event.about.label }}</span>
+                                </div>
                                 <div v-if="event.serviceOrder" class="mt-0.5 text-[11px]">
-                                    <a :href="`/serviceorders/${event.serviceOrder.id}`"
+                                    <a v-if="event.serviceOrder.linked" :href="`/serviceorders/${event.serviceOrder.id}`"
                                        class="text-blue-500 hover:underline">
                                         Werkbon {{ event.serviceOrder.number }}
                                     </a>
+                                    <span v-else class="text-gray-500 dark:text-slate-400">Werkbon {{ event.serviceOrder.number }}</span>
                                 </div>
                                 <div v-if="event.executing_users?.length" class="mt-1 flex flex-wrap gap-2">
                                     <div v-for="u in event.executing_users" :key="u.id"
@@ -95,7 +101,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { CheckIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import { CheckIcon, FlagIcon, ExclamationTriangleIcon, ArrowUpTrayIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, PlusIcon, WrenchScrewdriverIcon, TicketIcon, EnvelopeIcon, EllipsisHorizontalIcon, CalendarDaysIcon, ClockIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import { nlDate, nlTime, initials, formatWbNumber } from '@/Utilities/Utilities';
 
 const SERVICE_ORDER = 'App\\Models\\ServiceOrder';
@@ -108,14 +114,58 @@ const props = defineProps({
      * each entry about one of them links to the werkbon it happened on.
      */
     linkServiceOrders: { type: Boolean, default: false },
+    /**
+     * The kind of record this page is about. An entry about another record -- a
+     * machine on its customer, a task on its werkbon -- says which one it was.
+     */
+    subjectType: { type: String, default: null },
 });
+
+const SUBJECT_PAGES = {
+    'App\\Models\\Asset': (id) => `/assets/${id}`,
+    'App\\Models\\MaintenanceContract': (id) => `/maintenancecontracts/${id}`,
+    'App\\Models\\MaintenanceContractTemplate': (id) => `/maintenancecontracttemplates/${id}`,
+    'App\\Models\\Material': (id) => `/materials/${id}`,
+    'App\\Models\\PriceFormula': (id) => `/priceformulas/${id}`,
+    'App\\Models\\Product': (id) => `/products/${id}`,
+    'App\\Models\\Project': (id) => `/projects/${id}`,
+    'App\\Models\\Quote': (id) => `/quotes/${id}`,
+    'App\\Models\\ServiceOrder': (id) => `/serviceorders/${id}`,
+    'App\\Models\\Supplier': (id) => `/suppliers/${id}`,
+    'App\\Models\\Ticket': (id) => `/tickets/${id}`,
+    'App\\Models\\User': (id) => `/users/${id}/edit`,
+};
+
+/** The entry that says its record was deleted links nowhere: the page is gone. */
+const isDeletion = (a) => typeof a.event_key === 'string' && a.event_key.endsWith('.deleted');
+
+/**
+ * The record an entry hangs off when it is not this page's own, by the name it had
+ * when it happened. A werkbon already named below is not named twice.
+ */
+function aboutOf(a, serviceOrder) {
+    const label = a.metadata?.subject_label;
+
+    if (!label || a.subject_type === props.subjectType) return null;
+    if (serviceOrder && a.subject_type === SERVICE_ORDER && serviceOrder.id === a.subject_id) return null;
+
+    const page = SUBJECT_PAGES[a.subject_type];
+
+    return { label, href: page && !isDeletion(a) ? page(a.subject_id) : null };
+}
 
 /** The werkbon an entry names in its metadata, or, where asked, the werkbon it is about. */
 function serviceOrderOf(a) {
+    if (props.subjectType === SERVICE_ORDER) return null;
+
     const id = a.metadata?.service_order_id
         ?? (props.linkServiceOrders && a.subject_type === SERVICE_ORDER ? a.subject_id : null);
 
-    return id ? { id, number: a.metadata?.service_order_number ?? formatWbNumber(id) } : null;
+    if (!id) return null;
+
+    const deleted = a.subject_type === SERVICE_ORDER && a.subject_id === id && isDeletion(a);
+
+    return { id, number: a.metadata?.service_order_number ?? formatWbNumber(id), linked: !deleted };
 }
 
 /**
@@ -143,8 +193,10 @@ const byline = (a) => {
 const CATEGORY_MAP = {
     created: { icon: PlusIcon, bg: 'bg-blue-500' },
     updated: { icon: PencilSquareIcon, bg: 'bg-amber-500' },
+    update: { icon: PencilSquareIcon, bg: 'bg-amber-500' },
     comment: { icon: ChatBubbleLeftRightIcon, bg: 'bg-indigo-500' },
     status: { icon: CheckIcon, bg: 'bg-green-500' },
+    stage: { icon: FlagIcon, bg: 'bg-violet-500' },
     warning: { icon: ExclamationTriangleIcon, bg: 'bg-red-500' },
     export: { icon: ArrowUpTrayIcon, bg: 'bg-fuchsia-500' },
     material: { icon: WrenchScrewdriverIcon, bg: 'bg-emerald-600' },
@@ -169,13 +221,15 @@ const formatDate = (iso) => {
 };
 
 /**
- * Entries written by the event layer carry their changes as data, so the headline
- * only has to name the fields. The before and after values are rendered below it
- * rather than glued into a sentence.
+ * A plain edit carries its changes as data, so its headline only has to name the
+ * fields; the before and after values are rendered below it rather than glued into
+ * a sentence. A named fact keeps its own sentence -- "Keuring heropend" says more
+ * than the fields it touched -- with the same rows underneath.
  */
 const summarise = (a) => {
     const changes = a.field_changes ?? [];
-    if (!changes.length) return a.description;
+    const plain_edit = typeof a.event_key === 'string' && a.event_key.endsWith('.updated');
+    if (!changes.length || !plain_edit) return a.description;
     return changes.map(c => c.label).join(', ') + ' gewijzigd';
 };
 
@@ -184,6 +238,7 @@ const expanded = ref(false);
 const showToggle = computed(() => raw.value.length > props.limit);
 const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slice(0, props.limit)).map(a => {
     const meta = CATEGORY_MAP[a.category] || fallback;
+    const serviceOrder = serviceOrderOf(a);
     return {
         id: a.id,
         icon: meta.icon,
@@ -199,7 +254,8 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),
         datetime: a.created_at,
-        serviceOrder: serviceOrderOf(a),
+        serviceOrder,
+        about: aboutOf(a, serviceOrder),
     };
 }));
 

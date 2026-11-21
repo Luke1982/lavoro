@@ -214,6 +214,25 @@ class Project extends Model
         return trim(($this->number ? $this->number . ' ' : '') . $this->title);
     }
 
+    /**
+     * Its creation and removal are news on the customer's timeline; every edit
+     * after that stays on its own.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return in_array($action, ['created', 'deleted'], true) ? [$this->customer] : [];
+    }
+
+    public function historyPermission(): ?string
+    {
+        return 'project.read';
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Project ' . $this->label();
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);

@@ -2,7 +2,6 @@
 
 namespace App\Actions\Contracts;
 
-use App\Domain\Contracts\ContractLabels;
 use App\Domain\Signals\Contracts\ContractAssetAttached;
 use App\Domain\Signals\Signals;
 use App\Models\Asset;
@@ -31,10 +30,6 @@ class AttachContractAssetAction
             'frequency_days' => $frequency_days,
         ]);
 
-        Signals::dispatch(new ContractAssetAttached(
-            $contract,
-            ContractLabels::asset($asset),
-            $frequency ? ContractLabels::frequency($frequency, $frequency_days) : null,
-        ));
+        Signals::dispatch(new ContractAssetAttached($contract, $asset, $frequency, $frequency_days));
     }
 }

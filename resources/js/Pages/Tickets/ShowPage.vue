@@ -356,7 +356,7 @@
             <BoxComponent class="mt-6" data-tour="ticket.timeline">
                 <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                     subtitle="Alles wat er op dit ticket gebeurd is, op volgorde." chapter="timeline" />
-                <TimelineComponent :activities="ticket.activities ?? []" />
+                <TimelineComponent :activities="ticket.activities ?? []" subject-type="App\Models\Ticket" />
             </BoxComponent>
 
             <DocumentUploadComponent :existing="ticket.documents" :documentable-id="ticket.id"

@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\Google\BackfillCalendarJob;
-use App\Jobs\Google\TeardownIntegrationJob;
-use App\Models\CalendarGrant;
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\GoogleCalendarConnected;
+use App\Domain\Signals\Users\GoogleCalendarDisconnected;
 use App\Models\GoogleCalendarIntegration;
 use App\Models\GoogleSyncedCalendar;
 use App\Services\Google\GoogleCalendarApi;
 use App\Services\Google\GoogleClientFactory;
-use App\Services\Google\GrantSyncService;
 use Google\Service\Oauth2;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -131,13 +130,7 @@ class GoogleOAuthController extends Controller
             }
         }
 
-        BackfillCalendarJob::dispatch($synced_cal->id);
-
-        $grants_received = CalendarGrant::where('viewer_user_id', $user->id)->get();
-        $grant_service = app(GrantSyncService::class);
-        foreach ($grants_received as $grant) {
-            $grant_service->onGrantCreated($grant);
-        }
+        Signals::dispatch(new GoogleCalendarConnected($user, $integration, $synced_cal));
 
         return redirect()->route('me.edit')->with('success', __('google.connected'));
     }
@@ -146,7 +139,7 @@ class GoogleOAuthController extends Controller
     {
         $integration = Auth::user()->googleCalendarIntegration;
         if ($integration) {
-            TeardownIntegrationJob::dispatch($integration->id);
+            Signals::dispatch(new GoogleCalendarDisconnected(Auth::user(), $integration));
         }
 
         return redirect()->route('me.edit')->with('success', __('google.disconnect_started'));

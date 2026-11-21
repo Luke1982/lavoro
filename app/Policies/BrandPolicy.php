@@ -10,4 +10,14 @@ class BrandPolicy
     {
         return $user->hasPermission('brand.create');
     }
+
+    public function update(User $user): bool
+    {
+        return $user->hasPermission('brand.update');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('brand.delete');
+    }
 }

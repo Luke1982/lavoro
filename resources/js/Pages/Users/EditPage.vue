@@ -142,6 +142,14 @@
             <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Rooster</h2>
             <UserRosterWidget :user="props.user" :unavailabilities="props.unavailabilities" />
         </div>
+
+        <div v-if="props.user && props.activities.length" class="mt-8">
+            <h2 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">Tijdlijn
+                <span v-if="props.activities.length >= props.historyShown"
+                    class="ml-2 text-xs font-normal text-gray-500 dark:text-slate-400">de laatste {{ props.historyShown }} wijzigingen</span>
+            </h2>
+            <TimelineComponent :activities="props.activities" subject-type="App\Models\User" />
+        </div>
     </div>
 </template>
 <script setup>
@@ -153,8 +161,9 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import AddressSearch from '@/Components/UI/AddressSearch.vue'
 import GoogleCalendarSection from '@/Components/GoogleCalendarSection.vue'
 import UserRosterWidget from '@/Components/Users/UserRosterWidget.vue'
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 
-const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) }, occupiesSeat: { type: Boolean, default: true }, seesHomeAddress: { type: Boolean, default: false } })
+const props = defineProps({ user: Object, allRoles: { type: Array, default: () => [] }, unavailabilities: { type: Array, default: () => [] }, seats: { type: Object, default: () => ({}) }, occupiesSeat: { type: Boolean, default: true }, seesHomeAddress: { type: Boolean, default: false }, activities: { type: Array, default: () => [] }, historyShown: { type: Number, default: 100 } })
 
 const page = usePage()
 const isAdmin = computed(() => !!page.props.auth?.isAdmin)

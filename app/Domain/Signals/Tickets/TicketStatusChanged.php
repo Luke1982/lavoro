@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class TicketStatusChanged extends BaseSignal
 {
+    use ReachesTheTicketsCustomer;
+
     public function __construct(
         public Ticket $ticket,
         public ?string $previous_status,
@@ -58,7 +60,7 @@ class TicketStatusChanged extends BaseSignal
 
     public function activityMetadata(): ?array
     {
-        return $this->reason === null ? null : ['reason' => $this->reason];
+        return $this->withTicketLabel($this->reason === null ? [] : ['reason' => $this->reason]);
     }
 
     public function changes(): array

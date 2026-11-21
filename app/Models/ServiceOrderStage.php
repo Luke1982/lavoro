@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasActivities;
+use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,6 +11,19 @@ class ServiceOrderStage extends Model
 {
     use HasActivities;
     use HasFactory;
+    use RecordsHistory;
+
+    /** Worded as the columns on the fases screen, so an entry reads like the switch that was flipped. */
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'order' => 'Volgorde',
+        'is_planned_state' => 'Gepland',
+        'is_closed_state' => 'Gesloten',
+        'is_plannable_state' => 'Planbaar',
+        'is_planning_cancelled_state' => 'Na annuleren',
+        'is_invoiced_state' => 'Gefactureerd',
+        'is_incomplete_state' => 'Onvolledig',
+    ];
 
     protected $fillable = [
         'name',

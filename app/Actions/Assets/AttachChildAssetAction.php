@@ -2,6 +2,8 @@
 
 namespace App\Actions\Assets;
 
+use App\Domain\Signals\Assets\AssetAttachedToParent;
+use App\Domain\Signals\Signals;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
 
@@ -24,6 +26,8 @@ class AttachChildAssetAction
             'customer_id' => null,
             'location_id' => null,
         ]);
+
+        Signals::dispatch(new AssetAttachedToParent($child, $parent));
     }
 
     /** Why this machine cannot go under that one, or null when it can. */

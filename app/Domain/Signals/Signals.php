@@ -56,6 +56,12 @@ class Signals implements ForgetsTenantState
 
     private ?string $correlation_id = null;
 
+    /**
+     * Raised for the length of a batch; see asBatch(). Left alone by startFresh():
+     * a job run inline inside the batch would otherwise end it halfway.
+     */
+    private ?int $ceiling_for_batch = null;
+
     public static function dispatch(Signal $signal): void
     {
         app(self::class)->raise($signal);
@@ -103,9 +109,42 @@ class Signals implements ForgetsTenantState
         }
     }
 
+    /**
+     * Runs work that is large by nature -- pulling a bookkeeping system's records
+     * by hand, editing hundreds of products at once -- with the ceiling a queued
+     * job has. Past the web ceiling every listener is skipped, not only the trail:
+     * the records after it would get no history and would not be handed on to
+     * other connected systems either. Loops are still caught by the chain. What the
+     * batch raised does not count against the request afterwards, or everything
+     * after a large batch would be skipped instead.
+     */
+    public static function asBatch(callable $work): mixed
+    {
+        $signals = app(self::class);
+        $previous_ceiling = $signals->ceiling_for_batch;
+        $raised_before = $signals->raised;
+        $reported_before = $signals->ceiling_reported;
+        $signals->ceiling_for_batch = (int) config('signals.max_per_console_run', self::MAX_PER_CONSOLE_RUN);
+
+        try {
+            return $work();
+        } finally {
+            $signals->ceiling_for_batch = $previous_ceiling;
+
+            if ($previous_ceiling === null) {
+                $signals->raised = $raised_before;
+                $signals->ceiling_reported = $reported_before;
+            }
+        }
+    }
+
     /** Configurable so a test does not have to raise a quarter of a million signals. */
     private function ceiling(): int
     {
+        if ($this->ceiling_for_batch !== null) {
+            return $this->ceiling_for_batch;
+        }
+
         return app()->runningInConsole()
             ? (int) config('signals.max_per_console_run', self::MAX_PER_CONSOLE_RUN)
             : (int) config('signals.max_per_request', self::MAX_PER_REQUEST);

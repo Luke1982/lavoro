@@ -2,7 +2,13 @@
 
 namespace App\Models;
 
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\NameListChange;
+use App\Domain\Signals\Users\UserPlanGroupsChanged;
+use App\Domain\Signals\Users\UserRolesChanged;
 use App\Models\Scopes\HidesSuperAdmins;
+use App\Models\Traits\HasActivities;
+use App\Models\Traits\RecordsHistory;
 use App\Support\AddressFormatter;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,10 +20,15 @@ use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
+    use HasActivities;
+
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
     use Notifiable;
+    use RecordsHistory {
+        recordHistory as private recordOwnHistory;
+    }
     use SoftDeletes;
 
     /** Where someone lives: theirs and the user administrator's to see, nobody else's. */
@@ -28,6 +39,44 @@ class User extends Authenticatable
     ];
 
     private ?bool $is_super_admin = null;
+
+    /** Depth of User::withoutHistory(); above zero nothing about a user is recorded. */
+    private static int $unrecorded = 0;
+
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'email' => 'E-mailadres',
+        'plannable' => 'Inplanbaar',
+        'seat_type' => 'Soort plek',
+        'home_address' => 'Huisadres',
+        'home_postal_code' => 'Postcode huisadres',
+        'home_city' => 'Woonplaats',
+    ];
+
+    /**
+     * Bookkeeping of the login itself, and a column from before plan groups were
+     * a list. The password is never logged: UserPasswordChanged says that it
+     * changed, without it.
+     */
+    protected array $activity_ignore = [
+        'email_verified_at',
+        'user_plan_group_id',
+    ];
+
+    protected array $activity_formats = [
+        'seat_type' => [self::class, 'seatTypeLabel'],
+    ];
+
+    /**
+     * Whoever may change someone's profile. UserPolicy::seeHomeAddress also lets
+     * a person see their own address, but an entry is read under one permission,
+     * so the history of an address is for the user administrators only.
+     */
+    protected array $activity_permissions = [
+        'home_address' => 'user.update',
+        'home_postal_code' => 'user.update',
+        'home_city' => 'user.update',
+    ];
 
     /** MajorLabel's own accounts stay out of sight at the customer. */
     protected static function booted(): void
@@ -144,6 +193,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Puts this person in exactly these plan groups and says which came and went.
+     *
+     * @param  array<int, int|string>  $group_ids
+     */
+    public function syncPlanGroups(array $group_ids): void
+    {
+        $names = fn () => $this->planGroups()->pluck('user_plan_groups.name', 'user_plan_groups.id')->all();
+        $before = $names();
+
+        $this->planGroups()->sync($group_ids);
+
+        $groups = new NameListChange($before, $names());
+
+        if (!$groups->isEmpty()) {
+            Signals::dispatch(new UserPlanGroupsChanged($this, $groups));
+        }
+    }
+
+    /**
      * Get a flat list of unique permission names for this user
      * combining permissions via roles.
      *
@@ -181,6 +249,16 @@ class User extends Authenticatable
         return $query->where('seat_type', $seat_type)->withoutSuperAdmins();
     }
 
+    /** What a seat type is called on the screen and in the trail. */
+    public static function seatTypeLabel(?string $seat_type): ?string
+    {
+        return match ($seat_type) {
+            'field' => 'Buitendienst',
+            'office' => 'Binnendienst',
+            default => $seat_type,
+        };
+    }
+
     /**
      * The one place that knows how to keep a super admin out of a query. The
      * global scope, the seat count and everything that comes later go through
@@ -202,6 +280,72 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->is_super_admin ??= $this->roles()->where('name', Role::SUPERADMIN)->exists();
+    }
+
+    /**
+     * MajorLabel's own accounts never appear in a customer's trail: they are
+     * hidden from the customer everywhere else, and a line about one would give
+     * them away. Asked of the database rather than of the remembered answer, so
+     * a role given earlier in the same request counts -- but only once there is
+     * anything to record: a login that only renews its token asks nothing.
+     */
+    public function recordHistory(string $action): void
+    {
+        if (self::$unrecorded > 0) {
+            return;
+        }
+
+        if ($action === 'updated' && array_filter(array_keys($this->getChanges()), $this->shouldLogField(...)) === []) {
+            return;
+        }
+
+        if ($action !== 'created' && $this->roles()->where('name', Role::SUPERADMIN)->exists()) {
+            return;
+        }
+
+        $this->recordOwnHistory($action);
+    }
+
+    /**
+     * Runs work on users without a line in the trail. For the landlord panel,
+     * which writes MajorLabel's account into a customer's database: at the moment
+     * that account is created it has no role yet, so nothing else can tell it
+     * apart from one of the customer's own.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $work
+     * @return TReturn
+     */
+    public static function withoutHistory(callable $work): mixed
+    {
+        self::$unrecorded++;
+
+        try {
+            return $work();
+        } finally {
+            self::$unrecorded--;
+        }
+    }
+
+    /**
+     * Gives this person exactly these roles and says which came and went. Our
+     * own role is never named: the forms that call this refuse it already.
+     *
+     * @param  array<int, int|string>  $role_ids
+     */
+    public function syncRoles(array $role_ids): void
+    {
+        $names = fn () => $this->roles()->assignable()->pluck('roles.name', 'roles.id')->all();
+        $before = $names();
+
+        $this->roles()->sync($role_ids);
+
+        $roles = new NameListChange($before, $names());
+
+        if (!$roles->isEmpty()) {
+            Signals::dispatch(new UserRolesChanged($this, $roles));
+        }
     }
 
     /**

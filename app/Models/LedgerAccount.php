@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Integrations\Area;
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class LedgerAccount extends Model
 {
+    use HasActivities;
     use HasIntegrations;
     use RecordsHistory;
 

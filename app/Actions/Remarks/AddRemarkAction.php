@@ -2,6 +2,8 @@
 
 namespace App\Actions\Remarks;
 
+use App\Domain\Signals\Attachments\RemarkAdded;
+use App\Domain\Signals\Signals;
 use App\Models\Remark;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,6 +20,8 @@ class AddRemarkAction
     {
         $remark = Remark::create(['content' => $content, 'user_id' => $user_id]);
         $remarkable->remarks()->attach($remark->id, ['internal' => $internal]);
+
+        Signals::dispatch(new RemarkAdded($remarkable, $remark, $internal));
 
         return $remark;
     }

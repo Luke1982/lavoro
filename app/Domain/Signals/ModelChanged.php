@@ -64,7 +64,7 @@ class ModelChanged extends BaseSignal
         return match ($this->action) {
             'created' => 'created',
             'deleted', 'restored' => 'status',
-            default => 'update',
+            default => 'updated',
         };
     }
 
@@ -72,6 +72,26 @@ class ModelChanged extends BaseSignal
     public function changes(): array
     {
         return $this->changes;
+    }
+
+    /** @return array<int, Model> */
+    public function activityContext(): array
+    {
+        if (!method_exists($this->model, 'historyTimelines')) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $this->model->historyTimelines($this->action),
+            fn ($record) => $record instanceof Model,
+        ));
+    }
+
+    public function activityMetadata(): ?array
+    {
+        $label = method_exists($this->model, 'historyLabel') ? $this->model->historyLabel() : null;
+
+        return $label === null ? null : ['subject_label' => $label];
     }
 
     /**

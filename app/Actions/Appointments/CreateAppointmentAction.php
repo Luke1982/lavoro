@@ -69,7 +69,7 @@ class CreateAppointmentAction
                     Signals::dispatch(new ServiceOrderScheduled($model, $event));
                 }
             } elseif ($appointment->customer_id) {
-                $event->customers()->attach($appointment->customer_id);
+                $event->syncCustomers([$appointment->customer_id]);
             }
 
             $assignment = $appointment->assignment;

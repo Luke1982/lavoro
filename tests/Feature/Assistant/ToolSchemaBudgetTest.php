@@ -57,8 +57,12 @@ class ToolSchemaBudgetTest extends TestCase
      * 41000 for price formulas: reading them, trying a draft on example
      * machines, saving one, and putting one on contracts, so somebody can say
      * or type how they want to charge and have the assistant build it.
+     *
+     * 41200 for history: search_activity names every record type that now has a
+     * timeline -- machines, materials, suppliers, users, roles, settings and the
+     * rest -- so "who changed this" has an answer for all of them.
      */
-    private const ROOM_FOR = 41000;
+    private const ROOM_FOR = 41200;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

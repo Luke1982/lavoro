@@ -3,12 +3,19 @@
 namespace App\Domain\Signals\ServiceOrders;
 
 use App\Domain\Signals\BaseSignal;
+use App\Domain\Signals\Materials\ReportsStock;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
 
 class MaterialQuantityChanged extends BaseSignal
 {
-    /** @param  array<int, Model>  $related  Records this should also surface on. */
+    use ReportsStock;
+
+    /**
+     * @param  array<int, Model>  $related  Records this should also surface on.
+     * @param  ?float  $stock_before  The material's stock before this booking moved it.
+     * @param  ?float  $stock_after  Its stock after.
+     */
     public function __construct(
         public ServiceOrder $service_order,
         public string $item_name,
@@ -16,6 +23,8 @@ class MaterialQuantityChanged extends BaseSignal
         public float $new_quantity,
         public ?string $task_title = null,
         public array $related = [],
+        public ?float $stock_before = null,
+        public ?float $stock_after = null,
     ) {
         parent::__construct();
     }
@@ -52,6 +61,8 @@ class MaterialQuantityChanged extends BaseSignal
             'task_title' => $this->task_title,
             'previous_quantity' => $this->previous_quantity,
             'new_quantity' => $this->new_quantity,
+            'service_order_id' => $this->service_order->getKey(),
+            'service_order_number' => $this->service_order->number,
         ], fn ($value) => $value !== null);
     }
 
@@ -69,7 +80,7 @@ class MaterialQuantityChanged extends BaseSignal
             'new_value' => (string) $this->new_quantity,
             'old_label' => $this->previous_quantity === null ? null : (string) $this->previous_quantity,
             'new_label' => (string) $this->new_quantity,
-        ]];
+        ], ...self::stockChanges($this->stock_before, $this->stock_after)];
     }
 
     private function taskSuffix(): string

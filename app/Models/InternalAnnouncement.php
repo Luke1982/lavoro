@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Domain\Signals\Announcements\AnnouncementRecipientsChanged;
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\NameListChange;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RecordsHistory;
@@ -49,6 +52,19 @@ class InternalAnnouncement extends Model
         'expires_on' => 'Zichtbaar tot en met',
     ];
 
+    protected array $activity_html = [
+        'body',
+    ];
+
+    /**
+     * Who wrote it, taken just before deleting takes the links away: the
+     * "Verwijderd" line goes on their timeline, because the announcement's own
+     * is gone with it.
+     *
+     * @var Collection<int, User>|null
+     */
+    private ?Collection $authors_at_deletion = null;
+
     /**
      * Een morph-pivot heeft geen refererende sleutel die met het record meegaat,
      * dus die rijen blijven staan tenzij iemand ze weghaalt. Verwijderen neemt
@@ -57,6 +73,8 @@ class InternalAnnouncement extends Model
     protected static function booted(): void
     {
         static::deleting(function (self $announcement) {
+            $announcement->authors_at_deletion = $announcement->authors();
+
             $pivot_tables = ['userables' => 'userable', 'activityables' => 'activityable'];
 
             foreach ($pivot_tables as $table => $morph) {
@@ -66,6 +84,32 @@ class InternalAnnouncement extends Model
                     ->delete();
             }
         });
+    }
+
+    /**
+     * Making and removing an announcement is also news on its author's timeline:
+     * after removal it is the only place that still says it existed.
+     *
+     * @return array<int, User>
+     */
+    public function historyTimelines(string $action): array
+    {
+        return match ($action) {
+            'created' => $this->authors()->all(),
+            'deleted' => ($this->authors_at_deletion ?? collect())->all(),
+            default => [],
+        };
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Aankondiging "' . $this->title . '"';
+    }
+
+    /** @return Collection<int, User> */
+    private function authors(): Collection
+    {
+        return $this->owners()->wherePivot('type', 'owner')->get();
     }
 
     /**
@@ -136,6 +180,9 @@ class InternalAnnouncement extends Model
      */
     public function syncRecipients(array $user_ids): void
     {
+        $names = fn () => $this->recipients()->withoutSuperAdmins()->pluck('users.name', 'users.id')->all();
+        $before = $names();
+
         $wanted = array_values(array_unique(array_map('intval', $user_ids)));
         $current = $this->recipients()->pluck('users.id')->map(fn ($id) => (int) $id)->all();
 
@@ -150,6 +197,12 @@ class InternalAnnouncement extends Model
 
         if ($to_detach) {
             $this->recipients()->wherePivotNull('acknowledged_at')->detach(array_values($to_detach));
+        }
+
+        $recipients = new NameListChange($before, $names());
+
+        if (!$recipients->isEmpty()) {
+            Signals::dispatch(new AnnouncementRecipientsChanged($this, $recipients));
         }
     }
 

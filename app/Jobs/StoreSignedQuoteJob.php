@@ -5,6 +5,9 @@ namespace App\Jobs;
 use App\Domain\Quotes\QuoteFiles;
 use App\Domain\Quotes\QuoteMail;
 use App\Domain\Quotes\QuotePdf;
+use App\Domain\Signals\Attachments\DocumentAttached;
+use App\Domain\Signals\Quotes\QuoteConfirmationEmailed;
+use App\Domain\Signals\Signals;
 use App\Mail\QuoteConfirmationMail;
 use App\Models\Document;
 use App\Models\Quote;
@@ -51,6 +54,8 @@ class StoreSignedQuoteJob implements ShouldQueue
                 QuoteMail::confirmationBody($this->quote),
                 $files,
             ));
+
+            Signals::dispatch(new QuoteConfirmationEmailed($this->quote, $to, $this->quote->acceptedVersion));
         }
     }
 
@@ -83,5 +88,7 @@ class StoreSignedQuoteJob implements ShouldQueue
         ]);
 
         $this->quote->documents()->attach($document->id, ['internal' => false]);
+
+        Signals::dispatch(new DocumentAttached($this->quote, [$document]));
     }
 }

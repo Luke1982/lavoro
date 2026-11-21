@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Products\SetProductAttributeValuesAction;
+use App\Domain\Signals\Signals;
 use App\Enums\DefaultMaterialPrompts;
+use App\Exceptions\Refusal;
 use App\Http\Requests\ProductBulkUpdateRequest;
 use App\Http\Requests\ProductCreateRequest;
+use App\Http\Requests\ProductDestroyRequest;
 use App\Http\Requests\ProductIndexRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
@@ -15,11 +18,13 @@ use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\LedgerAccount;
 use App\Models\Product;
+use App\Models\Productable;
 use App\Models\ProductAttribute;
 use App\Models\ProductMaterialDefault;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Quote;
+use App\Models\ServiceOrderTaskInstance;
 use App\Models\Supplier;
 use App\Policies\QuotePolicy;
 use App\Services\ProductableService;
@@ -320,23 +325,23 @@ class ProductController extends Controller
 
     public function bulkUpdate(ProductBulkUpdateRequest $request, SetProductAttributeValuesAction $set_values)
     {
-        DB::transaction(function () use ($request, $set_values) {
-            $product_ids = $request->input('product_ids');
+        Signals::asBatch(fn () => DB::transaction(function () use ($request, $set_values) {
+            $products = Product::whereIn('id', $request->validated('product_ids'))->get();
+            $changes = array_filter(
+                $request->safe()->only(['product_type_id', 'brand_id']),
+                fn ($value) => filled($value),
+            );
 
-            if ($request->filled('product_type_id')) {
-                Product::whereIn('id', $product_ids)->update(['product_type_id' => $request->input('product_type_id')]);
-            }
-
-            if ($request->filled('brand_id')) {
-                Product::whereIn('id', $product_ids)->update(['brand_id' => $request->input('brand_id')]);
+            if ($changes !== []) {
+                $products->each(fn (Product $product) => $product->update($changes));
             }
 
             $values = self::valuesByAttribute($request->validated('attributes', []));
 
             if ($values !== []) {
-                $set_values->handleMany(Product::whereIn('id', $product_ids)->get(), $values);
+                $set_values->handleMany($products, $values);
             }
-        });
+        }));
 
         return redirect()->back()->with('success', 'Producten bijgewerkt.');
     }
@@ -351,11 +356,43 @@ class ProductController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * A product still in use cannot go. Its machines would go with it, by the
+     * database's cascade, and the werkbon tasks naming it would lose it in
+     * silence: the task its product, a bundle task the aantal filled in for it.
+     *
+     * In one transaction: the parts lists it is on, its own, and its supplier
+     * links are taken off one by one before it goes, and none of that may stay
+     * behind when the product itself cannot be deleted.
      */
-    public function destroy(Product $product)
+    public function destroy(ProductDestroyRequest $request, Product $product)
     {
-        $product->delete();
+        $machines = $product->assets()->count();
+        $tasks = ServiceOrderTaskInstance::query()
+            ->where('product_id', $product->id)
+            ->orWhereIn('id', Productable::query()
+                ->where('productable_type', (new ServiceOrderTaskInstance)->getMorphClass())
+                ->where('product_id', $product->id)
+                ->select('productable_id'))
+            ->count();
+
+        if ($machines > 0 || $tasks > 0) {
+            $reasons = array_filter([
+                $machines === 0 ? null : ($machines === 1
+                    ? 'er staat nog 1 machine van dit product bij een klant, die dan mee zou verdwijnen'
+                    : 'er staan nog ' . $machines . ' machines van dit product bij klanten, die dan mee zouden verdwijnen'),
+                $tasks === 0 ? null : ($tasks === 1
+                    ? 'het staat op 1 taak van een werkbon'
+                    : 'het staat op ' . $tasks . ' taken van werkbonnen'),
+            ]);
+
+            throw new Refusal(
+                'Product ' . ($product->display_name ?? $product->id) . ' kan niet verwijderd worden: '
+                    . implode(', en ', $reasons) . '.'
+                    . ' Zet het product op inactief als het niet meer verkocht wordt.'
+            );
+        }
+
+        DB::transaction(fn () => $product->delete());
 
         return redirect()
             ->back()

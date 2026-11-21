@@ -2,6 +2,11 @@
 
 namespace App\Models;
 
+use App\Domain\Planning\Clock;
+use App\Domain\Signals\Appointments\AppointmentCrewChanged;
+use App\Domain\Signals\Appointments\AppointmentCustomerChanged;
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\NameListChange;
 use App\Enums\EventStatusses;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasExecutingUsers;
@@ -41,6 +46,7 @@ class Event extends Model
 
     protected array $activity_relations = [
         'location_id' => ['linkedLocation', 'title'],
+        'event_type_id' => ['eventType', 'name'],
     ];
 
     protected array $activity_ignore = [
@@ -169,6 +175,56 @@ class Event extends Model
     public function primaryCustomer(): ?Customer
     {
         return $this->serviceOrders->first()?->customer ?? $this->customers->first();
+    }
+
+    /** "Afspraak "Onderhoud" van 01-12-2026 08:00": a werkbon can have several, so the moment names it. */
+    public function historyLabel(): ?string
+    {
+        $name = $this->name ? ' "' . $this->name . '"' : '';
+        $moment = $this->start ? ' van ' . Clock::toLocal($this->start)->format('d-m-Y H:i') : '';
+
+        return 'Afspraak' . $name . $moment;
+    }
+
+    /**
+     * Hangs the appointment directly off exactly these customers -- the ones an
+     * appointment without a werkbon is for -- and says who it came onto and who
+     * it left, on the appointment and on both customers.
+     *
+     * A customer the appointment now reaches through the werkbon it was put on
+     * has not lost it, and is not told it was "losgekoppeld".
+     *
+     * @param  array<int, int|string|null>  $customer_ids
+     */
+    public function syncCustomers(array $customer_ids, ?ServiceOrder $through = null): void
+    {
+        $names = fn () => $this->customers()->pluck('customers.name', 'customers.id')->all();
+        $before = $names();
+
+        $this->customers()->sync(array_values(array_filter($customer_ids)));
+
+        $still_for = $through ? array_intersect_key($before, [$through->customer_id => true]) : [];
+        $customers = new NameListChange($before, $names() + $still_for);
+
+        if (!$customers->isEmpty()) {
+            Signals::dispatch(new AppointmentCustomerChanged($this, $customers));
+        }
+    }
+
+    /**
+     * Called by HasExecutingUsers after every sync of the crew, with who was on
+     * the appointment before and after.
+     *
+     * @param  array<int, array<string, mixed>>  $before
+     * @param  array<int, array<string, mixed>>  $after
+     */
+    protected function executingUsersChanged(array $before, array $after): void
+    {
+        $signal = new AppointmentCrewChanged($this, $before, $after);
+
+        if (!$signal->isEmpty()) {
+            Signals::dispatch($signal);
+        }
     }
 
     public function executions(): HasMany

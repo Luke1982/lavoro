@@ -59,9 +59,32 @@ class ServiceOrderStageChanged extends BaseSignal implements ServiceOrderSignal
         return 'stage';
     }
 
+    /**
+     * On the stage it went to, and on the customer when the step closes the werkbon or
+     * opens a closed one again: a werkbon finished, or taken up again after it was, is
+     * news there; every step in between is not. The customer is looked up rather than
+     * read from the relation, which a caller may have loaded before moving the werkbon
+     * to someone else.
+     */
     public function activityContext(): array
     {
-        return $this->new_stage ? [$this->new_stage] : [];
+        $closed_before = $this->previous_stage?->closesOrder() === true;
+        $closed_now = $this->new_stage?->closesOrder() === true;
+        $customer = $closed_before !== $closed_now ? $this->service_order->customer()->first() : null;
+
+        return array_values(array_filter([$this->new_stage, $customer]));
+    }
+
+    public function changes(): array
+    {
+        return [[
+            'field' => 'service_order_stage_id',
+            'label' => 'Fase',
+            'old_value' => $this->previous_stage?->getKey() === null ? null : (string) $this->previous_stage->getKey(),
+            'new_value' => $this->new_stage?->getKey() === null ? null : (string) $this->new_stage->getKey(),
+            'old_label' => $this->previous_stage?->name,
+            'new_label' => $this->new_stage?->name,
+        ]];
     }
 
     public function activityMetadata(): ?array

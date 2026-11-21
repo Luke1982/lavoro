@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Users\CalendarAccessGranted;
+use App\Domain\Signals\Users\CalendarAccessRevoked;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CalendarGrantDestroyRequest;
 use App\Http\Requests\CalendarGrantStoreRequest;
 use App\Models\CalendarGrant;
 use App\Models\User;
-use App\Services\Google\GrantSyncService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,13 +20,15 @@ class CalendarGrantController extends Controller
     {
         $users = User::orderBy('name')->get(['id', 'name']);
         $grants = CalendarGrant::with(['ownerUser:id,name', 'viewerUser:id,name'])->get();
+
         return Inertia::render('Admin/CalendarGrants/IndexPage', [
             'users' => $users,
             'grants' => $grants,
         ]);
     }
 
-    public function store(CalendarGrantStoreRequest $request, GrantSyncService $grant_service): RedirectResponse
+    /** The calendar in Google is made by a listener, after the grant is saved. */
+    public function store(CalendarGrantStoreRequest $request): RedirectResponse
     {
         $data = $request->validated();
         $grant = CalendarGrant::firstOrCreate([
@@ -32,15 +36,22 @@ class CalendarGrantController extends Controller
             'viewer_user_id' => $data['viewer_user_id'],
         ]);
         if ($grant->wasRecentlyCreated) {
-            $grant_service->onGrantCreated($grant);
+            Signals::dispatch(new CalendarAccessGranted($grant));
         }
+
         return redirect()->back()->with('success', 'Toegang verleend.');
     }
 
-    public function destroy(CalendarGrantDestroyRequest $request, CalendarGrant $calendar_grant, GrantSyncService $grant_service): RedirectResponse
+    /**
+     * The calendar in Google is taken away by a listener, after the grant is
+     * gone. The signal is made first, so a grant is never deleted without it.
+     */
+    public function destroy(CalendarGrantDestroyRequest $request, CalendarGrant $calendar_grant): RedirectResponse
     {
-        $grant_service->onGrantRevoked($calendar_grant);
+        $signal = new CalendarAccessRevoked($calendar_grant);
         $calendar_grant->delete();
+        Signals::dispatch($signal);
+
         return redirect()->back()->with('success', 'Toegang ingetrokken.');
     }
 }

@@ -12,7 +12,6 @@ use App\Domain\Signals\Contracts\ContractAutoGenerationDisabled;
 use App\Domain\Signals\Contracts\ContractAutoGenerationEnabled;
 use App\Domain\Signals\Contracts\ContractCancelled;
 use App\Domain\Signals\Contracts\ContractCustomerChanged;
-use App\Domain\Signals\Contracts\ContractFieldChanged;
 use App\Domain\Signals\Contracts\ContractFrequencyModeChanged;
 use App\Domain\Signals\Contracts\ContractReactivated;
 use App\Domain\Signals\Signals;
@@ -35,7 +34,6 @@ use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use App\Support\Money;
 use App\Traits\OffersContractTemplates;
-use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -209,15 +207,18 @@ class MaintenanceContractController extends Controller
             : collect();
 
         if (array_key_exists('cancelled', $validated)) {
-            $is_already_cancelled = $maintenancecontract->cancelled_at !== null;
+            $was_cancelled_at = $maintenancecontract->cancelled_at;
+            $is_already_cancelled = $was_cancelled_at !== null;
+
             if ($validated['cancelled'] && !$is_already_cancelled) {
                 $maintenancecontract->cancelled_at = now();
+                $maintenancecontract->save();
                 Signals::dispatch(new ContractCancelled($maintenancecontract));
             } elseif (!$validated['cancelled'] && $is_already_cancelled) {
                 $maintenancecontract->cancelled_at = null;
-                Signals::dispatch(new ContractReactivated($maintenancecontract));
+                $maintenancecontract->save();
+                Signals::dispatch(new ContractReactivated($maintenancecontract, $was_cancelled_at));
             }
-            $maintenancecontract->save();
         }
 
         DB::transaction(function () use ($maintenancecontract, $validated, $asset_strategy) {
@@ -275,81 +276,31 @@ class MaintenanceContractController extends Controller
             }
         }
 
-        $this->logFieldChanges($maintenancecontract, $validated, $original);
+        $this->announceCustomerChange($maintenancecontract, $validated, $original);
 
         return redirect()->back()->with('success', 'Onderhoudscontract bijgewerkt.');
     }
 
-    private function logFieldChanges(MaintenanceContract $maintenancecontract, array $validated, array $original): void
+    /**
+     * Only the customer is told here: every other field is written by the
+     * contract's own trail, with its label and its permission.
+     */
+    private function announceCustomerChange(MaintenanceContract $maintenancecontract, array $validated, array $original): void
     {
         if (array_key_exists('customer_id', $validated) && (string) $validated['customer_id'] !== (string) ($original['customer_id'] ?? '')) {
             $old_customer = Customer::find($original['customer_id'] ?? null)?->name ?? 'onbekend';
             $new_customer = Customer::find($validated['customer_id'])?->name ?? 'onbekend';
             Signals::dispatch(new ContractCustomerChanged($maintenancecontract, $old_customer, $new_customer));
         }
-
-        $labels = [
-            'title' => 'Titel',
-            'start_date' => 'Startdatum',
-            'end_date' => 'Einddatum',
-            'price' => 'Prijs',
-            'price_interval' => 'Prijsinterval',
-            'price_interval_days' => 'Prijsinterval (dagen)',
-            'frequency' => 'Servicefrequentie',
-            'frequency_days' => 'Servicefrequentie (dagen)',
-        ];
-
-        foreach ($labels as $field => $label) {
-            if (!array_key_exists($field, $validated)) {
-                continue;
-            }
-
-            $old_value = $original[$field] ?? null;
-            $new_value = $validated[$field];
-
-            if ((string) $old_value === (string) $new_value) {
-                continue;
-            }
-
-            Signals::dispatch(new ContractFieldChanged(
-                $maintenancecontract,
-                $field,
-                $label,
-                $this->formatFieldValue($field, $old_value),
-                $this->formatFieldValue($field, $new_value),
-            ));
-        }
     }
 
-    private function fieldChangeMessage(string $label, string $old_display, string $new_display): string
-    {
-        if ($old_display === '—' && $new_display !== '—') {
-            return "{$label} ingesteld op '{$new_display}'";
-        }
-
-        if ($new_display === '—' && $old_display !== '—') {
-            return "{$label} verwijderd (was '{$old_display}')";
-        }
-
-        return "{$label} gewijzigd van '{$old_display}' naar '{$new_display}'";
-    }
-
-    private function formatFieldValue(string $field, mixed $value): string
-    {
-        if ($value === null || $value === '') {
-            return '—';
-        }
-
-        return match ($field) {
-            'start_date', 'end_date' => Carbon::parse($value)->format('d-m-Y'),
-            'price' => "\u{20AC}" . number_format((float) $value, 2, ',', '.'),
-            default => (string) $value,
-        };
-    }
-
+    /**
+     * Its werkbonnen and machines are told they left it as it goes, so the whole
+     * removal holds or none of it does.
+     */
     public function destroy(MaintenanceContractDestroyRequest $request, MaintenanceContract $maintenancecontract)
     {
-        $maintenancecontract->delete();
+        DB::transaction(fn () => $maintenancecontract->delete());
 
         return redirect()->route('maintenancecontracts.index')->with('success', 'Onderhoudscontract verwijderd.');
     }
@@ -406,12 +357,18 @@ class MaintenanceContractController extends Controller
 
         $pivot_query->update($request->validated());
 
-        if ($asset) {
-            $updated = $maintenancecontract->assets()->newPivotQuery()->where('assetables.id', $assetable_id)->first();
+        $updated = $maintenancecontract->assets()->newPivotQuery()->where('assetables.id', $assetable_id)->first();
+        $changed = $updated !== null
+            && [$record->frequency, $record->frequency_days] !== [$updated->frequency, $updated->frequency_days];
+
+        if ($asset && $changed) {
             Signals::dispatch(new ContractAssetFrequencyChanged(
                 $maintenancecontract,
-                ContractLabels::asset($asset),
-                ContractLabels::frequency($updated->frequency, $updated->frequency_days),
+                $asset,
+                $record->frequency,
+                $record->frequency_days === null ? null : (int) $record->frequency_days,
+                $updated->frequency,
+                $updated->frequency_days === null ? null : (int) $updated->frequency_days,
             ));
         }
 

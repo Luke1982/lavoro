@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Domain\Signals\BaseSignal;
 use App\Exceptions\Refusal;
+use App\Models\Activity;
 use App\Models\Central\TenantSuperAdmin;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -72,6 +74,13 @@ class TenantSuperAdmins
      * The landlord record is written before the role is given, never the other
      * way around: a role without a record lives in a database that an import
      * replaces, and nothing could make it again.
+     *
+     * The work it did before is credited to MajorLabel from now on, as
+     * everything a super admin does is: the trail does not name an account the
+     * customer no longer sees anywhere else. Who it was stays known through
+     * user_id. Older lines that mention it otherwise -- put on an appointment's
+     * crew, added to a role -- were written with its name in them, and keep the
+     * name it had as one of the customer's users.
      */
     public function adopt(Tenant $tenant, string $email): void
     {
@@ -98,11 +107,13 @@ class TenantSuperAdmins
 
         $this->copyIntoTheTenant($tenant, $record);
 
-        Tenancy::within($tenant, function () use ($user) {
+        Tenancy::within($tenant, fn () => User::withoutHistory(function () use ($user) {
             $theirs = Role::where('name', '!=', Role::SUPERADMIN)->pluck('id');
 
             $user->roles()->detach($theirs);
-        });
+
+            Activity::where('user_id', $user->id)->update(['actor_name' => BaseSignal::MAJORLABEL]);
+        }));
     }
 
     /**
@@ -201,13 +212,13 @@ class TenantSuperAdmins
         $email = $record->email;
         $record->delete();
 
-        Tenancy::within($tenant, function () use ($email) {
+        Tenancy::within($tenant, fn () => User::withoutHistory(function () use ($email) {
             $user = User::withoutGlobalScopes()->where('email', $email)->first();
 
             if ($user && $user->isSuperAdmin()) {
                 $user->forceDelete();
             }
-        });
+        }));
 
         DB::connection('central')->table('user_tenant_lookups')->where('email', $email)->delete();
     }
@@ -218,10 +229,13 @@ class TenantSuperAdmins
      * The password travels as the hash it already is: whoever was handed it
      * keeps it, and nothing here can read it back. Eloquent's 'hashed' cast
      * leaves a value that is already hashed alone, so it is not hashed twice.
+     *
+     * Written without a line in the customer's trail: when the account is
+     * created it has no role yet, and would be recorded as one of theirs.
      */
     private function copyIntoTheTenant(Tenant $tenant, TenantSuperAdmin $record): void
     {
-        Tenancy::within($tenant, function () use ($record) {
+        Tenancy::within($tenant, fn () => User::withoutHistory(function () use ($record) {
             $role = Role::firstOrCreate(['name' => Role::SUPERADMIN]);
 
             $user = User::withoutGlobalScopes()->where('email', $record->email)->first();
@@ -238,7 +252,7 @@ class TenantSuperAdmins
             }
 
             $user->roles()->syncWithoutDetaching($role->id);
-        });
+        }));
 
         /**
          * Logging in looks the address up here first. Creating a user writes

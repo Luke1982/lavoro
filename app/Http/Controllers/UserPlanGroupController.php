@@ -2,30 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DestroyPlanGroupRequest;
 use App\Http\Requests\ReorderPlanGroupsRequest;
 use App\Http\Requests\StorePlanGroupRequest;
+use App\Http\Requests\SyncUserPlanGroupsRequest;
 use App\Http\Requests\UpdatePlanGroupRequest;
 use App\Models\User;
 use App\Models\UserPlanGroup;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class UserPlanGroupController extends Controller
 {
-    private function authorizeManage(): void
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        abort_unless(
-            $user && ($user->isAdmin()
-                || $user->hasPermission('event.see_all')
-                || $user->hasPermission('event.create_others')),
-            403
-        );
-    }
-
-    public function index()
-    {
-        $this->authorizeManage();
+        abort_unless($request->user()->can('manage', UserPlanGroup::class), 403);
 
         $groups = UserPlanGroup::orderBy('sort_order')->orderBy('id')
             ->with('users:id')
@@ -70,7 +60,7 @@ class UserPlanGroupController extends Controller
         ]);
     }
 
-    public function destroy(UserPlanGroup $group)
+    public function destroy(DestroyPlanGroupRequest $request, UserPlanGroup $group)
     {
         $group->delete();
 
@@ -86,16 +76,9 @@ class UserPlanGroupController extends Controller
         return response()->noContent();
     }
 
-    public function syncUserGroups(Request $request, User $user)
+    public function syncUserGroups(SyncUserPlanGroupsRequest $request, User $user)
     {
-        $this->authorizeManage();
-
-        $data = $request->validate([
-            'group_ids'   => ['array'],
-            'group_ids.*' => ['integer', 'exists:user_plan_groups,id'],
-        ]);
-
-        $user->planGroups()->sync($data['group_ids'] ?? []);
+        $user->syncPlanGroups($request->validated()['group_ids'] ?? []);
 
         return response()->noContent();
     }

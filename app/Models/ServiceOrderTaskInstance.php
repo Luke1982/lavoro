@@ -24,7 +24,8 @@ class ServiceOrderTaskInstance extends Model
         static::deleting(function (ServiceOrderTaskInstance $task_instance) {
             app(MateriableService::class)->release(
                 $task_instance,
-                'verwijdering taak ' . ($task_instance->effective_title ?: 'zonder titel')
+                'verwijdering taak ' . $task_instance->timelineTitle(),
+                announce_lines: true,
             );
 
             $task_instance->productables()->delete();
@@ -50,8 +51,20 @@ class ServiceOrderTaskInstance extends Model
         'cancellation_reason' => 'Reden annulering',
     ];
 
+    /**
+     * Completing, signing and cancelling a task are told by their own signals
+     * (TaskCompletionChanged, TaskSigned, TaskSignatureRemoved, TaskCancelled), in
+     * a sentence that names the task. Logging the columns as well says it twice.
+     */
     protected array $activity_ignore = [
         'signature_base64',
+        'is_complete',
+        'completed_at',
+        'completed_by',
+        'signed_by',
+        'signed_at',
+        'is_cancelled',
+        'cancellation_reason',
     ];
 
     protected $fillable = [
@@ -80,6 +93,20 @@ class ServiceOrderTaskInstance extends Model
         'signed_at' => 'datetime',
         'is_cancelled' => 'boolean',
     ];
+
+    /** A task has no screen of its own; its history is read on the work order. */
+    public function historyTimelines(string $action): array
+    {
+        return [$this->serviceOrder];
+    }
+
+    /** A task with neither a title nor a description is just "Taak", not Taak "Taak". */
+    public function historyLabel(): ?string
+    {
+        $title = $this->ownTitle();
+
+        return $title === null ? 'Taak' : 'Taak "' . $title . '"';
+    }
 
     public function serviceOrder()
     {
@@ -144,7 +171,12 @@ class ServiceOrderTaskInstance extends Model
      */
     public function timelineTitle(): string
     {
-        return $this->effective_title ?: (Str::limit((string) $this->description, 60) ?: 'Taak');
+        return $this->ownTitle() ?? 'Taak';
+    }
+
+    private function ownTitle(): ?string
+    {
+        return ($this->effective_title ?: Str::limit((string) $this->description, 60)) ?: null;
     }
 
     /**

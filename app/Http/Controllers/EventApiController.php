@@ -275,38 +275,55 @@ class EventApiController extends Controller
         return response()->json(['pending_standard_emails' => $pending]);
     }
 
+    /**
+     * Each copy is made in one transaction, so what reacts to it after the
+     * commit -- the push to Google above all -- sees it complete, crew and
+     * werkbonnen included, instead of the bare appointment.
+     */
     public function copy(EventCopyRequest $request, Event $event)
     {
         $offsets = $request->offsets();
 
         $service_orders = $event->serviceOrders()->get();
+        $customer_ids = $event->no_service_order ? $event->customers()->pluck('customers.id')->all() : [];
         $executing_user_ids = $event->executingUsers()->pluck('users.id')->all();
         $executing_user_roles = $this->executingUserRoleMap($event);
 
         $new_events = [];
 
         foreach ($offsets as $days) {
-            $new_event = Event::create([
-                'name' => $event->name,
-                'description' => $event->description,
-                'event_type_id' => $event->event_type_id,
-                'status' => $event->status,
-                'start' => Clock::toLocal($event->start)->addDays($days)->utc(),
-                'end' => Clock::toLocal($event->end)->addDays($days)->utc(),
-                'location' => $event->location,
-                'location_id' => $event->location_id,
-                'is_preliminary' => $event->is_preliminary,
-            ]);
+            $new_event = DB::transaction(function () use (
+                $event, $days, $service_orders, $customer_ids, $executing_user_ids, $executing_user_roles
+            ) {
+                $new_event = Event::create([
+                    'name' => $event->name,
+                    'description' => $event->description,
+                    'event_type_id' => $event->event_type_id,
+                    'status' => $event->status,
+                    'start' => Clock::toLocal($event->start)->addDays($days)->utc(),
+                    'end' => Clock::toLocal($event->end)->addDays($days)->utc(),
+                    'location' => $event->location,
+                    'location_id' => $event->location_id,
+                    'is_preliminary' => $event->is_preliminary,
+                    'no_service_order' => $event->no_service_order,
+                ]);
 
-            foreach ($service_orders as $order) {
-                $order->events()->attach($new_event->id);
+                foreach ($service_orders as $order) {
+                    $order->events()->attach($new_event->id);
 
-                Signals::dispatch(new ServiceOrderScheduled($order, $new_event));
-            }
+                    Signals::dispatch(new ServiceOrderScheduled($order, $new_event));
+                }
 
-            if (count($executing_user_ids) > 0) {
-                $new_event->syncExecutingUsers($executing_user_ids, [], $executing_user_roles);
-            }
+                if ($customer_ids !== []) {
+                    $new_event->syncCustomers($customer_ids);
+                }
+
+                if (count($executing_user_ids) > 0) {
+                    $new_event->syncExecutingUsers($executing_user_ids, [], $executing_user_roles);
+                }
+
+                return $new_event;
+            });
 
             $new_event->load([
                 'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),

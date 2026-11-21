@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ImageAnnotated extends BaseSignal
 {
+    use ReachesTheRecordsTimeline;
+
     public function __construct(
         public Model $record,
         public Image $image,
@@ -34,20 +36,15 @@ class ImageAnnotated extends BaseSignal
         return 'image';
     }
 
-    public function subject(): Model
-    {
-        return $this->record;
-    }
-
     public function activityDescription(): ?string
     {
-        return 'Afbeelding "' . $this->image->name . '" bewerkt';
+        return 'Afbeelding "' . $this->image->name . '" bewerkt' . $this->atCheckpoint();
     }
 
     public function activityMetadata(): ?array
     {
-        return [
+        return $this->withCheckpoint([
             'image_id' => $this->image->id,
-        ];
+        ]);
     }
 }

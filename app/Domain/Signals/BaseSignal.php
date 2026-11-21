@@ -4,6 +4,8 @@ namespace App\Domain\Signals;
 
 use App\Domain\Assistant\AssistantContext;
 use App\Domain\Tray\TrayContext;
+use App\Models\User;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,6 +34,8 @@ abstract class BaseSignal implements Signal
 {
     use SerializesModels;
 
+    public const MAJORLABEL = 'MajorLabel';
+
     /**
      * Defaults are set on the properties themselves, not only in the constructor,
      * so a subclass that forgets to call parent::__construct() records an unknown
@@ -55,16 +59,27 @@ abstract class BaseSignal implements Signal
         $assistant = app(AssistantContext::class);
         $user = $assistant->onBehalfOf() ?? Auth::user();
 
-        $this->actor_id = $user?->id;
-        $this->actor_name = $user?->name;
+        $this->actor_id = $user instanceof User ? $user->id : null;
+        $this->actor_name = $this->isMajorLabel($user) ? self::MAJORLABEL : $user?->name;
         $this->actor_type = match (true) {
             $assistant->isActive() => 'ai',
             $user !== null => 'user',
-            app()->runningInConsole() => 'system',
             default => 'system',
         };
         $this->occurred_at = new \DateTimeImmutable;
         $this->via = app(TrayContext::class)->isActive() ? TrayContext::VIA : null;
+    }
+
+    /**
+     * MajorLabel's own accounts are hidden from the customer everywhere, so the
+     * trail credits their work to MajorLabel rather than naming the person: the
+     * customer can still see that support did it, not who. Anyone signed in who is
+     * not one of the customer's users -- the panel's landlord account -- is
+     * MajorLabel too, and keeps no id: it would point at an unrelated user here.
+     */
+    private function isMajorLabel(?Authenticatable $user): bool
+    {
+        return $user !== null && (!$user instanceof User || $user->isSuperAdmin());
     }
 
     public static function label(): string

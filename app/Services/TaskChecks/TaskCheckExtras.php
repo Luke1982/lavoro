@@ -2,6 +2,8 @@
 
 namespace App\Services\TaskChecks;
 
+use App\Domain\Signals\Signals;
+use App\Domain\Signals\Tasks\TaskExtraChecksChanged;
 use App\Models\ServiceOrderTaskInstance;
 use App\Models\ServiceOrderTaskInstanceCheck;
 use Illuminate\Support\Collection;
@@ -39,21 +41,34 @@ class TaskCheckExtras
      */
     public function sync(ServiceOrderTaskInstance $instance, PickedExtras $extras, array $fresh_units): void
     {
-        [$wanted, $current] = $this->delta($instance, $extras);
+        [$wanted, $current, $titles_before] = $this->delta($instance, $extras);
 
-        $gone = $current->keys()->diff($wanted->keys())->all();
-        $instance->checks()->whereIn('id', $current->only($gone)->flatten()->all())->delete();
+        $gone_ids = $current->except($wanted->keys()->all())->flatten()->all();
+
+        if ($gone_ids !== []) {
+            $instance->checks()->whereIn('id', $gone_ids)->delete();
+        }
 
         $new = $wanted->except($current->keys()->all())->values();
 
-        if ($new->isEmpty()) {
+        if ($new->isNotEmpty()) {
+            $units = $this->rows->unitsOf($instance->checks()->get());
+            $indexes = $instance->checks_per_unit ? ($units ?: $fresh_units) : [null];
+
+            $this->rows->write($instance, $new, $indexes, (int) $instance->checks()->max('sort_order') + 1);
+        }
+
+        if ($new->isEmpty() && $gone_ids === []) {
             return;
         }
 
-        $units = $this->rows->unitsOf($instance->checks()->get());
-        $indexes = $instance->checks_per_unit ? ($units ?: $fresh_units) : [null];
-
-        $this->rows->write($instance, $new, $indexes, (int) $instance->checks()->max('sort_order') + 1);
+        Signals::dispatch(new TaskExtraChecksChanged(
+            $instance->serviceOrder,
+            $instance,
+            $instance->timelineTitle(),
+            $titles_before,
+            $wanted->map(fn (CheckItem $item) => $item->title)->unique()->values()->all(),
+        ));
     }
 
     /** Whether saving these extras would take away one that is already ticked. */
@@ -76,9 +91,10 @@ class TaskCheckExtras
 
     /**
      * The extras the task should carry after this save, and those it carries now with
-     * the ids of their copies, both keyed by CheckItem::key().
+     * the ids of their copies, both keyed by CheckItem::key(); and the titles of the
+     * extras it carries now, each once.
      *
-     * @return array{0: Collection<string, CheckItem>, 1: Collection<string, Collection<int, int>>}
+     * @return array{0: Collection<string, CheckItem>, 1: Collection<string, Collection<int, int>>, 2: array<int, string>}
      */
     private function delta(ServiceOrderTaskInstance $instance, PickedExtras $extras): array
     {
@@ -102,6 +118,7 @@ class TaskCheckExtras
             $kept->concat($picked)->keyBy(fn (CheckItem $item) => $item->key()),
             $extra_rows->groupBy(fn (ServiceOrderTaskInstanceCheck $check) => CheckItem::fromCopy($check)->key())
                 ->map->pluck('id'),
+            $extra_rows->pluck('title')->unique()->values()->all(),
         ];
     }
 }

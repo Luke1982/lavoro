@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Tasks\CreateTaskInstanceAction;
 use App\Domain\Signals\Signals;
+use App\Domain\Signals\Tasks\TaskBundleQuantitiesChanged;
 use App\Domain\Signals\Tasks\TaskCancelled;
 use App\Domain\Signals\Tasks\TaskCompletionChanged;
 use App\Domain\Signals\Tasks\TaskSignatureRemoved;
 use App\Domain\Signals\Tasks\TaskSigned;
+use App\Domain\Signals\Tasks\TaskVisibilityChanged;
 use App\Http\Requests\ServiceOrderTaskInstanceCancelRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceDeleteRequest;
 use App\Http\Requests\ServiceOrderTaskInstanceSignRequest;
@@ -27,8 +29,8 @@ class ServiceOrderTaskInstanceController extends Controller
     {
         DB::transaction(function () use ($request, $create) {
             $instance = $create->execute($request->taskColumns(), $request->extraChecks());
-            $instance->userRoles()->sync($request->validated('user_role_ids', []));
-            $this->syncFlexQuantities($instance, $request->validated('flex_parts', []));
+            $this->syncVisibility($instance, $request->validated('user_role_ids', []), announce: false);
+            $this->syncFlexQuantities($instance, $request->validated('flex_parts', []), announce: false);
         });
 
         return redirect()->back()->with('success', 'Taak is toegevoegd');
@@ -45,12 +47,12 @@ class ServiceOrderTaskInstanceController extends Controller
         DB::transaction(function () use ($request, $instance, $bundles, $checks) {
             $was_per_unit = (bool) $instance->checks_per_unit;
 
-            if ($request->has('user_role_ids')) {
-                $instance->userRoles()->sync($request->validated('user_role_ids'));
-            }
-
             $instance->update($request->taskColumns());
             $instance->unsetRelation('product');
+
+            if ($request->has('user_role_ids')) {
+                $this->syncVisibility($instance, $request->validated('user_role_ids') ?? []);
+            }
 
             $checks->followEdit($instance, $was_per_unit, $request->extraChecks());
 
@@ -70,10 +72,15 @@ class ServiceOrderTaskInstanceController extends Controller
      * whole. They are productables hanging off the taak instead of off a product: same
      * relation, different owner, because a flex part settles its number when it is sold.
      *
+     * Told on the werkbon only when an existing taak is edited: a new taak's own
+     * "aangemaakt" entry already stands for everything it was made with.
+     *
      * @param  array<int, array{product_id: int, quantity: int}>  $rows
      */
-    private function syncFlexQuantities(ServiceOrderTaskInstance $instance, array $rows): void
+    private function syncFlexQuantities(ServiceOrderTaskInstance $instance, array $rows, bool $announce = true): void
     {
+        $before = $announce ? $this->flexQuantities($instance) : [];
+
         $instance->productables()->delete();
 
         foreach ($rows as $row) {
@@ -87,7 +94,61 @@ class ServiceOrderTaskInstanceController extends Controller
             ]);
         }
 
+        if (!$announce) {
+            return;
+        }
+
         $instance->load('productables');
+
+        $signal = new TaskBundleQuantitiesChanged(
+            $instance->serviceOrder,
+            $instance,
+            $instance->timelineTitle(),
+            $before,
+            $this->flexQuantities($instance),
+        );
+
+        if ($signal->changes() !== []) {
+            Signals::dispatch($signal);
+        }
+    }
+
+    /** @return array<int, array{name: string, quantity: int}> */
+    private function flexQuantities(ServiceOrderTaskInstance $instance): array
+    {
+        return $instance->productables()->with('product')->get()
+            ->mapWithKeys(fn ($productable) => [$productable->product_id => [
+                'name' => $productable->product?->display_name ?? ('Product #' . $productable->product_id),
+                'quantity' => (int) $productable->quantity,
+            ]])
+            ->all();
+    }
+
+    /**
+     * Which roles see this taak, written as a whole; told on the werkbon only when the
+     * set of roles of an existing taak actually changed. A new taak's own "aangemaakt"
+     * entry already stands for the roles it was made with.
+     *
+     * @param  array<int, int>  $role_ids
+     */
+    private function syncVisibility(ServiceOrderTaskInstance $instance, array $role_ids, bool $announce = true): void
+    {
+        $before = $announce ? $instance->userRoles()->pluck('name', 'user_roles.id')->all() : [];
+        $result = $instance->userRoles()->sync($role_ids);
+
+        if (!$announce || ($result['attached'] === [] && $result['detached'] === [])) {
+            return;
+        }
+
+        $instance->unsetRelation('userRoles');
+
+        Signals::dispatch(new TaskVisibilityChanged(
+            $instance->serviceOrder,
+            $instance,
+            $instance->timelineTitle(),
+            $before,
+            $instance->userRoles()->pluck('name', 'user_roles.id')->all(),
+        ));
     }
 
     public function toggle(
@@ -132,6 +193,8 @@ class ServiceOrderTaskInstanceController extends Controller
             $update['signed_at'] = null;
         }
 
+        $was_signed = $serviceordertaskinstance->signed_at !== null;
+
         $serviceordertaskinstance->update($update);
 
         $title = $serviceordertaskinstance->timelineTitle();
@@ -143,12 +206,24 @@ class ServiceOrderTaskInstanceController extends Controller
             (bool) $serviceordertaskinstance->is_complete,
         ));
 
+        if ($was_signed && $serviceordertaskinstance->signed_at === null) {
+            Signals::dispatch(new TaskSignatureRemoved(
+                $serviceordertaskinstance->serviceOrder,
+                $serviceordertaskinstance,
+                $title,
+            ));
+        }
+
         return redirect()->back()->with('success', 'Taakstatus bijgewerkt');
     }
 
+    /**
+     * In one transaction: deleting a taak hands its materials back to stock and tells
+     * every line it takes with it, and none of that may stay behind if the delete fails.
+     */
     public function destroy(ServiceOrderTaskInstanceDeleteRequest $request, ServiceOrderTaskInstance $serviceordertaskinstance)
     {
-        $serviceordertaskinstance->delete();
+        DB::transaction(fn () => $serviceordertaskinstance->delete());
 
         return redirect()->back()->with('success', 'Taak is verwijderd');
     }

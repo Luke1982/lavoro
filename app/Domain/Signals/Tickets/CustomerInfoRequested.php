@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CustomerInfoRequested extends BaseSignal
 {
+    use ReachesTheTicketsCustomer;
+
     /** @param  array<int, string>  $requested */
     public function __construct(
         public Ticket $ticket,
@@ -55,11 +57,11 @@ class CustomerInfoRequested extends BaseSignal
 
     public function activityMetadata(): ?array
     {
-        return [
+        return $this->withTicketLabel([
             'to' => $this->recipient,
             'requested' => $this->requested,
             'expires_at' => $this->expires_at?->format(DateTimeInterface::ATOM),
-        ];
+        ]);
     }
 
     /** Waarom gevraagd is, in de woorden waarin de klant het gelezen heeft. */

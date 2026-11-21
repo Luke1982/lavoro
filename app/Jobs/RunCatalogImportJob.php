@@ -7,12 +7,12 @@ use App\Domain\Imports\CatalogWriter;
 use App\Enums\CatalogImportStatus;
 use App\Exceptions\Refusal;
 use App\Models\CatalogImport;
+use App\Support\ActingAs;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -59,13 +59,7 @@ class RunCatalogImportJob implements ShouldQueue
             return;
         }
 
-        Auth::setUser($import->user);
-
-        try {
-            $this->work($import);
-        } finally {
-            Auth::forgetUser();
-        }
+        ActingAs::run($import->user, fn () => $this->work($import));
     }
 
     private function work(CatalogImport $import): void

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Assets\AttachChildAssetAction;
+use App\Actions\Assets\DetachChildAssetAction;
 use App\Enums\TicketStatusses;
 use App\Http\Requests\AssetAttachChildRequest;
 use App\Http\Requests\AssetChildStoreRequest;
@@ -32,6 +33,9 @@ use Inertia\Response;
 class AssetController extends Controller
 {
     use ReadsPerPage;
+
+    /** The page shows the latest stretch of a machine's history; the assistant searches all of it. */
+    private const HISTORY_SHOWN = 100;
 
     /**
      * List assets, searched and filtered over all of them: on status, and on
@@ -197,6 +201,10 @@ class AssetController extends Controller
             'parentAsset.product.productType',
             'parentAsset.productRelation',
             'maintenanceContracts.customer',
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at')
+                ->limit(self::HISTORY_SHOWN),
         ];
 
         if ($request->user()->hasPermission('supplier.read')) {
@@ -260,6 +268,7 @@ class AssetController extends Controller
             'owningCustomer' => $owning_customer
                 ? ['id' => $owning_customer->id, 'name' => $owning_customer->name]
                 : null,
+            'historyShown' => self::HISTORY_SHOWN,
         ]);
     }
 
@@ -329,7 +338,7 @@ class AssetController extends Controller
                     ->get()
                     ->map(fn (Location $location) => [
                         'id' => $location->id,
-                        'label' => $location->title ?: $location->addressLine(),
+                        'label' => $location->displayName(),
                     ])
                     ->values()
                     ->all(),
@@ -367,15 +376,7 @@ class AssetController extends Controller
             return redirect()->back()->with('error', 'Deze machine hangt niet onder een andere machine.');
         }
 
-        $root = $asset->rootAsset();
-
-        $asset->update([
-            'parent_asset_id' => null,
-            'product_relation_id' => null,
-            'productable_id' => null,
-            'customer_id' => $root->customer_id,
-            'location_id' => $root->location_id,
-        ]);
+        app(DetachChildAssetAction::class)->execute($asset);
 
         return redirect()->back()->with('success', 'Koppeling verwijderd.');
     }
@@ -431,9 +432,13 @@ class AssetController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    /**
+     * Its storingen, keuringen, parts and contract links go with it, one by one, so
+     * the whole removal holds or none of it does.
+     */
     public function destroy(AssetDestroyRequest $request, Asset $asset)
     {
-        $asset->delete();
+        DB::transaction(fn () => $asset->delete());
 
         return redirect()
             ->route('assets.index')

@@ -6,6 +6,7 @@ use App\Domain\Products\AttributeNumber;
 use App\Domain\Signals\Products\ProductAttributeFormatChanged;
 use App\Domain\Signals\Signals;
 use App\Exceptions\Refusal;
+use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductAttributeValue;
 use App\Models\ProductAttributeValueable;
@@ -47,7 +48,13 @@ class ChangeProductAttributeFormatAction
                 $attribute->values()->update(['number' => null]);
             }
 
-            Signals::dispatch(new ProductAttributeFormatChanged($attribute, $old_value_type, $old_unit, $merged));
+            Signals::dispatch(new ProductAttributeFormatChanged(
+                $attribute,
+                $old_value_type,
+                $old_unit,
+                $merged,
+                $attribute->isNumeric() ? $this->productsHolding($attribute) : [],
+            ));
         });
     }
 
@@ -83,6 +90,21 @@ class ChangeProductAttributeFormatAction
         }
 
         return $values->count() - count($kept);
+    }
+
+    /**
+     * The products holding a value of this kenmerk: relabelled, every one of
+     * them now reads its value differently. Becoming text keeps every label.
+     *
+     * @return array<int, Product>
+     */
+    private function productsHolding(ProductAttribute $attribute): array
+    {
+        return Product::query()
+            ->whereHas('productAttributeValueables', fn ($valueables) => $valueables
+                ->whereIn('product_attribute_value_id', $attribute->values()->select('id')))
+            ->get(['products.id'])
+            ->all();
     }
 
     /**

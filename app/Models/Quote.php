@@ -198,6 +198,28 @@ class Quote extends Model
         return $this->number . ' (' . $this->title . ')';
     }
 
+    /**
+     * Its creation and removal are news on the customer's and the project's
+     * timeline. A deleted concept would otherwise leave no trace anywhere: the
+     * quote takes its own timeline with it.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return in_array($action, ['created', 'deleted'], true)
+            ? [$this->customer, $this->project]
+            : [];
+    }
+
+    public function historyPermission(): ?string
+    {
+        return 'quote.read';
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Offerte ' . $this->number;
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

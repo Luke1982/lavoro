@@ -11,17 +11,31 @@ use App\Domain\Tools\ToolResult;
 use App\Models\Activity;
 use App\Models\ActivityChange;
 use App\Models\Asset;
+use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Event;
+use App\Models\EventType;
+use App\Models\GeneralSetting;
+use App\Models\IntegrationConnection;
+use App\Models\LedgerAccount;
 use App\Models\MaintenanceContract;
+use App\Models\MaintenanceContractTemplate;
+use App\Models\Material;
 use App\Models\PriceFormula;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\Project;
 use App\Models\Quote;
+use App\Models\Role;
 use App\Models\ServiceOrder;
+use App\Models\ServiceOrderStage;
+use App\Models\StandardAttachment;
+use App\Models\StandardEmail;
+use App\Models\Supplier;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\UserPlanGroup;
+use App\Models\UserRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -64,6 +78,21 @@ class SearchActivityTool implements Tool
         'offerte' => Quote::class,
         'product' => Product::class,
         'kenmerk' => ProductAttribute::class,
+        'materiaal' => Material::class,
+        'grootboekrekening' => LedgerAccount::class,
+        'koppeling' => IntegrationConnection::class,
+        'leverancier' => Supplier::class,
+        'contractsjabloon' => MaintenanceContractTemplate::class,
+        'fase' => ServiceOrderStage::class,
+        'medewerker' => User::class,
+        'rol' => Role::class,
+        'standaardmail' => StandardEmail::class,
+        'standaardbijlage' => StandardAttachment::class,
+        'plangroep' => UserPlanGroup::class,
+        'planrol' => UserRole::class,
+        'afspraaktype' => EventType::class,
+        'bedrijf' => Company::class,
+        'instelling' => GeneralSetting::class,
     ];
 
     public static function name(): string
@@ -211,6 +240,11 @@ class SearchActivityTool implements Tool
                 : Clock::toLocal($activity->occurred_at)->toDateTimeString(),
             'event_key' => $activity->event_key,
             'description' => $activity->description,
+            /**
+             * What the entry is about when it hangs off another record: "Aangemaakt"
+             * on a customer is a machine being added, and only this says which.
+             */
+            'about' => $activity->metadata['subject_label'] ?? null,
             'subject' => $this->subjectLabels($activity),
             'attached_to' => collect($activity->attachments)
                 ->map(fn ($row) => (array_search($row->activityable_type, self::SUBJECT_TYPES, true)
@@ -274,8 +308,10 @@ class SearchActivityTool implements Tool
      * An entry qualifies when it is attached to at least one record they may
      * open, which is the same answer they would get by opening those records one
      * by one and reading the timeline on each. Types with no visibility rule of
-     * their own — a material line, a stage — grant nothing here; they travel
-     * attached to the werkbon they happened on, and are reached through that.
+     * their own — a material line — grant nothing here; they travel attached to
+     * the werkbon they happened on, and are reached through that. A user's history
+     * is reached through the users this person can see, so MajorLabel's own
+     * accounts stay as hidden here as on every other screen.
      */
     private function constrainToVisibleSubjects(Builder $query, User $user): void
     {
@@ -320,6 +356,66 @@ class SearchActivityTool implements Tool
 
                     if ($user->can('read', ProductAttribute::class)) {
                         $outer->orWhere('activityables.activityable_type', ProductAttribute::class);
+                    }
+
+                    if ($user->can('viewAny', MaintenanceContract::class)) {
+                        $outer->orWhere('activityables.activityable_type', MaintenanceContract::class);
+                    }
+
+                    if ($user->hasPermission('material.read')) {
+                        $outer->orWhere('activityables.activityable_type', Material::class);
+                    }
+
+                    if ($user->can('viewAny', Supplier::class)) {
+                        $outer->orWhere('activityables.activityable_type', Supplier::class);
+                    }
+
+                    if ($user->can('viewAny', MaintenanceContractTemplate::class)) {
+                        $outer->orWhere('activityables.activityable_type', MaintenanceContractTemplate::class);
+                    }
+
+                    if ($user->hasPermission('serviceorderstage.read')) {
+                        $outer->orWhere('activityables.activityable_type', ServiceOrderStage::class);
+                    }
+
+                    if ($user->can('viewAny', User::class)) {
+                        $outer->orWhere(fn ($q) => $q
+                            ->where('activityables.activityable_type', User::class)
+                            ->whereIn('activityables.activityable_id', User::withTrashed()->select('users.id')));
+                    }
+
+                    if ($user->can('assignRoles', User::class)) {
+                        $outer->orWhere('activityables.activityable_type', Role::class);
+                    }
+
+                    if ($user->can('manage', StandardEmail::class)) {
+                        $outer->orWhere('activityables.activityable_type', StandardEmail::class);
+                    }
+
+                    if ($user->can('manage', StandardAttachment::class)) {
+                        $outer->orWhere('activityables.activityable_type', StandardAttachment::class);
+                    }
+
+                    if ($user->can('manage', UserPlanGroup::class)) {
+                        $outer->orWhere('activityables.activityable_type', UserPlanGroup::class);
+                    }
+
+                    if ($user->can('viewAny', UserRole::class)) {
+                        $outer->orWhere('activityables.activityable_type', UserRole::class);
+                    }
+
+                    if ($user->hasPermission('eventtype.read')) {
+                        $outer->orWhere('activityables.activityable_type', EventType::class);
+                    }
+
+                    if ($user->isAdmin()) {
+                        $outer->orWhere('activityables.activityable_type', Company::class)
+                            ->orWhere('activityables.activityable_type', GeneralSetting::class);
+                    }
+
+                    if ($user->hasPermission('integration.manage')) {
+                        $outer->orWhere('activityables.activityable_type', LedgerAccount::class)
+                            ->orWhere('activityables.activityable_type', IntegrationConnection::class);
                     }
                 });
         });

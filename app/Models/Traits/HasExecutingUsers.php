@@ -2,6 +2,8 @@
 
 namespace App\Models\Traits;
 
+use App\Models\Role;
+use App\Models\Scopes\HidesSuperAdmins;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -34,12 +36,21 @@ trait HasExecutingUsers
         }
     }
 
+    /**
+     * A model that wants to say who came onto it and who left defines
+     * executingUsersChanged(array $before, array $after); it is handed what
+     * executingUsersSnapshot() returns, taken before and after the sync. A
+     * werkbon or a periodic check follows its appointment and says nothing of
+     * its own, so it pays for no extra queries either.
+     */
     public function syncExecutingUsers(
         array $user_ids,
         array $breaktimes = [],
         array $user_roles = [],
         array $diverging_times = []
     ): void {
+        $before = method_exists($this, 'executingUsersChanged') ? $this->executingUsersSnapshot() : null;
+
         $current_ids = $this->executingUsers()
             ->pluck('users.id')
             ->map(fn ($id) => (int) $id)
@@ -93,6 +104,54 @@ trait HasExecutingUsers
         }
 
         $this->syncExecutingUserRoles($user_roles);
+
+        if ($before !== null) {
+            $this->executingUsersChanged($before, $this->executingUsersSnapshot());
+        }
+    }
+
+    /**
+     * Who executes this record and under which conditions, as the database has
+     * it: the name as it is now, the break, diverging times and plan roles.
+     * MajorLabel's own accounts are in it too, whoever is looking, and marked:
+     * putting one on or taking one off is still a change Google has to hear
+     * about, but a line built from it must never name them.
+     *
+     * @return array<int, array{
+     *     name: string, super_admin: bool, breaktime: int, diverging_start: ?string,
+     *     diverging_end: ?string, user_role_ids: array<int, int>
+     * }>
+     */
+    public function executingUsersSnapshot(): array
+    {
+        $users = $this->executingUsers()
+            ->withoutGlobalScope(HidesSuperAdmins::class)
+            ->withExists(['roles as super_admin' => fn ($role) => $role->where('name', Role::SUPERADMIN)])
+            ->get();
+
+        $roles = DB::table('user_role_userable')
+            ->whereIn('userable_id', $users->pluck('pivot.id')->all())
+            ->get(['userable_id', 'user_role_id'])
+            ->groupBy('userable_id');
+
+        return $users->mapWithKeys(function (User $user) use ($roles) {
+            $diverging = (bool) $user->pivot->has_diverging_times;
+            $role_ids = ($roles->get($user->pivot->id) ?? collect())
+                ->pluck('user_role_id')
+                ->map(fn ($id) => (int) $id)
+                ->sort()
+                ->values()
+                ->all();
+
+            return [(int) $user->id => [
+                'name' => (string) $user->name,
+                'super_admin' => (bool) $user->super_admin,
+                'breaktime' => (int) $user->pivot->breaktime,
+                'diverging_start' => $diverging ? $user->pivot->diverging_start : null,
+                'diverging_end' => $diverging ? $user->pivot->diverging_end : null,
+                'user_role_ids' => $role_ids,
+            ]];
+        })->all();
     }
 
     protected function syncExecutingUserRoles(array $user_roles): void

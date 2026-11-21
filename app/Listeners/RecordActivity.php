@@ -7,6 +7,7 @@ use App\Domain\Signals\ChangeSentence;
 use App\Domain\Signals\Signal;
 use App\Models\Activity;
 use App\Models\ActivityChange;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -14,9 +15,9 @@ use Illuminate\Support\Facades\Log;
  * discovery through the Signal type hint, so every present and future signal is
  * covered without touching this class or registering anything by hand.
  *
- * The activity is written directly rather than through the subject model: by the
- * time this runs the transaction has committed and a deleted record no longer
- * exists, so only its type and id are safe to keep.
+ * It runs inside the transaction that raised the signal, so a rollback takes the
+ * entry with it. The activity is written directly rather than through the subject
+ * model: a deleted record no longer exists, so only its type and id are safe to keep.
  */
 class RecordActivity
 {
@@ -78,7 +79,7 @@ class RecordActivity
             'metadata' => $signal->activityMetadata(),
             'occurred_at' => $signal->occurredAt(),
             'correlation_id' => $signal->correlationId(),
-            'required_permission' => $signal->requiredPermission(),
+            'required_permission' => $this->requiredPermission($signal),
         ]);
 
         foreach ($changes as $change) {
@@ -145,19 +146,44 @@ class RecordActivity
     }
 
     /**
-     * Keeps the existing pivot behaviour so an entry can also surface on related
-     * records, which is what the timelines on the show pages read today.
+     * A fact about a record whose existence is gated -- a quote, a contract -- is
+     * gated the same way when the signal names no permission of its own, because
+     * it also lands on the customer's timeline, which more people may read.
+     */
+    private function requiredPermission(Signal $signal): ?string
+    {
+        $subject = $signal->subject();
+
+        return $signal->requiredPermission()
+            ?? (method_exists($subject, 'historyPermission') ? $subject->historyPermission() : null);
+    }
+
+    /**
+     * Attaches the entry to its subject and to every record it also belongs on,
+     * once each and in a single insert per thousand: a fact that lands on every
+     * product holding a kenmerk would otherwise cost a query per product.
      */
     private function attachToTimelines(Activity $activity, Signal $signal): void
     {
-        $records = array_merge([$signal->subject()], $signal->activityContext());
+        $rows = [];
+        $now = now();
 
-        foreach ($records as $record) {
+        foreach ([$signal->subject(), ...$signal->activityContext()] as $record) {
             if (!method_exists($record, 'activities') || !$record->exists) {
                 continue;
             }
 
-            $record->activities()->attach($activity->id);
+            $rows[$record->getMorphClass() . '|' . $record->getKey()] = [
+                'activity_id' => $activity->id,
+                'activityable_type' => $record->getMorphClass(),
+                'activityable_id' => $record->getKey(),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        foreach (array_chunk(array_values($rows), 1000) as $chunk) {
+            DB::table('activityables')->insert($chunk);
         }
     }
 }

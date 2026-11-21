@@ -7,6 +7,7 @@ use App\Enums\AssetStatusses;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\TicketStatusses;
+use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\AssetsFactory;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 class Asset extends Model
 {
+    use HasActivities;
     use HasCustomFields;
 
     /** @use HasFactory<AssetsFactory> */
@@ -39,9 +41,28 @@ class Asset extends Model
         'status' => 'Status',
     ];
 
+    /** Stored as plain dates; a cast would change how every screen receives them. */
+    protected array $activity_dates = [
+        'next_service_date',
+        'date_in_service',
+    ];
+
     protected array $activity_relations = [
         'customer_id' => ['customer', 'name'],
         'location_id' => ['linkedLocation', 'title'],
+        'product_id' => ['product', 'display_name'],
+    ];
+
+    /**
+     * Reported by named signals of their own: a machine only changes customer or
+     * parent by being transferred, or by being hung under another machine or
+     * taken out of one. Enforced by NoDoubleLoggingTest.
+     */
+    protected array $activity_ignore = [
+        'customer_id',
+        'parent_asset_id',
+        'product_relation_id',
+        'productable_id',
     ];
 
     protected $fillable = [
@@ -66,11 +87,25 @@ class Asset extends Model
     protected static function booted(): void
     {
         /**
-         * Taken off its contracts first, the way the contract screen does it, so the
-         * timeline says so and a contract priced by a formula reprices. The database
-         * would drop the link by itself, but without a word.
+         * What hangs off it goes first, one by one, while it can still be read; the
+         * database would cascade all of it away unseen. Its storingen, each
+         * "Verwijderd" told on the customer and on the werkbon it was on; its
+         * keuringen, each told on the werkbon it was for; its parts, each told on
+         * the customer and each taken off its own contracts in turn. Then it is
+         * taken off its contracts the way the contract screen does it, told on
+         * each contract, which reprices when a formula prices it. The database
+         * would drop that link by itself, but without a word.
+         *
+         * Last go its own links to the trail, as a deleted contract's and quote's
+         * do: what was told on the machine alone has no page left to be read on,
+         * and whatever was also told elsewhere stays there. The machine's own
+         * "Verwijderd" lands on its customer.
          */
         static::deleting(function (Asset $asset) {
+            $asset->tickets()->get()->each(fn (Ticket $ticket) => $ticket->delete());
+            $asset->servicejobs()->get()->each(fn (ServiceJob $service_job) => $service_job->delete());
+            $asset->childAssets()->get()->each(fn (Asset $child) => $child->delete());
+
             DB::table('assetables')
                 ->where('asset_id', $asset->id)
                 ->where('assetable_type', MaintenanceContract::class)
@@ -82,6 +117,11 @@ class Asset extends Model
                         app(DetachContractAssetAction::class)->execute($contract, $pivot->id);
                     }
                 });
+
+            DB::table('activityables')
+                ->where('activityable_type', Asset::class)
+                ->where('activityable_id', $asset->id)
+                ->delete();
         });
 
         static::saving(function (Asset $asset) {
@@ -91,6 +131,19 @@ class Asset extends Model
                 );
             }
         });
+    }
+
+    /** A machine's history is part of its customer's story. */
+    public function historyTimelines(string $action): array
+    {
+        return [$this->resolvedCustomer()];
+    }
+
+    public function historyLabel(): ?string
+    {
+        $name = $this->product?->display_name ?? 'Machine #' . $this->id;
+
+        return $this->serial_number ? $name . ' (serienummer ' . $this->serial_number . ')' : $name;
     }
 
     /**
@@ -241,13 +294,18 @@ class Asset extends Model
     /**
      * Walks up to the owning root. A child carries no customer of its own, so every
      * question about who owns it is really a question about the machine it sits in.
+     * A parent loaded beforehand is used while it is still the parent, so a list
+     * that loads the chain asks nothing per row.
      */
     public function rootAsset(): Asset
     {
         $node = $this;
 
         while ($node->parent_asset_id !== null) {
-            $node = $node->parentAsset()->firstOrFail();
+            $parent = $node->relationLoaded('parentAsset') ? $node->getRelation('parentAsset') : null;
+            $node = $parent !== null && (int) $parent->getKey() === (int) $node->parent_asset_id
+                ? $parent
+                : $node->parentAsset()->firstOrFail();
         }
 
         return $node;

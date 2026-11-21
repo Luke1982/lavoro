@@ -36,8 +36,8 @@ class StandardEmailController extends Controller
         unset($data['triggers'], $data['standard_attachment_ids']);
 
         $standard_email = StandardEmail::create($data);
-        $standard_email->triggers()->createMany($triggers);
-        $standard_email->standardAttachments()->sync($attachment_ids);
+        $standard_email->replaceTriggers($triggers);
+        $standard_email->syncStandardAttachments($attachment_ids);
 
         return redirect()->back()->with('success', 'Standaard e-mail aangemaakt.');
     }
@@ -50,9 +50,8 @@ class StandardEmailController extends Controller
         unset($data['triggers'], $data['standard_attachment_ids']);
 
         $standard_email->update($data);
-        $standard_email->triggers()->delete();
-        $standard_email->triggers()->createMany($triggers);
-        $standard_email->standardAttachments()->sync($attachment_ids);
+        $standard_email->replaceTriggers($triggers);
+        $standard_email->syncStandardAttachments($attachment_ids);
 
         return redirect()->back()->with('success', 'Standaard e-mail bijgewerkt.');
     }

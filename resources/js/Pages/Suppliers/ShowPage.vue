@@ -114,15 +114,23 @@
                     </tbody>
                 </table>
             </BoxComponent>
+
+            <BoxComponent>
+                <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+                    subtitle="Alles wat er met deze leverancier gebeurd is, op volgorde." chapter="timeline" />
+                <TimelineComponent :activities="supplier.activities ?? []" subject-type="App\Models\Supplier" />
+            </BoxComponent>
         </div>
     </div>
 </template>
 
 <script setup>
 import { ChevronRightIcon, BuildingOfficeIcon, CubeIcon, SwatchIcon } from '@heroicons/vue/24/outline';
+import { TimelineIcon } from '@lucide/vue';
 import { Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import BoxComponent from '@/Components/BoxComponent.vue';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
 

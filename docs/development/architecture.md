@@ -84,6 +84,16 @@ without that, the generic trail records the same change a second time.
 update, delete and restore, with one entry per changed field. Write a signal of
 your own only when the fact has a name of its own.
 
+An entry is only seen where it is attached, and it is attached only to records
+with a timeline (`HasActivities`). A model without one, such as a task or an
+inspection, says where its history belongs by overriding `historyTimelines()`:
+a task's goes on its work order, a machine's also on its customer. The action is
+passed in, so a work order can put its creation on the customer's timeline without
+putting every edit there. `historyLabel()` names the record on those other
+timelines ("Taak "Lekkage zoeken"", "Werkbon WB-0042"), copied into the entry so it
+still reads right after the record is renamed or deleted. A model that has neither a
+timeline nor `historyTimelines()` writes history that nobody can ever read.
+
 **Listening.** A listener is a class in `app/Listeners` with a `handle()` method,
 and the type hint decides what it hears. Laravel's listener discovery registers
 it; there is no list to maintain:

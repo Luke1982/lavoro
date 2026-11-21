@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\ServiceOrders\ServiceOrderCustomerChanged;
 use App\Domain\Signals\ServiceOrders\ServiceOrderStageChanged;
+use App\Domain\Signals\ServiceOrders\TicketDetachedFromOrder;
 use App\Domain\Signals\Signals;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceOrderTypes;
@@ -76,7 +77,9 @@ class ServiceOrder extends Model
 
     /**
      * Fields whose changes are announced by a named event of their own. Leaving
-     * them here too would log the same fact twice.
+     * them here too would log the same fact twice. A contract link is only ever
+     * set when the werkbon is generated and only ever cleared by
+     * ServiceOrderUnlinkedFromContract.
      */
     protected array $activity_ignore = [
         'signed_by',
@@ -86,6 +89,8 @@ class ServiceOrder extends Model
         'closed_on',
         'sent_to_administration',
         'project_milestone_id',
+        'sent_to_customer',
+        'maintenance_contract_id',
     ];
 
     /** Fields whose entries are gated behind a permission. */
@@ -169,6 +174,10 @@ class ServiceOrder extends Model
          *
          * Images are absent from it too: DeleteOrphanedImagesJob finds the photos of a deleted
          * order through those links, so they have to outlive it.
+         *
+         * Its storingen are let go by the database as well, so each one is told here, while
+         * the order still knows its appointments: a storing that was in behandeling because
+         * of this order goes back to open, and the storing's own timeline says why.
          */
         static::deleting(function (ServiceOrder $service_order) {
             $id = $service_order->id;
@@ -193,6 +202,19 @@ class ServiceOrder extends Model
             }
 
             $materiables->release($service_order, 'verwijdering werkbon #' . $id);
+
+            $tickets = $service_order->tickets()
+                ->with(['asset.product.brand', 'asset.product.productType'])
+                ->get();
+
+            foreach ($tickets as $ticket) {
+                Signals::dispatch(new TicketDetachedFromOrder(
+                    $service_order,
+                    $ticket,
+                    $ticket->asset,
+                    order_deleted: true,
+                ));
+            }
 
             foreach ($pivot_tables as $table => $morph) {
                 DB::table($table)
@@ -386,6 +408,22 @@ class ServiceOrder extends Model
         return $this->locationWithSource()['address'];
     }
 
+    /**
+     * Its creation and removal are news on the customer's timeline; every edit
+     * after that stays on its own.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return in_array($action, ['created', 'deleted'], true)
+            ? [$this->customer, $this->project]
+            : [];
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Werkbon ' . $this->number;
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class);
@@ -556,6 +594,7 @@ class ServiceOrder extends Model
      */
     public function moveToCustomer(int $customer_id): void
     {
+        $previous_customer_id = $this->customer_id;
         $previous = $this->customer?->name;
 
         $this->update([
@@ -563,7 +602,6 @@ class ServiceOrder extends Model
             'location_id' => null,
         ]);
 
-        $previous_customer_id = $this->getOriginal('customer_id');
         $new = $this->refresh()->customer?->name;
 
         Signals::dispatch(new ServiceOrderCustomerChanged(

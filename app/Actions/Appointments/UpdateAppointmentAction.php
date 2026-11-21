@@ -2,15 +2,14 @@
 
 namespace App\Actions\Appointments;
 
+use App\Domain\Signals\Appointments\AppointmentServiceOrderChanged;
 use App\Domain\Signals\Appointments\AppointmentUnassigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderAssigned;
 use App\Domain\Signals\ServiceOrders\ServiceOrderScheduled;
 use App\Domain\Signals\ServiceOrders\ServiceOrderUnscheduled;
 use App\Domain\Signals\Signals;
-use App\Jobs\Google\DeleteEventFromGoogleJob;
-use App\Jobs\Google\PushEventJob;
+use App\Domain\Signals\Users\NameListChange;
 use App\Models\Event;
-use App\Models\GoogleSyncedEvent;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -46,7 +45,7 @@ class UpdateAppointmentAction
         $linking = $changes->create_service_order || ($eventable_type && $eventable_id);
 
         if ($event->no_service_order && !$linking) {
-            $event->customers()->sync($changes->customer_id ? [$changes->customer_id] : []);
+            $event->syncCustomers([$changes->customer_id]);
         }
 
         $model = $linking
@@ -97,7 +96,7 @@ class UpdateAppointmentAction
             }
 
             if ($event->no_service_order) {
-                $event->customers()->detach();
+                $event->syncCustomers([], $model instanceof ServiceOrder ? $model : null);
                 $event->update(['no_service_order' => false]);
             }
 
@@ -116,7 +115,7 @@ class UpdateAppointmentAction
 
             $event->serviceOrders()->detach();
             $event->update(['no_service_order' => true]);
-            $event->customers()->sync($changes->customer_id ? [$changes->customer_id] : []);
+            $event->syncCustomers([$changes->customer_id]);
 
             $this->announceMove($event, $linked_before, null);
         });
@@ -131,6 +130,16 @@ class UpdateAppointmentAction
      */
     private function announceMove(Event $event, Collection $linked_before, ?ServiceOrder $linked_now): void
     {
+        $label = fn (ServiceOrder $service_order) => 'werkbon ' . $service_order->number;
+        $service_orders = new NameListChange(
+            $linked_before->mapWithKeys(fn (ServiceOrder $service_order) => [$service_order->id => $label($service_order)])->all(),
+            $linked_now ? [$linked_now->id => $label($linked_now)] : [],
+        );
+
+        if (!$service_orders->isEmpty()) {
+            Signals::dispatch(new AppointmentServiceOrderChanged($event, $service_orders));
+        }
+
         $linked_before
             ->reject(fn (ServiceOrder $service_order) => $service_order->is($linked_now))
             ->each(fn (ServiceOrder $service_order) => Signals::dispatch(
@@ -159,10 +168,6 @@ class UpdateAppointmentAction
             $assignment->user_roles,
             $assignment->diverging_times,
         );
-
-        PushEventJob::dispatch($event->id);
-
-        $this->dropGoogleCopiesForDepartedUsers($event);
 
         if ($departed !== []) {
             Signals::dispatch(new AppointmentUnassigned($event, $departed, $known_start));
@@ -197,28 +202,5 @@ class UpdateAppointmentAction
                 array_values(array_diff($assignment->user_ids, $previously_executing)),
             ));
         });
-    }
-
-    /**
-     * Someone taken off an appointment should stop seeing it in their own
-     * calendar, so any Google copy owned by a person who is neither an owner nor
-     * an executor is removed.
-     */
-    private function dropGoogleCopiesForDepartedUsers(Event $event): void
-    {
-        $still_relevant = array_unique(array_merge(
-            $event->owners()->wherePivot('type', 'owner')->pluck('users.id')->all(),
-            $event->executingUsers()->pluck('users.id')->all(),
-        ));
-
-        GoogleSyncedEvent::whereHas(
-            'syncedCalendar',
-            fn ($query) => $query->whereNotIn('owner_user_id', $still_relevant),
-        )->where('event_id', $event->id)->get()
-            ->each(fn ($synced) => DeleteEventFromGoogleJob::dispatch(
-                $synced->id,
-                $synced->google_synced_calendar_id,
-                $synced->google_event_id,
-            ));
     }
 }

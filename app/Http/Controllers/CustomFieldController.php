@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CustomField;
+use App\Domain\Signals\CustomFields\CustomFieldValuesChanged;
+use App\Domain\Signals\Signals;
 use App\Enums\CustomFieldTypes;
+use App\Http\Requests\CustomFieldDestroyRequest;
 use App\Http\Requests\CustomFieldReadRequest;
+use App\Http\Requests\CustomFieldSaveValuesRequest;
 use App\Http\Requests\CustomFieldStoreRequest;
 use App\Http\Requests\CustomFieldUpdateRequest;
-use App\Http\Requests\CustomFieldDestroyRequest;
-use App\Http\Requests\CustomFieldSaveValuesRequest;
+use App\Models\CustomField;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class CustomFieldController extends Controller
 {
@@ -82,8 +86,37 @@ class CustomFieldController extends Controller
             }
         }
 
-        $model->customFields()->syncWithoutDetaching($sync_data);
+        DB::transaction(function () use ($model, $sync_data, $custom_fields) {
+            $field_ids = array_keys($sync_data);
+            $before = $this->storedValues($model, $field_ids);
+
+            $model->customFields()->syncWithoutDetaching($sync_data);
+
+            Signals::dispatch(new CustomFieldValuesChanged(
+                $model,
+                $custom_fields->only($field_ids)
+                    ->mapWithKeys(fn (CustomField $field) => [
+                        $field->id => ['name' => $field->name, 'field_type' => $field->field_type],
+                    ])
+                    ->all(),
+                $before,
+                $this->storedValues($model, $field_ids),
+            ));
+        });
 
         return redirect()->back()->with('success', "{$saved_name} opgeslagen.");
+    }
+
+    /**
+     * @param  array<int, int|string>  $field_ids
+     * @return array<int, ?string>
+     */
+    private function storedValues(Model $model, array $field_ids): array
+    {
+        return $model->customFields()
+            ->whereIn('custom_fields.id', $field_ids)
+            ->get()
+            ->mapWithKeys(fn (CustomField $field) => [$field->id => $field->pivot->value])
+            ->all();
     }
 }

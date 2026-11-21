@@ -26,6 +26,11 @@ class QuoteReminderSent extends QuoteFact
         return 'Herinnering verstuurd';
     }
 
+    public function activityCategory(): string
+    {
+        return 'email';
+    }
+
     public function activityDescription(): ?string
     {
         return 'Herinnering voor versie ' . $this->version->number . ' van offerte ' . $this->quote->label()

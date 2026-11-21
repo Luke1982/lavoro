@@ -36,8 +36,13 @@ class RecalculateContractPrice
         $this->recalculate->execute($signal->contract);
     }
 
+    /** A contract being deleted has no price left to keep. */
     public function handleDetached(ContractAssetDetached $signal): void
     {
+        if ($signal->contract_deleted) {
+            return;
+        }
+
         $this->recalculate->execute($signal->contract);
     }
 

@@ -222,7 +222,7 @@
             <BoxComponent class="mt-6 md:mt-0" data-tour="contract.timeline">
                 <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
                     subtitle="Alles wat er op dit contract gebeurd is, op volgorde." chapter="timeline" />
-                <TimelineComponent :activities="maintenanceContract.activities || []" />
+                <TimelineComponent :activities="maintenanceContract.activities || []" subject-type="App\Models\MaintenanceContract" />
             </BoxComponent>
 
             <BoxComponent class="mt-4" data-tour="contract.remarks">

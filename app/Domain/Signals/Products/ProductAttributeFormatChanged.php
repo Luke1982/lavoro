@@ -4,6 +4,7 @@ namespace App\Domain\Signals\Products;
 
 use App\Domain\Signals\BaseSignal;
 use App\Enums\ProductAttributeValueTypes;
+use App\Models\Product;
 use App\Models\ProductAttribute;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,16 +12,27 @@ use Illuminate\Database\Eloquent\Model;
  * A kenmerk now holds numbers or text, or its unit changed. Becoming numeric
  * can fold values that were the same number written twice into one; how many
  * is part of the fact.
+ *
+ * The products whose value now reads differently -- "10" became "10 kW", or two
+ * spellings became one -- hear of it on their own timelines, named by the
+ * kenmerk, since nothing was saved on them.
  */
 class ProductAttributeFormatChanged extends BaseSignal
 {
+    /** @param  array<int, Product>  $products */
     public function __construct(
         public ProductAttribute $attribute,
         public string $old_value_type,
         public ?string $old_unit,
         public int $merged = 0,
+        public array $products = [],
     ) {
         parent::__construct();
+    }
+
+    public function activityContext(): array
+    {
+        return $this->products;
     }
 
     public static function key(): string
@@ -50,7 +62,10 @@ class ProductAttributeFormatChanged extends BaseSignal
 
     public function activityMetadata(): ?array
     {
-        return $this->merged > 0 ? ['merged_values' => $this->merged] : null;
+        return [
+            'subject_label' => 'Kenmerk ' . $this->attribute->name,
+            ...($this->merged > 0 ? ['merged_values' => $this->merged] : []),
+        ];
     }
 
     public function activityDescription(): ?string

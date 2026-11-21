@@ -2,60 +2,37 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Suppliers\SupplierLinkAction;
+use App\Http\Requests\MaterialSupplierDestroyRequest;
+use App\Http\Requests\MaterialSupplierStoreRequest;
+use App\Http\Requests\MaterialSupplierUpdateRequest;
 use App\Models\Material;
 use App\Models\Supplier;
-use Illuminate\Http\Request;
 
 class MaterialSupplierController extends Controller
 {
-    public function store(Request $request, Material $material)
+    public function store(MaterialSupplierStoreRequest $request, Material $material, SupplierLinkAction $links)
     {
-        abort_unless(
-            $request->user()->isAdmin() || $request->user()->hasPermission('material.update'),
-            403
-        );
+        $data = $request->validated();
 
-        $data = $request->validate([
-            'supplier_id'    => ['required', 'exists:suppliers,id'],
-            'article_number' => ['nullable', 'string', 'max:255'],
-            'is_preferred'   => ['sometimes', 'boolean'],
-        ]);
-
-        $material->suppliers()->syncWithoutDetaching([
-            $data['supplier_id'] => [
-                'article_number' => $data['article_number'] ?? null,
-                'is_preferred'   => $data['is_preferred'] ?? false,
-            ],
+        $links->link($material, Supplier::findOrFail($data['supplier_id']), [
+            'article_number' => $data['article_number'] ?? null,
+            'is_preferred' => $data['is_preferred'] ?? false,
         ]);
 
         return redirect()->back()->with('success', 'Leverancier gekoppeld.');
     }
 
-    public function update(Request $request, Material $material, Supplier $supplier)
+    public function update(MaterialSupplierUpdateRequest $request, Material $material, Supplier $supplier, SupplierLinkAction $links)
     {
-        abort_unless(
-            $request->user()->isAdmin() || $request->user()->hasPermission('material.update'),
-            403
-        );
-
-        $data = $request->validate([
-            'article_number' => ['nullable', 'string', 'max:255'],
-            'is_preferred'   => ['sometimes', 'boolean'],
-        ]);
-
-        $material->suppliers()->updateExistingPivot($supplier->id, $data);
+        $links->change($material, $supplier, $request->validated());
 
         return redirect()->back()->with('success', 'Leverancier bijgewerkt.');
     }
 
-    public function destroy(Request $request, Material $material, Supplier $supplier)
+    public function destroy(MaterialSupplierDestroyRequest $request, Material $material, Supplier $supplier, SupplierLinkAction $links)
     {
-        abort_unless(
-            $request->user()->isAdmin() || $request->user()->hasPermission('material.update'),
-            403
-        );
-
-        $material->suppliers()->detach($supplier->id);
+        $links->unlink($material, $supplier);
 
         return redirect()->back()->with('success', 'Leverancier ontkoppeld.');
     }

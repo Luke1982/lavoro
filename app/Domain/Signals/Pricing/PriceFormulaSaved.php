@@ -35,7 +35,7 @@ class PriceFormulaSaved extends BaseSignal
 
     public function activityCategory(): string
     {
-        return 'update';
+        return 'updated';
     }
 
     public function requiredPermission(): ?string

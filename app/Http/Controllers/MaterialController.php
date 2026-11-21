@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Materials\CreateMaterialAction;
 use App\Domain\Integrations\Area;
+use App\Exceptions\Refusal;
+use App\Http\Requests\MaterialDestroyRequest;
 use App\Http\Requests\MaterialReadRequest;
 use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
@@ -13,7 +15,7 @@ use App\Models\Material;
 use App\Models\MaterialCategory;
 use App\Models\MaterialUsageUnit;
 use App\Models\Supplier;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MaterialController extends Controller
 {
@@ -82,7 +84,9 @@ class MaterialController extends Controller
             'category',
             'usageUnit',
             'suppliers',
-            'activities' => fn ($q) => $q->visibleTo(Auth::user())->with('user')->latest(),
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at'),
         ]);
 
         if ($request->user()->can('seeFinancials', Material::class)) {
@@ -130,12 +134,25 @@ class MaterialController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * A material booked on a werkbon cannot go: the booking points at it, and the
+     * werkbon would lose what was used. In one transaction, because its supplier
+     * links and its place among products' standard materials are taken off one by
+     * one before it goes.
      */
-    public function destroy(Material $material)
+    public function destroy(MaterialDestroyRequest $request, Material $material)
     {
-        $material->delete();
+        $booked = DB::table('materiables')->where('material_id', $material->id)->count();
 
-        return redirect()->back();
+        if ($booked > 0) {
+            throw new Refusal(
+                'Materiaal ' . $material->name . ' kan niet verwijderd worden: het is nog '
+                    . ($booked === 1 ? '1 keer' : $booked . ' keer') . ' geboekt op werkbonnen.'
+                    . ' Zet het materiaal op inactief als het niet meer gebruikt wordt.'
+            );
+        }
+
+        DB::transaction(fn () => $material->delete());
+
+        return redirect()->back()->with('success', 'Materiaal verwijderd.');
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\SupplierImportPreviewRequest;
 use App\Http\Requests\SupplierImportConfirmRequest;
+use App\Http\Requests\SupplierImportPreviewRequest;
 use App\Jobs\ProcessSupplierImportJob;
 use App\Models\Supplier;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -13,19 +13,19 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class SupplierImportController extends Controller
 {
     private const COLUMNS = [
-        'Naam *'         => 'name',
-        'E-mail'         => 'email',
-        'Telefoon'       => 'phone',
-        'Mobiel'         => 'mobile',
-        'Website'        => 'website',
+        'Naam *' => 'name',
+        'E-mail' => 'email',
+        'Telefoon' => 'phone',
+        'Mobiel' => 'mobile',
+        'Website' => 'website',
         'Contactpersoon' => 'contact_person',
-        'Adres'          => 'address',
-        'Postcode'       => 'postal_code',
-        'Plaats'         => 'city',
-        'Land'           => 'country',
-        'IBAN'           => 'iban',
-        'BTW-nummer'     => 'vat_number',
-        'KVK-nummer'     => 'kvk_number',
+        'Adres' => 'address',
+        'Postcode' => 'postal_code',
+        'Plaats' => 'city',
+        'Land' => 'country',
+        'IBAN' => 'iban',
+        'BTW-nummer' => 'vat_number',
+        'KVK-nummer' => 'kvk_number',
     ];
 
     private const EXAMPLE_ROW = [
@@ -91,7 +91,7 @@ class SupplierImportController extends Controller
                 continue;
             }
 
-            $fatal    = empty($data['name']);
+            $fatal = empty($data['name']);
             $warnings = [];
 
             if (!$fatal) {
@@ -111,19 +111,19 @@ class SupplierImportController extends Controller
                 : (isset($existing_names[mb_strtolower($data['name'])]) ? 'update' : 'create');
 
             $preview_rows[] = array_merge($data, [
-                'action'   => $action,
-                'fatal'    => $fatal,
+                'action' => $action,
+                'fatal' => $fatal,
                 'warnings' => $warnings,
             ]);
         }
 
         session(['supplier_import_preview' => $preview_rows]);
 
-        $search    = $request->input('search');
+        $search = $request->input('search');
         $suppliers = Supplier::orderBy('name')->paginate(25)->appends(['search' => $search]);
 
         return inertia('Suppliers/IndexPage', [
-            'suppliers'     => $suppliers,
+            'suppliers' => $suppliers,
             'importPreview' => $preview_rows,
         ]);
     }
@@ -140,7 +140,7 @@ class SupplierImportController extends Controller
         session()->forget('supplier_import_preview');
 
         $count = count(array_filter($rows, fn ($r) => !$r['fatal']));
-        ProcessSupplierImportJob::dispatch($rows);
+        ProcessSupplierImportJob::dispatch($rows, $request->user()->id);
 
         return redirect()->route('suppliers.index')
             ->with('success', "Import gestart. {$count} leveranciers worden verwerkt.");
@@ -148,7 +148,7 @@ class SupplierImportController extends Controller
 
     public function example(SupplierImportConfirmRequest $request)
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray([array_keys(self::COLUMNS)], null, 'A1');
         $sheet->fromArray([self::EXAMPLE_ROW], null, 'A2');

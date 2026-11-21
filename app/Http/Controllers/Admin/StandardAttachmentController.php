@@ -8,7 +8,6 @@ use App\Http\Requests\StandardAttachmentStoreRequest;
 use App\Http\Requests\StandardAttachmentUpdateRequest;
 use App\Models\StandardAttachment;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,9 +43,9 @@ class StandardAttachmentController extends Controller
         return redirect()->back()->with('success', 'Standaard bijlage bijgewerkt.');
     }
 
+    /** The file is removed by a listener once the removal is committed. */
     public function destroy(StandardAttachmentDestroyRequest $request, StandardAttachment $standard_attachment): RedirectResponse
     {
-        Storage::disk('public')->delete($standard_attachment->path);
         $standard_attachment->delete();
 
         return redirect()->back()->with('success', 'Standaard bijlage verwijderd.');

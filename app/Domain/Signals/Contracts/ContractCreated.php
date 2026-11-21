@@ -34,8 +34,12 @@ class ContractCreated extends BaseSignal
         return $this->contract;
     }
 
+    /**
+     * The contract's own trail already writes its creation, and puts it on the
+     * customer as well. This signal is for what follows from it.
+     */
     public function activityDescription(): ?string
     {
-        return 'Contract aangemaakt';
+        return null;
     }
 }

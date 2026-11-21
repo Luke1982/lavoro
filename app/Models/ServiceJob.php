@@ -42,6 +42,20 @@ class ServiceJob extends Model
         'asset_id' => ['asset', 'serial_number'],
     ];
 
+    /**
+     * Mailing an inspection is told by ServiceJobEmailed, with the recipients;
+     * finishing and reopening it by ServiceJobCompleted and ServiceJobReopened, which
+     * carry the outcome, the days of a temporary approval, the date and who did it,
+     * before and after. None of them changes on any other path.
+     */
+    protected array $activity_ignore = [
+        'sent_to_customer',
+        'outcome',
+        'days_temporary_approval',
+        'completed_on',
+        'completed_by',
+    ];
+
     protected $fillable = [
         'asset_id',
         'service_order_id',
@@ -58,6 +72,31 @@ class ServiceJob extends Model
         'completed_on' => 'date',
         'sent_to_customer' => 'boolean',
     ];
+
+    /**
+     * An inspection has no screen of its own: it is read on the work order it was
+     * done for and on the machine it was done on. Its creation is already told on
+     * the work order by ServiceJobAdded, so only the machine hears about that.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return $action === 'created'
+            ? [$this->asset]
+            : [$this->serviceOrder, $this->asset];
+    }
+
+    /**
+     * "Keuring op WB-0042 (machine 12345)": on the machine's timeline the werkbon is
+     * what tells one keuring from the next. The machine goes by its serial, or by its
+     * product while it has none.
+     */
+    public function historyLabel(): ?string
+    {
+        $number = $this->serviceOrder?->number;
+        $machine = $this->asset?->serial_number ?: $this->asset?->product?->display_name;
+
+        return 'Keuring' . ($number ? ' op ' . $number : '') . ($machine ? ' (machine ' . $machine . ')' : '');
+    }
 
     protected static function booted()
     {
@@ -119,16 +158,29 @@ class ServiceJob extends Model
      */
     public function getDaysToAdvanceNextServiceDate($tmp_days): ?int
     {
-        $days = null;
+        return $this->daysToAdvanceFor($this->outcome, $tmp_days);
+    }
 
-        if ($this->outcome === ServiceJobOutcomes::goedkeur->value) {
-            $this->load('asset.product.productType');
-            $days = $this->asset->product->effectiveCertificateDays();
-        } elseif ($this->outcome === ServiceJobOutcomes::tijdelijk_goedkeur->value) {
-            $days = $tmp_days;
+    /**
+     * The days an outcome moves the machine's next service date: its certificate
+     * period for an approval, the days given for a temporary one, none otherwise.
+     * Also asked for the outcome a keuring had before it was saved again.
+     *
+     * @param  int|null  $tmp_days  The number of days for temporary approval, if applicable.
+     */
+    public function daysToAdvanceFor(?string $outcome, $tmp_days): ?int
+    {
+        if ($outcome === ServiceJobOutcomes::goedkeur->value) {
+            $this->loadMissing('asset.product.productType');
+
+            return $this->asset->product->effectiveCertificateDays();
         }
 
-        return $days;
+        if ($outcome === ServiceJobOutcomes::tijdelijk_goedkeur->value) {
+            return $tmp_days;
+        }
+
+        return null;
     }
 
     /**

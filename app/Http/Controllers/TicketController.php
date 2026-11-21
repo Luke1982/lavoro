@@ -8,6 +8,7 @@ use App\Enums\TicketPriorities;
 use App\Enums\TicketStatusses;
 use App\Http\Requests\TicketBulkUpdateRequest;
 use App\Http\Requests\TicketCreateRequest;
+use App\Http\Requests\TicketDestroyRequest;
 use App\Http\Requests\TicketListRequest;
 use App\Http\Requests\TicketReadRequest;
 use App\Http\Requests\TicketUpdateRequest;
@@ -24,6 +25,7 @@ use App\Models\UserRole;
 use App\Services\RoutePlanner;
 use App\Services\ServiceOrderEventWidget;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
 class TicketController extends Controller
@@ -465,7 +467,7 @@ class TicketController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Ticket $ticket)
+    public function destroy(TicketDestroyRequest $request, Ticket $ticket)
     {
         $ticket->delete();
 
@@ -477,10 +479,20 @@ class TicketController extends Controller
         ]);
     }
 
+    /**
+     * Each storing is saved on its own, so each says on its own timeline and its
+     * customer's which status it got. The machine, the machines above a part and their
+     * customer are loaded up front: telling the customer otherwise costs a few
+     * queries per storing.
+     */
     public function bulkUpdate(TicketBulkUpdateRequest $request)
     {
-        Ticket::whereIn('id', $request->input('ticket_ids'))
-            ->update(['status' => $request->input('status')]);
+        $owners = ['asset.customer', 'asset.parentAsset.customer', 'asset.parentAsset.parentAsset.customer'];
+
+        DB::transaction(fn () => Ticket::with($owners)
+            ->whereIn('id', $request->validated('ticket_ids'))
+            ->get()
+            ->each(fn (Ticket $ticket) => $ticket->update(['status' => $request->validated('status')])));
 
         return redirect()->back()->with('success', 'Status bijgewerkt.');
     }

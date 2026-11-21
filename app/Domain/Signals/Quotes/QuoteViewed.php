@@ -26,6 +26,11 @@ class QuoteViewed extends QuoteFact
         return 'Offerte bekeken';
     }
 
+    public function activityCategory(): string
+    {
+        return 'other';
+    }
+
     public function activityDescription(): ?string
     {
         return 'De klant bekeek versie ' . $this->version->number . ' van offerte ' . $this->quote->label()

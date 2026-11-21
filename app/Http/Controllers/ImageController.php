@@ -6,6 +6,10 @@ use App\Actions\Shares\ShareRecordAction;
 use App\Domain\Signals\Attachments\ImageAnnotated;
 use App\Domain\Signals\Attachments\ImageAttached;
 use App\Domain\Signals\Attachments\ImageRemoved;
+use App\Domain\Signals\Attachments\ImageRenamed;
+use App\Domain\Signals\Attachments\ImageReplaced;
+use App\Domain\Signals\Attachments\MainImageChanged;
+use App\Domain\Signals\Signal;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\ImageAnnotationsReadRequest;
 use App\Http\Requests\ImageDestroyRequest;
@@ -15,6 +19,9 @@ use App\Http\Requests\ImageShareRequest;
 use App\Http\Requests\ImageStoreRequest;
 use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
+use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -51,9 +58,9 @@ class ImageController extends Controller
             return redirect()->back()->withErrors(['error' => 'No images were uploaded.']);
         }
 
-        $imageable_record = new ($request->imageable_type);
-        $imageable_record = $imageable_record->find($request->imageable_id);
-        $directory = 'uploaded/' . strtolower(class_basename($request->imageable_type)) . '/' . $request->imageable_id;
+        $record_class = Image::attachableType($request->imageable_type);
+        $imageable_record = $record_class::findOrFail($request->imageable_id);
+        $directory = 'uploaded/' . strtolower(class_basename($record_class)) . '/' . $imageable_record->id;
         $created_images = [];
         /**
          * The client's filename neither names the file on disk nor keys its title:
@@ -117,7 +124,7 @@ class ImageController extends Controller
         }
 
         if ($request->filled('newTitle')) {
-            $image->update(['name' => $request->newTitle]);
+            $this->rename($image, $request->newTitle);
         }
 
         if ($request->wantsJson()) {
@@ -144,6 +151,8 @@ class ImageController extends Controller
         if ($annotations === null) {
             $image->update(['path' => $stored_path, 'original_path' => null, 'annotations' => null]);
 
+            $this->announceOnItsRecord($image, fn (Model $record) => new ImageReplaced($record, $image));
+
             return;
         }
 
@@ -153,10 +162,31 @@ class ImageController extends Controller
             'annotations' => $annotations,
         ]);
 
+        $this->announceOnItsRecord($image, fn (Model $record) => new ImageAnnotated($record, $image));
+    }
+
+    private function rename(Image $image, string $name): void
+    {
+        $previous_name = $image->name;
+        $image->update(['name' => $name]);
+
+        if ($image->wasChanged('name')) {
+            $this->announceOnItsRecord($image, fn (Model $record) => new ImageRenamed($record, $image, $previous_name));
+        }
+    }
+
+    /**
+     * Tells what happened to a photo on the record it hangs off, read from the
+     * photo's own link. A photo that hangs off nothing has nobody to tell.
+     *
+     * @param  Closure(Model): Signal  $signal
+     */
+    private function announceOnItsRecord(Image $image, Closure $signal): void
+    {
         $record = $image->attachedRecord();
 
         if ($record !== null) {
-            Signals::dispatch(new ImageAnnotated($record, $image));
+            Signals::dispatch($signal($record));
         }
     }
 
@@ -166,21 +196,19 @@ class ImageController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * The record the photo is announced on is read from the photo's own link: the
+     * screen names a record too, but that only says what the person was looking at.
      */
     public function destroy(ImageDestroyRequest $request, Image $image)
     {
-        $imageable_record = new ($request->imageable_type);
-        $imageable_record = $imageable_record->find($request->imageable_id);
-        DB::table('imageables')
-            ->where('imageable_type', $imageable_record->getMorphClass())
-            ->where('imageable_id', $imageable_record->id)
-            ->where('image_id', $image->id)
-            ->delete();
+        $imageable_record = $image->attachedRecord();
 
-        Signals::dispatch(new ImageRemoved($imageable_record, $image->id));
-
+        DB::table('imageables')->where('image_id', $image->id)->delete();
         $image->delete();
+
+        if ($imageable_record !== null) {
+            Signals::dispatch(new ImageRemoved($imageable_record, $image->id, $image->name));
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['deleted' => true]);
@@ -191,27 +219,68 @@ class ImageController extends Controller
 
     public function setMain(ImageSetMainRequest $request, Image $image)
     {
-        $imageable_type = (new ($request->imageable_type))->getMorphClass();
-        $imageable_id = (int) $request->imageable_id;
-
-        DB::table('imageables')
-            ->where('imageable_type', $imageable_type)
-            ->where('imageable_id', $imageable_id)
-            ->update(['main' => false]);
-
-        if (!$request->boolean('currently_main')) {
-            DB::table('imageables')
-                ->where('image_id', $image->id)
-                ->where('imageable_type', $imageable_type)
-                ->where('imageable_id', $imageable_id)
-                ->update(['main' => true]);
-        }
+        $this->makeMain(
+            Image::attachableType($request->imageable_type),
+            (int) $request->imageable_id,
+            $request->boolean('currently_main') ? null : $image,
+        );
 
         if ($request->wantsJson()) {
             return response()->json(['success' => true]);
         }
 
         return redirect()->back()->with('success', 'Hoofdafbeelding bijgewerkt.');
+    }
+
+    /**
+     * Makes this photo the record's main photo, or leaves it without one. The main
+     * photo is a flag on the link, which no model event hears, so the change is
+     * announced on the record when another photo ends up main.
+     *
+     * @param  class-string<Model>  $record_class
+     */
+    private function makeMain(string $record_class, int $record_id, ?Image $image): void
+    {
+        DB::transaction(function () use ($record_class, $record_id, $image) {
+            $previous_id = $this->mainImageId($record_class, $record_id);
+
+            $this->links($record_class, $record_id)->update(['main' => false]);
+
+            if ($image !== null) {
+                $this->links($record_class, $record_id)->where('image_id', $image->id)->update(['main' => true]);
+            }
+
+            $current_id = $this->mainImageId($record_class, $record_id);
+            $record = $previous_id !== $current_id ? $record_class::find($record_id) : null;
+
+            if ($record !== null) {
+                Signals::dispatch(new MainImageChanged(
+                    $record,
+                    $previous_id !== null ? Image::find($previous_id) : null,
+                    $current_id !== null ? Image::find($current_id) : null,
+                ));
+            }
+        });
+    }
+
+    /** @param  class-string<Model>  $record_class */
+    private function mainImageId(string $record_class, int $record_id): ?int
+    {
+        $image_id = $this->links($record_class, $record_id)->where('main', true)->value('image_id');
+
+        return $image_id === null ? null : (int) $image_id;
+    }
+
+    /**
+     * The links from the record to its photos, where the main photo is a flag.
+     *
+     * @param  class-string<Model>  $record_class
+     */
+    private function links(string $record_class, int $record_id): Builder
+    {
+        return DB::table('imageables')
+            ->where('imageable_type', (new $record_class)->getMorphClass())
+            ->where('imageable_id', $record_id);
     }
 
     /**
@@ -237,8 +306,8 @@ class ImageController extends Controller
     public function importFromUrl(ImageImportFromUrlRequest $request)
     {
         $url = $request->url;
-        $imageable_type = $request->imageable_type;
-        $imageable_id = (int) $request->imageable_id;
+        $record_class = Image::attachableType($request->imageable_type);
+        $imageable_record = $record_class::findOrFail($request->imageable_id);
         $name = $request->name ?? 'Geïmporteerde afbeelding';
 
         $extension_map = [
@@ -278,9 +347,7 @@ class ImageController extends Controller
             $image_data = $response->body();
         }
 
-        $array = explode('\\', $imageable_type);
-        $modelname = strtolower(array_pop($array));
-        $path = 'uploaded/' . $modelname . '/' . $imageable_id . '/';
+        $path = 'uploaded/' . strtolower(class_basename($record_class)) . '/' . $imageable_record->id . '/';
         $filename = 'import-' . Str::random(40) . '.' . $extension;
         Storage::disk('public')->put($path . $filename, $image_data);
 
@@ -289,21 +356,11 @@ class ImageController extends Controller
             'path' => $path . $filename,
         ]);
 
-        $imageable_record = new ($imageable_type);
-        $imageable_record = $imageable_record->find($imageable_id);
         $imageable_record->images()->attach($new_image->id, ['internal' => false]);
 
-        DB::table('imageables')
-            ->where('imageable_type', $imageable_type)
-            ->where('imageable_id', $imageable_id)
-            ->where('image_id', '!=', $new_image->id)
-            ->update(['main' => false]);
+        Signals::dispatch(new ImageAttached($imageable_record, 1, $new_image->path, $new_image->id));
 
-        DB::table('imageables')
-            ->where('image_id', $new_image->id)
-            ->where('imageable_type', $imageable_type)
-            ->where('imageable_id', $imageable_id)
-            ->update(['main' => true]);
+        $this->makeMain($record_class, $imageable_record->id, $new_image);
 
         return redirect()->back()->with('success', 'Afbeelding geïmporteerd en ingesteld als hoofdafbeelding.');
     }

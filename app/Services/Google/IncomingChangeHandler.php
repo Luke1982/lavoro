@@ -2,6 +2,9 @@
 
 namespace App\Services\Google;
 
+use App\Domain\Signals\Appointments\AppointmentImportedFromGoogle;
+use App\Domain\Signals\Appointments\GoogleChangeReverted;
+use App\Domain\Signals\Signals;
 use App\Jobs\Google\PushEventJob;
 use App\Models\Event;
 use App\Models\EventType;
@@ -230,6 +233,8 @@ class IncomingChangeHandler
             'last_pushed_at' => now(),
         ]);
 
+        Signals::dispatch(new AppointmentImportedFromGoogle($event, $owner_user));
+
         PushEventJob::dispatch($event->id);
     }
 
@@ -280,5 +285,7 @@ class IncomingChangeHandler
             'actor_id' => $actor->id,
             'kind' => $kind,
         ]);
+
+        Signals::dispatch(new GoogleChangeReverted($event, $actor, $kind));
     }
 }

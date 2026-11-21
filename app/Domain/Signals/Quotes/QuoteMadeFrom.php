@@ -36,7 +36,7 @@ class QuoteMadeFrom extends QuoteFact
 
     public function activityCategory(): string
     {
-        return 'create';
+        return 'created';
     }
 
     public function activityDescription(): ?string

@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CustomerInfoUploaded extends BaseSignal
 {
+    use ReachesTheTicketsCustomer;
+
     public function __construct(
         public Ticket $ticket,
         public CustomerUploadResult $delivered = new CustomerUploadResult,
@@ -71,7 +73,7 @@ class CustomerInfoUploaded extends BaseSignal
 
     public function activityMetadata(): ?array
     {
-        return [
+        return $this->withTicketLabel([
             'photos' => $this->delivered->photos,
             'videos' => $this->delivered->videos,
             'documents' => $this->delivered->documents,
@@ -79,7 +81,7 @@ class CustomerInfoUploaded extends BaseSignal
             'to' => $this->recipient,
             'thumbnail_path' => $this->delivered->first_photo_path,
             'thumbnail_image_id' => $this->delivered->first_photo_id,
-        ];
+        ]);
     }
 
     /**

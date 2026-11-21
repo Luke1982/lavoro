@@ -18,7 +18,7 @@ class RemarkPolicy
             return false;
         }
 
-        $record = $remark->remarkable();
+        $record = $remark->attachedRecord();
 
         return !$record instanceof Event || $user->can('provideFeedback', $record);
     }

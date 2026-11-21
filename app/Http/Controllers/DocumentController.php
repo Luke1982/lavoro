@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\AttachDocumentAction;
+use App\Domain\Signals\Attachments\DocumentChanged;
 use App\Domain\Signals\Attachments\DocumentRemoved;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\DocumentBulkCategoryRequest;
@@ -19,20 +20,15 @@ class DocumentController extends Controller
 {
     public function store(DocumentStoreRequest $request)
     {
-        $documentable_record = new ($request->documentable_type);
-        $documentable_record = $documentable_record->find($request->documentable_id);
-        $created_documents = [];
-
-        foreach ($request->file('documents') as $document_file) {
-            $created_documents[] = app(AttachDocumentAction::class)->execute(
-                $documentable_record,
-                $document_file,
-                $document_file->getClientOriginalName(),
-                $request->document_category_id,
-                $request->user()->id,
-                $request->boolean('internal', false),
-            );
-        }
+        $record_class = Document::attachableType($request->documentable_type);
+        $documentable_record = $record_class::findOrFail($request->documentable_id);
+        $created_documents = app(AttachDocumentAction::class)->executeMany(
+            $documentable_record,
+            $request->file('documents'),
+            $request->document_category_id,
+            $request->user()->id,
+            $request->boolean('internal', false),
+        );
 
         if ($request->wantsJson()) {
             return response()->json(
@@ -50,7 +46,7 @@ class DocumentController extends Controller
 
     public function update(DocumentUpdateRequest $request, Document $document)
     {
-        $document->update($request->validated());
+        $this->change($document, $request->validated());
 
         return back()->with('success', 'Document bijgewerkt.');
     }
@@ -64,8 +60,11 @@ class DocumentController extends Controller
 
     public function bulkCategory(DocumentBulkCategoryRequest $request)
     {
-        Document::whereIn('id', $request->ids)
-            ->update(['document_category_id' => $request->document_category_id]);
+        DB::transaction(fn () => Document::whereIn('id', $request->ids)
+            ->get()
+            ->each(fn (Document $document) => $this->change($document, [
+                'document_category_id' => $request->document_category_id,
+            ])));
 
         return back()->with('success', 'Categorie toegewezen.');
     }
@@ -80,21 +79,34 @@ class DocumentController extends Controller
     }
 
     /**
-     * Log the removal on whatever the document hangs off, drop the file and the row.
+     * Saves a new title or category and tells the record the document hangs from.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function change(Document $document, array $attributes): void
+    {
+        $before = $document->only(array_keys($attributes));
+        $document->update($attributes);
+
+        $record = $document->attachedRecord();
+
+        if ($record !== null && $document->wasChanged()) {
+            Signals::dispatch(new DocumentChanged($record, $document, $before));
+        }
+    }
+
+    /**
+     * Drops the row and announces it on whatever the document hangs off; the file
+     * goes once that has committed. A document hanging from nothing is announced
+     * on itself so that its file still goes, and that announcement writes nothing.
      */
     private function purge(Document $document): void
     {
-        $link = DB::table('documentables')->where('document_id', $document->id)->first();
+        $record = $document->attachedRecord() ?? $document;
 
-        if ($link) {
-            $documentable_record = (new ($link->documentable_type))->find($link->documentable_id);
-            if ($documentable_record) {
-                Signals::dispatch(new DocumentRemoved($documentable_record, $document->id, $document->name));
-            }
-        }
-
-        Storage::disk('public')->delete($document->path);
         $document->delete();
+
+        Signals::dispatch(new DocumentRemoved($record, $document->id, $document->name, $document->path));
     }
 
     public function download(DocumentViewRequest $request, Document $document)

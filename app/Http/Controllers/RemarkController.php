@@ -14,28 +14,27 @@ class RemarkController extends Controller
 {
     public function store(RemarkCreateRequest $request)
     {
-        if ($request->has('remarkable_type') && $request->has('remarkable_id')) {
-            $remarkable = $request->remarkable_type::find($request->remarkable_id);
-            $remark = app(AddRemarkAction::class)->execute(
-                $remarkable,
-                $request->content,
-                $request->boolean('internal', false),
-                Auth::id(),
-            );
+        $record_class = $request->remarkableClass();
+        $remarkable = $record_class::findOrFail($request->validated('remarkable_id'));
+        $remark = app(AddRemarkAction::class)->execute(
+            $remarkable,
+            $request->validated('content'),
+            $request->boolean('internal', false),
+            Auth::id(),
+        );
 
-            if ($request->wantsJson()) {
-                return response()->json($remark->load('user'), 201);
-            }
-
-            return redirect()->back()->with([
-                'success' => 'Opmerking is toegevoegd.',
-            ]);
+        if ($request->wantsJson()) {
+            return response()->json($remark->load('user'), 201);
         }
+
+        return redirect()->back()->with([
+            'success' => 'Opmerking is toegevoegd.',
+        ]);
     }
 
     public function destroy(RemarkDestroyRequest $request, Remark $remark)
     {
-        $remarkable_record = $remark->remarkable();
+        $remarkable_record = $remark->attachedRecord();
         if ($remarkable_record) {
             Signals::dispatch(new RemarkRemoved($remarkable_record, $remark->id, $remark->content));
         }

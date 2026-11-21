@@ -3,17 +3,9 @@
 namespace Tests\Feature\Signals;
 
 use App\Models\Activity;
-use App\Models\Asset;
 use App\Models\Customer;
-use App\Models\Event;
-use App\Models\MaintenanceContract;
-use App\Models\Material;
-use App\Models\ProductAttribute;
-use App\Models\Project;
-use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
-use App\Models\ServiceOrderTaskInstance;
-use App\Models\Ticket;
+use Tests\Concerns\FindsModelsWithHistory;
 use Tests\TestCase;
 
 /**
@@ -23,26 +15,13 @@ use Tests\TestCase;
  */
 class ActivityLabelsTest extends TestCase
 {
-    /** Models that record history and therefore need a label for every field. */
-    private const MODELS = [
-        ServiceOrder::class,
-        MaintenanceContract::class,
-        Ticket::class,
-        ServiceJob::class,
-        Asset::class,
-        Customer::class,
-        Project::class,
-        Material::class,
-        Event::class,
-        ServiceOrderTaskInstance::class,
-        ProductAttribute::class,
-    ];
+    use FindsModelsWithHistory;
 
     public function test_every_logged_field_has_a_dutch_label(): void
     {
         $unlabelled = [];
 
-        foreach (self::MODELS as $class) {
+        foreach ($this->modelsWithHistory() as $class) {
             $model = new $class;
             $reflection = new \ReflectionClass($model);
 

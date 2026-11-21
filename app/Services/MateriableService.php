@@ -6,6 +6,7 @@ use App\Domain\Signals\Materials\MaterialStockRestored;
 use App\Domain\Signals\ServiceOrders\FreeformMaterialAdded;
 use App\Domain\Signals\ServiceOrders\FreeformMaterialQuantityChanged;
 use App\Domain\Signals\ServiceOrders\FreeformMaterialRemoved;
+use App\Domain\Signals\ServiceOrders\FreeformMaterialRenamed;
 use App\Domain\Signals\ServiceOrders\FreeformMaterialUnforeseenFlagChanged;
 use App\Domain\Signals\ServiceOrders\MaterialAttachedToOrder;
 use App\Domain\Signals\ServiceOrders\MaterialDetachedFromOrder;
@@ -34,7 +35,7 @@ class MateriableService
             'quantity' => $attributes['quantity'],
             'unforseen' => $attributes['unforseen'] ?? false,
         ]);
-        $material->decrement('stock', $attributes['quantity']);
+        [$stock_before, $stock_after] = $this->moveStock($material, -(float) $attributes['quantity']);
 
         $this->announce($owner, fn ($order, $task) => new MaterialAttachedToOrder(
             $order,
@@ -42,6 +43,8 @@ class MateriableService
             (float) $attributes['quantity'],
             $task,
             [$material],
+            $stock_before,
+            $stock_after,
         ));
     }
 
@@ -61,12 +64,16 @@ class MateriableService
             return;
         }
 
-        $material->increment('stock', $quantity);
+        [$stock_before, $stock_after] = $this->moveStock($material, $quantity);
+
         $this->announce($owner, fn ($order, $task) => new MaterialDetachedFromOrder(
             $order,
             $material->name,
+            $quantity,
             $task,
             [$material],
+            $stock_before,
+            $stock_after,
         ));
     }
 
@@ -85,14 +92,13 @@ class MateriableService
             return;
         }
 
-        if (array_key_exists('quantity', $attributes)) {
-            $old_quantity = $record->quantity !== null ? (float) $record->quantity : null;
-            $new_quantity = (float) $attributes['quantity'];
-            $delta = $old_quantity !== null ? $new_quantity - $old_quantity : null;
+        $old_quantity = $record->quantity !== null ? (float) $record->quantity : null;
+        $new_quantity = array_key_exists('quantity', $attributes) ? (float) $attributes['quantity'] : $old_quantity;
 
-            if ($delta !== null && $delta !== 0.0) {
-                $material->decrement('stock', $delta);
-            }
+        if ($new_quantity !== $old_quantity) {
+            [$stock_before, $stock_after] = $old_quantity === null
+                ? [null, null]
+                : $this->moveStock($material, $old_quantity - $new_quantity);
 
             $this->announce($owner, fn ($order, $task) => new MaterialQuantityChanged(
                 $order,
@@ -101,10 +107,15 @@ class MateriableService
                 $new_quantity,
                 $task,
                 [$material],
+                $stock_before,
+                $stock_after,
             ));
         }
 
-        if (array_key_exists('unforseen', $attributes)) {
+        if (
+            array_key_exists('unforseen', $attributes)
+            && (bool) $attributes['unforseen'] !== (bool) $record->unforseen
+        ) {
             $this->announce($owner, fn ($order, $task) => new MaterialUnforeseenFlagChanged(
                 $order,
                 $material->name,
@@ -130,29 +141,41 @@ class MateriableService
 
     public function updateFreeform(Model $owner, FreeformMaterial $freeform, array $attributes): void
     {
-        $quantity_changed = array_key_exists('quantity', $attributes)
-            && (float) $attributes['quantity'] !== (float) $freeform->quantity;
-
-        if ($quantity_changed) {
-            $this->announce($owner, fn ($order, $task) => new FreeformMaterialQuantityChanged(
-                $order,
-                $freeform->description,
-                (float) $freeform->quantity,
-                (float) $attributes['quantity'],
-                $task,
-            ));
-        }
-
-        if (array_key_exists('unforseen', $attributes) && $attributes['unforseen'] !== $freeform->unforseen) {
-            $this->announce($owner, fn ($order, $task) => new FreeformMaterialUnforeseenFlagChanged(
-                $order,
-                $freeform->description,
-                (bool) $attributes['unforseen'],
-                $task,
-            ));
-        }
+        $previous_description = (string) $freeform->description;
+        $previous_quantity = (float) $freeform->quantity;
+        $previous_unforeseen = (bool) $freeform->unforseen;
 
         $freeform->update($attributes);
+
+        $description = (string) $freeform->description;
+
+        if ($description !== $previous_description) {
+            $this->announce($owner, fn ($order, $task) => new FreeformMaterialRenamed(
+                $order,
+                $previous_description,
+                $description,
+                $task,
+            ));
+        }
+
+        if ((float) $freeform->quantity !== $previous_quantity) {
+            $this->announce($owner, fn ($order, $task) => new FreeformMaterialQuantityChanged(
+                $order,
+                $description,
+                $previous_quantity,
+                (float) $freeform->quantity,
+                $task,
+            ));
+        }
+
+        if ((bool) $freeform->unforseen !== $previous_unforeseen) {
+            $this->announce($owner, fn ($order, $task) => new FreeformMaterialUnforeseenFlagChanged(
+                $order,
+                $description,
+                (bool) $freeform->unforseen,
+                $task,
+            ));
+        }
     }
 
     public function deleteFreeform(Model $owner, FreeformMaterial $freeform): void
@@ -172,24 +195,41 @@ class MateriableService
      * tables. Called from the deleting hooks: nothing below a service order cascades
      * through Eloquent, so the rows would otherwise outlive every owner that could
      * account for them.
+     *
+     * Deleting a single task tells every line it takes with it ($announce_lines), on
+     * the werkbon that stays. Deleting a werkbon does not, because its own timeline
+     * goes with it and its "Verwijderd" entry on the customer is the news; each
+     * material still hears of its stock coming back.
      */
-    public function release(Model $owner, string $reason): void
+    public function release(Model $owner, string $reason, bool $announce_lines = false): void
     {
-        $owner->loadMissing('materials');
+        $owner->loadMissing($announce_lines ? ['materials', 'freeformMaterials'] : ['materials']);
 
         foreach ($owner->materials as $material) {
             $quantity = (float) ($material->pivot->quantity ?? 0);
 
             if ($quantity > 0) {
-                $stock_before = (float) $material->stock;
-                $material->increment('stock', $quantity);
+                $this->restoreStock($material, $quantity, $reason);
+            }
 
-                Signals::dispatch(new MaterialStockRestored(
-                    $material,
-                    (float) $quantity,
-                    $reason,
-                    $stock_before,
-                    (float) $material->stock,
+            if ($announce_lines) {
+                $this->announce($owner, fn ($order, $task) => new MaterialDetachedFromOrder(
+                    $order,
+                    $material->name,
+                    $quantity,
+                    $task,
+                    [$material],
+                ));
+            }
+        }
+
+        if ($announce_lines) {
+            foreach ($owner->freeformMaterials as $freeform) {
+                $this->announce($owner, fn ($order, $task) => new FreeformMaterialRemoved(
+                    $order,
+                    (string) $freeform->description,
+                    (float) $freeform->quantity,
+                    $task,
                 ));
             }
         }
@@ -230,7 +270,36 @@ class MateriableService
             return;
         }
 
-        event($build($service_order, $this->taskTitle($owner)));
+        Signals::dispatch($build($service_order, $this->taskTitle($owner)));
+    }
+
+    private function restoreStock(Material $material, float $quantity, string $reason): void
+    {
+        [$stock_before, $stock_after] = $this->moveStock($material, $quantity);
+
+        Signals::dispatch(new MaterialStockRestored($material, $quantity, $reason, $stock_before, $stock_after));
+    }
+
+    /**
+     * Books stock in or out, and hands back the stock before and after. Through the
+     * query builder, so the stock column raises no generic "Voorraad" entry: the named
+     * signal of every caller already tells the movement, with these two values. The
+     * material in hand is told the new stock, so nobody reads the old one off it.
+     *
+     * @return array{0: float, 1: float}
+     */
+    private function moveStock(Material $material, float $change): array
+    {
+        $stock = Material::query()->whereKey($material->getKey());
+        $stock_before = (float) (clone $stock)->value('stock');
+
+        (clone $stock)->increment('stock', $change);
+
+        $stock_after = (float) (clone $stock)->value('stock');
+
+        $material->forceFill(['stock' => $stock_after])->syncOriginalAttribute('stock');
+
+        return [$stock_before, $stock_after];
     }
 
     private function taskTitle(Model $owner): ?string
@@ -239,6 +308,6 @@ class MateriableService
             return null;
         }
 
-        return $owner->effective_title ?: 'zonder titel';
+        return $owner->timelineTitle();
     }
 }

@@ -112,6 +112,13 @@
         </p>
     </BoxComponent>
 
+    <BoxComponent class="mt-4">
+        <SectionHeader :icon="TimelineIcon" title="Tijdlijn"
+            subtitle="Wie wat veranderde aan deze formule en welke sjablonen hem kozen of loslieten, op volgorde." chapter="timeline" />
+        <TimelineComponent v-if="activities.length" :activities="activities" subject-type="App\Models\PriceFormula" />
+        <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
+    </BoxComponent>
+
     <ModalDialog v-model:open="confirmDelete" title="Formule verwijderen" max-width-class="sm:max-w-md">
         <p class="text-sm text-gray-600 dark:text-slate-300">
             {{ formula.name }} en al zijn versies verdwijnen. Sjablonen met deze formule krijgen weer een vaste prijs.
@@ -146,7 +153,9 @@ import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
 import { ChevronRightIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline'
+import { TimelineIcon } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
@@ -188,6 +197,7 @@ const props = defineProps({
     testContracts: { type: Array, default: () => [] },
     testContractId: { type: Number, default: null },
     tourTypes: { type: Array, default: () => [] },
+    activities: { type: Array, default: () => [] },
 })
 
 const FLOW_ID = 'price-formula-' + props.formula.id

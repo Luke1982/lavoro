@@ -58,8 +58,6 @@ class DeclineQuoteAction
             if (!$moved) {
                 throw new Refusal('Op offerte ' . $quote->number . ' is zojuist al gereageerd.');
             }
-
-            $quote->withdrawLinks();
         });
     }
 }

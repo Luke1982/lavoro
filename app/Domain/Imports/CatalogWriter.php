@@ -2,6 +2,7 @@
 
 namespace App\Domain\Imports;
 
+use App\Actions\Suppliers\SupplierLinkAction;
 use App\Exceptions\Refusal;
 use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Model;
@@ -9,19 +10,24 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Writes one planned row: makes the brand, type, category or unit it names when
  * that does not exist yet, then makes or changes the record and links it to the
- * supplier. A change goes through the model like any edit on screen, so it shows
- * up in the record's history with the old and the new value.
+ * supplier. A change goes through the model like any edit on screen, and the
+ * supplier link through the same action as on screen, so both show up in the
+ * record's history with the old and the new value.
  */
 class CatalogWriter
 {
     /** @var array<string, class-string<Model>> attribute => lookup model */
     private array $lookup_models = [];
 
+    private SupplierLinkAction $links;
+
     /**
      * @param  array<string, array<string, mixed>>  $fields
      */
     public function __construct(private CatalogTarget $target, array $fields, private ?Supplier $supplier)
     {
+        $this->links = app(SupplierLinkAction::class);
+
         foreach ($fields as $definition) {
             if ($definition['type'] === 'lookup') {
                 $this->lookup_models[$definition['attribute']] = $definition['lookup'];
@@ -51,8 +57,8 @@ class CatalogWriter
         }
 
         if ($planned['link_supplier'] && $this->supplier) {
-            $record->suppliers()->syncWithoutDetaching([
-                $this->supplier->id => ['article_number' => $planned['supplier_article']],
+            $this->links->link($record, $this->supplier, [
+                'article_number' => $planned['supplier_article'],
             ]);
         }
     }

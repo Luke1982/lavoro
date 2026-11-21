@@ -426,7 +426,7 @@
 
                 <BoxComponent data-tour="quote.timeline">
                     <SectionHeader :icon="HistoryIcon" title="Tijdlijn" chapter="timeline" />
-                    <TimelineComponent v-if="quote.activities?.length" :activities="quote.activities" :limit="3" />
+                    <TimelineComponent v-if="quote.activities?.length" :activities="quote.activities" :limit="3" subject-type="App\Models\Quote" />
                     <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
                 </BoxComponent>
             </div>

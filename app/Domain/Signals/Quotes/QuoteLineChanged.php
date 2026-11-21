@@ -49,7 +49,7 @@ class QuoteLineChanged extends QuoteLineSignal
 
     public function activityCategory(): string
     {
-        return 'update';
+        return 'updated';
     }
 
     /** A changed cost price is a margin, and only who may see margins reads it. */

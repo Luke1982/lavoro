@@ -54,11 +54,11 @@ class RoleController extends Controller
         ]);
 
         if (array_key_exists('user_ids', $data)) {
-            $role->users()->sync($data['user_ids'] ?? []);
+            $role->syncUsers($data['user_ids'] ?? []);
         }
 
         if (array_key_exists('permission_ids', $data)) {
-            $role->permissions()->sync($data['permission_ids'] ?? []);
+            $role->syncPermissions($data['permission_ids'] ?? []);
         }
 
         return redirect()->back()->with('success', 'Rol bijgewerkt.');

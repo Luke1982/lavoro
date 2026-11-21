@@ -94,7 +94,6 @@ class AcceptQuoteAction
             }
 
             $quote->forceFill(['accepted_document' => QuoteForCustomer::accepted($version, $quote)])->save();
-            $quote->withdrawLinks();
         });
     }
 

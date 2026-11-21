@@ -33,6 +33,12 @@ class MaintenanceContractTemplateController extends Controller
             $maintenancecontracttemplate->makeVisible(MaintenanceContractTemplate::FINANCIAL_ATTRIBUTES);
         }
 
+        $maintenancecontracttemplate->load([
+            'activities' => fn ($query) => $query->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at'),
+        ]);
+
         return inertia('MaintenanceContractTemplates/ShowPage', [
             'template' => $maintenancecontracttemplate,
             'contractIntervalOptions' => ContractInterval::comboBoxArray(),

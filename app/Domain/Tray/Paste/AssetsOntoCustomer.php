@@ -69,7 +69,7 @@ class AssetsOntoCustomer implements PasteHandler
         return new PasteResult(($assets->count() === 1
             ? AssetKind::named($assets->first()) . ' staat nu bij '
             : $assets->count() . ' machines staan nu bij ')
-            . $customer->name . ', ' . ($location ? AssetKind::locationLabel($location) : 'zonder locatie') . '.'
+            . $customer->name . ', ' . ($location ? $location->displayName() : 'zonder locatie') . '.'
             . AssetKind::leftAlone($paste->records->diff($assets), 'stond daar al', 'stonden daar al'));
     }
 
@@ -97,7 +97,7 @@ class AssetsOntoCustomer implements PasteHandler
 
         $choices = $locations->map(fn (Location $location) => new Choice(
             value: 'location:' . $location->id,
-            label: AssetKind::locationLabel($location),
+            label: $location->displayName(),
             description: $this->underLabel($location, $customer) . '.' . $leaving,
             confirm: 'Verhuizen',
         ))->all();

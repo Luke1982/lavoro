@@ -119,7 +119,7 @@ class GeocodeBackfill
             ->map(fn (Location $location) => [
                 'model' => $location,
                 'address' => $location->addressLine(),
-                'label' => $location->title ?: $location->addressLine(),
+                'label' => $location->displayName(),
             ])
             ->filter(fn (array $target) => $target['address'] !== '')
             ->values();

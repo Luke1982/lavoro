@@ -364,6 +364,15 @@
                     subtitle="Alle keuringen die op deze machine zijn uitgevoerd." chapter="inspections" />
                 <ServiceJobsTable :servicejobs="asset.servicejobs" class="mt-3" />
             </BoxComponent>
+            <BoxComponent class="mt-5">
+                <SectionHeader :icon="ClockIcon" title="Tijdlijn"
+                    subtitle="Alles wat er met deze machine gebeurd is, op volgorde." chapter="timeline">
+                    <template v-if="asset.activities?.length >= historyShown" #actions>
+                        <span class="text-xs text-gray-500 dark:text-slate-400">de laatste {{ historyShown }} wijzigingen</span>
+                    </template>
+                </SectionHeader>
+                <TimelineComponent :activities="asset.activities ?? []" subject-type="App\Models\Asset" class="mt-3" />
+            </BoxComponent>
         </template>
 
         <template #sidebar>
@@ -481,7 +490,7 @@ import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue';
-import { BuildingOffice2Icon, CalendarDaysIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, CubeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HashtagIcon, LinkIcon, MapPinIcon, PlusIcon, PuzzlePieceIcon, ShieldCheckIcon, TrashIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
+import { BuildingOffice2Icon, CalendarDaysIcon, ChevronRightIcon, ClipboardDocumentCheckIcon, ClockIcon, CubeIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HashtagIcon, LinkIcon, MapPinIcon, PlusIcon, PuzzlePieceIcon, ShieldCheckIcon, TrashIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
 import { Link, useForm, router } from '@inertiajs/vue3';
 import { useCustomerLocations } from '@/Composables/useCustomerLocations';
 import { ref, watch, computed, reactive, onMounted, nextTick } from 'vue';
@@ -490,6 +499,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import TextInput from '@/Components/UI/TextInput.vue';
 import ScanSerialButton from '@/Components/UI/ScanSerialButton.vue';
 import ServiceJobsTable from '@/Components/ServiceJobs/ServiceJobsTable.vue';
+import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
 import { ticketStatusses, ticketPriorities } from '@/Components/data/TicketData';
 import dayjs from 'dayjs';
 import CustomFieldsComponent from '@/Components/CustomFieldsComponent.vue';
@@ -524,6 +534,8 @@ const props = defineProps({
     productHasChildTypes: { type: Boolean, default: false },
     productRelations: { type: Array, default: () => [] },
     owningCustomer: { type: Object, default: null },
+    /** How many history entries the page loads; the assistant searches all of them. */
+    historyShown: { type: Number, default: 100 },
 });
 
 useTrayRecord('asset', () => props.asset.id);

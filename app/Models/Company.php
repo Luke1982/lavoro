@@ -2,14 +2,23 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasActivities;
+use App\Models\Traits\RecordsHistory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
+    use HasActivities;
     use HasFactory;
+    use RecordsHistory;
+
+    /** The logo columns and how a person calls them; CompanyLogoReplaced reports both. */
+    public const LOGOS = [
+        'logo_path' => 'Logo',
+        'logo_negative_path' => 'Logo (negatief)',
+    ];
 
     protected $fillable = [
         'name',
@@ -33,15 +42,44 @@ class Company extends Model
         'is_main' => 'boolean',
     ];
 
+    protected array $activity_labels = [
+        'name' => 'Naam',
+        'address_line1' => 'Adres',
+        'address_line2' => 'Adres (tweede regel)',
+        'postal_code' => 'Postcode',
+        'city' => 'Plaats',
+        'country' => 'Land',
+        'coc_number' => 'KvK-nummer',
+        'vat_number' => 'Btw-nummer',
+        'iban' => 'IBAN',
+        'email' => 'E-mailadres',
+        'phone' => 'Telefoon',
+        'website' => 'Website',
+        'is_main' => 'Hoofdbedrijf',
+    ];
+
+    /** A path on disk tells a person nothing; CompanyLogoReplaced says it in words. */
+    protected array $activity_ignore = [
+        'logo_path',
+        'logo_negative_path',
+    ];
+
+    /**
+     * There is one main company. The others step down one by one through
+     * Eloquent, so each of them records that it is no longer the main company
+     * instead of being flipped by a query nobody hears.
+     */
     protected static function booted(): void
     {
         static::saving(function (Company $company) {
-            if ($company->is_main) {
-                DB::transaction(function () use ($company) {
-                    Company::where('is_main', true)
-                        ->where('id', '!=', $company->id)
-                        ->update(['is_main' => false]);
-                });
+            if (!$company->is_main) {
+                return;
+            }
+
+            $others = Company::where('is_main', true)->where('id', '!=', $company->id)->get();
+
+            foreach ($others as $other) {
+                $other->update(['is_main' => false]);
             }
         });
     }
@@ -49,6 +87,23 @@ class Company extends Model
     public static function main(): ?self
     {
         return static::where('is_main', true)->first();
+    }
+
+    /**
+     * A company that is removed has no timeline left; the main company is where
+     * the assistant finds that it existed. Removing the main company itself
+     * leaves no other that naturally holds it.
+     *
+     * @return array<int, Company|null>
+     */
+    public function historyTimelines(string $action): array
+    {
+        return $action === 'deleted' ? [static::main()] : [];
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Bedrijf "' . $this->name . '"';
     }
 
     /**

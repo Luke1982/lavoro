@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ImageAttached extends BaseSignal
 {
+    use ReachesTheRecordsTimeline;
+
     public function __construct(
         public Model $record,
         public int $count,
@@ -31,14 +33,10 @@ class ImageAttached extends BaseSignal
         return 'image';
     }
 
-    public function subject(): Model
-    {
-        return $this->record;
-    }
-
     public function activityDescription(): ?string
     {
-        return $this->count === 1 ? 'Afbeelding toegevoegd' : $this->count . ' afbeeldingen toegevoegd';
+        return ($this->count === 1 ? 'Afbeelding toegevoegd' : $this->count . ' afbeeldingen toegevoegd')
+            . $this->atCheckpoint();
     }
 
     /**
@@ -53,10 +51,10 @@ class ImageAttached extends BaseSignal
      */
     public function activityMetadata(): ?array
     {
-        return [
+        return $this->withCheckpoint([
             'count' => $this->count,
             'thumbnail_path' => $this->thumbnail_path,
             'thumbnail_image_id' => $this->thumbnail_image_id,
-        ];
+        ]);
     }
 }

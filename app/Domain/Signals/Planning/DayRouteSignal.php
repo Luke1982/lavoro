@@ -31,6 +31,11 @@ abstract class DayRouteSignal extends BaseSignal
         return $this->mechanic;
     }
 
+    public function activityCategory(): string
+    {
+        return 'event';
+    }
+
     /** @return array<int, array<string, string|null>> */
     protected function routeChange(?string $before, ?string $after): array
     {

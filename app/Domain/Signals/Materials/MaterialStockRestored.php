@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaterialStockRestored extends BaseSignal
 {
+    use ReportsStock;
+
     public function __construct(
         public Material $material,
         public float $quantity,
@@ -45,13 +47,6 @@ class MaterialStockRestored extends BaseSignal
 
     public function changes(): array
     {
-        return [[
-            'field' => 'stock',
-            'label' => 'Voorraad',
-            'old_value' => $this->stock_before === null ? null : (string) $this->stock_before,
-            'new_value' => $this->stock_after === null ? null : (string) $this->stock_after,
-            'old_label' => $this->stock_before === null ? null : (string) $this->stock_before,
-            'new_label' => $this->stock_after === null ? null : (string) $this->stock_after,
-        ]];
+        return self::stockChanges($this->stock_before, $this->stock_after);
     }
 }

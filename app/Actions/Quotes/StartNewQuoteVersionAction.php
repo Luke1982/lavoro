@@ -41,8 +41,6 @@ class StartNewQuoteVersionAction
                 $this->change_status->execute($quote, QuoteStatuses::concept, 'voor een nieuwe versie');
             }
 
-            $quote->withdrawLinks();
-
             $previous = $quote->version;
             $quote->forceFill(['version' => $previous + 1])->save();
 

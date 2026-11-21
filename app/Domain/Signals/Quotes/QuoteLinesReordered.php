@@ -41,7 +41,7 @@ class QuoteLinesReordered extends BaseSignal implements QuoteSignal
 
     public function activityCategory(): string
     {
-        return 'update';
+        return 'updated';
     }
 
     public function requiredPermission(): ?string

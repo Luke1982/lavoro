@@ -3,6 +3,7 @@
 namespace App\Domain\Tray\Paste;
 
 use App\Actions\Assets\AttachChildAssetAction;
+use App\Actions\Assets\DetachChildAssetAction;
 use App\Domain\Tray\Kinds\AssetKind;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
@@ -65,13 +66,7 @@ class AssetsOntoAsset implements UndoablePasteHandler
             $belongs = $location_id !== null
                 && Location::whereKey($location_id)->where('customer_id', $root->customer_id)->exists();
 
-            $child->update([
-                'parent_asset_id' => null,
-                'product_relation_id' => null,
-                'productable_id' => null,
-                'customer_id' => $root->customer_id,
-                'location_id' => $belongs ? $location_id : $root->location_id,
-            ]);
+            app(DetachChildAssetAction::class)->execute($child, $belongs ? $location_id : null);
         });
 
         return ($children->count() === 1 ? 'De machine staat' : 'De machines staan')

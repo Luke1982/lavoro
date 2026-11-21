@@ -191,8 +191,8 @@
                         </BoxComponent>
                         <BoxComponent class="mt-4">
                             <SectionHeader :icon="HistoryIcon" title="Geschiedenis"
-                                subtitle="Wat er aan de kenmerken van dit product veranderde." chapter="timeline" />
-                            <TimelineComponent v-if="product.activities?.length" :activities="product.activities" />
+                                subtitle="Alles wat er met dit product gebeurd is, op volgorde." chapter="timeline" />
+                            <TimelineComponent v-if="product.activities?.length" :activities="product.activities" subject-type="App\Models\Product" />
                             <p v-else class="text-sm text-gray-400 dark:text-slate-500">Nog niets gebeurd.</p>
                         </BoxComponent>
                     </template>

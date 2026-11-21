@@ -2,8 +2,12 @@
 
 namespace App\Models;
 
+use App\Actions\Products\ProductComponentAction;
+use App\Actions\Suppliers\SupplierLinkAction;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasCustomFields;
+use App\Models\Traits\RecordsHistory;
+use App\Support\Money;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,13 +23,93 @@ class Product extends Model
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
 
+    use RecordsHistory;
+
+    /** No date cast: the product form is handed the raw value. */
+    protected array $activity_dates = ['start_sell', 'end_sell'];
+
+    protected array $activity_labels = [
+        'product_type_id' => 'Producttype',
+        'brand_id' => 'Merk',
+        'model' => 'Model',
+        'description' => 'Beschrijving',
+        'start_sell' => 'Verkocht sinds',
+        'end_sell' => 'Einde verkoop',
+        'typical_certificate_days' => 'Typische certificeringstermijn (dagen)',
+        'retail_price' => 'Verkoopprijs',
+        'purchase_price' => 'Inkoopprijs',
+        'part_no' => 'Artikelnummer',
+        'bundle' => 'Bundel',
+        'registable' => 'Registreerbaar',
+        'active' => 'Actief',
+        'warranty' => 'Garantie',
+        'ledger_account_id' => 'Grootboekrekening',
+    ];
+
+    protected array $activity_relations = [
+        'product_type_id' => ['productType', 'name'],
+        'brand_id' => ['brand', 'name'],
+        'ledger_account_id' => ['ledgerAccount', 'label'],
+    ];
+
+    protected array $activity_formats = [
+        'retail_price' => [Money::class, 'euros'],
+        'purchase_price' => [Money::class, 'euros'],
+    ];
+
+    /** The product page shows both prices only to whoever may see them, and so does the trail. */
+    protected array $activity_permissions = [
+        'retail_price' => 'product.view_prices',
+        'purchase_price' => 'product.view_prices',
+    ];
+
+    /**
+     * The suppliers it was bought from at the moment it was deleted. Its links to
+     * them are taken off before it goes, so they are read just before.
+     *
+     * @var array<int, Supplier>
+     */
+    private array $linked_before_delete = [];
+
+    /**
+     * A product that goes is taken out of every parts list it was in, and its own
+     * parts list goes with it, and it is taken off every supplier it was bought
+     * from. Each line and link is taken off one by one rather than with a single
+     * query, or left behind (the supplier links are a morph pivot the database
+     * knows nothing about), so that both sides say so on their timeline, and why.
+     */
     protected static function booted(): void
     {
         static::deleting(function (Product $product): void {
-            Productable::where('productable_type', Product::class)
-                ->where('productable_id', $product->id)
-                ->delete();
+            $components = app(ProductComponentAction::class);
+
+            Productable::with(['product.brand', 'childProduct.brand', 'productRelation'])
+                ->where('productable_type', Product::class)
+                ->where(fn ($rows) => $rows->where('productable_id', $product->id)->orWhere('product_id', $product->id))
+                ->get()
+                ->each(fn (Productable $row) => $components->remove($row, $product));
+
+            $links = app(SupplierLinkAction::class);
+            $product->linked_before_delete = $product->suppliers()->get()->all();
+
+            foreach ($product->linked_before_delete as $supplier) {
+                $links->unlink($product, $supplier);
+            }
         });
+    }
+
+    /**
+     * A product that is deleted takes its own timeline with it; the suppliers it
+     * was bought from say so.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return $action === 'deleted' ? $this->linked_before_delete : [];
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Product ' . ($this->display_name ?? $this->id);
     }
 
     /**
@@ -112,9 +196,16 @@ class Product extends Model
      *
      * Deliberately not appended: it costs a brand lookup, and most payloads
      * carrying a product do not show its name.
+     *
+     * A brand loaded before the brand changed is looked up again, or the history
+     * of that very change would name the product by its old brand.
      */
     public function getDisplayNameAttribute(): ?string
     {
+        if ($this->relationLoaded('brand') && (string) $this->brand?->getKey() !== (string) $this->brand_id) {
+            $this->unsetRelation('brand');
+        }
+
         $label = trim(($this->brand?->name ?? '') . ' ' . ($this->model ?? ''));
 
         return $label === '' ? null : $label;

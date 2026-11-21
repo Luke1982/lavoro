@@ -11,7 +11,6 @@ use App\Domain\Tray\Paste\AssetsOntoProject;
 use App\Domain\Tray\Paste\AssetsOntoServiceOrder;
 use App\Exceptions\Refusal;
 use App\Models\Asset;
-use App\Models\Location;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -89,7 +88,7 @@ final class AssetKind extends TrayKind
 
         $location = $asset->resolvedLinkedLocation();
 
-        return $location ? self::locationLabel($location) : null;
+        return $location ? $location->displayName() : null;
     }
 
     /** @param  Asset  $asset */
@@ -102,12 +101,6 @@ final class AssetKind extends TrayKind
     public static function locationId(Model $asset): ?int
     {
         return $asset->resolvedLocationId();
-    }
-
-    /** A location by its title, or by its address when it has none. */
-    public static function locationLabel(Location $location): string
-    {
-        return $location->title ?: $location->addressLine();
     }
 
     /**

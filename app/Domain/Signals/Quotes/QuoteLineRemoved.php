@@ -29,7 +29,7 @@ class QuoteLineRemoved extends QuoteLineSignal
 
     public function activityCategory(): string
     {
-        return 'deleted';
+        return 'updated';
     }
 
     public function activityDescription(): ?string

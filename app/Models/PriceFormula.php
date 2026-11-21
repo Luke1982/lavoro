@@ -27,12 +27,21 @@ class PriceFormula extends Model
         'description' => 'Omschrijving',
     ];
 
+    /**
+     * A formula that goes is first taken off the templates that chose it, one by
+     * one, so each template's history says it lost its formula; the database
+     * would otherwise empty the column in silence. Then its own timeline goes.
+     */
     protected static function booted(): void
     {
-        static::deleting(fn (PriceFormula $formula) => DB::table('activityables')
-            ->where('activityable_type', PriceFormula::class)
-            ->where('activityable_id', $formula->id)
-            ->delete());
+        static::deleting(function (PriceFormula $formula): void {
+            $formula->templates()->get()->each->update(['price_formula_id' => null]);
+
+            DB::table('activityables')
+                ->where('activityable_type', PriceFormula::class)
+                ->where('activityable_id', $formula->id)
+                ->delete();
+        });
     }
 
     public function versions(): HasMany

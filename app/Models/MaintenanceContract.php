@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Domain\Signals\Contracts\ContractAssetDetached;
+use App\Domain\Signals\ServiceOrders\ServiceOrderUnlinkedFromContract;
+use App\Domain\Signals\Signals;
 use App\Enums\ContractInterval;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
+use App\Support\Money;
 use Carbon\Carbon;
 use Database\Factories\MaintenanceContractFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,12 +52,18 @@ class MaintenanceContract extends Model
         'manage_frequency_per_asset' => 'Frequentie per machine',
     ];
 
+    /** Shown the way the contract screen shows it, not as the column stores it. */
+    protected array $activity_formats = [
+        'price' => [Money::class, 'euros'],
+    ];
+
     /**
      * Reported by named signals of their own, so the automatic trail must not
      * repeat them. Enforced by NoDoubleLoggingTest.
      */
     protected array $activity_ignore = [
         'customer_id',
+        'cancelled_at',
         'auto_generate',
         'manage_frequency_per_asset',
         'one_time_price',
@@ -114,7 +124,30 @@ class MaintenanceContract extends Model
 
     protected static function booted(): void
     {
+        /**
+         * Its werkbonnen and its machines are told first, while they can still be
+         * read: the foreign key clears a werkbon's column unseen, and a machine's
+         * link goes with the pivot rows below without a word. Each werkbon hears it
+         * is no longer the contract's work, each machine that it is no longer on
+         * the contract. Then the contract's own pivot rows go, its machine links
+         * and its links to the trail among them; its "Verwijderd" lands on the
+         * customer.
+         */
         static::deleting(function (MaintenanceContract $contract) {
+            $contract->generatedServiceOrders()->get()->each(fn (ServiceOrder $order) => Signals::dispatch(
+                new ServiceOrderUnlinkedFromContract(
+                    $order,
+                    $contract,
+                    $contract->display_title,
+                    'door verwijdering van het contract',
+                    contract_deleted: true,
+                ),
+            ));
+
+            $contract->assets()->get()->each(fn (Asset $asset) => Signals::dispatch(
+                new ContractAssetDetached($contract, $asset, contract_deleted: true),
+            ));
+
             $id = $contract->id;
             $morph_class = MaintenanceContract::class;
             $pivot_tables = [
@@ -140,6 +173,25 @@ class MaintenanceContract extends Model
     public function priceFormulaVersion()
     {
         return $this->belongsTo(PriceFormulaVersion::class);
+    }
+
+    /**
+     * Its creation and removal are news on the customer's timeline; every edit
+     * after that stays on its own.
+     */
+    public function historyTimelines(string $action): array
+    {
+        return in_array($action, ['created', 'deleted'], true) ? [$this->customer] : [];
+    }
+
+    public function historyPermission(): ?string
+    {
+        return 'maintenancecontract.read';
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Contract ' . $this->display_title;
     }
 
     public function customer()

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\RecordsHistory;
 use App\Support\AddressFormatter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,27 @@ use Illuminate\Database\Eloquent\Model;
 class Location extends Model
 {
     use HasFactory;
+    use RecordsHistory;
+
+    protected array $activity_labels = [
+        'customer_id' => 'Klant',
+        'title' => 'Naam',
+        'location_code' => 'Locatiecode',
+        'address' => 'Adres',
+        'postal_code' => 'Postcode',
+        'city' => 'Plaats',
+        'country' => 'Land',
+    ];
+
+    protected array $activity_relations = [
+        'customer_id' => ['customer', 'name'],
+    ];
+
+    /** Coordinates are worked out from the address; the address change is the fact. */
+    protected array $activity_ignore = [
+        'lat',
+        'lon',
+    ];
 
     protected $fillable = [
         'customer_id',
@@ -21,6 +43,23 @@ class Location extends Model
         'lat',
         'lon',
     ];
+
+    /** A location has no timeline of its own: what happens to it is news at its customer. */
+    public function historyTimelines(string $action): array
+    {
+        return [$this->customer];
+    }
+
+    public function historyLabel(): ?string
+    {
+        return 'Locatie ' . $this->displayName();
+    }
+
+    /** What a location is called wherever it is named: its title, or its address when it has none. */
+    public function displayName(): string
+    {
+        return $this->title ?: $this->addressLine();
+    }
 
     public function customer()
     {
@@ -40,6 +79,16 @@ class Location extends Model
     public function events()
     {
         return $this->hasMany(Event::class);
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function quotes()
+    {
+        return $this->hasMany(Quote::class);
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace App\Actions\Contracts;
 
-use App\Domain\Contracts\ContractLabels;
 use App\Domain\Signals\Contracts\ContractAssetDetached;
 use App\Domain\Signals\Signals;
 use App\Models\Asset;
@@ -22,9 +21,8 @@ class DetachContractAssetAction
 
         $pivot_query->delete();
 
-        Signals::dispatch(new ContractAssetDetached(
-            $contract,
-            $asset ? ContractLabels::asset($asset) : null,
-        ));
+        if ($asset !== null) {
+            Signals::dispatch(new ContractAssetDetached($contract, $asset));
+        }
     }
 }

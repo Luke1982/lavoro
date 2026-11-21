@@ -417,13 +417,13 @@ class ServiceOrderController extends Controller
         $serviceorder->load(['customer', 'project']);
         $previous_customer_name = $serviceorder->customer?->name;
         $previous_project = $serviceorder->project;
-        $previous_contract_title = $serviceorder->maintenanceContract?->display_title;
 
         $requested_stage = array_key_exists('service_order_stage_id', $data) ? $request->requestedStage() : null;
         unset($data['service_order_stage_id']);
 
         $serviceorder->update($data);
         $project_changed = $serviceorder->wasChanged('project_id');
+        $signature_changed = $serviceorder->wasChanged(['signed_by', 'signature_base64']);
 
         if ($transfer_roots->isNotEmpty()) {
             app(AssetTransferService::class)->transfer(
@@ -439,7 +439,6 @@ class ServiceOrderController extends Controller
                 $previous_customer_id,
                 $previous_customer_name,
                 $serviceorder->customer()->value('name'),
-                $previous_contract_title,
             ));
         }
 
@@ -459,7 +458,7 @@ class ServiceOrderController extends Controller
             ));
         }
 
-        if ($serviceorder->wasChanged(['signed_by', 'signature_base64'])) {
+        if ($signature_changed) {
             Signals::dispatch(new ServiceOrderSigned($serviceorder, $previous_signed_by, $serviceorder->signed_by));
         }
 
@@ -502,11 +501,6 @@ class ServiceOrderController extends Controller
         Mail::to($recipients)->send(new ServiceOrderPdfMail($serviceorder, $pdf->output()));
 
         Signals::dispatch(new ServiceOrderEmailed($serviceorder, $recipients));
-        // Mark as sent to customer
-        if (!$serviceorder->sent_to_customer) {
-            $serviceorder->sent_to_customer = true;
-            $serviceorder->save();
-        }
 
         return redirect()->back()->with('success', 'Werkbon verzonden naar: ' . implode(', ', $recipients));
     }
@@ -538,13 +532,6 @@ class ServiceOrderController extends Controller
         }
         Mail::to($recipients)->send(new ServiceOrderWithJobsPdfMail($serviceorder, $orderPdf, $jobPdfs));
         Signals::dispatch(new ServiceOrderEmailed($serviceorder, $recipients, with_jobs: true));
-        if (!$serviceorder->sent_to_customer) {
-            $serviceorder->sent_to_customer = true;
-            $serviceorder->save();
-        }
-        foreach ($serviceorder->serviceJobs as $job) {
-            $job->update(['sent_to_customer' => true]);
-        }
 
         return redirect()->back()->with('success', 'Werkbon + keuringen verzonden naar: ' . implode(', ', $recipients));
     }

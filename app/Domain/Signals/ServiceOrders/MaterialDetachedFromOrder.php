@@ -3,17 +3,27 @@
 namespace App\Domain\Signals\ServiceOrders;
 
 use App\Domain\Signals\BaseSignal;
+use App\Domain\Signals\Materials\ReportsStock;
 use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
 
 class MaterialDetachedFromOrder extends BaseSignal
 {
-    /** @param  array<int, Model>  $related  Records this should also surface on. */
+    use ReportsStock;
+
+    /**
+     * @param  array<int, Model>  $related  Records this should also surface on.
+     * @param  ?float  $stock_before  The material's stock before this booking moved it.
+     * @param  ?float  $stock_after  Its stock after.
+     */
     public function __construct(
         public ServiceOrder $service_order,
         public string $item_name,
+        public float $quantity,
         public ?string $task_title = null,
         public array $related = [],
+        public ?float $stock_before = null,
+        public ?float $stock_after = null,
     ) {
         parent::__construct();
     }
@@ -48,12 +58,20 @@ class MaterialDetachedFromOrder extends BaseSignal
         return array_filter([
             'item_name' => $this->item_name,
             'task_title' => $this->task_title,
+            'quantity' => $this->quantity,
+            'service_order_id' => $this->service_order->getKey(),
+            'service_order_number' => $this->service_order->number,
         ], fn ($value) => $value !== null);
     }
 
     public function activityDescription(): ?string
     {
-        return 'Materiaal verwijderd: ' . $this->item_name . $this->taskSuffix();
+        return 'Materiaal verwijderd: ' . $this->item_name . ' (aantal ' . $this->quantity . ')' . $this->taskSuffix();
+    }
+
+    public function changes(): array
+    {
+        return self::stockChanges($this->stock_before, $this->stock_after);
     }
 
     private function taskSuffix(): string

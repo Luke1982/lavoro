@@ -9,6 +9,9 @@ use App\Domain\Integrations\Data\ExternalRecord;
 use App\Domain\Integrations\Data\RecordData;
 use App\Domain\Integrations\IntegrationUnavailable;
 use App\Domain\Integrations\RecordNotFound;
+use App\Domain\Signals\Integrations\RecordGoneFromAdministration;
+use App\Domain\Signals\Integrations\RecordLinkedToAdministration;
+use App\Domain\Signals\Signals;
 use App\Exceptions\Refusal;
 use App\Jobs\Integrations\PushRecordJob;
 use App\Models\Integrationable;
@@ -107,7 +110,13 @@ class Synchronizer
             $record = $mapping->fetch($connector, $external_id);
 
             if ($record === null) {
-                $this->linkFor($connection, $area, $external_id)?->update(['missing_at' => now()]);
+                $link = $this->linkFor($connection, $area, $external_id);
+                $was_there = $link && !$link->missing_at;
+                $link?->update(['missing_at' => now()]);
+
+                if ($was_there) {
+                    $this->announceGone($connection, $link);
+                }
 
                 return 'missing';
             }
@@ -165,6 +174,7 @@ class Synchronizer
 
             if ($theirs === null) {
                 $link->update(['missing_at' => now()]);
+                $this->announceGone($connection, $link);
 
                 return 'missing';
             }
@@ -186,6 +196,7 @@ class Synchronizer
             }
 
             $link->update(['missing_at' => now()]);
+            $this->announceGone($connection, $link);
 
             return 'missing';
         }
@@ -212,6 +223,8 @@ class Synchronizer
         $this->link($connection, $model, $record->id)
             ->forceFill(['local_fingerprints' => $data->fingerprints($fields), 'remote_fingerprints' => $record->data->fingerprints($fields)])
             ->save();
+
+        $this->announceLinked($connection, $model, $record->id, RecordLinkedToAdministration::MADE_THERE);
 
         return 'created';
     }
@@ -273,6 +286,7 @@ class Synchronizer
         }
 
         $outcome = null;
+        $previous_id = null;
 
         if (!$link) {
             if (!$mapping->accepts($record->data)) {
@@ -287,15 +301,20 @@ class Synchronizer
                     ->forceFill(['local_fingerprints' => $mapping->dataFrom($model)->fingerprints($fields), 'remote_fingerprints' => $theirs])
                     ->save();
 
+                $this->announceLinked($connection, $model, $record->id, RecordLinkedToAdministration::TAKEN_OVER);
+
                 return 'created';
             }
 
-            $existing->integrationLink($connection)?->delete();
+            $replaced = $existing->integrationLink($connection);
+            $replaced?->delete();
+            $previous_id = $replaced && !$replaced->missing_at ? $replaced->external_id : null;
             $link = $this->link($connection, $existing, $record->id);
             $outcome = 'linked';
         }
 
         $model = $link->integrationable;
+        $found_again = $link->missing_at !== null;
         $merge = Merge::decide(
             $mapping->dataFrom($model)->fingerprints($fields),
             $theirs,
@@ -321,6 +340,16 @@ class Synchronizer
 
         if ($link->isDirty()) {
             $link->save();
+        }
+
+        if ($outcome === 'linked' || $found_again) {
+            $this->announceLinked(
+                $connection,
+                $model,
+                $record->id,
+                $outcome === 'linked' ? RecordLinkedToAdministration::RECOGNISED : RecordLinkedToAdministration::FOUND_AGAIN,
+                $previous_id,
+            );
         }
 
         if ($merge->keep !== [] && $connection->writes($area)) {
@@ -352,10 +381,46 @@ class Synchronizer
             ->whereNull('missing_at')
             ->whereNotIn('external_id', $seen);
 
-        return [
+        $gone = (clone $links)->whereNotNull('confirmed_at')->with('integrationable')->get();
+
+        $counts = [
             'unlinked' => (clone $links)->whereNull('confirmed_at')->delete(),
             'missing' => (clone $links)->whereNotNull('confirmed_at')->update(['missing_at' => now()]),
         ];
+
+        foreach ($gone as $link) {
+            $this->announceGone($connection, $link);
+        }
+
+        return $counts;
+    }
+
+    /** The record here now has a counterpart there, and the trail of the record says which. */
+    private function announceLinked(IntegrationConnection $connection, Model $model, string $external_id, string $how, ?string $previous_id = null): void
+    {
+        Signals::dispatch(new RecordLinkedToAdministration(
+            $model,
+            $connection->connector,
+            $connection->label(),
+            $external_id,
+            $how,
+            $previous_id,
+        ));
+    }
+
+    /** A link whose record there was removed. A link to a record here that is gone has nobody to tell. */
+    private function announceGone(IntegrationConnection $connection, Integrationable $link): void
+    {
+        if (!$link->integrationable) {
+            return;
+        }
+
+        Signals::dispatch(new RecordGoneFromAdministration(
+            $link->integrationable,
+            $connection->connector,
+            $connection->label(),
+            $link->external_id,
+        ));
     }
 
     /** A new link, confirmed: the other side has just shown it has the record. Not saved yet. */

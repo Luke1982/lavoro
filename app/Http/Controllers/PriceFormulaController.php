@@ -27,6 +27,7 @@ use App\Support\Counted;
 use App\Support\NewMachineForm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class PriceFormulaController extends Controller
@@ -92,6 +93,11 @@ class PriceFormulaController extends Controller
             'testContracts' => $sees_contracts ? Inertia::defer(fn () => $this->testContracts(), 'contracts') : [],
             'tourTypes' => $this->tourTypes(),
             'testContractId' => $sees_contracts ? $request->integer('contract') ?: null : null,
+            'activities' => $priceformula->activities()
+                ->visibleTo($request->user())
+                ->with(['user:id,name', 'fieldChanges'])
+                ->orderByDesc('activityables.created_at')
+                ->get(),
         ]);
     }
 
@@ -136,7 +142,7 @@ class PriceFormulaController extends Controller
             );
         }
 
-        $priceformula->delete();
+        DB::transaction(fn () => $priceformula->delete());
 
         return redirect()->route('priceformulas.index')->with('success', 'Prijsformule verwijderd.');
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Document;
+use App\Rules\AttachableType;
 use App\Rules\WithinStorageQuota;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -35,7 +36,7 @@ class DocumentStoreRequest extends FormRequest
             'documents' => ['required', 'array', new WithinStorageQuota],
             'documents.*' => 'required|file|mimes:' . self::ALLOWED_MIMES . '|max:102400',
             'documentable_id' => 'required|integer',
-            'documentable_type' => 'required|string',
+            'documentable_type' => ['required', 'string', new AttachableType(Document::ATTACHABLE_TO, 'document')],
             'document_category_id' => 'nullable|integer|exists:document_categories,id',
             'internal' => 'nullable|boolean',
         ];

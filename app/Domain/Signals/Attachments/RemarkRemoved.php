@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class RemarkRemoved extends BaseSignal
 {
+    use ReachesTheRecordsTimeline;
+
     public function __construct(
         public Model $record,
         public int $remark_id,
@@ -30,13 +32,13 @@ class RemarkRemoved extends BaseSignal
         return 'other';
     }
 
-    public function subject(): Model
-    {
-        return $this->record;
-    }
-
     public function activityDescription(): ?string
     {
-        return 'Opmerking verwijderd: ' . $this->content;
+        return 'Opmerking verwijderd' . $this->atCheckpoint() . ': ' . $this->content;
+    }
+
+    public function activityMetadata(): ?array
+    {
+        return $this->withCheckpoint();
     }
 }
