@@ -4,6 +4,8 @@
     <h2 class="mb-1 text-xl font-semibold">{{ tenant.name }}</h2>
     <p class="mb-5 text-sm text-slate-500 dark:text-slate-400">{{ tenant.database }} &middot; {{ tenant.id }}</p>
 
+    <AiUsageCard :ai="ai" class="mb-5" />
+
     <div class="grid gap-5 lg:grid-cols-2 lg:items-start">
         <SubscriptionForm :tenant="tenant" :packages="packages" :modules="modules"
             :ai="ai" :subscription="subscription" />
@@ -32,6 +34,7 @@ import SubscriptionForm from '@/Components/Landlord/SubscriptionForm.vue'
 import BillingCard from '@/Components/Landlord/BillingCard.vue'
 import EBoekhoudenCard from '@/Components/Landlord/EBoekhoudenCard.vue'
 import CouponCard from '@/Components/Landlord/CouponCard.vue'
+import AiUsageCard from '@/Components/Landlord/AiUsageCard.vue'
 import AiTopupCard from '@/Components/Landlord/AiTopupCard.vue'
 import SuperAdminCard from '@/Components/Landlord/SuperAdminCard.vue'
 import DeleteTenantCard from '@/Components/Landlord/DeleteTenantCard.vue'

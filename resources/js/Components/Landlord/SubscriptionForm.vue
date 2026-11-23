@@ -57,7 +57,6 @@
                         :placeholder="`${euro(ai.allowance_cents)} (standaard)`"
                         class="panel-field w-full">
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Deze maand verbruikt: {{ euro(ai.spent_cents) }} van {{ euro(ai.allowance_cents) }}.
                         <template v-if="ai.topup_cents > 0">Bijgekocht tegoed: {{ euro(ai.topup_cents) }}.</template>
                         Leeg laten volgt de standaard uit de catalogus.
                     </p>
