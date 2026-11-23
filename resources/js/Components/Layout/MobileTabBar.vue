@@ -104,7 +104,7 @@
             enter-to-class="translate-x-0 opacity-100" leave-active-class="transition duration-150 ease-in"
             leave-from-class="translate-x-0 opacity-100"
             :leave-to-class="tucked === 'left' ? '-translate-x-full opacity-0' : 'translate-x-full opacity-0'">
-            <button v-if="tucked" type="button" aria-label="Menubalk terughalen" @click="tucked = null"
+            <button v-if="tucked" ref="handleEl" type="button" aria-label="Menubalk terughalen" @click="tucked = null"
                 class="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 flex h-12 w-9 items-center justify-center bg-sidebar-card text-sidebar-muted shadow-[0_8px_30px_rgba(2,6,23,0.45)] ring-1 ring-sidebar-border"
                 :class="tucked === 'left' ? 'left-0 rounded-r-2xl' : 'right-0 rounded-l-2xl'">
                 <component :is="tucked === 'left' ? ChevronRight : ChevronLeft" class="size-5" />
@@ -187,9 +187,10 @@ watch(() => page.url, () => { creating.value = false })
  * De richting wordt onthouden en niet alleen het feit dat hij weg is, want het
  * lipje hoort te staan waar je hem heen duwde.
  */
-const { tucked, clearance } = useTabBar()
+const { tucked, clearance, handleWidth } = useTabBar()
 
 const navEl = ref(null)
+const handleEl = ref(null)
 /** De grote knop steekt boven de balk uit. Hij staat in de lus van tabbladen, dus Vue geeft hem als lijst. */
 const fabEls = ref([])
 
@@ -202,20 +203,21 @@ const { dragging, dragStyle, onPointerDown, onPointerMove, onPointerUp, onClickC
  * Hoe hoog de balk boven zijn eigen onderlijn uitsteekt, tot de top van de
  * grote knop gemeten. De onderlijn is de marge voor de streep van het toestel;
  * wat erboven zweeft staat op dezelfde lijn en schuift precies zoveel omhoog.
- * Verborgen, zoals op een computer, is dat niets.
+ * Opzij geveegd telt alleen het lipje nog, dus wat zweeft zakt mee naar
+ * beneden. Verborgen, zoals op een computer, is dat niets.
  */
 function measure() {
     const nav = navEl.value
+    const reaching = tucked.value ? [handleEl.value] : [nav, ...fabEls.value]
 
-    if (!nav || nav.getClientRects().length === 0) {
+    handleWidth.value = tucked.value ? (handleEl.value?.offsetWidth ?? 0) : 0
+
+    if (!nav || nav.getClientRects().length === 0 || !reaching.every(Boolean)) {
         clearance.value = 0
         return
     }
 
-    const top = Math.min(
-        nav.getBoundingClientRect().top,
-        ...fabEls.value.map(fab => fab.getBoundingClientRect().top),
-    )
+    const top = Math.min(...reaching.map(element => element.getBoundingClientRect().top))
 
     const baseline = parseFloat(getComputedStyle(nav).paddingBottom) || 0
 
@@ -223,6 +225,8 @@ function measure() {
 }
 
 let resize_observer = null
+
+watch(tucked, measure, { flush: 'post' })
 
 onMounted(() => {
     measure()
@@ -238,6 +242,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', measure)
     resize_observer?.disconnect()
     clearance.value = 0
+    handleWidth.value = 0
 })
 
 const tuckClass = computed(() => {

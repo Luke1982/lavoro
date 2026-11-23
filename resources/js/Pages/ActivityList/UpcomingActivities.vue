@@ -53,7 +53,8 @@
         </div>
     </div>
     <div v-if="canCreateWorkOrder !== 'no' && canCreateServiceOrder" class="h-40" aria-hidden="true"></div>
-    <div class="fixed right-4 z-30" :style="{ bottom: `${floor + 16}px` }">
+    <div class="fixed z-30 transition-[bottom,right] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        :style="{ bottom: `${corner.bottom + 16}px`, right: `${corner.right + 16}px` }">
         <div v-auto-animate class="flex flex-col gap-2" data-tour="activities.workorder">
             <p v-if="form.errors.assets"
                 class="rounded-md bg-red-50 p-2 text-sm text-red-700 shadow-lg ring-1 ring-red-600/20 dark:ring-red-500/30 dark:bg-red-950 dark:text-red-300">
@@ -500,7 +501,7 @@ onBeforeUnmount(() => {
 });
 
 /** The werkbon buttons stand above whatever bar lies along the bottom. */
-const { floor } = useBottomBars();
+const { corner } = useBottomBars();
 
 /** The map shows what the page shows: the same window, and the contract machines left out or not. */
 const mapAddress = () => {

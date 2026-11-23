@@ -6,7 +6,8 @@
         <div class="relative w-full" ref="wrapperRef">
             <div class="inline-flex divide-x rounded-md outline-hidden w-full">
                 <div
-                    class="inline-flex min-w-0 flex-grow items-center gap-x-1.5 rounded-l-md bg-white px-3 py-3 text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 dark:ring-slate-700 border-r-1 border-r-gray-100 dark:border-r-slate-800">
+                    :class="compact ? 'px-2 py-2' : 'px-3 py-3'"
+                    class="inline-flex min-w-0 flex-grow items-center gap-x-1.5 rounded-l-md bg-white text-lavoro-dark dark:bg-lavoro-dark dark:text-white text-sm font-semibold border-0 ring-1 ring-gray-200 dark:ring-slate-700 border-r-1 border-r-gray-100 dark:border-r-slate-800">
                     <component :is="icon" v-if="icon"
                         :class="['ml-0.5 size-5 mr-1 shrink-0', spin ? 'animate-spin' : '']" aria-hidden="true" />
                     <div class="relative min-w-0 flex-1">
@@ -83,6 +84,11 @@ const props = defineProps({
         default: '',
     },
     spin: {
+        type: Boolean,
+        default: false,
+    },
+    /** Fits beside other controls on one row of a phone: as tall as an icon button. */
+    compact: {
         type: Boolean,
         default: false,
     },

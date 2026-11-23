@@ -1174,7 +1174,7 @@
         },
         {
             "id": "telefoon",
-            "version": 1,
+            "version": 2,
             "title": "De planner op je telefoon",
             "summary": "Je week als lijst, van week wisselen, een monteur kiezen, banen en een afspraak openen.",
             "requires": {
@@ -1247,6 +1247,36 @@
                             "when": "banen"
                         }
                     ]
+                },
+                {
+                    "spot": "planner.phone.more.panel",
+                    "action": "openPhoneMore",
+                    "title": "Onder de drie puntjes",
+                    "text": "Rechts bovenin staan drie puntjes. Daaronder zie je hoeveel **afspraken** er deze week zijn en hoeveel uur er **gepland** is.",
+                    "say": "Onder de drie puntjes zie je hoeveel afspraken er deze week zijn, en hoeveel uur er gepland is.",
+                    "marks": [
+                        {
+                            "spot": "planner.phone.more",
+                            "when": "drie puntjes"
+                        },
+                        {
+                            "spot": "planner.phone.stats",
+                            "when": "afspraken"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.phone.map",
+                    "action": "openPhoneMore",
+                    "skipIfMissing": true,
+                    "requires": {
+                        "permissions": [
+                            "event.see_all"
+                        ]
+                    },
+                    "title": "Monteurkaart",
+                    "text": "Met **Monteurkaart** zie je waar de monteurs de afgelopen acht uur waren.",
+                    "say": "Met de monteurkaart zie je waar de monteurs de laatste acht uur zijn geweest."
                 },
                 {
                     "spot": "planner.phone.add",

@@ -12,13 +12,27 @@ import { useTabBar } from '@/Composables/useTabBar.js'
  */
 const reach = reactive(new Map())
 
-const { clearance, tucked } = useTabBar()
+const { clearance, tucked, handleWidth } = useTabBar()
+
+/** How many pixels above the bottom edge the bars other than the menu bar take. */
+const raised = computed(() => Math.max(0, ...reach.values()))
 
 /** How many pixels above the bottom edge is taken: by the highest bar, or by the menu bar. */
-const floor = computed(() => Math.max(clearance.value, ...reach.values()))
+const floor = computed(() => Math.max(clearance.value, raised.value))
+
+/**
+ * Where a button in the bottom-right corner stands clear of everything. With
+ * the menu bar swiped aside only its handle is left, at one edge: the button
+ * goes all the way down and, when the handle is on its side, steps in by the
+ * handle's width. Something as wide as the screen cannot step aside, so it
+ * keeps to floor.
+ */
+const corner = computed(() => tucked.value
+    ? { bottom: raised.value, right: tucked.value === 'right' ? handleWidth.value : 0 }
+    : { bottom: floor.value, right: 0 })
 
 export function useBottomBars() {
-    return { floor }
+    return { floor, corner }
 }
 
 /**

@@ -33,6 +33,9 @@ const tucked = ref(readTuck())
  */
 const clearance = ref(0)
 
+/** Hoe breed het lipje is dat aan de rand ligt zolang de balk opzij is geveegd; anders nul. */
+const handleWidth = ref(0)
+
 watch(tucked, (side) => {
     try {
         if (side) localStorage.setItem(TUCK_KEY, side)
@@ -43,5 +46,5 @@ watch(tucked, (side) => {
 })
 
 export function useTabBar() {
-    return { tucked, clearance }
+    return { tucked, clearance, handleWidth }
 }

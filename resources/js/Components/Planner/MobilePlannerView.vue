@@ -1,40 +1,77 @@
 <template>
     <div ref="rootEl" class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
-        <!-- Sticky header: week navigation + user switcher -->
+        <!--
+            Alles op één regel: de week, en voor wie de hele planning ziet ook de
+            monteur en de weergave. De tellers en de kaart liggen onder de drie
+            puntjes; de rondleiding staat in de blauwe balk.
+        -->
         <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
-            <div class="flex items-center justify-between px-4 py-3" data-tour="planner.phone.week">
-                <button class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week" data-tour="planner.phone.prev-next"
-                    @click="shiftWeek(-1)">
-                    <ChevronLeftIcon class="size-5" />
-                </button>
-                <span class="font-semibold text-sm">{{ weekTitle }}</span>
-                <button v-if="canShiftForward" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
-                    aria-label="Volgende week" data-tour="planner.phone.prev-next" @click="shiftWeek(1)">
-                    <ChevronRightIcon class="size-5" />
-                </button>
-                <span v-else class="w-10 shrink-0" />
-            </div>
-            <div v-if="canSeeAll" class="px-4 pb-3 flex gap-2">
-                <button v-if="allPingsArray.length > 0"
-                    class="flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
-                    @click="mapModalOpen = true">
-                    <MapIcon class="size-4 shrink-0" />
-                    Monteurkaart
-                </button>
-                <SelectMenuComponent v-model="selectedUserId" :options="userOptions" :icon="UsersIcon"
-                    class="flex-grow" data-tour="planner.phone.technician" @update:model-value="rememberUser">
-                    <template #sr-label>Monteur selecteren</template>
-                </SelectMenuComponent>
-                <button v-if="selectedUserId === null" data-tour="planner.phone.lanes"
-                    class="flex items-center rounded-md border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
-                    :class="laneView ? 'bg-gray-100 dark:bg-slate-800' : ''"
-                    :aria-pressed="laneView" :aria-label="laneView ? 'Lijstweergave' : 'Baanweergave'"
-                    @click="laneView = !laneView">
-                    <List v-if="laneView" class="size-4 shrink-0" />
-                    <Columns3 v-else class="size-4 shrink-0" />
+            <div class="flex items-center gap-1.5 px-3 py-2">
+                <div class="flex items-center justify-between" :class="canSeeAll ? 'w-1/2 shrink-0' : 'min-w-0 flex-1'"
+                    data-tour="planner.phone.week">
+                    <button class="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Vorige week"
+                        data-tour="planner.phone.prev-next" @click="shiftWeek(-1)">
+                        <ChevronLeftIcon class="size-5" />
+                    </button>
+                    <span class="min-w-0 truncate font-semibold text-sm">{{ canSeeAll ? weekTitleShort : weekTitle }}</span>
+                    <button v-if="canShiftForward" class="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
+                        aria-label="Volgende week" data-tour="planner.phone.prev-next" @click="shiftWeek(1)">
+                        <ChevronRightIcon class="size-5" />
+                    </button>
+                    <span v-else class="w-8 shrink-0" />
+                </div>
+                <template v-if="canSeeAll">
+                    <SelectMenuComponent v-model="selectedUserId" :options="userOptions" compact
+                        class="min-w-0 flex-1" data-tour="planner.phone.technician" @update:model-value="rememberUser">
+                        <template #sr-label>Monteur selecteren</template>
+                    </SelectMenuComponent>
+                    <button v-if="selectedUserId === null" data-tour="planner.phone.lanes" :class="barButton(laneView)"
+                        :aria-pressed="laneView" :aria-label="laneView ? 'Lijstweergave' : 'Baanweergave'"
+                        @click="laneView = !laneView">
+                        <List v-if="laneView" class="size-5" />
+                        <Columns3 v-else class="size-5" />
+                    </button>
+                </template>
+                <button ref="moreButtonEl" data-tour="planner.phone.more" :class="barButton(moreOpen)"
+                    :aria-expanded="moreOpen" aria-label="Meer" @click="moreOpen = !moreOpen">
+                    <EllipsisVerticalIcon class="size-5" />
                 </button>
             </div>
         </div>
+
+        <Teleport to="body">
+            <Transition enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95" enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75" leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95">
+                <div v-if="moreOpen" ref="morePanelEl" data-tour="planner.phone.more.panel" :style="morePanelStyle"
+                    tabindex="-1"
+                    class="w-64 rounded-md bg-white dark:bg-slate-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-3 flex flex-col gap-3 text-sm text-gray-900 dark:text-slate-100 focus:outline-none">
+                    <div class="flex flex-col gap-3" data-tour="planner.phone.stats">
+                        <div v-for="stat in stats" :key="stat.label" class="flex items-center gap-2">
+                            <div class="size-8 rounded-full flex items-center justify-center" :class="stat.tone">
+                                <component :is="stat.icon" class="size-4" />
+                            </div>
+                            <div>
+                                <div class="font-semibold tabular-nums text-sm">{{ stat.value }}</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">{{ stat.label }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button v-if="canSeeAll && allPingsArray.length > 0" data-tour="planner.phone.map"
+                        class="flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-slate-700"
+                        @click="moreOpen = false; mapModalOpen = true">
+                        <MapIcon class="size-4 shrink-0" />
+                        Monteurkaart
+                    </button>
+                </div>
+            </Transition>
+        </Teleport>
+
+        <!-- Op een telefoon staat de rondleiding in de blauwe balk, naast zoeken en de meldingen. -->
+        <Teleport defer to="#app-header-actions">
+            <TourButton tour="planner" bar class="md:hidden" data-tour="planner.phone.tour" />
+        </Teleport>
 
         <!-- User profile (only when a specific user is selected) -->
         <div v-if="displayUser" class="px-4 pt-4 pb-2 bg-white dark:bg-slate-900">
@@ -52,39 +89,6 @@
             </div>
         </div>
 
-        <!-- Stats bar (always visible) -->
-        <div
-            class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-6">
-            <div class="flex items-center gap-2">
-                <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                    <CalendarDaysIcon class="size-4 text-blue-500" />
-                </div>
-                <div>
-                    <div class="font-semibold tabular-nums text-sm">{{ filteredEvents.length }}</div>
-                    <div class="text-xs text-gray-500 dark:text-slate-400">Afspraken</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="size-8 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                    <ClockIcon class="size-4 text-blue-500" />
-                </div>
-                <div>
-                    <div class="font-semibold tabular-nums text-sm">{{ totalHoursLabel }}</div>
-                    <div class="text-xs text-gray-500 dark:text-slate-400">Gepland</div>
-                </div>
-            </div>
-            <div v-if="unclosedCount > 0" class="flex items-center gap-2">
-                <div class="size-8 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
-                    <TriangleAlert class="size-4 text-amber-500" />
-                </div>
-                <div>
-                    <div class="font-semibold tabular-nums text-sm">{{ unclosedCount }}</div>
-                    <div class="text-xs text-gray-500 dark:text-slate-400">Niet afgerond</div>
-                </div>
-            </div>
-            <TourButton tour="planner" :label="null" class="ml-auto" data-tour="planner.phone.tour" />
-        </div>
-
         <!-- Timeline -->
         <PlannerLoadingOverlay :loading="eventsLoading" data-tour="planner.phone.timeline">
             <MobileLaneView v-if="showLaneView" :plannable-users="plannableUsers" :week-days="weekDays"
@@ -94,14 +98,14 @@
                 @flip-week="shiftWeek" />
 
             <div v-else class="relative h-full">
-                <div ref="listScrollEl" class="h-full overflow-y-auto" @touchstart.passive="onListTouchStart"
+                <div ref="listScrollEl" class="h-full overflow-y-auto overscroll-y-contain" @touchstart.passive="onListTouchStart"
                     @touchmove.passive="onListTouchMove" @touchend.passive="onListTouchEnd"
                     @touchcancel.passive="onListTouchEnd">
                     <div class="pb-24">
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div data-tour="planner.phone.day"
-                            class="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
+                            class="sticky top-0 z-20 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
                             :class="group.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'">
                             <span>
                                 {{ dayLabel(group.dayIso) }}
@@ -198,8 +202,9 @@
         </PlannerLoadingOverlay>
 
         <!-- FAB: create new event -->
-        <button v-if="canCreate" data-tour="planner.phone.add" :style="{ bottom: `${floor + 16}px` }"
-            class="fixed right-6 z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition"
+        <button v-if="canCreate" data-tour="planner.phone.add"
+            :style="{ bottom: `${corner.bottom + 16}px`, right: `${corner.right + 24}px` }"
+            class="fixed z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition-[bottom,right,opacity,scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             aria-label="Nieuwe afspraak aanmaken" @click="openCreate">
             <PlusIcon class="size-7 text-gray-900 dark:text-slate-100" />
         </button>
@@ -243,7 +248,7 @@ import { usePage } from '@inertiajs/vue3'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
-    UsersIcon,
+    EllipsisVerticalIcon,
     CalendarDaysIcon,
     ClockIcon,
     PlusIcon,
@@ -286,6 +291,7 @@ import { MapIcon, TriangleAlert, Columns3, List } from '@lucide/vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour } from '@/Composables/useTour'
 import { useBottomBars } from '@/Composables/useBottomBars.js'
+import { usePopover } from '@/Composables/usePopover'
 const props = defineProps({
     eventTypes: { type: Array, default: () => [] },
     allCustomers: { type: Array, default: () => [] },
@@ -303,11 +309,29 @@ const props = defineProps({
 const WORKDAY_START_HOUR = 7
 const WORKDAY_END_HOUR = 18
 
+const MONTHS = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
+    'juli', 'augustus', 'september', 'oktober', 'november', 'december']
+const SHORT_MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
+
 const page = usePage()
 const mapModalOpen = ref(false)
 const allPingsArray = computed(() =>
     Object.values(props.latestPings).filter(p => p.lat != null && p.lng != null)
 )
+
+// ── Top row ───────────────────────────────────────────────────────────────────
+
+/** Een knop op de regel bovenin, ingedrukt zolang wat hij aanzet aan staat. */
+function barButton(pressed) {
+    return [
+        'flex size-9 shrink-0 items-center justify-center rounded-md ring-1 ring-gray-200 dark:ring-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800',
+        pressed ? 'bg-gray-100 dark:bg-slate-800' : '',
+    ]
+}
+
+const moreButtonEl = ref(null)
+const morePanelEl = ref(null)
+const { open: moreOpen, style: morePanelStyle } = usePopover(moreButtonEl, morePanelEl, 'bottom-end')
 
 // ── Week navigation ───────────────────────────────────────────────────────────
 
@@ -322,17 +346,28 @@ const weekDays = computed(() => plannerDays(weekStart.value, 7))
 const weekTitle = computed(() => {
     const first = weekDays.value[0].date
     const last = weekDays.value[6].date
-    const months = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
-        'juli', 'augustus', 'september', 'oktober', 'november', 'december']
     const sameMonth = first.getMonth() === last.getMonth()
     const sameYear = first.getFullYear() === last.getFullYear()
     if (sameMonth && sameYear) {
-        return `${first.getDate()} – ${last.getDate()} ${months[first.getMonth()]} ${first.getFullYear()}`
+        return `${first.getDate()} – ${last.getDate()} ${MONTHS[first.getMonth()]} ${first.getFullYear()}`
     }
     if (sameYear) {
-        return `${first.getDate()} ${months[first.getMonth()]} – ${last.getDate()} ${months[last.getMonth()]} ${first.getFullYear()}`
+        return `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]} ${first.getFullYear()}`
     }
-    return `${first.getDate()} ${months[first.getMonth()]} ${first.getFullYear()} – ${last.getDate()} ${months[last.getMonth()]} ${last.getFullYear()}`
+    return `${first.getDate()} ${MONTHS[first.getMonth()]} ${first.getFullYear()} – ${last.getDate()} ${MONTHS[last.getMonth()]} ${last.getFullYear()}`
+})
+
+/** Past naast de monteur op één regel: zonder jaar en met de maand kort. */
+const weekTitleShort = computed(() => {
+    const first = weekDays.value[0].date
+    const last = weekDays.value[6].date
+    const lastLabel = last.getDate() + ' ' + SHORT_MONTHS[last.getMonth()]
+
+    if (first.getMonth() === last.getMonth()) {
+        return first.getDate() + ' – ' + lastLabel
+    }
+
+    return first.getDate() + ' ' + SHORT_MONTHS[first.getMonth()] + ' – ' + lastLabel
 })
 
 const canShiftForward = computed(() =>
@@ -381,7 +416,7 @@ onUnmounted(stopPolling)
 watch(weekStart, () => { resetFingerprint(); fetchEvents() })
 
 const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, dayCount)
-const { floor } = useBottomBars()
+const { corner } = useBottomBars()
 
 // ── User switcher ─────────────────────────────────────────────────────────────
 
@@ -415,7 +450,7 @@ const selectedUserId = ref(canSeeAll.value ? rememberedUserId() : authUserId.val
 
 const userOptions = computed(() => [
     { value: null, title: 'Alle monteurs', shortTitle: 'Allen' },
-    ...props.plannableUsers.map(u => ({ value: u.id, title: u.name, shortTitle: u.name })),
+    ...props.plannableUsers.map(u => ({ value: u.id, title: u.name, shortTitle: u.name.split(' ')[0] })),
 ])
 
 const filteredEvents = computed(() => {
@@ -621,6 +656,22 @@ const unclosedCount = computed(() =>
     }).length
 )
 
+const STAT_BLUE = 'bg-blue-50 dark:bg-blue-950/40 text-blue-500'
+
+/** De tellers onder de drie puntjes; wat niet afgerond is alleen als het er is. */
+const stats = computed(() => {
+    const shown = [
+        { label: 'Afspraken', value: filteredEvents.value.length, icon: CalendarDaysIcon, tone: STAT_BLUE },
+        { label: 'Gepland', value: totalHoursLabel.value, icon: ClockIcon, tone: STAT_BLUE },
+    ]
+
+    if (unclosedCount.value > 0) {
+        shown.push({ label: 'Niet afgerond', value: unclosedCount.value, icon: TriangleAlert, tone: 'bg-amber-50 dark:bg-amber-950/40 text-amber-500' })
+    }
+
+    return shown
+})
+
 const canCreate = computed(() => hasPermission('event.create'))
 
 const modalOpen = ref(false)
@@ -738,6 +789,12 @@ useTour('planner', {
             laneView.value = previous.lanes
             selectedUserId.value = previous.user
         }
+    },
+    openPhoneMore: () => {
+        if (moreOpen.value) return null
+        moreOpen.value = true
+
+        return () => { moreOpen.value = false }
     },
     openFirstPhoneEvent: () => {
         const event = timelineEvents.value.find(canEdit)

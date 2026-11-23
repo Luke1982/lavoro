@@ -1,6 +1,10 @@
 <template>
-    <!-- Mobile (below md) -->
-    <div class="md:hidden h-screen overflow-hidden">
+    <!--
+        Op een telefoon scrolt de week in een eigen vak. Dat vak hangt vast onder
+        de blauwe balk en schuift mee omhoog als die wegschuift.
+    -->
+    <div
+        class="md:hidden fixed inset-x-0 bottom-0 top-[var(--app-header-offset,0px)] overflow-hidden overscroll-none transition-[top] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
         <MobilePlannerView :event-types="eventTypes" :all-customers="allCustomers"
             :customers-use-ajax="customersUseAjax" :all-service-orders="allServiceOrders"
             :event-statusses="eventStatusses" :all-users="allUsers" :plannable-users="plannableUsersRef"

@@ -68,6 +68,8 @@
                 <img src="/img/logo-neg.svg" class="h-8" alt="Lavoro">
             </div>
             <div class="flex items-center gap-x-1">
+                <!-- Een pagina zet hier met <Teleport defer to="#app-header-actions"> wat in deze balk hoort. -->
+                <div id="app-header-actions" class="flex items-center empty:hidden"></div>
                 <button type="button" class="p-2 text-sidebar-muted hover:text-lavoro-green" @click="openNavigator">
                     <span class="sr-only">Zoeken</span>
                     <MagnifyingGlassIcon class="size-6" aria-hidden="true" />
