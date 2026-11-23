@@ -179,7 +179,9 @@ final class CompactFormula
 
     private static function settingName(array $field): string
     {
-        return NodeCatalog::REFERENCES[$field['type']]['setting'] ?? $field['key'];
+        $name = NodeCatalog::REFERENCES[$field['type']]['setting'] ?? $field['key'];
+
+        return empty($field['list']) ? $name : $name . 's';
     }
 
     private static function settingHint(array $field): string
@@ -190,7 +192,8 @@ final class CompactFormula
                 array_keys($field['options']),
                 $field['options']
             )),
-            'product_type' => 'naam of pad van een producttype; subtypes tellen mee',
+            'product_type' => (empty($field['list']) ? 'naam of pad van een producttype' : 'lijst van namen of paden van producttypes')
+                . '; subtypes tellen mee',
             'product' => 'merk en model uit de catalogus',
             'brand' => 'naam van een merk',
             'attribute' => 'naam van een kenmerk; is het kenmerk een getal met een eenheid, dan vergelijk je '
@@ -266,7 +269,9 @@ final class CompactFormula
     private function resolvedSetting(string $id, array $field, mixed $value): mixed
     {
         return match ($field['type']) {
-            'product_type', 'product', 'brand', 'attribute' => $this->lookup($id, $field['type'], $value),
+            'product_type', 'product', 'brand', 'attribute' => empty($field['list'])
+                ? $this->lookup($id, $field['type'], $value)
+                : array_map(fn ($one) => $this->lookup($id, $field['type'], $one), array_values((array) $value)),
             'components' => array_map(
                 fn ($component) => $this->component($id, (array) $component),
                 array_values((array) $value)
@@ -470,7 +475,9 @@ final class CompactFormula
             }
 
             $settings[self::settingName($field)] = match (true) {
-                isset(NodeCatalog::REFERENCES[$field['type']]) => $this->nameOf($field['type'], $value),
+                isset(NodeCatalog::REFERENCES[$field['type']]) => empty($field['list'])
+                    ? $this->nameOf($field['type'], $value)
+                    : array_map(fn ($one) => $this->nameOf($field['type'], $one), (array) $value),
                 $field['type'] === 'components' => array_map(fn ($component) => array_filter([
                     'quantity' => $component['quantity'] ?? 1,
                     'product_type' => $this->nameOf('product_type', $component['product_type_id'] ?? null),

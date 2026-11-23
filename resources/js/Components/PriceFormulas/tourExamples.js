@@ -69,11 +69,14 @@ function basis({ wired = true } = {}) {
     ], wired ? [edge('machines', 'machines', 'price', 'quantity')] : []), pricedFrom('price', 2))
 }
 
-/** One type at its own price, everything else at another, added up. */
-function filtered(types, { steps = [] } = {}) {
+/** The chosen types at their own price, everything else at another, added up. */
+function filtered(types, { steps = [], chosen = types.slice(0, 1) } = {}) {
     return graph([
         node('machines', 'machines', 0, 1),
-        node('filter', 'filter_type', 1, 1, { title: types[0]?.name ?? 'Filter op type', product_type_id: types[0]?.id ?? null }),
+        node('filter', 'filter_type', 1, 1, {
+            title: chosen.map(type => type.name).join(' + ') || 'Filter op type',
+            product_type_ids: chosen.map(type => type.id),
+        }),
         node('price', 'tiers', 2, 0.3, { title: (types[0]?.name ?? 'Dit type') + ' per stuk', amount: 50, steps, mode: 'graduated' }),
         node('rest-price', 'tiers', 2, 1.8, { title: 'Overige per stuk', amount: 30, steps: [], mode: 'graduated' }),
         node('sum', 'sum', 3, 1),
@@ -212,6 +215,7 @@ export function tourStage(name, types) {
         case 'unwired': return basis({ wired: false })
         case 'basis': return basis()
         case 'filter': return merge(filtered(types), pricedFrom('sum', 4))
+        case 'bothTypes': return merge(filtered(types, { chosen: types.slice(0, 2) }), pricedFrom('sum', 4))
         case 'tiers': return merge(filtered(types, { steps: TIERED }), pricedFrom('sum', 4))
         case 'combination': return merge(combination(types), pricedFrom('sum', 5))
         case 'callout': return merge(filtered(types), callOut(), pricedFrom('sum', 4))

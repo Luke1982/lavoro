@@ -209,8 +209,8 @@ final class FormulaEvaluator
                 'periods' => (float) ($this->context['periods_per_year'] ?? 1),
                 'months' => (float) ($this->context['months'] ?? 0),
             ],
-            'filter_type' => $this->split($id, $node, 'product_type_id', 'Kies een producttype.',
-                fn (array $machine, $type_id) => in_array((int) $type_id, $machine['type_chain'], true)),
+            'filter_type' => $this->split($id, $node, 'product_type_ids', 'Kies een producttype.',
+                fn (array $machine, $type_ids) => array_intersect(array_map('intval', (array) $type_ids), $machine['type_chain']) !== []),
             'filter_model' => $this->split($id, $node, 'product_id', 'Kies een model.',
                 fn (array $machine, $product_id) => (int) $product_id === (int) ($machine['product_id'] ?? 0)),
             'filter_brand' => $this->split($id, $node, 'brand_id', 'Kies een merk.',
@@ -245,7 +245,7 @@ final class FormulaEvaluator
         $machines = $this->machinesIn($id, 'machines');
         $setting = $this->setting($node, $key);
 
-        if ($setting === null || $setting === '') {
+        if (in_array($setting, [null, '', []], true)) {
             return $this->refuse($id, $missing, ['match' => [], 'rest' => $machines]);
         }
 
@@ -280,6 +280,13 @@ final class FormulaEvaluator
 
         $actual_number = $this->leadingNumber((string) $actual);
         $expected_number = $this->leadingNumber($expected);
+
+        if ($operator === 'between') {
+            $until = $this->leadingNumber((string) $this->setting($node, 'value_to'));
+
+            return $actual_number !== null && $expected_number !== null && $until !== null
+                && $actual_number >= min($expected_number, $until) && $actual_number <= max($expected_number, $until);
+        }
 
         if ($actual_number !== null && $expected_number !== null) {
             return $this->compare($actual_number, $operator, $expected_number);

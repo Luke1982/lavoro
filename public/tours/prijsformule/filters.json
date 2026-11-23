@@ -1,7 +1,7 @@
 {
     "tour": "prijsformule",
     "chapter": "filters",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "filters.mp3",
     "gap": 1,
@@ -25,16 +25,22 @@
             "end": 47.19
         },
         {
-            "text": "Het blok \"filter op model\" haalt de machines van één bepaald model eruit. Het blok \"filter op merk\" haalt alle machines van één merk eruit, bijvoorbeeld alles van Mitsubishi.",
-            "hash": "faf1d9bbb43e8293d8070d725d84d3a71884eb4b",
+            "text": "Je kunt in één filter ook meer types kiezen. Hier staan er twee types in. Alle acht machines komen dan uit bij \"voldoet\", en bij \"overige\" komt niets. Zo geef je bijvoorbeeld airco's en warmtepompen samen één prijs.",
+            "hash": "f1d00f6422d14b7c64831ebfa9ff99ec2502414b",
             "start": 48.19,
-            "end": 58.029
+            "end": 61.602
         },
         {
-            "text": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs.",
-            "hash": "43f14aeb257b78365cdd14fe536dce578acec94c",
-            "start": 59.029,
-            "end": 71.69
+            "text": "Het blok \"filter op model\" haalt de machines van één bepaald model eruit. Het blok \"filter op merk\" haalt alle machines van één merk eruit, bijvoorbeeld alles van Mitsubishi.",
+            "hash": "faf1d9bbb43e8293d8070d725d84d3a71884eb4b",
+            "start": 62.602,
+            "end": 72.441
+        },
+        {
+            "text": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs. Met \"tussen\" geef je een onder- en een bovengrens, zoals koelvermogen tussen tien en twintig.",
+            "hash": "d4884dda4f1a37b278692fb80bce3a37da5b43f6",
+            "start": 73.441,
+            "end": 92.842
         }
     ]
 }

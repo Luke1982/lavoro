@@ -48,13 +48,17 @@ export function summarize(node, definition, names) {
     switch (node.type) {
         case 'number': return formatNumber(get('value'))
         case 'input': return `${get('name') || 'Invoer'} · standaard ${formatNumber(get('default'))}`
-        case 'filter_type': return names.productTypes[get('product_type_id')] ?? 'Kies een producttype'
+        case 'filter_type': return (get('product_type_ids') || []).map(id => names.productTypes[id]).filter(Boolean).join(' of ')
+            || 'Kies een producttype'
         case 'filter_model': return names.products[get('product_id')] ?? 'Kies een model'
         case 'filter_brand': return names.brands[get('brand_id')] ?? 'Kies een merk'
         case 'filter_attribute': {
             const attribute = names.attributes[get('product_attribute_id')]
             const unit = get('value') ? names.attributeUnits?.[get('product_attribute_id')] : ''
-            return attribute ? `${attribute} ${option('operator')} ${get('value') || '…'}${unit ? ' ' + unit : ''}` : 'Kies een kenmerk'
+            const shown = get('operator') === 'between'
+                ? `tussen ${get('value') || '…'} en ${get('value_to') || '…'}`
+                : `${option('operator')} ${get('value') || '…'}`
+            return attribute ? `${attribute} ${shown}${unit ? ' ' + unit : ''}` : 'Kies een kenmerk'
         }
         case 'combination': {
             const parts = (get('components') || []).map(component => {

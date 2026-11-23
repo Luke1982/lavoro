@@ -295,7 +295,7 @@
         },
         {
             "id": "filters",
-            "version": 1,
+            "version": 2,
             "title": "Filters",
             "summary": "Machines uitsplitsen op producttype, model, merk of kenmerk, en elke machine maar één keer meetellen.",
             "actions": [
@@ -345,6 +345,22 @@
                     ]
                 },
                 {
+                    "spot": "formula.node.filter",
+                    "action": [
+                        "stageBothTypes",
+                        "selectFilter"
+                    ],
+                    "marks": [
+                        {
+                            "spot": "formula.settings.type",
+                            "when": "twee types"
+                        }
+                    ],
+                    "title": "Meer types tegelijk",
+                    "text": "Je kunt in één filter ook **meer types** kiezen. Hier staan er twee types in: alle 8 machines van de voorbeeldklant komen dan uit bij **Voldoet**, en bij **Overige** komt niets. Zo geef je bijvoorbeeld airco's en warmtepompen samen één prijs, en de rest een andere. Klik een gekozen type nog eens aan om het weg te halen.",
+                    "say": "Je kunt in één filter ook meer types kiezen. Hier staan er twee types in. Alle acht machines komen dan uit bij \"voldoet\", en bij \"overige\" komt niets. Zo geef je bijvoorbeeld airco's en warmtepompen samen één prijs."
+                },
+                {
                     "spot": "formula.palette.filterModel",
                     "action": "stageFilter",
                     "requires": {
@@ -371,8 +387,8 @@
                         ]
                     },
                     "title": "Filter op kenmerk",
-                    "text": "**Filter op kenmerk** kijkt naar een kenmerk van het model, zoals het koelvermogen. Je kiest het kenmerk, een vergelijking en een waarde, bijvoorbeeld 'koelvermogen ≥ 10'. Zo zet je grote installaties apart van kleine en geef je ze een hogere prijs. Staat er bij het model '10 kW', dan rekent het filter gewoon met 10. Met **bevat** zoek je op een stukje tekst.",
-                    "say": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs."
+                    "text": "**Filter op kenmerk** kijkt naar een kenmerk van het model, zoals het koelvermogen. Je kiest het kenmerk, een vergelijking en een waarde, bijvoorbeeld 'koelvermogen ≥ 10'. Zo zet je grote installaties apart van kleine en geef je ze een hogere prijs. Staat er bij het model '10 kW', dan rekent het filter gewoon met 10. Met **tussen** geef je een van en een tot en met: 'koelvermogen tussen 10 en 20'. Met **bevat** zoek je op een stukje tekst.",
+                    "say": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs. Met \"tussen\" geef je een onder- en een bovengrens, zoals koelvermogen tussen tien en twintig."
                 }
             ]
         },

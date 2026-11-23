@@ -111,10 +111,10 @@ final class NodeCatalog
             'filter_type' => [
                 'label' => 'Filter op type',
                 'category' => 'filter',
-                'description' => 'Haalt de machines van één producttype uit de rest; de types eronder tellen mee.',
+                'description' => 'Haalt de machines van een of meer producttypes uit de rest; de types eronder tellen mee.',
                 'inputs' => $machines_in,
                 'outputs' => $split_out,
-                'fields' => [['key' => 'product_type_id', 'label' => 'Producttype', 'type' => 'product_type']],
+                'fields' => [['key' => 'product_type_ids', 'label' => 'Producttypes', 'type' => 'product_type', 'list' => true]],
             ],
             'filter_model' => [
                 'label' => 'Filter op model',
@@ -135,14 +135,16 @@ final class NodeCatalog
             'filter_attribute' => [
                 'label' => 'Filter op kenmerk',
                 'category' => 'filter',
-                'description' => 'Haalt de machines met een bepaald kenmerk uit de rest, zoals een vermogen van 10 kW of meer.',
+                'description' => 'Haalt de machines met een bepaald kenmerk uit de rest, zoals een vermogen van 10 kW of meer, of tussen 10 en 20 kW.',
                 'inputs' => $machines_in,
                 'outputs' => $split_out,
                 'fields' => [
                     ['key' => 'product_attribute_id', 'label' => 'Kenmerk', 'type' => 'attribute'],
                     ['key' => 'operator', 'label' => 'Vergelijking', 'type' => 'select', 'default' => '>=',
-                        'options' => self::comparisons() + ['contains' => 'bevat']],
+                        'options' => self::comparisons() + ['between' => 'tussen', 'contains' => 'bevat']],
                     ['key' => 'value', 'label' => 'Waarde', 'type' => 'text', 'default' => ''],
+                    ['key' => 'value_to', 'label' => 'Tot en met', 'type' => 'text', 'default' => '',
+                        'shown_when' => ['operator' => 'between']],
                 ],
             ],
             'combination' => [

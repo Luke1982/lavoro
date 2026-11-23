@@ -36,6 +36,8 @@ class PriceFormulaGraph implements ValidationRule
 
     private const MAX_COMPONENT_QUANTITY = 100;
 
+    private const MAX_LISTED = 50;
+
     private const EDGE_ENDS = ['source', 'sourceHandle', 'target', 'targetHandle'];
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -139,11 +141,13 @@ class PriceFormulaGraph implements ValidationRule
         $label = $field['label'];
 
         if (isset(NodeCatalog::REFERENCES[$field['type']])) {
-            if (!is_numeric($value)) {
+            $ids = empty($field['list']) ? [$value] : $value;
+
+            if (!is_array($ids) || count($ids) > self::MAX_LISTED || array_filter($ids, fn ($id) => !is_numeric($id)) !== []) {
                 return $label . ' is onbekend.';
             }
 
-            $references[$field['type']][] = $value;
+            array_push($references[$field['type']], ...$ids);
 
             return null;
         }

@@ -8,7 +8,7 @@
         <TextInput id="setting-title" data-formula-field="title" :model-value="node.data?.title ?? ''" type="text" label="Naam op het blok"
             :placeholder="definition.label" :disabled="readonly" @update:model-value="value => set('title', value || null)" />
 
-        <div v-for="field in definition.fields" :key="field.key" :data-formula-field="field.type" :data-formula-field-key="field.key">
+        <div v-for="field in shownFields" :key="field.key" :data-formula-field="field.type" :data-formula-field-key="field.key">
             <template v-if="field.type === 'number' || field.type === 'text'">
                 <TextInput :id="'setting-' + field.key" :model-value="node.data?.[field.key] ?? ''"
                     :type="field.type === 'number' ? 'number' : 'text'" step="any" :label="labelOf(field)"
@@ -28,7 +28,8 @@
             </template>
 
             <ComboBox v-else-if="pickers[field.type]" :label="field.label" :options="pickers[field.type].options"
-                :model-value="value(field)" :placeholder="pickers[field.type].placeholder" :disabled="readonly"
+                :model-value="field.list ? value(field) ?? [] : value(field)" :multiple="Boolean(field.list)"
+                :placeholder="pickers[field.type].placeholder" :disabled="readonly"
                 :has-external-searching="pickers[field.type].searchesServer" :searching="pickers[field.type].searching"
                 @change="query => pickers[field.type].search?.(query)" @update:model-value="v => set(field.key, v)" />
 
@@ -135,9 +136,13 @@ const pickers = computed(() => ({
     attribute: { options: props.attributes, placeholder: 'Kies een kenmerk' },
 }))
 
+/** A setting that only matters for one choice, such as "tot en met" for "tussen", shows only then. */
+const shownFields = computed(() => props.definition.fields.filter(field => !field.shown_when
+    || Object.entries(field.shown_when).every(([key, wanted]) => settingOf(props.node, props.definition, key) === wanted)))
+
 /** The value of a kenmerk filter is compared in the unit of that kenmerk, so the label says which. */
 function labelOf(field) {
-    if (field.key !== 'value' || props.node.type !== 'filter_attribute') return field.label
+    if (!['value', 'value_to'].includes(field.key) || props.node.type !== 'filter_attribute') return field.label
     const unit = props.attributes.find(attribute => attribute.id === props.node.data?.product_attribute_id)?.unit
     return unit ? `${field.label} (in ${unit})` : field.label
 }
