@@ -351,6 +351,7 @@ class ServiceOrderController extends Controller
                     ])
                 : [],
             'macroLocations' => $service_order->customer?->locations()->get(['id', 'title']) ?? [],
+            'contacts' => $service_order->customer?->contactOptions() ?? [],
             'projects' => Project::query()
                 ->where(fn ($query) => $query->active()->orWhere('id', $service_order->project_id))
                 ->inNumberOrder()
@@ -421,6 +422,12 @@ class ServiceOrderController extends Controller
         $requested_stage = array_key_exists('service_order_stage_id', $data) ? $request->requestedStage() : null;
         unset($data['service_order_stage_id']);
 
+        $customer_changed = isset($data['customer_id']) && (int) $data['customer_id'] !== (int) $previous_customer_id;
+
+        if ($customer_changed) {
+            $data += ['location_id' => null, 'contact_id' => null];
+        }
+
         $serviceorder->update($data);
         $project_changed = $serviceorder->wasChanged('project_id');
         $signature_changed = $serviceorder->wasChanged(['signed_by', 'signature_base64']);
@@ -433,7 +440,7 @@ class ServiceOrderController extends Controller
             );
         }
 
-        if (array_key_exists('customer_id', $data) && $data['customer_id'] != $previous_customer_id) {
+        if ($customer_changed) {
             Signals::dispatch(new ServiceOrderCustomerChanged(
                 $serviceorder,
                 $previous_customer_id,

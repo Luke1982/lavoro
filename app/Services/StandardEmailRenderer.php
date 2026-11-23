@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Domain\Planning\Clock;
 use App\Models\Company;
+use App\Models\Contact;
 use App\Models\Event;
+use App\Models\ServiceOrder;
 use App\Models\StandardEmail;
 use App\Support\AddressFormatter;
 use Illuminate\Support\Str;
@@ -66,9 +68,25 @@ class StandardEmailRenderer
         return self::fill($template, self::values($event), html: true);
     }
 
+    /** The work order's contact person when they have an address of their own, the customer's otherwise. */
     public static function defaultRecipient(Event $event): ?string
     {
-        return $event->primaryCustomer()?->email;
+        return self::contact($event)?->email ?: $event->primaryCustomer()?->email;
+    }
+
+    /**
+     * The person the mail is for: the contact picked on the first work order of
+     * the appointment's customer that has one. A contact on a work order of
+     * another customer is never borrowed.
+     */
+    private static function contact(Event $event): ?Contact
+    {
+        $event->loadMissing(['serviceOrders.customer', 'serviceOrders.contact', 'customers']);
+        $customer = $event->primaryCustomer();
+
+        return $event->serviceOrders
+            ->first(fn (ServiceOrder $order) => $order->contact && $order->customer_id === $customer?->id)
+            ?->contact;
     }
 
     /**
@@ -94,8 +112,9 @@ class StandardEmailRenderer
     /** @return array<string, ?string> */
     private static function values(Event $event): array
     {
-        $event->loadMissing(['serviceOrders.customer', 'customers', 'eventType', 'executingUsers']);
+        $event->loadMissing(['eventType', 'executingUsers']);
 
+        $contact = self::contact($event);
         $customer = $event->primaryCustomer();
         $orders = $event->serviceOrders;
         $start = Clock::toLocal($event->start);
@@ -112,7 +131,7 @@ class StandardEmailRenderer
             'event_location' => $event->display_location,
             'mechanic_names' => $event->executingUsers->pluck('name')->filter()->join(', ', ' en '),
             'customer_name' => $customer?->name,
-            'customer_contact' => $customer?->contactname,
+            'customer_contact' => $contact?->full_name ?: $customer?->contactname,
             'customer_address' => AddressFormatter::format(
                 $customer?->address,
                 $customer?->postal_code,

@@ -93,19 +93,10 @@
                                 <span class="text-xs font-bold">Contact</span>
                             </div>
                             <div class="col-span-12 sm:col-span-10">
-                                <EditableTextField type="combobox" v-model="form.contact_id" :options="contacts"
-                                    empty-message="Deze klant heeft nog geen contactpersonen. Je voegt ze toe bij de klant."
+                                <CustomerContactField v-model="form.contact_id" :contacts="contacts"
+                                    :customer-contactname="project.customer?.contactname"
                                     :error="form.errors.contact_id" @revert="form.clearErrors('contact_id')"
-                                    :readonly="!canUpdate">
-                                    <template #display>
-                                        <span v-if="project.contact">{{ project.contact.full_name }}</span>
-                                        <span v-else-if="project.customer?.contactname">
-                                            {{ project.customer.contactname }}
-                                            <span class="text-gray-400 dark:text-slate-500">· contactpersoon van de klant</span>
-                                        </span>
-                                        <span v-else class="text-gray-400 dark:text-slate-500">Geen contactpersoon</span>
-                                    </template>
-                                </EditableTextField>
+                                    :readonly="!canUpdate" />
                             </div>
                             <div class="col-span-12 sm:col-span-2 mt-2 sm:mt-0 text-slate-400">
                                 <span class="text-xs font-bold">Projectleider</span>
@@ -568,6 +559,7 @@ import BoxComponent from '@/Components/BoxComponent.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import EditableTextField from '@/Components/UI/EditableTextField.vue'
+import CustomerContactField from '@/Components/Customers/CustomerContactField.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import { ChartBarIcon, ChevronDownIcon, ClipboardDocumentListIcon, DocumentTextIcon, FlagIcon, PencilSquareIcon, PlusIcon, TrashIcon, CheckIcon, ClockIcon, UserIcon, BuildingOfficeIcon, CalendarIcon, CalculatorIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'

@@ -86,8 +86,7 @@ class ProjectController extends Controller
         return inertia('Projects/ShowPage', [
             'project' => $project,
             'progress' => $figures->summary($project, $request->user()),
-            'contacts' => $project->customer?->contacts()->orderBy('first_name')->get()
-                ->map(fn ($contact) => ['id' => $contact->id, 'name' => $contact->full_name]) ?? [],
+            'contacts' => $project->customer?->contactOptions() ?? [],
             'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
             'documentCategories' => DocumentCategory::forPicker(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),

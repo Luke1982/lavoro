@@ -261,6 +261,14 @@ class Customer extends Model
         return $this->morphToMany(Contact::class, 'contactable')->withTimestamps();
     }
 
+    /** @return array<int, array{id: int, name: string}> the contacts, for a picker */
+    public function contactOptions(): array
+    {
+        return $this->contacts()->orderBy('first_name')->orderBy('last_name')->get()
+            ->map(fn (Contact $contact) => ['id' => $contact->id, 'name' => $contact->full_name])
+            ->all();
+    }
+
     /**
      * Above this many customers a combobox stops holding them all and searches
      * server-side instead, through ComboSearchController.

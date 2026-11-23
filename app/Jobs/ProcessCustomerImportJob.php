@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Actions\Customers\AddContactsFromText;
 use App\Models\Customer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -16,7 +17,8 @@ class ProcessCustomerImportJob implements ShouldQueue
 
     public function __construct(public array $rows) {}
 
-    public function handle(): void
+    /** A row's Contactpersoon column also becomes contact persons of the customer. */
+    public function handle(AddContactsFromText $add_contacts): void
     {
         foreach ($this->rows as $row) {
             if (($row['fatal'] ?? false) || ($row['action'] ?? null) === 'skip') {
@@ -34,14 +36,18 @@ class ProcessCustomerImportJob implements ShouldQueue
 
             if (($row['action'] ?? null) === 'update') {
                 $customer = Customer::where('name', $data['name'])->first();
-                if ($customer) {
-                    $customer->update($data);
-                } else {
+                if (!$customer) {
                     Log::warning('CustomerImport: no customer found for update', ['name' => $data['name']]);
+
+                    continue;
                 }
+
+                $customer->update($data);
             } else {
-                Customer::create($data);
+                $customer = Customer::create($data);
             }
+
+            $add_contacts->execute($customer);
         }
     }
 }

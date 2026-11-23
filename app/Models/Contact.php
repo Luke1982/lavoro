@@ -23,25 +23,35 @@ class Contact extends Model
         'mobile' => 'Mobiel',
     ];
 
+    /** The records that name a contact person, each picked from its own customer. */
+    private const NAMED_ON = [Project::class, Quote::class, ServiceOrder::class];
+
     /**
      * The customers are read before the row goes, because the database takes the
      * links along with it and the removal still belongs on their timelines.
-     *
-     * The projects and quotes that name this person let go of them one by one, so
-     * each says on its own timeline who its contact was. The database would clear
-     * the column by itself, without a word.
      */
     protected static function booted(): void
     {
         static::deleting(function (Contact $contact) {
             $contact->loadMissing('customers');
-
-            Project::where('contact_id', $contact->id)->get()
-                ->each(fn (Project $project) => $project->update(['contact_id' => null]));
-
-            Quote::where('contact_id', $contact->id)->get()
-                ->each(fn (Quote $quote) => $quote->update(['contact_id' => null]));
+            $contact->release();
         });
+    }
+
+    /**
+     * Takes this person off every project, quote and werkbon that names them, or
+     * only off those of one customer. One by one, so each says on its own
+     * timeline who its contact was; the database would clear the column by
+     * itself, without a word.
+     */
+    public function release(?Customer $customer = null): void
+    {
+        foreach (self::NAMED_ON as $model) {
+            $model::where('contact_id', $this->id)
+                ->when($customer, fn ($query) => $query->where('customer_id', $customer->id))
+                ->get()
+                ->each(fn (Model $record) => $record->update(['contact_id' => null]));
+        }
     }
 
     /**
@@ -76,7 +86,7 @@ class Contact extends Model
 
     public function getFullNameAttribute(): string
     {
-        return "{$this->first_name} {$this->last_name}";
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     public function customers()

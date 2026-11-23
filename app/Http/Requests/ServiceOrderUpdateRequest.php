@@ -10,6 +10,7 @@ use App\Models\Asset;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\ServiceOrderTaskInstance;
+use App\Rules\ContactOfCustomer;
 use App\Rules\ProjectAcceptsWork;
 use App\Services\TaskInstanceVisibility;
 use Illuminate\Database\Eloquent\Collection;
@@ -64,6 +65,11 @@ class ServiceOrderUpdateRequest extends FormRequest
             'location_id' => [
                 'nullable',
                 Rule::exists('locations', 'id')->where(fn ($q) => $q->where('customer_id', $this->input('customer_id'))),
+            ],
+            'contact_id' => [
+                'sometimes',
+                'nullable',
+                new ContactOfCustomer($this->integer('customer_id'), 'deze werkbon'),
             ],
             'project_id' => [
                 'nullable',

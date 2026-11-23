@@ -2,6 +2,7 @@
 
 namespace App\Domain\Integrations\Sync;
 
+use App\Actions\Customers\AddContactsFromText;
 use App\Domain\Integrations\Area;
 use App\Domain\Integrations\Connector;
 use App\Domain\Integrations\Contracts\PullsCustomers;
@@ -36,6 +37,15 @@ class CustomerMapping extends Mapping
     {
         /** @var Customer $model */
         return CustomerData::fromCustomer($model);
+    }
+
+    /** The other side's free-text contact field also becomes contact persons of the customer. */
+    public function apply(RecordData $data, ?Model $model, array $fields): Model
+    {
+        $customer = parent::apply($data, $model, $fields);
+        app(AddContactsFromText::class)->execute($customer);
+
+        return $customer;
     }
 
     public function pull(Connector $connector, ?CarbonImmutable $since): iterable

@@ -53,6 +53,7 @@ class ServiceOrder extends Model
         'service_order_stage_id' => 'Fase',
         'customer_id' => 'Klant',
         'location_id' => 'Locatie',
+        'contact_id' => 'Contactpersoon',
         'project_id' => 'Project',
         'project_milestone_id' => 'Mijlpaal',
         'maintenance_contract_id' => 'Contract',
@@ -72,6 +73,7 @@ class ServiceOrder extends Model
         'service_order_stage_id' => ['serviceOrderStage', 'name'],
         'customer_id' => ['customer', 'name'],
         'location_id' => ['linkedLocation', 'title'],
+        'contact_id' => ['contact', 'full_name'],
         'project_id' => ['project', 'title'],
     ];
 
@@ -103,6 +105,7 @@ class ServiceOrder extends Model
         'order_date',
         'customer_id',
         'location_id',
+        'contact_id',
         'project_id',
         'project_milestone_id',
         'maintenance_contract_id',
@@ -429,6 +432,11 @@ class ServiceOrder extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     public function linkedLocation()
     {
         return $this->belongsTo(Location::class, 'location_id');
@@ -587,10 +595,11 @@ class ServiceOrder extends Model
     }
 
     /**
-     * Repoints the order at another customer. The linked location is dropped
-     * along the way: locations belong to a customer, so the old one is by
-     * definition unreachable from the new one. The project link is deliberately
-     * kept — unlinking it is a bigger decision than this move gets to make.
+     * Repoints the order at another customer. The linked location and contact
+     * person are dropped along the way: both belong to a customer, so the old
+     * ones are by definition unreachable from the new one. The project link is
+     * deliberately kept — unlinking it is a bigger decision than this move gets
+     * to make.
      */
     public function moveToCustomer(int $customer_id): void
     {
@@ -600,6 +609,7 @@ class ServiceOrder extends Model
         $this->update([
             'customer_id' => $customer_id,
             'location_id' => null,
+            'contact_id' => null,
         ]);
 
         $new = $this->refresh()->customer?->name;

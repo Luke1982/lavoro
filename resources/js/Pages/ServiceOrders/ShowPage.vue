@@ -139,6 +139,10 @@
                                                 invoer)</span>
                                         </template>
                                     </EditableTextField>
+                                    <CustomerContactField v-model="form.contact_id" label="Contactpersoon"
+                                        :contacts="contacts" :customer-contactname="serviceOrder.customer?.contactname"
+                                        :disabled="serviceOrder.is_closed || !hasPermission('serviceorder.update')"
+                                        :error="form.errors.contact_id" @revert="form.clearErrors('contact_id')" />
                                 </div>
                                 <!-- Right column -->
                                 <div class="flex flex-col gap-6 md:pl-8 md:border-l md:border-gray-200/70 dark:md:border-slate-700/70" v-auto-animate>
@@ -682,6 +686,7 @@ import TicketCard from '@/Components/TicketCard.vue';
 import ComboBox from '@/Components/UI/ComboBox.vue';
 import CustomerTransferModal from '@/Components/UI/CustomerTransferModal.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
+import CustomerContactField from '@/Components/Customers/CustomerContactField.vue';
 import { canMakeQuotes, nlDate, nlTime, hasPermission, hasAnyPermission, projectLabel, serviceOrderPillText, serviceOrderPillColorClasses, mapAssetForSelect, taskInstanceTitle, locationSourceLabel, eventTitle } from '@/Utilities/Utilities';
 import { openInNewTab } from '@/Utilities/download.js';
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue';
@@ -756,6 +761,7 @@ const props = defineProps({
     /** The macros this person may run here, each with what its steps ask. */
     macros: { type: Array, default: () => [] },
     macroLocations: { type: Array, default: () => [] },
+    contacts: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
     bundlePartsByProduct: { type: Object, default: () => ({}) },
     userRoles: { type: Array, default: () => [] },
@@ -901,6 +907,7 @@ const form = useForm({
     type: props.serviceOrder.type,
     project_id: props.serviceOrder.project_id,
     location_id: props.serviceOrder.location_id,
+    contact_id: props.serviceOrder.contact_id,
     order_date: props.serviceOrder.order_date,
     external_purchaseorder_no: props.serviceOrder.external_purchaseorder_no,
     external_invoice_no: props.serviceOrder.external_invoice_no,
@@ -936,12 +943,14 @@ const onLocationChange = (value) => {
 onMounted(() => loadLocations(form.customer_id));
 
 /**
- * A location belongs to one customer, so another customer empties the field. Going back
- * to the saved customer, by cancelling or by a refused save, brings its saved location
- * back with it rather than leaving the werkbon looking as if it never had one.
+ * A location and a contact person belong to one customer, so another customer empties
+ * both. Going back to the saved customer, by cancelling or by a refused save, brings the
+ * saved ones back with it rather than leaving the werkbon looking as if it never had them.
  */
 watch(() => form.customer_id, (customerId) => {
-    form.location_id = customerId === props.serviceOrder.customer_id ? props.serviceOrder.location_id : null;
+    const isSaved = customerId === props.serviceOrder.customer_id;
+    form.location_id = isSaved ? props.serviceOrder.location_id : null;
+    form.contact_id = isSaved ? props.serviceOrder.contact_id : null;
     loadLocations(customerId);
 });
 
@@ -1097,8 +1106,9 @@ const typeOptions = [
 
 /**
  * Saves each edited field as it changes. It stands aside while the customer differs from
- * the saved one: emptying the location is part of a customer change, and saving it on its
- * own would carry the new customer along before anyone was asked about the machines.
+ * the saved one: emptying the location and contact is part of a customer change, and
+ * saving that on its own would carry the new customer along before anyone was asked about
+ * the machines.
  */
 watch(
     [
@@ -1109,6 +1119,7 @@ watch(
         () => form.financial_comments,
         () => form.execution_location,
         () => form.location_id,
+        () => form.contact_id,
         () => form.actual_start_time,
         () => form.actual_end_time,
         () => form.project_id,

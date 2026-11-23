@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Models\Customer;
 use App\Models\Project;
 use App\Models\User;
+use App\Rules\ContactOfCustomer;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,13 +29,7 @@ trait ValidatesProjectFields
                 'nullable',
                 Rule::exists('locations', 'id')->where('customer_id', $customer_id),
             ],
-            'contact_id' => [
-                'sometimes',
-                'nullable',
-                Rule::exists('contactables', 'contact_id')
-                    ->where('contactable_type', Customer::class)
-                    ->where('contactable_id', $customer_id),
-            ],
+            'contact_id' => ['sometimes', 'nullable', new ContactOfCustomer($customer_id, 'dit project')],
             'budget_hours' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999'],
             'budget_amount' => [
                 'sometimes',
@@ -62,7 +56,6 @@ trait ValidatesProjectFields
     {
         return [
             'location_id.exists' => 'Deze locatie hoort niet bij de klant van dit project.',
-            'contact_id.exists' => 'Deze contactpersoon hoort niet bij de klant van dit project.',
             'budget_amount.prohibited' => 'Alleen wie de financiën van projecten beheert mag het begrote bedrag invullen.',
             'end_date.after_or_equal' => 'De einddatum ligt vóór de startdatum.',
             'start_date.before_or_equal' => 'De startdatum ligt na de einddatum.',
