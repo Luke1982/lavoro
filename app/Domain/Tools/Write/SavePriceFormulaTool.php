@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Write;
 
 use App\Actions\Pricing\CreatePriceFormulaAction;
+use App\Actions\Pricing\RenamePriceFormulaVersionAction;
 use App\Actions\Pricing\SavePriceFormulaGraphAction;
 use App\Domain\Pricing\CompactFormula;
 use App\Domain\Tools\ChecksBeforeConfirming;
@@ -15,8 +16,10 @@ use App\Domain\Tools\ToolResult;
 use App\Domain\Tools\Write\Concerns\ValidatesLikeTheForm;
 use App\Http\Requests\PriceFormulaStoreRequest;
 use App\Models\PriceFormula;
+use App\Models\PriceFormulaVersion;
 use App\Models\User;
 use App\Support\Counted;
+use App\Support\Money;
 
 /**
  * Saves a price formula the assistant built from somebody's description: a new
@@ -38,6 +41,7 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
     {
         return 'Slaat een prijsformule op: een nieuwe (met name), of een bestaande (met formula_id) met de blokken '
             . 'en lijnen die je meegeeft, die de hele formule vervangen. Probeer hem eerst met try_price_formula. '
+            . 'Wordt het een nieuwe versie, vraag dan of de lopende contracten meegaan en hoe de versie heet. '
             . 'Er gebeurt nog niets: de gebruiker krijgt een bevestigingsknop.';
     }
 
@@ -49,6 +53,8 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
                 'formula_id' => ['type' => 'integer', 'description' => 'Een bestaande formule wijzigen.'],
                 'name' => ['type' => 'string', 'description' => 'Naam van een nieuwe formule, of een nieuwe naam.'],
                 'description' => ['type' => 'string', 'description' => 'Waarvoor de formule is, in één zin.'],
+                'version_name' => ['type' => 'string', 'description' => 'Naam van de versie, bijv. het jaar.'],
+                'move_contracts' => ['type' => 'boolean', 'description' => 'Lopende contracten mee naar de nieuwe versie.'],
                 ...$this->formulaProperties(),
             ],
             'required' => ['blocks', 'wires'],
@@ -64,7 +70,8 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
 
         $formula = PriceFormula::find($arguments['formula_id']);
 
-        return $formula === null || $user->can('update', $formula);
+        return $formula === null || ($user->can('update', $formula)
+            && (empty($arguments['move_contracts']) || $user->can('upgradeContracts', $formula)));
     }
 
     /** Een omschrijving van hoe iemand wil rekenen omzetten in blokken en lijnen. */
@@ -112,27 +119,45 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             : ToolResult::failedWith(['fouten' => $problems], 'De formule klopt nog niet: ' . implode(' ', $problems));
     }
 
-    /** Saving as a new version leaves every running contract on an older one, at the price it has now. */
+    /**
+     * Says what saving does to the running contracts: taken along to the new
+     * version with what they cost together before and after, or left on an
+     * older one at the price they have now.
+     */
     public function previewOf(ToolCall $call): string
     {
         $formula = $this->formulaOf($call);
         $graph = $this->drafted($call, $formula)['graph'];
         $lines = app(CompactFormula::class)->describe($graph);
         $behind = 0;
+        $moving = '';
 
         if ($formula === null) {
             $head = 'Nieuwe prijsformule "' . trim((string) $call->stringArgument('name')) . '" aanmaken';
         } else {
-            $new_version = SavePriceFormulaGraphAction::makesNewVersion($formula, $graph);
-            $behind = ($new_version ? $formula->contracts() : $formula->contractsBehind())->notEnded()->count();
+            $impact = app(SavePriceFormulaGraphAction::class)
+                ->impact($formula, $graph, with_prices: (bool) $call->argument('move_contracts'));
             $head = 'Prijsformule "' . $formula->name . '" opslaan';
 
-            if ($new_version) {
-                $head .= ' als versie ' . ($formula->latestVersion->number + 1);
+            if (!$impact['new_version']) {
+                $behind = $formula->contractsBehind()->notEnded()->count();
+            } elseif (!$call->argument('move_contracts')) {
+                $behind = $impact['running'];
+            } elseif ($impact['running'] > 0) {
+                $moving = ' ' . Counted::of($impact['running'], 'lopend contract gaat', 'lopende contracten gaan')
+                    . ' mee naar de nieuwe versie: per periode samen van ' . Money::euros($impact['now'])
+                    . ' naar ' . Money::euros($impact['then']) . '.';
+            }
+
+            if ($impact['new_version']) {
+                $head .= ' als ' . PriceFormulaVersion::labelOf(
+                    $impact['number'],
+                    PriceFormulaVersion::cleanName($call->stringArgument('version_name')),
+                );
             }
         }
 
-        $head .= ' (' . Counted::of(count($lines), 'blok', 'blokken') . ').';
+        $head .= ' (' . Counted::of(count($lines), 'blok', 'blokken') . ').' . $moving;
 
         if ($behind > 0) {
             $head .= ' ' . SavePriceFormulaGraphAction::behindNotice($behind);
@@ -155,12 +180,23 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         if ($formula === null) {
             $formula = app(CreatePriceFormulaAction::class)->execute($name, $description, $graph, $call->user);
             $version = $formula->latestVersion()->first();
+            app(RenamePriceFormulaVersionAction::class)->execute($version, $call->stringArgument('version_name'));
             $message = 'Prijsformule "' . $formula->name . '" aangemaakt.';
         } else {
             $formula->update(array_filter(['name' => $name ?: null, 'description' => $description]));
-            ['version' => $version, 'behind' => $behind] = app(SavePriceFormulaGraphAction::class)
-                ->execute($formula, $graph, $call->user);
-            $message = 'Prijsformule "' . $formula->name . '" opgeslagen als versie ' . $version->number . '.';
+            ['version' => $version, 'behind' => $behind, 'moved' => $moved] = app(SavePriceFormulaGraphAction::class)
+                ->execute(
+                    $formula,
+                    $graph,
+                    $call->user,
+                    version_name: $call->stringArgument('version_name'),
+                    move_contracts: (bool) $call->argument('move_contracts'),
+                );
+            $message = 'Prijsformule "' . $formula->name . '" opgeslagen als ' . $version->label() . '.';
+
+            if ($moved->count > 0) {
+                $message .= ' ' . $moved->notice();
+            }
 
             if ($behind > 0) {
                 $message .= ' ' . SavePriceFormulaGraphAction::behindNotice($behind)
@@ -172,8 +208,9 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             'formula_id' => $formula->id,
             'naam' => $formula->name,
             'versie' => $version->number,
+            'versienaam' => $version->name,
             'link' => '/priceformulas/' . $formula->id,
-            'what' => $formula->name . ', versie ' . $version->number,
+            'what' => $version->displayName(),
         ], $message);
     }
 

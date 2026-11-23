@@ -29,7 +29,7 @@
                     <span v-if="formula.description" class="text-gray-500 dark:text-slate-400">{{ formula.description }}</span>
                 </div>
                 <div class="py-1 text-gray-500 md:col-span-2 md:py-0 dark:text-slate-400" data-cell="version">
-                    <span class="md:hidden">Versie </span>{{ formula.version ?? '—' }}
+                    <span class="md:hidden">Versie </span>{{ formula.version ?? '—' }}<template v-if="formula.version_name"> ({{ formula.version_name }})</template>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 py-1 md:col-span-3 md:py-0" data-cell="contracts">
                     <span class="text-gray-500 dark:text-slate-400">

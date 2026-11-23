@@ -3,13 +3,18 @@
 namespace App\Actions\Pricing;
 
 use App\Domain\Pricing\CompactFormula;
+use App\Domain\Pricing\ContractPricing;
+use App\Domain\Pricing\MovedContracts;
+use App\Domain\Pricing\PricedMachines;
 use App\Domain\Signals\Pricing\PriceFormulaSaved;
 use App\Domain\Signals\Signals;
 use App\Exceptions\Refusal;
+use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
 use App\Models\PriceFormulaVersion;
 use App\Models\User;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,18 +26,34 @@ use Illuminate\Support\Facades\DB;
  *
  * Saved from the editor, it is told which version the editor opened, so two
  * people working on one formula never lose each other's work without a word.
+ *
+ * Whether the running contracts come along to a new version is the person's
+ * call, asked when they save: left alone they keep their version and price.
  */
 class SavePriceFormulaGraphAction
 {
-    public function __construct(private readonly CompactFormula $compact) {}
+    public function __construct(
+        private readonly CompactFormula $compact,
+        private readonly UpgradeContractsToLatestVersionAction $upgrade,
+        private readonly ContractPricing $pricing,
+        private readonly RenamePriceFormulaVersionAction $rename,
+    ) {}
 
     /**
      * @param  int|null  $based_on  the version number the graph was edited from; a newer one saved in the meantime refuses
-     * @return array{version: PriceFormulaVersion, is_new_version: bool, behind: int}
+     * @param  string|null  $version_name  a name for the version saved, such as a year; null leaves the name as it is, a blank one takes it away
+     * @param  bool  $move_contracts  a new version takes every running contract on this formula along
+     * @return array{version: PriceFormulaVersion, is_new_version: bool, behind: int, moved: MovedContracts}
      */
-    public function execute(PriceFormula $formula, array $graph, ?User $user, ?int $based_on = null): array
-    {
-        return DB::transaction(function () use ($formula, $graph, $user, $based_on) {
+    public function execute(
+        PriceFormula $formula,
+        array $graph,
+        ?User $user,
+        ?int $based_on = null,
+        ?string $version_name = null,
+        bool $move_contracts = false,
+    ): array {
+        return DB::transaction(function () use ($formula, $graph, $user, $based_on, $version_name, $move_contracts) {
             PriceFormula::whereKey($formula->id)->lockForUpdate()->first();
             $latest = $formula->versions()->first();
 
@@ -52,9 +73,14 @@ class SavePriceFormulaGraphAction
                 $latest->update(['graph' => $graph, 'created_by' => $user?->id]);
                 $version = $latest;
                 $is_new = false;
+
+                if ($version_name !== null) {
+                    $this->rename->execute($version, $version_name);
+                }
             } else {
                 $version = $formula->versions()->create([
                     'number' => ($latest?->number ?? 0) + 1,
+                    'name' => $version_name,
                     'graph' => $graph,
                     'created_by' => $user?->id,
                 ]);
@@ -62,23 +88,63 @@ class SavePriceFormulaGraphAction
             }
 
             if ($previous !== $summary || $prices_changed) {
-                Signals::dispatch(new PriceFormulaSaved($formula, $version->number, $is_new, $previous, $summary));
+                Signals::dispatch(new PriceFormulaSaved($formula, $version->number, $is_new, $previous, $summary, $version->name));
             }
+
+            $moved = $is_new && $move_contracts ? $this->upgrade->execute($formula) : MovedContracts::none();
 
             return [
                 'version' => $version,
                 'is_new_version' => $is_new,
                 'behind' => $formula->contractsBehind()->notEnded()->count(),
+                'moved' => $moved,
             ];
         });
     }
 
-    /** Whether saving this graph now would make a new version rather than change the newest one. */
-    public static function makesNewVersion(PriceFormula $formula, array $graph): bool
+    /**
+     * What saving this graph would do, asked before saving: whether it makes a
+     * new version, how many running contracts are on the formula, and what they
+     * cost per period now and would cost on that new version. Without prices,
+     * for whoever may not see them, nothing is worked out.
+     *
+     * @return array{new_version: bool, number: int|null, running: int, now: float|null, then: float|null}
+     */
+    public function impact(PriceFormula $formula, array $graph, bool $with_prices = true): array
     {
         $latest = $formula->versions()->first();
+        $new_version = $latest !== null && self::outgrows($latest, $graph);
+        $running = $new_version ? $formula->contracts()->notEnded()->get() : collect();
 
-        return $latest !== null && self::outgrows($latest, $graph);
+        return [
+            'new_version' => $new_version,
+            'number' => $new_version ? $latest->number + 1 : null,
+            'running' => $running->count(),
+            'now' => $with_prices ? UpgradeContractsToLatestVersionAction::periodicTotal($running) : null,
+            'then' => $with_prices ? $this->periodicTotalOn($running, $graph) : null,
+        ];
+    }
+
+    /**
+     * What these contracts would cost together per period on a graph not saved
+     * yet. A contract the graph cannot price keeps its price, as it would when
+     * moved onto it.
+     *
+     * @param  Collection<int, MaintenanceContract>  $contracts
+     */
+    private function periodicTotalOn(Collection $contracts, array $graph): float
+    {
+        $draft = new PriceFormulaVersion(['graph' => $graph]);
+
+        PricedMachines::preload($contracts);
+
+        return round($contracts->sum(function (MaintenanceContract $contract) use ($draft) {
+            $result = $this->pricing->evaluate($contract, $draft);
+
+            return ($result['readable'] ?? false)
+                ? (float) ($result['periodic'] ?? 0)
+                : (float) $contract->getRawOriginal('price');
+        }), 2);
     }
 
     /**

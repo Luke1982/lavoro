@@ -80,6 +80,7 @@ class ReadPriceFormulasTool implements Tool
                 'naam' => $formula->name,
                 'omschrijving' => $formula->description,
                 'versie' => $formula->latestVersion?->number,
+                'versienaam' => $formula->latestVersion?->name,
                 'contracten' => $formula->contracts_count,
             ])->all(),
         ];
@@ -97,6 +98,7 @@ class ReadPriceFormulasTool implements Tool
                 'formula_id' => $formula->id,
                 'naam' => $formula->name,
                 'versie' => $formula->latestVersion?->number,
+                'versienaam' => $formula->latestVersion?->name,
                 'link' => '/priceformulas/' . $formula->id,
                 ...app(CompactFormula::class)->fromGraph($formula->latestVersion?->graph ?? []),
                 'contracten_op_oudere_versie' => $call->user->can('seeFinancials', MaintenanceContract::class)

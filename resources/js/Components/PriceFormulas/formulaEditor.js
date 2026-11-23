@@ -118,3 +118,11 @@ export function edgeLook(kind) {
 export function newNodeId(type) {
     return `${type}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 }
+
+/**
+ * "versie 3", or "versie 3 (2027)" when the version was given a name; the same
+ * as the server writes it. At the start of a line or on a badge: "Versie 3".
+ */
+export function versionLabel(number, name = null, { capital = false } = {}) {
+    return `${capital ? 'Versie' : 'versie'} ${number}${name ? ` (${name})` : ''}`
+}

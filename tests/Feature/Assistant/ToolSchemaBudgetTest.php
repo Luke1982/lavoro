@@ -61,8 +61,12 @@ class ToolSchemaBudgetTest extends TestCase
      * 41200 for history: search_activity names every record type that now has a
      * timeline -- machines, materials, suppliers, users, roles, settings and the
      * rest -- so "who changed this" has an answer for all of them.
+     *
+     * 41500 for named formula versions: saving a new version asks whether the
+     * running contracts come along and what the version is called, instead of
+     * leaving every contract behind without a word.
      */
-    private const ROOM_FOR = 41200;
+    private const ROOM_FOR = 41500;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

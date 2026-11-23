@@ -775,7 +775,7 @@
                 {
                     "spot": "formula.version",
                     "title": "Wanneer een nieuwe versie",
-                    "text": "Gebruikt nog **geen enkel contract** deze versie, dan wordt die bij Opslaan gewoon bijgewerkt. Gebruiken er **wel contracten** deze versie, dan maakt Opslaan een **nieuwe versie**. Stel: 10 contracten staan op versie 2 en je verhoogt de prijs per stuk van €50 naar €55. Dan wordt het versie 3, en die 10 contracten houden hun oude prijs tot je ze bijwerkt. Nieuwe contracten krijgen altijd de nieuwste versie.",
+                    "text": "Gebruikt nog **geen enkel contract** deze versie, dan wordt die bij Opslaan gewoon bijgewerkt. Gebruiken er **wel contracten** deze versie, dan maakt Opslaan een **nieuwe versie**. Stel: 10 contracten staan op versie 2 en je verhoogt de prijs per stuk van €50 naar €55. Dan wordt het versie 3, en Lavoro vraagt eerst hoe die versie heet (bijvoorbeeld **2027**) en of die 10 contracten **meegaan** of hun oude prijs **houden** tot je ze bijwerkt. Je ziet daarbij wat ze samen nu kosten en met de nieuwe versie. Nieuwe contracten krijgen altijd de nieuwste versie.",
                     "say": "Gebruikt nog geen enkel contract deze versie, dan wordt die bij opslaan gewoon bijgewerkt. Gebruiken er wel contracten deze versie, dan maakt opslaan een nieuwe versie. Stel: tien contracten staan op versie twee, en jij verhoogt de prijs per stuk van vijftig naar vijfenvijftig euro. Dan wordt het versie drie, en die tien contracten houden hun oude prijs, tot je ze bijwerkt. Zo verandert een prijs nooit zonder dat je het weet."
                 },
                 {

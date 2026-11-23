@@ -173,7 +173,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             app(LinkContractPriceFormulaAction::class)->executeMany($contracts, $formula->latestVersion);
 
             $upgraded = $call->argument('upgrade_outdated')
-                ? app(UpgradeContractsToLatestVersionAction::class)->execute($formula)
+                ? app(UpgradeContractsToLatestVersionAction::class)->execute($formula)->count
                 : 0;
 
             $templates->each->update(['price_formula_id' => $formula->id]);

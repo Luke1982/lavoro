@@ -234,6 +234,10 @@ Route::group(
         Route::resource('priceformulas', PriceFormulaController::class)->except(['create', 'edit']);
         Route::put('priceformulas/{priceformula}/graph', [PriceFormulaController::class, 'updateGraph'])
             ->name('priceformulas.graph');
+        Route::post('priceformulas/{priceformula}/impact', [PriceFormulaController::class, 'impact'])
+            ->name('priceformulas.impact');
+        Route::patch('priceformulas/{priceformula}/version', [PriceFormulaController::class, 'updateVersion'])
+            ->name('priceformulas.version');
         Route::post(
             'priceformulas/{priceformula}/upgrade-contracts',
             [PriceFormulaController::class, 'upgradeContracts']

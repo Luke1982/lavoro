@@ -33,7 +33,7 @@
                     <Link v-else :href="`/maintenancecontracts/${contract.id}`" class="font-medium hover:underline">
                         {{ contract.name }}
                     </Link>
-                    <span class="ml-2 text-xs text-gray-500 dark:text-slate-400">versie {{ contract.version }}</span>
+                    <span class="ml-2 text-xs text-gray-500 dark:text-slate-400">{{ versionLabel(contract.version, contract.version_name) }}</span>
                     <BadgeComponent v-if="contract.ended" color="gray" :has-dot="false" class="ml-2">afgelopen</BadgeComponent>
                 </div>
                 <div class="flex items-center gap-3">
@@ -84,6 +84,7 @@ import { Link, router } from '@inertiajs/vue3'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import { useTour } from '@/Composables/useTour'
+import { versionLabel } from '@/Components/PriceFormulas/formulaEditor'
 import { nlCurrency } from '@/Utilities/Utilities'
 
 /**

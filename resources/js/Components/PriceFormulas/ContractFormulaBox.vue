@@ -12,7 +12,9 @@
                     @update:model-value="pick" />
             </div>
             <div v-if="priceFormula" class="flex items-end gap-3" data-tour="contract.formula.version">
-                <BadgeComponent color="blue" :has-dot="false">Versie {{ priceFormula.version }}</BadgeComponent>
+                <BadgeComponent color="blue" :has-dot="false">
+                    {{ versionLabel(priceFormula.version, priceFormula.version_name, { capital: true }) }}
+                </BadgeComponent>
                 <span v-if="canReadFormulas && example" class="pb-1 font-medium text-lavoro-blue opacity-60 dark:text-blue-400">
                     Bekijk de berekening
                 </span>
@@ -31,7 +33,7 @@
             <div v-if="priceFormula.newer" data-tour="contract.formula.newer"
                 class="flex flex-col gap-3 rounded-lg bg-amber-50 p-3 text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:bg-amber-900/30 dark:text-amber-200">
                 <p>
-                    Er is een nieuwere versie van {{ priceFormula.name }} (versie {{ priceFormula.newer.version }}).
+                    Er is een nieuwere versie van {{ priceFormula.name }} ({{ versionLabel(priceFormula.newer.version, priceFormula.newer.version_name) }}).
                     Daarmee wordt de prijs {{ nlCurrency(priceFormula.newer.result.periodic ?? 0) }} per periode
                     (nu {{ nlCurrency(priceFormula.result.periodic ?? 0) }})<template
                         v-if="priceFormula.newer.result.one_time !== priceFormula.result.one_time">, eenmalig
@@ -101,7 +103,7 @@ import ComboBox from '@/Components/UI/ComboBox.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import UnpricedMachines from '@/Components/PriceFormulas/UnpricedMachines.vue'
-import { formatNumber } from '@/Components/PriceFormulas/formulaEditor'
+import { formatNumber, versionLabel } from '@/Components/PriceFormulas/formulaEditor'
 import { nlCurrency } from '@/Utilities/Utilities'
 
 /**

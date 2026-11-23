@@ -173,12 +173,14 @@ class MaintenanceContractController extends Controller
                 'formula_id' => $version->price_formula_id,
                 'name' => $version->formula?->name,
                 'version' => $version->number,
+                'version_name' => $version->name,
                 'inputs' => array_map(fn (array $field) => $field + [
                     'value' => $inputs[$field['id']] ?? null,
                 ], ContractPricing::inputsOf($version->graph)),
                 'result' => Arr::except($pricing->evaluate($maintenancecontract, $version), 'nodes'),
                 'newer' => $latest && $latest->number > $version->number ? [
                     'version' => $latest->number,
+                    'version_name' => $latest->name,
                     'result' => Arr::except($pricing->evaluate($maintenancecontract, $latest), 'nodes'),
                 ] : null,
             ],

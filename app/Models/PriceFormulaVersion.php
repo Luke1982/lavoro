@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,15 +13,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * graph: {nodes: [{id, type, position: {x, y}, data: {...}}], edges: [{id,
  * source, sourceHandle, target, targetHandle}]} — the editor's own shape.
+ * name: what the person called the version, such as the year its prices are
+ * for; a blank one is no name.
  */
 class PriceFormulaVersion extends Model
 {
-    protected $fillable = ['price_formula_id', 'number', 'graph', 'created_by'];
+    protected $fillable = ['price_formula_id', 'number', 'name', 'graph', 'created_by'];
 
     protected $casts = [
         'graph' => 'array',
         'number' => 'integer',
     ];
+
+    protected function name(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => self::cleanName($value));
+    }
 
     public function formula(): BelongsTo
     {
@@ -37,9 +45,27 @@ class PriceFormulaVersion extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /** "Airco standaard, versie 3", as the timeline and the contract name it. */
+    /** "Airco standaard, versie 3 (2027)", as the timeline and the contract name it. */
     public function displayName(): string
     {
-        return ($this->formula?->name ?? 'Prijsformule') . ', versie ' . $this->number;
+        return ($this->formula?->name ?? 'Prijsformule') . ', ' . $this->label();
+    }
+
+    /** "versie 3", or "versie 3 (2027)" when the version was given a name. */
+    public function label(): string
+    {
+        return self::labelOf($this->number, $this->name);
+    }
+
+    public static function labelOf(int $number, ?string $name): string
+    {
+        return 'versie ' . $number . ($name === null ? '' : ' (' . $name . ')');
+    }
+
+    public static function cleanName(?string $name): ?string
+    {
+        $name = trim((string) $name);
+
+        return $name === '' ? null : $name;
     }
 }

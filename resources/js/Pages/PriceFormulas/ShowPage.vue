@@ -16,23 +16,28 @@
     </div>
 
     <div class="mb-4 mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:col-span-2" data-tour="formula.header">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:col-span-2" data-tour="formula.header">
             <EditableTextField v-model="details.name" type="input" label="Naam" :readonly="!canUpdate"
                 :error="details.errors.name" @update="() => patchDetails('name')" @revert="details.clearErrors('name')" />
             <EditableTextField v-model="details.description" type="input" label="Omschrijving" placeholder="Geen omschrijving"
                 :readonly="!canUpdate" :error="details.errors.description"
                 @update="() => patchDetails('description')" @revert="details.clearErrors('description')" />
+            <EditableTextField v-model="versionForm.name" type="input" :label="`Naam van versie ${version.number}`"
+                placeholder="Geen naam, bijvoorbeeld 2027" :readonly="!canUpdate" :error="versionForm.errors.name"
+                @update="patchVersionName" @revert="versionForm.clearErrors('name')" />
         </div>
         <div class="flex flex-col items-start gap-2 lg:items-end" data-tour="formula.version">
             <div class="flex items-center gap-2">
-                <BadgeComponent color="blue" :has-dot="false">Versie {{ version.number }}</BadgeComponent>
+                <BadgeComponent color="blue" :has-dot="false">
+                    {{ versionLabel(version.number, version.name, { capital: true }) }}
+                </BadgeComponent>
                 <span v-if="(dirty || touring) && canUpdate" class="flex items-center gap-2" data-tour="formula.save">
                     <button type="button" :disabled="touring"
                         class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-60 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
                         @click="discard">
                         Wijzigingen weggooien
                     </button>
-                    <button type="button" :disabled="touring || saving"
+                    <button type="button" :disabled="touring || saving || checking"
                         class="rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white shadow-xs hover:opacity-90 disabled:opacity-60"
                         @click="save">
                         {{ version.in_use ? `Opslaan als versie ${version.number + 1}` : 'Opslaan' }}
@@ -137,6 +142,68 @@
             </div>
         </template>
     </ModalDialog>
+
+    <ModalDialog v-model:open="newVersion.open" :title="`Opslaan als versie ${newVersion.impact?.number ?? ''}`"
+        max-width-class="sm:max-w-lg">
+        <div v-if="newVersion.impact" class="space-y-4 text-sm text-gray-600 dark:text-slate-300">
+            <TextInput id="new-version-name" v-model="newVersion.name" label="Naam van de versie" placeholder="Bijvoorbeeld 2027"
+                :has-error="Boolean(newVersion.error)" :error-message="newVersion.error" />
+            <p v-if="!running.count">
+                Er staat geen lopend contract op deze formule. Nieuwe contracten krijgen versie {{ newVersion.impact.number }}.
+            </p>
+            <template v-else-if="newVersion.impact.can_move_contracts">
+                <p>
+                    {{ running.subject }} op deze formule {{ running.one ? 'kost' : 'kosten samen' }}
+                    {{ nlCurrency(newVersion.impact.now) }} per periode. Gaan ze mee naar versie {{ newVersion.impact.number }}?
+                </p>
+                <ul class="space-y-2">
+                    <li>
+                        <span class="font-semibold text-gray-900 dark:text-white">Laten staan:</span>
+                        {{ running.one ? 'het houdt zijn versie en zijn prijs' : 'ze houden hun versie en hun prijs' }} tot je bijwerkt.
+                    </li>
+                    <li>
+                        <span class="font-semibold text-gray-900 dark:text-white">Meenemen:</span>
+                        de prijs wordt opnieuw berekend{{ running.one ? '' : ', samen' }}
+                        <span class="font-semibold" :class="newVersion.impact.then > newVersion.impact.now
+                            ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'">
+                            {{ nlCurrency(newVersion.impact.then) }}
+                        </span>
+                        per periode. De nieuwe prijs komt op de tijdlijn van {{ running.one ? 'het' : 'elk' }} contract.
+                    </li>
+                </ul>
+            </template>
+            <p v-else>
+                {{ running.subject }} {{ running.one ? 'blijft op zijn versie en houdt zijn' : 'blijven op hun versie en houden hun' }}
+                prijs. Bijwerken kan iemand die contracten en hun prijzen mag wijzigen.
+            </p>
+        </div>
+        <template #footer>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button"
+                    class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
+                    @click="newVersion.open = false">
+                    Annuleren
+                </button>
+                <template v-if="running.count && newVersion.impact.can_move_contracts">
+                    <button type="button" :disabled="saving"
+                        class="rounded-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-60 dark:text-white dark:ring-slate-600 dark:hover:bg-slate-700"
+                        @click="saveAsNewVersion(false)">
+                        Laten staan
+                    </button>
+                    <button type="button" :disabled="saving"
+                        class="rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                        @click="saveAsNewVersion(true)">
+                        Meenemen naar versie {{ newVersion.impact.number }}
+                    </button>
+                </template>
+                <button v-else type="button" :disabled="saving"
+                    class="rounded-md bg-lavoro-blue px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                    @click="saveAsNewVersion(false)">
+                    Opslaan
+                </button>
+            </div>
+        </template>
+    </ModalDialog>
 </template>
 
 <script setup>
@@ -161,6 +228,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import SectionHeader from '@/Components/UI/SectionHeader.vue'
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
+import TextInput from '@/Components/UI/TextInput.vue'
 import FormulaNode from '@/Components/PriceFormulas/FormulaNode.vue'
 import FormulaPalette from '@/Components/PriceFormulas/FormulaPalette.vue'
 import NodeSettings from '@/Components/PriceFormulas/NodeSettings.vue'
@@ -172,7 +240,7 @@ import { usePriceFormulaTour } from '@/Components/PriceFormulas/usePriceFormulaT
 import { tourSample } from '@/Components/PriceFormulas/tourExamples'
 import { useLeaveGuard } from '@/Composables/useLeaveGuard'
 import {
-    DRAG_TYPE, EDITOR_KEY, PICKED_MODELS_KEY, edgeLook, newNodeId, serializeGraph, settingOf, settingsOf,
+    DRAG_TYPE, EDITOR_KEY, PICKED_MODELS_KEY, edgeLook, newNodeId, serializeGraph, settingOf, settingsOf, versionLabel,
 } from '@/Components/PriceFormulas/formulaEditor'
 import { hasPermission, nlCurrency, nlDate } from '@/Utilities/Utilities'
 
@@ -272,7 +340,7 @@ const versionNote = computed(() => {
     const saved = savedAt ? `Laatst opgeslagen ${nlDate(savedAt)}${savedBy ? ` door ${savedBy}` : ''}. ` : ''
 
     return saved + (inUse
-        ? `Er staan contracten op versie ${number}. Opslaan maakt versie ${number + 1}; die contracten houden hun prijs tot je ze bijwerkt.`
+        ? `Er staan contracten op versie ${number}. Opslaan maakt versie ${number + 1}; je kiest dan of de lopende contracten meegaan.`
         : `Er staat nog geen contract op versie ${number}, dus opslaan werkt deze versie bij.`)
 })
 
@@ -466,14 +534,9 @@ watch([priceShape, () => JSON.stringify(bench)], () => {
 }, { immediate: true })
 
 const saving = ref(false)
+const checking = ref(false)
 const saveError = ref(null)
 
-/**
- * Says which version the changes were made on. Saved by someone else in the
- * meantime, the server refuses rather than overwrite that version: a refusal
- * comes back as the page with an error flashed, not as a field error, so the
- * canvas only counts as saved without one.
- */
 /**
  * The version the canvas is built on. A save names it, so the server refuses
  * when someone else saved after it; that stays so until this canvas is saved
@@ -481,16 +544,68 @@ const saveError = ref(null)
  */
 const baseVersion = ref(props.version.number)
 
-function save() {
+/**
+ * A save that makes a new version asks first: what the version is called, and
+ * whether the running contracts come along. The server says whether it would be
+ * a new version and what those contracts cost now and then; the money only
+ * comes back for whoever may move contracts along. What is saved is the graph
+ * the question was about, so a change made while it was asked stays unsaved.
+ */
+const newVersion = reactive({ open: false, impact: null, graph: null, name: '', error: null })
+
+const running = computed(() => {
+    const count = newVersion.impact?.running ?? 0
+
+    return { count, one: count === 1, subject: count === 1 ? 'Eén lopend contract' : `${count} lopende contracten` }
+})
+
+async function save() {
     if (touring.value) return
-    saving.value = true
     saveError.value = null
     const graph = currentGraph.value
 
-    router.put(`/priceformulas/${props.formula.id}/graph`, { graph, version: baseVersion.value }, {
+    if (!props.version.in_use) {
+        store(graph)
+        return
+    }
+
+    checking.value = true
+    try {
+        const { data } = await axios.post(`/priceformulas/${props.formula.id}/impact`, { graph })
+        if (!data.new_version) {
+            store(graph)
+            return
+        }
+        Object.assign(newVersion, { open: true, impact: data, graph, name: '', error: null })
+    } catch (error) {
+        const errors = error.response?.data?.errors
+        saveError.value = errors
+            ? Object.values(errors).flat()[0]
+            : error.response?.data?.message ?? 'Opslaan lukt nu niet. Probeer het zo nog eens.'
+    } finally {
+        checking.value = false
+    }
+}
+
+function saveAsNewVersion(moveContracts) {
+    newVersion.error = null
+    store(newVersion.graph, { version_name: newVersion.name || null, move_contracts: moveContracts })
+}
+
+/**
+ * Says which version the changes were made on. Saved by someone else in the
+ * meantime, the server refuses rather than overwrite that version: a refusal
+ * comes back as the page with an error flashed, not as a field error, so the
+ * canvas only counts as saved without one.
+ */
+function store(graph, choices = {}) {
+    saving.value = true
+
+    router.put(`/priceformulas/${props.formula.id}/graph`, { graph, version: baseVersion.value, ...choices }, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: page => {
+            newVersion.open = false
             const refused = page.props.flash?.error
             if (refused) {
                 saveError.value = refused
@@ -499,7 +614,14 @@ function save() {
             savedGraph.value = JSON.stringify(graph)
             baseVersion.value = page.props.version.number
         },
-        onError: errors => { saveError.value = errors.graph ?? Object.values(errors)[0] },
+        onError: errors => {
+            if (errors.version_name) {
+                newVersion.error = errors.version_name
+                return
+            }
+            newVersion.open = false
+            saveError.value = errors.graph ?? Object.values(errors)[0]
+        },
         onFinish: () => { saving.value = false },
     })
 }
@@ -515,6 +637,18 @@ function discard() {
 }
 
 const details = useForm({ name: props.formula.name, description: props.formula.description ?? '' })
+
+const versionForm = useForm({ name: props.version.name ?? '' })
+
+watch(() => [props.version.number, props.version.name], () => {
+    versionForm.defaults({ name: props.version.name ?? '' })
+    versionForm.reset()
+})
+
+function patchVersionName() {
+    versionForm.transform(data => ({ version: props.version.number, name: data.name || null }))
+        .patch(`/priceformulas/${props.formula.id}/version`, { preserveScroll: true, preserveState: true })
+}
 
 function patchDetails(field) {
     details.transform(data => ({ [field]: data[field] }))

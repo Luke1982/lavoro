@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Pricing\CreatePriceFormulaAction;
+use App\Actions\Pricing\RenamePriceFormulaVersionAction;
 use App\Actions\Pricing\SavePriceFormulaGraphAction;
 use App\Actions\Pricing\UpgradeContractsToLatestVersionAction;
 use App\Domain\Pricing\ContractPricing;
@@ -12,11 +13,13 @@ use App\Enums\ContractInterval;
 use App\Exceptions\Refusal;
 use App\Http\Requests\PriceFormulaDestroyRequest;
 use App\Http\Requests\PriceFormulaGraphUpdateRequest;
+use App\Http\Requests\PriceFormulaImpactRequest;
 use App\Http\Requests\PriceFormulaPreviewRequest;
 use App\Http\Requests\PriceFormulaReadRequest;
 use App\Http\Requests\PriceFormulaStoreRequest;
 use App\Http\Requests\PriceFormulaUpdateRequest;
 use App\Http\Requests\PriceFormulaUpgradeContractsRequest;
+use App\Http\Requests\PriceFormulaVersionUpdateRequest;
 use App\Models\Brand;
 use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
@@ -43,6 +46,7 @@ class PriceFormulaController extends Controller
                 'name' => $formula->name,
                 'description' => $formula->description,
                 'version' => $formula->latestVersion?->number,
+                'version_name' => $formula->latestVersion?->name,
                 'contracts' => $formula->contracts_count,
                 'outdated' => $formula->outdated_count,
                 'templates' => $formula->templates->pluck('name')->values(),
@@ -74,6 +78,7 @@ class PriceFormulaController extends Controller
             'formula' => $priceformula->only(['id', 'name', 'description']),
             'version' => [
                 'number' => $version?->number ?? 1,
+                'name' => $version?->name,
                 'graph' => $graph,
                 'saved_at' => $version?->updated_at,
                 'saved_by' => $version?->creator?->name,
@@ -109,8 +114,9 @@ class PriceFormulaController extends Controller
     }
 
     /**
-     * Says what saving did to the contracts on this formula: nothing yet, when
-     * they stay on their version, and how many are now waiting for an update.
+     * Says what saving did to the contracts on this formula: moved along to the
+     * new version with their old and new price, or left on their own version
+     * and how many are now waiting for an update.
      */
     public function updateGraph(PriceFormulaGraphUpdateRequest $request, PriceFormula $priceformula)
     {
@@ -119,15 +125,43 @@ class PriceFormulaController extends Controller
             $request->validated('graph'),
             $request->user(),
             $request->integer('version'),
+            $request->validated('version_name'),
+            $request->boolean('move_contracts'),
         );
 
-        $message = $saved['is_new_version'] ? 'Opgeslagen als versie ' . $saved['version']->number . '.' : 'Opgeslagen.';
+        $message = $saved['is_new_version'] ? 'Opgeslagen als ' . $saved['version']->label() . '.' : 'Opgeslagen.';
+
+        if ($saved['moved']->count > 0) {
+            $message .= ' ' . $saved['moved']->notice();
+        }
 
         if ($saved['behind'] > 0) {
             $message .= ' ' . SavePriceFormulaGraphAction::behindNotice($saved['behind']);
         }
 
         return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Asked before saving: whether this graph makes a new version, and what the
+     * running contracts would cost on it. The money only for whoever may move
+     * contracts along, which takes the right to see their prices.
+     */
+    public function impact(PriceFormulaImpactRequest $request, PriceFormula $priceformula): JsonResponse
+    {
+        $can_move = $request->user()->can('upgradeContracts', $priceformula);
+        $impact = app(SavePriceFormulaGraphAction::class)->impact($priceformula, $request->validated('graph'), $can_move);
+
+        return response()->json([...$impact, 'can_move_contracts' => $can_move]);
+    }
+
+    public function updateVersion(PriceFormulaVersionUpdateRequest $request, PriceFormula $priceformula)
+    {
+        $version = $priceformula->versions()->where('number', $request->validated('version'))->firstOrFail();
+
+        app(RenamePriceFormulaVersionAction::class)->execute($version, $request->validated('name'));
+
+        return redirect()->back()->with('success', 'Naam van versie ' . $version->number . ' opgeslagen.');
     }
 
     public function destroy(PriceFormulaDestroyRequest $request, PriceFormula $priceformula)
@@ -167,16 +201,10 @@ class PriceFormulaController extends Controller
 
     public function upgradeContracts(PriceFormulaUpgradeContractsRequest $request, PriceFormula $priceformula)
     {
-        $count = app(UpgradeContractsToLatestVersionAction::class)
+        $moved = app(UpgradeContractsToLatestVersionAction::class)
             ->execute($priceformula, $request->validated('contract_ids'));
 
-        $message = match ($count) {
-            0 => 'Er staat geen lopend contract meer op een oudere versie.',
-            1 => 'Eén contract bijgewerkt naar de nieuwste versie. De nieuwe prijs staat op de tijdlijn van het contract.',
-            default => $count . ' contracten bijgewerkt naar de nieuwste versie. De nieuwe prijs staat op de tijdlijn van elk contract.',
-        };
-
-        return redirect()->back()->with('success', $message);
+        return redirect()->back()->with('success', $moved->notice());
     }
 
     /**
@@ -210,6 +238,7 @@ class PriceFormulaController extends Controller
                     'name' => $contract->display_title,
                     'ended' => $contract->hasEnded(),
                     'version' => $contract->priceFormulaVersion->number,
+                    'version_name' => $contract->priceFormulaVersion->name,
                     'price' => (float) $contract->getRawOriginal('price'),
                     'one_time_price' => $contract->getRawOriginal('one_time_price') === null
                         ? null

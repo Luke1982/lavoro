@@ -4,6 +4,7 @@ namespace App\Domain\Signals\Pricing;
 
 use App\Domain\Signals\BaseSignal;
 use App\Models\PriceFormula;
+use App\Models\PriceFormulaVersion;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -19,6 +20,7 @@ class PriceFormulaSaved extends BaseSignal
         public bool $is_new_version,
         public ?string $previous_blocks,
         public string $new_blocks,
+        public ?string $version_name = null,
     ) {
         parent::__construct();
     }
@@ -50,9 +52,11 @@ class PriceFormulaSaved extends BaseSignal
 
     public function activityDescription(): ?string
     {
+        $version = PriceFormulaVersion::labelOf($this->version, $this->version_name);
+
         return $this->is_new_version
-            ? 'Opgeslagen als versie ' . $this->version
-            : 'Versie ' . $this->version . ' aangepast';
+            ? 'Opgeslagen als ' . $version
+            : ucfirst($version) . ' aangepast';
     }
 
     public function changes(): array
