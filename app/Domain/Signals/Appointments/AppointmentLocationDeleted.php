@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AppointmentLocationDeleted extends BaseSignal implements AppointmentSignal
 {
+    use ReadLikeTheAppointment;
+
     public function __construct(
         public Event $event,
         public Location $location,

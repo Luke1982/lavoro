@@ -149,7 +149,14 @@ That class is what makes the layer safe to use: a listener may cause further
 signals, which is the point, but that also means a cascade can loop back into
 itself. It refuses a repeat of the same fact about the same record in one chain,
 caps the chain at ten deep and a thousand signals per request, and reports each
-of those loudly instead of failing silently. It also gives every signal in one
+of those loudly instead of failing silently. A web request past that cap is
+refused with a `Refusal`, rolled back when it runs in a transaction: someone is
+waiting for it, and finishing without the rest of its consequences would go
+unnoticed. Work that is large by nature runs in `Signals::asBatch()`, which
+gives it a job's cap; a selection a person makes in a list is bounded in its
+Form Request with `LimitsBulkSelection`, so it is refused before anything
+changes. A command or a job past its cap skips the rest and logs it once. It
+also gives every signal in one
 cascade the same correlation id, so an entire chain of consequences can be read
 back as one story.
 

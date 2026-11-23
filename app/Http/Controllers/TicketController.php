@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Tickets\CreateTicketAction;
 use App\Actions\Tickets\NewTicket;
+use App\Domain\Signals\Signals;
 use App\Enums\TicketPriorities;
 use App\Enums\TicketStatusses;
 use App\Http\Requests\TicketBulkUpdateRequest;
@@ -489,10 +490,10 @@ class TicketController extends Controller
     {
         $owners = ['asset.customer', 'asset.parentAsset.customer', 'asset.parentAsset.parentAsset.customer'];
 
-        DB::transaction(fn () => Ticket::with($owners)
+        Signals::asBatch(fn () => DB::transaction(fn () => Ticket::with($owners)
             ->whereIn('id', $request->validated('ticket_ids'))
             ->get()
-            ->each(fn (Ticket $ticket) => $ticket->update(['status' => $request->validated('status')])));
+            ->each(fn (Ticket $ticket) => $ticket->update(['status' => $request->validated('status')]))));
 
         return redirect()->back()->with('success', 'Status bijgewerkt.');
     }

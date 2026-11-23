@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\PlacesOnARecord;
 use App\Models\Image;
 use App\Rules\AttachableType;
 use Illuminate\Foundation\Http\FormRequest;
@@ -16,9 +17,17 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class ImageImportFromUrlRequest extends FormRequest
 {
+    use PlacesOnARecord;
+
+    /**
+     * The imported photo becomes the record's main photo, so it takes the right
+     * to choose one as well as the right to upload, on a record this person may see.
+     */
     public function authorize(): bool
     {
-        return $this->user()->can('create', Image::class);
+        return $this->user()->can('create', Image::class)
+            && $this->user()->can('update', Image::class)
+            && $this->maySeeTheRecord(Image::class);
     }
 
     public function rules(): array

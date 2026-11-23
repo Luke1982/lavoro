@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AppointmentCustomerChanged extends BaseSignal
 {
+    use ReadLikeTheAppointment;
+
     public function __construct(public Event $event, public NameListChange $customers)
     {
         parent::__construct();

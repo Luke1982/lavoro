@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LimitsBulkSelection;
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,6 +13,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class DocumentBulkDestroyRequest extends FormRequest
 {
+    use LimitsBulkSelection;
+
     public function authorize(): bool
     {
         return $this->user()->can('deleteAny', Document::class);
@@ -20,8 +23,13 @@ class DocumentBulkDestroyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids' => 'required|array|min:1',
+            'ids' => $this->bulkSelectionRules(),
             'ids.*' => 'integer|exists:documents,id',
         ];
+    }
+
+    public function messages(): array
+    {
+        return $this->bulkSelectionMessages('ids', 'documenten', 'verwijderen');
     }
 }

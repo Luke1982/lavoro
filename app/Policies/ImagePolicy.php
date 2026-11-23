@@ -22,7 +22,8 @@ class ImagePolicy
         return $user->hasPermission('image.upload');
     }
 
-    public function update(User $user, Image $image): bool
+    /** Also asked of the class: choosing a main photo is the same right for every photo. */
+    public function update(User $user, ?Image $image = null): bool
     {
         return $user->hasPermission('image.update');
     }

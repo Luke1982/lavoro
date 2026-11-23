@@ -3,30 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\DestroyPlanGroupRequest;
+use App\Http\Requests\ListPlanGroupsRequest;
 use App\Http\Requests\ReorderPlanGroupsRequest;
 use App\Http\Requests\StorePlanGroupRequest;
 use App\Http\Requests\SyncUserPlanGroupsRequest;
 use App\Http\Requests\UpdatePlanGroupRequest;
 use App\Models\User;
 use App\Models\UserPlanGroup;
-use Illuminate\Http\Request;
 
 class UserPlanGroupController extends Controller
 {
-    public function index(Request $request)
+    public function index(ListPlanGroupsRequest $request)
     {
-        abort_unless($request->user()->can('manage', UserPlanGroup::class), 403);
-
         $groups = UserPlanGroup::orderBy('sort_order')->orderBy('id')
             ->with('users:id')
             ->get();
 
         return response()->json($groups->map(fn ($g) => [
-            'id'         => $g->id,
-            'name'       => $g->name,
-            'color'      => $g->color,
+            'id' => $g->id,
+            'name' => $g->name,
+            'color' => $g->color,
             'sort_order' => $g->sort_order,
-            'user_ids'   => $g->users->pluck('id')->toArray(),
+            'user_ids' => $g->users->pluck('id')->toArray(),
         ]));
     }
 
@@ -40,11 +38,11 @@ class UserPlanGroupController extends Controller
         ]);
 
         return response()->json([
-            'id'         => $group->id,
-            'name'       => $group->name,
-            'color'      => $group->color,
+            'id' => $group->id,
+            'name' => $group->name,
+            'color' => $group->color,
             'sort_order' => $group->sort_order,
-            'user_ids'   => [],
+            'user_ids' => [],
         ], 201);
     }
 
@@ -53,9 +51,9 @@ class UserPlanGroupController extends Controller
         $group->update($request->validated());
 
         return response()->json([
-            'id'         => $group->id,
-            'name'       => $group->name,
-            'color'      => $group->color,
+            'id' => $group->id,
+            'name' => $group->name,
+            'color' => $group->color,
             'sort_order' => $group->sort_order,
         ]);
     }

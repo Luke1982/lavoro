@@ -23,22 +23,10 @@ class SignalShapeTest extends TestCase
     {
         $problems = [];
 
-        foreach ($this->signalClasses() as $class) {
-            $reflection = new \ReflectionClass($class);
-
-            if ($reflection->getMethod('changes')->getDeclaringClass()->getName() !== $class) {
-                continue;
-            }
-
-            $signal = $this->instantiate($class);
-
-            if ($signal === null) {
-                continue;
-            }
-
+        foreach ($this->everySignal() as $name => $signal) {
             foreach ($signal->changes() as $index => $change) {
                 if (!is_array($change)) {
-                    $problems[] = class_basename($class)
+                    $problems[] = $name
                         . ' returns a flat array from changes(); it must return a list of change rows';
 
                     break;
@@ -47,7 +35,7 @@ class SignalShapeTest extends TestCase
                 $missing = array_diff(self::REQUIRED_CHANGE_KEYS, array_keys($change));
 
                 if ($missing !== []) {
-                    $problems[] = class_basename($class)
+                    $problems[] = $name
                         . " change #{$index} is missing: " . implode(', ', $missing);
                 }
             }
@@ -60,19 +48,13 @@ class SignalShapeTest extends TestCase
     {
         $problems = [];
 
-        foreach ($this->signalClasses() as $class) {
-            $signal = $this->instantiate($class);
-
-            if ($signal === null) {
-                continue;
-            }
-
+        foreach ($this->everySignal() as $name => $signal) {
             if (!$signal->subject() instanceof Model) {
-                $problems[] = class_basename($class) . ' does not return a model from subject()';
+                $problems[] = $name . ' does not return a model from subject()';
             }
 
             if ($signal->activityCategory() === '') {
-                $problems[] = class_basename($class) . ' has a blank category';
+                $problems[] = $name . ' has a blank category';
             }
         }
 

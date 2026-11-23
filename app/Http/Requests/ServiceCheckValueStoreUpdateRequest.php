@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ServiceCheck;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -22,7 +23,7 @@ class ServiceCheckValueStoreUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->hasPermission('servicecheck.update');
+        return $this->user()->can('update', ServiceCheck::class);
     }
 
     /**

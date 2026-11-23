@@ -54,7 +54,7 @@ trait HangsOffARecord
     }
 
     /** The morph name of the pivot, which is also the table's name without its "s". */
-    protected function attachmentMorph(): string
+    public static function attachmentMorph(): string
     {
         return Str::snake(class_basename(static::class)) . 'able';
     }

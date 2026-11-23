@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GoogleChangeReverted extends BaseSignal
 {
+    use ReadLikeTheAppointment;
+
     /** Per kind: what was undone, and why. */
     private const REASONS = [
         'uncancel-unauthorized' => ['Het terughalen van de afgezegde afspraak', 'geen recht om deze afspraak te wijzigen'],

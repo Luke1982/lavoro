@@ -60,20 +60,20 @@ class DocumentController extends Controller
 
     public function bulkCategory(DocumentBulkCategoryRequest $request)
     {
-        DB::transaction(fn () => Document::whereIn('id', $request->ids)
+        Signals::asBatch(fn () => DB::transaction(fn () => Document::whereIn('id', $request->ids)
             ->get()
             ->each(fn (Document $document) => $this->change($document, [
                 'document_category_id' => $request->document_category_id,
-            ])));
+            ]))));
 
         return back()->with('success', 'Categorie toegewezen.');
     }
 
     public function bulkDestroy(DocumentBulkDestroyRequest $request)
     {
-        Document::whereIn('id', $request->ids)
+        Signals::asBatch(fn () => DB::transaction(fn () => Document::whereIn('id', $request->ids)
             ->get()
-            ->each(fn (Document $document) => $this->purge($document));
+            ->each(fn (Document $document) => $this->purge($document))));
 
         return back()->with('success', 'Documenten verwijderd.');
     }

@@ -2,7 +2,9 @@
 
 namespace App\Domain\Signals;
 
+use App\Exceptions\Refusal;
 use App\Support\ForgetsTenantState;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -21,7 +23,7 @@ use Illuminate\Support\Str;
  *   - a chain cannot run deeper than MAX_DEPTH, which catches a cycle whose
  *     participants differ each time round;
  *   - one request cannot raise more than MAX_PER_REQUEST signals, which stops a
- *     runaway fan-out from taking the process down.
+ *     runaway fan-out from taking the process down; see passedTheCeiling().
  *
  * Every signal in one chain also shares a correlation id, so the whole cascade
  * from a single user action can be read back as one story.
@@ -84,10 +86,7 @@ class Signals implements ForgetsTenantState
         }
 
         if ($this->raised >= $this->ceiling()) {
-            if (!$this->ceiling_reported) {
-                $this->ceiling_reported = true;
-                $this->report('Te veel signalen in één eenheid werk, de rest wordt overgeslagen', $fingerprint);
-            }
+            $this->passedTheCeiling($fingerprint);
 
             return;
         }
@@ -112,9 +111,9 @@ class Signals implements ForgetsTenantState
     /**
      * Runs work that is large by nature -- pulling a bookkeeping system's records
      * by hand, editing hundreds of products at once -- with the ceiling a queued
-     * job has. Past the web ceiling every listener is skipped, not only the trail:
-     * the records after it would get no history and would not be handed on to
-     * other connected systems either. Loops are still caught by the chain. What the
+     * job has, where the web ceiling would refuse it. A selection a person makes
+     * is bounded where it is asked for (LimitsBulkSelection), so the batch is
+     * never bigger than a screen can ask. Loops are still caught by the chain. What the
      * batch raised does not count against the request afterwards, or everything
      * after a large batch would be skipped instead.
      */
@@ -135,6 +134,34 @@ class Signals implements ForgetsTenantState
                 $signals->raised = $raised_before;
                 $signals->ceiling_reported = $reported_before;
             }
+        }
+    }
+
+    /**
+     * A command or a job skips the rest and logs it once. A web request has
+     * someone waiting for it, and going on would finish their work without its
+     * consequences -- no history, files left on disk, dates that do not move --
+     * without anyone knowing. So it is refused, and they are told; inside a
+     * transaction that undoes all of it.
+     */
+    private function passedTheCeiling(string $fingerprint): void
+    {
+        $someone_waits = !app()->runningInConsole();
+
+        if (!$this->ceiling_reported) {
+            $this->ceiling_reported = true;
+            $this->report($someone_waits
+                ? 'Te veel signalen in één verzoek, geweigerd'
+                : 'Te veel signalen in één eenheid werk, de rest wordt overgeslagen', $fingerprint);
+        }
+
+        if ($someone_waits) {
+            $saved = DB::transactionLevel() > 0
+                ? 'Er is niets opgeslagen.'
+                : 'Een deel is al opgeslagen, kijk na wat er veranderd is.';
+
+            throw new Refusal('Dit is te veel in één keer: meer dan ' . $this->ceiling()
+                . ' wijzigingen tegelijk. ' . $saved . ' Doe het in kleinere delen.');
         }
     }
 

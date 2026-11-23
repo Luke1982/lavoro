@@ -9,11 +9,14 @@ use App\Models\User;
 class TicketPolicy
 {
     /**
-     * Determine if the user can update the ticket with given changes.
-     *
-     * @param  Ticket  $ticket
-     * @param  array  $changes
+     * A storing is in sight with the right to read storingen, or through a
+     * werkbon or machine this person has in sight.
      */
+    public function view(User $user, Ticket $ticket): bool
+    {
+        return Ticket::visibleTo($user)->whereKey($ticket->id)->exists();
+    }
+
     /**
      * Whether this person may log a storing.
      *
@@ -28,10 +31,8 @@ class TicketPolicy
 
     public function update(User $user, Ticket $ticket, TicketUpdateRequest $request): bool
     {
-        if ($request->has('status')) {
-            if ($user->hasPermission('ticket.change_status')) {
-                return true;
-            }
+        if ($request->has('status') && $this->changeStatus($user)) {
+            return true;
         }
         if ($request->has('priority')) {
             if ($user->hasPermission('ticket.alter_priority')) {
@@ -40,6 +41,17 @@ class TicketPolicy
         }
 
         return $user->hasPermission('ticket.update');
+    }
+
+    /** A storing's status alone, one storing or many at once. */
+    public function changeStatus(User $user): bool
+    {
+        return $user->hasPermission('ticket.change_status');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('ticket.delete');
     }
 
     /**

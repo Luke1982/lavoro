@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\PlacesOnARecord;
 use App\Models\Document;
 use App\Rules\AttachableType;
 use App\Rules\WithinStorageQuota;
@@ -19,9 +20,13 @@ use Illuminate\Http\UploadedFile;
  */
 class DocumentStoreRequest extends FormRequest
 {
+    use PlacesOnARecord;
+
+    /** Documents go only on records this person may see. */
     public function authorize(): bool
     {
-        return $this->user()->can('create', Document::class);
+        return $this->user()->can('create', Document::class)
+            && $this->maySeeTheRecord(Document::class);
     }
 
     /**

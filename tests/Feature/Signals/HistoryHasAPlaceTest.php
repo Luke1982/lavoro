@@ -6,7 +6,6 @@ use App\Domain\Signals\BaseSignal;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\RecordsHistory;
 use Tests\Concerns\BuildsEverySignal;
-use Tests\Concerns\FindsModelsWithHistory;
 use Tests\TestCase;
 
 /**
@@ -20,7 +19,6 @@ use Tests\TestCase;
 class HistoryHasAPlaceTest extends TestCase
 {
     use BuildsEverySignal;
-    use FindsModelsWithHistory;
 
     public function test_every_model_with_history_has_a_timeline_or_names_one(): void
     {
@@ -57,31 +55,25 @@ class HistoryHasAPlaceTest extends TestCase
 
     /**
      * A signal about a record without a timeline is lost unless it names other
-     * records it belongs on. Signals that take any record (an image on whatever it
-     * hangs off) are judged where they are raised, not here.
+     * records it belongs on. A signal that takes any record (an image on whatever
+     * it hangs off) is checked once for every record it can be about.
      */
     public function test_every_signal_that_writes_an_entry_can_be_seen_somewhere(): void
     {
         $problems = [];
 
-        foreach ($this->signalClasses() as $class) {
-            $signal = $this->instantiate($class);
-
-            if ($signal === null) {
-                continue;
-            }
-
+        foreach ($this->everySignal() as $name => $signal) {
             $subject = $signal->subject();
 
-            if (!str_starts_with($subject::class, 'App\\Models\\') || $this->hasTimeline($subject::class)) {
+            if ($this->hasTimeline($subject::class)) {
                 continue;
             }
 
-            if ($this->overrides($class, 'activityContext') || $this->writesNothing($signal)) {
+            if ($this->overrides($signal::class, 'activityContext') || $this->writesNothing($signal)) {
                 continue;
             }
 
-            $problems[] = class_basename($class) . ' is about a ' . class_basename($subject)
+            $problems[] = $name . ' is about a ' . class_basename($subject)
                 . ', which has no timeline, and names no other record it belongs on';
         }
 

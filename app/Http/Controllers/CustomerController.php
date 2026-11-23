@@ -17,7 +17,6 @@ use App\Models\ServiceOrderStage;
 use App\Models\User;
 use App\Support\NewMachineForm;
 use App\Traits\OffersContractTemplates;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
@@ -108,6 +107,7 @@ class CustomerController extends Controller
             'serviceOrders.customer:id,name,city',
             'serviceOrders.executingUsers:id,name',
             'serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
+            'serviceOrders.events' => fn ($q) => $q->visibleTo($request->user()),
             'serviceOrders.events.eventType',
             'serviceOrders.events.executingUsers:id,name',
             'serviceOrders.events.owners:id,name',
@@ -116,6 +116,7 @@ class CustomerController extends Controller
             ...Project::relationsForAddress('projects.serviceOrders.project'),
             'projects.serviceOrders.executingUsers:id,name',
             'projects.serviceOrders.taskInstances:id,service_order_id,is_complete,is_cancelled',
+            'projects.serviceOrders.events' => fn ($q) => $q->visibleTo($request->user()),
             'projects.serviceOrders.events.executingUsers:id,name',
             'projects.serviceOrders.events.owners:id,name',
             'customFields',
@@ -130,20 +131,6 @@ class CustomerController extends Controller
 
         if ($request->user()->can('seeSensitive', Customer::class)) {
             $customer->makeVisible(Customer::SENSITIVE_ATTRIBUTES);
-        }
-
-        $user = Auth::user();
-        $has_all = $user->hasPermission('event.view_all');
-        if (!$has_all) {
-            $orders = $customer->serviceOrders->concat($customer->projects->flatMap->serviceOrders);
-            foreach ($orders as $order) {
-                $order->setRelation('events', $order->events->filter(function ($e) use ($user) {
-                    $executing_ids = $e->executingUsers->pluck('id')->all();
-                    $owner_ids = $e->owners->pluck('id')->all();
-
-                    return in_array($user->id, $executing_ids) || in_array($user->id, $owner_ids);
-                })->values());
-            }
         }
 
         $customer_count = Customer::count();

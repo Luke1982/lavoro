@@ -14,17 +14,25 @@ trait FindsModelsWithHistory
     /** @return array<int, class-string<Model>> */
     protected function modelsWithHistory(): array
     {
+        $classes = $this->modelsUsing(RecordsHistory::class);
+
+        $this->assertNotEmpty($classes, 'no model with history was found, so this guard proves nothing');
+
+        return $classes;
+    }
+
+    /** @return array<int, class-string<Model>> */
+    protected function modelsUsing(string $trait): array
+    {
         $classes = [];
 
         foreach (glob(app_path('Models/*.php')) as $file) {
             $class = 'App\\Models\\' . basename($file, '.php');
 
-            if (class_exists($class) && in_array(RecordsHistory::class, class_uses_recursive($class), true)) {
+            if (class_exists($class) && in_array($trait, class_uses_recursive($class), true)) {
                 $classes[] = $class;
             }
         }
-
-        $this->assertNotEmpty($classes, 'no model with history was found, so this guard proves nothing');
 
         return $classes;
     }

@@ -183,7 +183,7 @@
                         <BoxComponent class="mt-4 md:mt-0">
                             <ImageUploadComponent :existing="product.images" :imageable-id="product.id"
                                 imageable-type="\App\Models\Product" />
-                            <button v-if="hasPermission('image.upload')" @click="openGoogleImagesDialog"
+                            <button v-if="hasPermission('image.upload') && hasPermission('image.update')" @click="openGoogleImagesDialog"
                                 class="mt-2 w-full flex items-center justify-center gap-2 text-sm text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-700 rounded-md px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                                 <MagnifyingGlassIcon class="h-4 w-4" />
                                 Zoek op Google Afbeeldingen

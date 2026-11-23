@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesEventFeedbackImages;
+use App\Http\Requests\Concerns\PlacesOnARecord;
 use App\Models\Image;
 use App\Rules\AttachableType;
 use App\Rules\WithinStorageQuota;
@@ -26,17 +27,17 @@ use Illuminate\Http\UploadedFile;
 class ImageStoreRequest extends FormRequest
 {
     use AuthorizesEventFeedbackImages;
+    use PlacesOnARecord;
 
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    /** Photos go only on records this person may see. */
     public function authorize(): bool
     {
         if ($this->isEventFeedback()) {
             return $this->authorizeEventFeedback();
         }
 
-        return $this->user()->can('create', Image::class);
+        return $this->user()->can('create', Image::class)
+            && $this->maySeeTheRecord(Image::class);
     }
 
     /**

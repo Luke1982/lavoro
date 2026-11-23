@@ -6,9 +6,25 @@ use App\Models\User;
 
 class MaterialPolicy
 {
+    public function view(User $user): bool
+    {
+        return $user->hasPermission('material.read');
+    }
+
     public function create(User $user): bool
     {
         return $user->hasPermission('material.create');
+    }
+
+    /** Asked of the class: the right is the same for every material. */
+    public function update(User $user): bool
+    {
+        return $user->hasPermission('material.update');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('material.delete');
     }
 
     /**

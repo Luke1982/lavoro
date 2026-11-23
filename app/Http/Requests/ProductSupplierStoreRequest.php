@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductSupplierStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasPermission('product.update') ?? false;
+        return $this->user()?->can('update', Product::class) ?? false;
     }
 
     public function rules(): array

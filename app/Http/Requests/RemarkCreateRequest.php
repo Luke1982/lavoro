@@ -2,13 +2,10 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
+use App\Http\Requests\Concerns\PlacesOnARecord;
 use App\Models\Remark;
-use App\Models\ServiceCheckInstance;
-use App\Models\Ticket;
 use App\Rules\AttachableType;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -23,50 +20,18 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class RemarkCreateRequest extends FormRequest
 {
+    use PlacesOnARecord;
+
     /** The record class the request names, if remarks can be placed on it. */
     public function remarkableClass(): ?string
     {
         return Remark::attachableType($this->input('remarkable_type'));
     }
 
-    /**
-     * Whoever may see a record may remark on it. A type that is not on the list,
-     * or a record that does not exist, is let through to rules(), which refuses
-     * it with a message.
-     */
+    /** Whoever may see a record may remark on it. */
     public function authorize(): bool
     {
-        $record_class = $this->remarkableClass();
-        $record = $record_class === null ? null : $record_class::find($this->integer('remarkable_id'));
-
-        return $record === null || $this->maySee($record);
-    }
-
-    /**
-     * Each record type is seen the way its own screen decides: an appointment by
-     * whoever may give feedback on it, a storing and a werkbon by whoever has it
-     * in sight (a technician through the werkbon they carry out), a keurpunt by
-     * whoever may read keuringen and may open the werkbon its keuring is for.
-     */
-    private function maySee(Model $record): bool
-    {
-        $user = $this->user();
-
-        return match (true) {
-            $record instanceof Event => $user->can('provideFeedback', $record),
-            $record instanceof Ticket => Ticket::visibleTo($user)->whereKey($record->id)->exists(),
-            $record instanceof ServiceCheckInstance => $this->maySeeCheckpoint($record),
-            default => $user->can('view', $record),
-        };
-    }
-
-    private function maySeeCheckpoint(ServiceCheckInstance $checkpoint): bool
-    {
-        $service_order = $checkpoint->serviceJob?->serviceOrder;
-
-        return $this->user()->hasPermission('servicejob.read')
-            && $service_order !== null
-            && $this->user()->can('view', $service_order);
+        return $this->maySeeTheRecord(Remark::class);
     }
 
     /**

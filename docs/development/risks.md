@@ -124,7 +124,9 @@ fall back to the settings in `.env`.
   all, while writing one error line per skipped signal. The ceiling now depends
   on where the work runs (`config/signals.php`), it is reported once instead of
   per signal, and every queued job starts counting again. **Covered** by
-  `SignalsKeepCountingPerUnitOfWorkTest`.
+  `SignalsKeepCountingPerUnitOfWorkTest`. In a web request the cap refuses the
+  request instead of skipping the rest, and bulk actions are bounded at 500
+  records (`LimitsBulkSelection`) and run in `Signals::asBatch()`.
 
 - **A job without its company.** A job queued while no company is active runs
   against the shared database. The specific trap that made every scheduled job do

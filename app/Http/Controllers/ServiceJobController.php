@@ -178,11 +178,11 @@ class ServiceJobController extends Controller
         $data = $request->validated();
         $data['completed_by'] = Auth::user()->id;
 
-        DB::transaction(function () use ($jobs, $data) {
+        Signals::asBatch(fn () => DB::transaction(function () use ($jobs, $data) {
             foreach ($jobs as $job) {
                 $this->complete($job, $data);
             }
-        });
+        }));
 
         return redirect()->back()->with('success', 'Alle keuringen opgeslagen.');
     }

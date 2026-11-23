@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AppointmentServiceOrderChanged extends BaseSignal
 {
+    use ReadLikeTheAppointment;
+
     public function __construct(public Event $event, public NameListChange $service_orders)
     {
         parent::__construct();

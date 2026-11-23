@@ -48,6 +48,12 @@ class ProductPolicy
         return false;
     }
 
+    /** Asked of the class: the right is the same for every product. */
+    public function update(User $user): bool
+    {
+        return $user->hasPermission('product.update');
+    }
+
     public function delete(User $user): bool
     {
         return $user->hasPermission('product.delete');

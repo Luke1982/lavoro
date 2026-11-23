@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -11,7 +12,7 @@ class TicketDestroyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->hasPermission('ticket.delete');
+        return $this->user()->can('delete', Ticket::class);
     }
 
     public function rules(): array

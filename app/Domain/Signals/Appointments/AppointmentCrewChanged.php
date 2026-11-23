@@ -29,6 +29,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AppointmentCrewChanged extends BaseSignal
 {
+    use ReadLikeTheAppointment;
+
     /**
      * A crew put on an appointment while it is being made travels to Google
      * with the appointment itself; only a change to an existing one needs a
