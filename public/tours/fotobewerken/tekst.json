@@ -1,0 +1,34 @@
+{
+    "tour": "fotobewerken",
+    "chapter": "tekst",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "tekst.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met tekst zet je een label op de foto. Klik waar het moet komen, en typ. Met enter ben je klaar.",
+            "hash": "7dc8ff6597c0f8eabe6d8df8c166805b9c788f8d",
+            "start": 0,
+            "end": 6.442
+        },
+        {
+            "text": "Met tekst zet je een label op de foto. Tik waar het moet komen, en typ. Tik op klaar als je klaar bent.",
+            "hash": "d7d61780771c278a3f2af63c85b0c7f8a1124ed4",
+            "start": 7.442,
+            "end": 13.784
+        },
+        {
+            "text": "Wil je een label veranderen? Klik er met tekst aan op, en typ verder.",
+            "hash": "9a01c7e0187de1e41cff797d9959290006593038",
+            "start": 14.784,
+            "end": 18.442
+        },
+        {
+            "text": "Wil je een label veranderen? Tik er met tekst aan op, en typ verder.",
+            "hash": "adfb945ea92aacc6220ce5013d467a4bc6cf4200",
+            "start": 19.442,
+            "end": 23.329
+        }
+    ]
+}

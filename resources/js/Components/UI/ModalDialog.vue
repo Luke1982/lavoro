@@ -1,6 +1,6 @@
 <template>
     <TransitionRoot as="template" :show="open" appear>
-        <Dialog class="relative z-50" @close="$emit('update:open', false)">
+        <Dialog :class="['relative', layerClass]" @close="$emit('update:open', false)">
             <TransitionChild as="template" enter="ease-out duration-300" :enter-from="backdropHidden"
                 enter-to="opacity-100" leave="ease-in duration-200" leave-from="opacity-100" :leave-to="backdropHidden">
                 <div data-dialog-backdrop
@@ -53,6 +53,8 @@ defineProps({
     title: { type: String, default: '' },
     maxWidthClass: { type: String, default: 'sm:max-w-lg' },
     center: { type: Boolean, default: true },
+    /** Above a full-screen editor, such as the photo annotator, a dialog asks for a higher layer. */
+    layerClass: { type: String, default: 'z-50' },
 })
 
 defineEmits(['update:open'])

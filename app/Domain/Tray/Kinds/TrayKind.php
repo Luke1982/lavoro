@@ -2,10 +2,7 @@
 
 namespace App\Domain\Tray\Kinds;
 
-use App\Actions\ServiceOrders\NewServiceOrder;
 use App\Domain\Tray\Paste\PasteHandler;
-use App\Exceptions\Refusal;
-use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -19,8 +16,9 @@ use Illuminate\Support\Str;
  * on the bakje, whose it is, and where it can be dropped.
  *
  * Adding a kind is one subclass and a line in TrayKinds. What every kind shares,
- * such as finding the one customer a stack belongs to, is written here once in
- * terms of the few questions each kind answers for itself.
+ * such as naming a stack of them, is written here once in terms of the few
+ * questions each kind answers for itself. A kind a werkbon can be made for is a
+ * WorkKind.
  */
 abstract class TrayKind
 {
@@ -50,21 +48,6 @@ abstract class TrayKind
     abstract public static function subtitle(Model $record): ?string;
 
     abstract public static function customerId(Model $record): ?int;
-
-    abstract public static function locationId(Model $record): ?int;
-
-    /** Why there is no customer to make a werkbon for. */
-    abstract protected static function withoutCustomer(Model $record): string;
-
-    /**
-     * What a new werkbon holds, as arguments to NewServiceOrder.
-     *
-     * @return array<string, mixed>
-     */
-    abstract protected static function serviceOrderContents(Collection $records): array;
-
-    /** What a new werkbon for these says it is for. */
-    abstract protected static function serviceOrderDescription(Collection $records): string;
 
     /**
      * How it looks on the bakje, beyond what every kind shows.
@@ -142,50 +125,6 @@ abstract class TrayKind
             'customer_id' => static::customerId($record),
             ...static::card($record),
         ];
-    }
-
-    /**
-     * The one customer all of these belong to, or a refusal that says why there
-     * is none.
-     */
-    public static function sharedCustomer(Collection $records): Customer
-    {
-        $customer_ids = $records->map(
-            fn (Model $record) => static::customerId($record) ?? throw new Refusal(static::withoutCustomer($record)),
-        )->unique();
-
-        if ($customer_ids->count() > 1) {
-            throw new Refusal('Deze ' . static::many() . ' horen bij verschillende klanten. '
-                . 'Pak ze los uit de stapel en plak ze per klant.');
-        }
-
-        return Customer::findOrFail($customer_ids->first());
-    }
-
-    /**
-     * Where a werkbon for these is, when they are all in the same place. Spread
-     * over several, a guess would be worse than leaving it empty.
-     */
-    public static function sharedLocationId(Collection $records): ?int
-    {
-        $location_ids = $records->map(fn (Model $record) => static::locationId($record))->unique();
-
-        return $location_ids->count() === 1 ? $location_ids->first() : null;
-    }
-
-    /**
-     * A new werkbon for these, for their customer and where they are, through
-     * the same action the werkbon screen uses.
-     */
-    public static function newServiceOrder(Collection $records, ?int $project_id = null): NewServiceOrder
-    {
-        return new NewServiceOrder(...[
-            'customer_id' => static::sharedCustomer($records)->id,
-            'project_id' => $project_id,
-            'location_id' => static::sharedLocationId($records),
-            'description' => mb_strimwidth(static::serviceOrderDescription($records), 0, 255, '…'),
-            ...static::serviceOrderContents($records),
-        ]);
     }
 
     /**

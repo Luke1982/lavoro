@@ -8,7 +8,12 @@
                 title="Sleep om ze allemaal tegelijk te plakken"
                 class="relative flex cursor-grab items-center gap-2.5 rounded-2xl bg-[#17223a] py-2 pr-1 pl-1.5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] active:cursor-grabbing motion-reduce:transition-none">
                 <GripVerticalIcon class="size-4 flex-none text-sidebar-indicator" aria-hidden="true" />
-                <span :class="[look.tile, 'flex size-9 flex-none items-center justify-center rounded-xl']">
+                <span v-if="thumbnails.length" class="relative size-9 flex-none" aria-hidden="true">
+                    <img v-for="(thumbnail, index) in thumbnails" :key="thumbnail" :src="thumbnail" alt="" draggable="false"
+                        :style="{ transform: `translate(${index * 3}px, ${index * -3}px)`, zIndex: thumbnails.length - index }"
+                        class="absolute inset-0 size-8 rounded-lg object-cover ring-2 ring-[#17223a]">
+                </span>
+                <span v-else :class="[look.tile, 'flex size-9 flex-none items-center justify-center rounded-xl']">
                     <LayersIcon class="size-5" aria-hidden="true" />
                 </span>
                 <div class="min-w-0 flex-1">
@@ -78,8 +83,12 @@ const open = ref(false)
 
 const look = computed(() => trayLook(props.kind))
 
+/** Photos show themselves on the stack, the top three fanned out. */
+const thumbnails = computed(() => props.items.map(item => item.thumbnail).filter(Boolean).slice(0, 3))
+
 const heading = computed(() => {
     const customers = new Set(props.items.map(item => item.customer_name).filter(Boolean))
+    if (customers.size === 0) return trayCounted(props.kind, props.items.length)
     return customers.size === 1 ? [...customers][0] : 'Verschillende klanten'
 })
 </script>

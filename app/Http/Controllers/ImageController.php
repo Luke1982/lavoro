@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Images\AttachImagesAction;
+use App\Actions\Images\RemoveImageAction;
 use App\Actions\Shares\ShareRecordAction;
 use App\Domain\Signals\Attachments\ImageAnnotated;
-use App\Domain\Signals\Attachments\ImageAttached;
-use App\Domain\Signals\Attachments\ImageRemoved;
 use App\Domain\Signals\Attachments\ImageRenamed;
 use App\Domain\Signals\Attachments\ImageReplaced;
 use App\Domain\Signals\Attachments\MainImageChanged;
@@ -49,7 +49,7 @@ class ImageController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ImageStoreRequest $request)
+    public function store(ImageStoreRequest $request, AttachImagesAction $attach)
     {
         /**
          * @disregard
@@ -60,33 +60,20 @@ class ImageController extends Controller
 
         $record_class = Image::attachableType($request->imageable_type);
         $imageable_record = $record_class::findOrFail($request->imageable_id);
-        $directory = 'uploaded/' . strtolower(class_basename($record_class)) . '/' . $imageable_record->id;
-        $created_images = [];
+        $directory = AttachImagesAction::folderFor($imageable_record);
+
         /**
          * The client's filename neither names the file on disk nor keys its title:
          * iOS calls every camera capture "image.jpg", so each photo would replace the last.
          *
          * @disregard
          */
-        foreach ($request->file('images') as $index => $image) {
-            $new_image = Image::create([
-                'name' => $request->input('titles.' . $index) ?? $image->getClientOriginalName(),
-                'path' => $image->storePublicly($directory, 'public'),
-            ]);
-            $imageable_record->images()->attach($new_image->id, [
-                'internal' => $request->boolean('internal', false),
-            ]);
-            $created_images[] = $new_image;
-        }
+        $uploads = collect($request->file('images'))->map(fn (UploadedFile $image, int $index) => [
+            'name' => $request->input('titles.' . $index) ?? $image->getClientOriginalName(),
+            'path' => $image->storePublicly($directory, 'public'),
+        ]);
 
-        if (count($created_images) > 0) {
-            Signals::dispatch(new ImageAttached(
-                $imageable_record,
-                count($created_images),
-                $created_images[0]->path,
-                $created_images[0]->id,
-            ));
-        }
+        $created_images = $attach->execute($imageable_record, $uploads->values()->all(), $request->boolean('internal', false));
 
         if ($request->wantsJson()) {
             return response()->json($created_images, 201);
@@ -195,20 +182,9 @@ class ImageController extends Controller
         return response()->json(['annotations' => $image->annotations]);
     }
 
-    /**
-     * The record the photo is announced on is read from the photo's own link: the
-     * screen names a record too, but that only says what the person was looking at.
-     */
-    public function destroy(ImageDestroyRequest $request, Image $image)
+    public function destroy(ImageDestroyRequest $request, Image $image, RemoveImageAction $remove)
     {
-        $imageable_record = $image->attachedRecord();
-
-        DB::table('imageables')->where('image_id', $image->id)->delete();
-        $image->delete();
-
-        if ($imageable_record !== null) {
-            Signals::dispatch(new ImageRemoved($imageable_record, $image->id, $image->name));
-        }
+        $remove->execute($image);
 
         if ($request->wantsJson()) {
             return response()->json(['deleted' => true]);
@@ -303,7 +279,7 @@ class ImageController extends Controller
         );
     }
 
-    public function importFromUrl(ImageImportFromUrlRequest $request)
+    public function importFromUrl(ImageImportFromUrlRequest $request, AttachImagesAction $attach)
     {
         $url = $request->url;
         $record_class = Image::attachableType($request->imageable_type);
@@ -347,18 +323,10 @@ class ImageController extends Controller
             $image_data = $response->body();
         }
 
-        $path = 'uploaded/' . strtolower(class_basename($record_class)) . '/' . $imageable_record->id . '/';
-        $filename = 'import-' . Str::random(40) . '.' . $extension;
-        Storage::disk('public')->put($path . $filename, $image_data);
+        $path = AttachImagesAction::folderFor($imageable_record) . '/import-' . Str::random(40) . '.' . $extension;
+        Storage::disk('public')->put($path, $image_data);
 
-        $new_image = Image::create([
-            'name' => $name,
-            'path' => $path . $filename,
-        ]);
-
-        $imageable_record->images()->attach($new_image->id, ['internal' => false]);
-
-        Signals::dispatch(new ImageAttached($imageable_record, 1, $new_image->path, $new_image->id));
+        [$new_image] = $attach->execute($imageable_record, [['name' => $name, 'path' => $path]]);
 
         $this->makeMain($record_class, $imageable_record->id, $new_image);
 

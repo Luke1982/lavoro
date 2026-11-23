@@ -3,6 +3,7 @@
 namespace App\Domain\Tray;
 
 use App\Domain\Tray\Kinds\AssetKind;
+use App\Domain\Tray\Kinds\ImageKind;
 use App\Domain\Tray\Kinds\TicketKind;
 use App\Domain\Tray\Kinds\TrayKind;
 use App\Domain\Tray\Paste\PasteHandler;
@@ -22,6 +23,7 @@ final class TrayKinds
     private const KINDS = [
         TicketKind::class,
         AssetKind::class,
+        ImageKind::class,
     ];
 
     /** @return array<int, string> */

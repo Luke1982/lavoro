@@ -233,11 +233,7 @@
     </DrawerComponent>
 
     <SelectionBar :count="selectedIds.length" noun="storingen" @clear="selectedIds = []">
-        <button type="button" data-tour="tickets.tray" @click="putSelectionOnTray($event)"
-            class="group inline-flex items-center gap-2 rounded-md bg-sidebar-bg px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 active:scale-95">
-            <InboxIcon class="size-4 text-sidebar-indicator transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
-            Op het bakje
-        </button>
+        <TraySelectionButton kind="ticket" :ids="selectedIds" data-tour="tickets.tray" @placed="selectedIds = []" />
         <button type="button" data-tour="tickets.bulk" @click="openBulkEditDrawer"
             class="bg-lavoro-blue text-white font-bold text-sm px-5 py-2 rounded-md hover:opacity-90">
             Bewerken
@@ -247,6 +243,7 @@
 
 <script setup>
 import SelectionBar from '@/Components/UI/SelectionBar.vue'
+import TraySelectionButton from '@/Components/Tray/TraySelectionButton.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
@@ -262,8 +259,7 @@ import EditableTextField from '@/Components/UI/EditableTextField.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour, addressStartingTour } from '@/Composables/useTour'
-import { EyeIcon, AlertCircleIcon, MapIcon, InboxIcon } from '@lucide/vue'
-import { placeOnTray } from '@/Composables/useTray.js'
+import { EyeIcon, AlertCircleIcon, MapIcon } from '@lucide/vue'
 import { formatAddress, hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -349,10 +345,6 @@ function toggleSelectAll() {
         const existing = new Set(selectedIds.value)
         props.tickets.data.forEach(t => { if (!existing.has(t.id)) selectedIds.value.push(t.id) })
     }
-}
-
-async function putSelectionOnTray(event) {
-    if (await placeOnTray('ticket', selectedIds.value, event.currentTarget)) selectedIds.value = []
 }
 
 const bulkEditOpen = ref(false)

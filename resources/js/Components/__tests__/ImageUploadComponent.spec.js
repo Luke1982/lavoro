@@ -45,7 +45,7 @@ vi.mock('axios', () => ({
 }))
 
 vi.mock('@/Utilities/Utilities.js', async (importOriginal) => ({
-    morphBasename: (await importOriginal()).morphBasename,
+    ...(await importOriginal()),
     hasPermission: () => true,
     subjectSubtitle: () => '',
 }))

@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Tray;
 
 use App\Domain\Tray\TrayKinds;
+use App\Models\Image;
 use App\Models\TrayItem;
+use App\Rules\AttachableType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +41,14 @@ class TrayUndoRequest extends FormRequest
             'undo.maintenancecontract_id' => [Rule::requiredIf($this->undoes('asset:maintenancecontract')), 'integer'],
             'undo.assetable_ids' => [Rule::requiredIf($this->undoes('asset:maintenancecontract')), 'array', 'max:100'],
             'undo.assetable_ids.*' => ['integer'],
+            'undo.image_ids' => [Rule::requiredIf($this->undoes('image:photos')), 'array', 'max:100'],
+            'undo.image_ids.*' => ['integer'],
+            'undo.imageable_type' => [
+                Rule::requiredIf($this->undoes('image:photos')),
+                'string',
+                new AttachableType(Image::ATTACHABLE_TO, 'foto'),
+            ],
+            'undo.imageable_id' => [Rule::requiredIf($this->undoes('image:photos')), 'integer'],
         ];
     }
 

@@ -3,19 +3,26 @@
         <div ref="dialog" tabindex="-1" role="dialog" aria-modal="true" :aria-label="`${image.name} bewerken`"
             class="fixed inset-0 z-[100] flex flex-col bg-slate-950 text-white outline-none select-none">
             <div class="flex items-center justify-between gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
-                <button type="button" @click="requestClose"
+                <button type="button" @click="requestClose" data-tour="annotator.cancel"
                     class="rounded-full px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-white/10 cursor-pointer">
                     Annuleren
                 </button>
-                <p class="min-w-0 truncate text-sm text-slate-400">{{ image.name }}</p>
-                <button type="button" @click="save" :disabled="!loaded || saving"
+                <div class="flex min-w-0 items-center gap-1">
+                    <p class="min-w-0 truncate text-sm text-slate-400">{{ image.name }}</p>
+                    <TourButton tour="fotobewerken" bar data-tour="annotator.tour" />
+                </div>
+                <button type="button" @click="save" :disabled="!loaded || saving" data-tour="annotator.save"
                     class="rounded-full bg-lavoro-blue px-5 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                     {{ saving ? 'Bewaren…' : 'Bewaar' }}
                 </button>
             </div>
 
-            <div ref="viewport" class="relative min-h-0 flex-1 touch-none">
+            <div ref="viewport" class="relative min-h-0 flex-1 touch-none" data-tour="annotator.photo">
                 <div ref="stageContainer" class="absolute inset-0" />
+                <div v-if="demoHand" class="pointer-events-none absolute left-0 top-0 z-10"
+                    :style="{ transform: `translate3d(${demoHand.x}px, ${demoHand.y}px, 0)` }" aria-hidden="true">
+                    <TourHand :pressed="demoHand.pressed" />
+                </div>
                 <p v-if="!loaded" :role="loadError ? 'alert' : null"
                     class="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-slate-400">
                     {{ loadError || 'Foto laden…' }}
@@ -38,7 +45,7 @@
                         </button>
                     </form>
 
-                    <div v-if="showColours" class="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-xl">
+                    <div v-if="showColours" data-tour="annotator.palette" class="pointer-events-auto flex items-center gap-2 rounded-full bg-white px-3 py-2 shadow-xl">
                         <button v-for="option in COLOURS" :key="option.value" type="button" @click="pickColour(option.value)"
                             :title="option.name" :style="{ backgroundColor: option.value }" :class="[
                                 'size-7 rounded-full ring-1 ring-slate-300 cursor-pointer',
@@ -47,8 +54,9 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-0.5 rounded-full bg-white p-1.5 text-slate-600 shadow-xl">
+                <div class="flex items-center gap-0.5 rounded-full bg-white p-1.5 text-slate-600 shadow-xl" data-tour="annotator.toolbar">
                     <button v-for="option in TOOLS" :key="option.key" type="button" @click="toggleTool(option.key)"
+                        :data-tool="option.key"
                         :title="option.label" :aria-pressed="tool === option.key" :class="[
                             'inline-flex h-9 items-center justify-center gap-1.5 rounded-full text-xs font-semibold cursor-pointer transition-colors',
                             tool === option.key ? 'bg-slate-900 px-3 text-white' : 'w-9 hover:bg-slate-100',
@@ -59,18 +67,21 @@
 
                     <span class="mx-1 h-6 w-px bg-slate-200" />
 
-                    <button v-if="tool === 'crop'" type="button" @click="resetCrop" title="Hele foto" :class="ICON_BUTTON">
+                    <button v-if="tool === 'crop'" type="button" @click="resetCrop" title="Hele foto" :class="ICON_BUTTON"
+                        data-tour="annotator.reset">
                         <RotateCcwIcon class="size-4" />
                     </button>
-                    <button v-else type="button" @click="showColours = !showColours" title="Kleur" :class="ICON_BUTTON">
+                    <button v-else type="button" @click="showColours = !showColours" title="Kleur" :class="ICON_BUTTON"
+                        data-tour="annotator.colour">
                         <span class="size-4 rounded-full ring-2 ring-white outline-[1.5px] outline-slate-900"
                             :style="{ backgroundColor: colour }" />
                     </button>
-                    <button type="button" @click="undo" :disabled="!canUndo" title="Ongedaan maken" :class="ICON_BUTTON">
+                    <button type="button" @click="undo" :disabled="!canUndo" title="Ongedaan maken" :class="ICON_BUTTON"
+                        data-tour="annotator.undo">
                         <Undo2Icon class="size-4" />
                     </button>
                     <button v-if="selectedId" type="button" @click="removeSelected" title="Verwijderen"
-                        :class="[ICON_BUTTON, 'text-red-600']">
+                        :class="[ICON_BUTTON, 'text-red-600']" data-tour="annotator.remove">
                         <Trash2Icon class="size-4" />
                     </button>
                 </div>
@@ -89,6 +100,10 @@ import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
 import { requestFailureMessage } from '@/Utilities/requestFailure.js';
 import { COLOURS, DARK, buildShapeNode, labelHeight, moveShape, round } from '@/Components/Images/annotationShapes.js';
+import { DEMOS, isDemoShape } from '@/Components/Images/annotatorDemos.js';
+import TourHand from '@/Components/Tour/Aids/TourHand.vue';
+import TourButton from '@/Components/Tour/TourButton.vue';
+import { prefersReducedMotion, temporarily, useTour } from '@/Tours/engine';
 
 /**
  * Draws on a photo without touching it. It opens the photo as it was taken with the
@@ -148,6 +163,8 @@ const editingTextId = ref(null);
 const textDraft = ref('');
 const history = shallowRef([]);
 
+const demoHand = ref(null);
+
 const editingText = computed(() => editingTextId.value !== null);
 const canUndo = computed(() => history.value.length > 0);
 
@@ -177,6 +194,8 @@ let cropHandles = null;
 let resizeObserver = null;
 let disposed = false;
 let lastId = 0;
+let demoNodes = [];
+let stopActiveDemo = null;
 
 const { lock, unlock } = useScrollLock();
 const { decodeImage } = useImageCompression();
@@ -368,6 +387,8 @@ function onPointerDown(event) {
         event.evt.preventDefault();
     }
 
+    stopDemo();
+
     if (!loaded.value || live || !event.evt.isPrimary) return;
     if (tool.value !== 'draw' && tool.value !== 'arrow') return;
 
@@ -488,6 +509,12 @@ function onStageClick(event) {
 }
 
 function toggleTool(key) {
+    switchTool(tool.value === key ? null : key);
+}
+
+/** Leaving the crop tool keeps the frame as it was left; a frame the rondleiding was moving is let go first. */
+function switchTool(key) {
+    stopDemo();
     finishText({ redraw: false });
     showColours.value = false;
 
@@ -495,9 +522,9 @@ function toggleTool(key) {
         commitCrop();
     }
 
-    tool.value = tool.value === key ? null : key;
+    tool.value = key;
     selectedId.value = null;
-    cropDraft = tool.value === 'crop' ? { ...(crop ?? fullImage()) } : null;
+    cropDraft = key === 'crop' ? { ...(crop ?? fullImage()) } : null;
 
     fit();
     render();
@@ -523,7 +550,7 @@ function pickColour(option) {
 function removeSelected() {
     const id = selectedId.value;
 
-    if (!id) return;
+    if (!shapeById(id)) return;
 
     remember(textSnapshot ?? snapshot());
     editingTextId.value = null;
@@ -809,6 +836,8 @@ async function exportFile() {
 async function save() {
     if (!loaded.value || saving.value) return;
 
+    stopDemo();
+
     finishText();
 
     if (tool.value === 'crop') {
@@ -849,6 +878,8 @@ function requestClose() {
  * feedback window in the planner, would otherwise close on the same Escape.
  */
 function onKeydown(event) {
+    if (event.defaultPrevented || isOutsideDialog(event.target)) return;
+
     if (event.key === 'Escape' && (editingText.value || selectedId.value)) {
         event.preventDefault();
         deselect();
@@ -875,6 +906,139 @@ function onKeydown(event) {
         undo();
     }
 }
+
+/** A key pressed in the rondleiding's card or its chapter picker is theirs, not the annotator's. */
+function isOutsideDialog(target) {
+    return target instanceof Element && target !== document.body && !dialog.value?.contains(target);
+}
+
+/*
+ * The rondleiding. It picks a tool the way the person would, and acts the rest out
+ * on the photo with a hand of its own: what it draws lies on top of the drawing
+ * and never in it, so saving or undoing in the middle of a rondleiding saves and
+ * undoes only what the person drew. Anything the person does stops the act.
+ */
+function showTool(key) {
+    const before = tool.value;
+
+    if (before === key) return null;
+
+    switchTool(key);
+
+    return () => {
+        if (!disposed) switchTool(before);
+    };
+}
+
+function toolButton(key) {
+    return dialog.value?.querySelector(`[data-tool="${key}"]`) ?? null;
+}
+
+function clearDemoShapes() {
+    demoNodes.forEach((node) => node.destroy());
+    demoNodes = [];
+}
+
+function showDemoFrame(frame) {
+    clearDemoShapes();
+
+    for (const shape of frame.shapes ?? []) {
+        const node = buildShapeNode(shape, fontFamily).listening(false).opacity(frame.opacity ?? 1);
+        drawing.add(node);
+        demoNodes.push(node);
+    }
+
+    if (frame.crop && cropDraft !== null) {
+        cropDraft = frame.crop;
+        layoutCrop();
+    }
+
+    if ('selected' in frame) {
+        selectedId.value = frame.selected;
+    }
+
+    placeSelectionBox();
+    stage.batchDraw();
+
+    const hand = frame.cursor ? content.getAbsoluteTransform().point(frame.cursor) : null;
+    demoHand.value = hand ? { x: hand.x, y: hand.y, pressed: frame.cursor.pressed } : null;
+}
+
+function playDemo(name) {
+    stopDemo();
+
+    const demo = DEMOS[name];
+    const reduced = prefersReducedMotion();
+    const started = performance.now();
+    let request = null;
+
+    const tick = (now) => {
+        request = null;
+
+        if (loaded.value && drawing) {
+            const moment = reduced ? demo.still : ((now - started) % demo.duration) / demo.duration;
+            showDemoFrame(demo.frame(moment, { region: viewRegion(), unit: unitForView(), colour: colour.value }));
+
+            if (reduced) return;
+        }
+
+        request = requestAnimationFrame(tick);
+    };
+
+    const stop = () => {
+        if (stopActiveDemo !== stop) return;
+
+        stopActiveDemo = null;
+        cancelAnimationFrame(request);
+        clearDemoShapes();
+        demoHand.value = null;
+
+        if (disposed || !stage) return;
+
+        if (isDemoShape(selectedId.value)) {
+            selectedId.value = null;
+        }
+
+        if (tool.value === 'crop' && cropDraft !== null) {
+            cropDraft = { ...(crop ?? fullImage()) };
+            layoutCrop();
+        }
+
+        placeSelectionBox();
+        stage.batchDraw();
+    };
+
+    stopActiveDemo = stop;
+    request = requestAnimationFrame(tick);
+
+    return stop;
+}
+
+function stopDemo() {
+    stopActiveDemo?.();
+}
+
+useTour('fotobewerken', {
+    chooseNothing: () => showTool(null),
+    chooseDraw: () => showTool('draw'),
+    chooseArrow: () => showTool('arrow'),
+    chooseText: () => showTool('text'),
+    chooseCrop: () => showTool('crop'),
+    openColours: () => temporarily(showColours, true),
+    demoDraw: () => playDemo('draw'),
+    demoArrow: () => playDemo('arrow'),
+    demoText: () => playDemo('text'),
+    demoColours: () => playDemo('colours'),
+    demoMove: () => playDemo('move'),
+    demoCrop: () => playDemo('crop'),
+}, {
+    spots: {
+        'annotator.tool.draw': () => toolButton('draw'),
+        'annotator.tool.arrow': () => toolButton('arrow'),
+        'annotator.tool.text': () => toolButton('text'),
+        'annotator.tool.crop': () => toolButton('crop'),
+    },
+});
 
 onMounted(async () => {
     lock();
@@ -911,6 +1075,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+    stopDemo();
     disposed = true;
     unlock();
     window.removeEventListener('keydown', onKeydown, { capture: true });
@@ -922,3 +1087,4 @@ onBeforeUnmount(() => {
     photo?.release();
 });
 </script>
+

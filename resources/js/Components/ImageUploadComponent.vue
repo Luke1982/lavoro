@@ -1,9 +1,9 @@
 <template>
-    <div class="w-full mx-auto" v-if="mayUpload() || maySee()">
+    <div class="w-full mx-auto" v-if="mayUpload() || maySee()" v-tray-drop="photoDrop">
         <SectionHeader v-if="!bare" :icon="PhotoIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
             chapter="photos" />
-        <div v-if="mayUpload()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
-            @drop.prevent="handleDrop" :class="[
+        <div v-if="mayUpload()" @dragover="handleDragOver" @dragleave.prevent="isDragging = false"
+            @drop="handleDrop" :class="[
                 'flex flex-col items-center justify-center w-full rounded-lavoro-sm border-2 border-dashed py-8 px-4 transition-colors',
                 isDragging ? 'bg-lavoro-blue/5 border-lavoro-blue dark:bg-slate-700 dark:border-slate-500' : 'bg-gray-50 border-gray-300 dark:bg-slate-800/60 dark:border-slate-600'
             ]">
@@ -55,26 +55,63 @@
             Er zijn nog geen afbeeldingen.
         </div>
 
-        <div v-if="thumbnails.length > 0" class="relative mt-4">
+        <div v-if="thumbnails.length > 0" data-tour="photos.select"
+            class="mt-4 flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+            <p v-if="selecting" class="mr-auto min-w-0 text-sm text-gray-500 dark:text-slate-400">
+                <span class="hidden sm:inline">Klik op foto's om ze te kiezen, met Shift een hele reeks.</span>
+                <span class="sm:hidden">Tik op foto's om ze te kiezen.</span>
+            </p>
+            <button v-if="selecting" type="button" @click="toggleAll" :class="SELECTION_BUTTON">
+                {{ allSelected ? 'Niets' : 'Alles' }}
+            </button>
+            <button type="button" @click="selecting ? stopSelecting() : startSelecting()"
+                :aria-pressed="selecting" :class="SELECTION_BUTTON">
+                <CheckCircleIcon v-if="!selecting" class="size-4" aria-hidden="true" />
+                {{ selecting ? 'Klaar' : 'Selecteren' }}
+            </button>
+        </div>
+
+        <SelectionBar :count="selectedIds.length" noun="foto's" @clear="stopSelecting">
+            <TraySelectionButton kind="image" :ids="selectedIds" @placed="stopSelecting" />
+            <button v-if="mayDelete()" type="button" :disabled="ownSelected.length === 0" @click="confirmDelete(ownSelected)"
+                class="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                <TrashIcon class="size-4" aria-hidden="true" />
+                Verwijderen
+            </button>
+        </SelectionBar>
+
+        <div v-if="thumbnails.length > 0" class="relative mt-2">
             <div ref="emblaRef" class="overflow-hidden">
                 <div class="flex gap-2">
-                    <div v-for="{ image, received } in thumbnails" :key="image.id" :title="image.name" :class="[
-                        'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2',
-                        image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
+                    <div v-for="{ image, received } in thumbnails" :key="image.id" :title="image.name"
+                        @click.capture="clickToSelect($event, image.id) && $event.stopPropagation()" :class="[
+                        'group relative size-24 flex-none cursor-pointer rounded-lavoro-sm overflow-hidden border-2 transition-colors',
+                        selecting ? 'select-none' : '',
+                        isSelected(image.id) ? 'border-lavoro-blue bg-lavoro-blue/10' : image.pivot?.main ? 'border-yellow-400' : 'border-gray-200 dark:border-slate-700'
                     ]">
                         <a :href="imageFileUrl(image)" data-type="image" class="glightbox block size-full"
-                            @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="!received && mayUpdate() && changeTitle(image.name, image.id)">
-                            <img :src="imageFileUrl(image)" :alt="image.name" class="size-full object-cover">
+                            :role="selecting ? 'checkbox' : null" :aria-checked="selecting ? isSelected(image.id) : null"
+                            @click.capture="captureScrollBeforeOpen" @dblclick.stop.prevent="!selecting && !received && mayUpdate() && changeTitle(image.name, image.id)">
+                            <img :src="imageFileUrl(image)" :alt="image.name" :class="[
+                                'size-full object-cover transition-transform duration-200 motion-reduce:transition-none',
+                                isSelected(image.id) ? 'scale-[0.82] rounded-md' : ''
+                            ]">
                             <span v-if="received || image.is_shared" :title="received ? 'Gedeeld vanuit het project' : 'Gedeeld met de werkbonnen'"
                                 class="absolute bottom-1 right-1 flex items-center justify-center rounded-full bg-lavoro-blue p-1 shadow-md">
                                 <ShareIconSolid class="size-3 text-white" />
                             </span>
                         </a>
+                        <span v-if="selecting" aria-hidden="true" :class="[
+                            'pointer-events-none absolute left-1 top-1 flex size-5 items-center justify-center rounded-full border-2 shadow-md transition-colors',
+                            isSelected(image.id) ? 'border-lavoro-blue bg-lavoro-blue text-white' : 'border-white bg-black/25'
+                        ]">
+                            <CheckIcon v-if="isSelected(image.id)" class="size-3 stroke-[3]" />
+                        </span>
                         <div v-if="image.pivot?.main"
                             class="pointer-events-none absolute bottom-1 left-1 flex items-center justify-center rounded-full bg-yellow-400 p-1 shadow-md">
                             <StarIconSolid class="size-3 text-white" />
                         </div>
-                        <div v-if="!received && (mayEdit() || mayUpdate() || mayDelete())"
+                        <div v-if="!selecting && !received && (mayEdit() || mayUpdate() || mayDelete())"
                             class="pointer-events-none absolute inset-x-1 top-1 hidden items-center justify-end gap-1 opacity-0 transition-opacity sm:flex group-hover:opacity-100 group-hover:pointer-events-auto">
                             <button v-if="mayEdit()" @click.stop="openEditor(image)" title="Bewerken"
                                 class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 text-gray-700 dark:text-slate-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800">
@@ -94,15 +131,16 @@
                                 <StarIconSolid v-if="image.pivot?.main" class="size-4" />
                                 <StarIcon v-else class="size-4" />
                             </button>
-                            <button v-if="mayDelete()" @click.stop="confirmDeleteImage(image)" title="Verwijder deze afbeelding"
+                            <button v-if="mayDelete()" @click.stop="confirmDelete([image])" title="Verwijder deze afbeelding"
                                 class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 text-red-600 dark:text-red-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800">
                                 <TrashIcon class="size-4" />
                             </button>
                         </div>
-                        <ImageThumbnailMenu v-if="!received && (mayEdit() || mayUpdate() || mayDelete())" :image="image"
+                        <ImageThumbnailMenu v-if="!selecting && !received" :image="image"
                             :can-set-main="mayUpdate()" :can-share="mayShare()" :can-edit="mayEdit()" :can-delete="mayDelete()"
+                            can-select @select="startSelecting(image.id)"
                             @view="openLightboxFor(image)" @favorite="setMain(image.id, image.pivot?.main)" @share="toggleShared(image)"
-                            @annotate="openEditor(image)" @delete="confirmDeleteImage(image)" />
+                            @annotate="openEditor(image)" @delete="confirmDelete([image])" />
                     </div>
                 </div>
             </div>
@@ -153,9 +191,12 @@
                     <ExclamationTriangleIcon class="size-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div class="mt-3 sm:mt-0 text-center sm:text-left">
-                    <p class="text-base font-semibold text-gray-900 dark:text-white">Afbeelding verwijderen</p>
+                    <p class="text-base font-semibold text-gray-900 dark:text-white">
+                        {{ pendingDelete.length > 1 ? `${pendingDelete.length} afbeeldingen verwijderen` : 'Afbeelding verwijderen' }}
+                    </p>
                     <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
-                        Weet je zeker dat je{{ pendingDeleteImage?.name ? ` "${pendingDeleteImage.name}"` : ' deze afbeelding' }} wilt verwijderen?
+                        <template v-if="pendingDelete.length > 1">Weet je zeker dat je deze {{ pendingDelete.length }} afbeeldingen wilt verwijderen?</template>
+                        <template v-else>Weet je zeker dat je{{ pendingDelete[0]?.name ? ` "${pendingDelete[0].name}"` : ' deze afbeelding' }} wilt verwijderen?</template>
                     </p>
                 </div>
             </div>
@@ -183,7 +224,7 @@ import {
 import { useForm, usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon, ShareIcon } from '@heroicons/vue/24/outline';
+import { TrashIcon, StarIcon, CameraIcon, PhotoIcon, PencilSquareIcon, CloudArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, ExclamationTriangleIcon, ShareIcon, CheckCircleIcon, CheckIcon } from '@heroicons/vue/24/outline';
 import { StarIcon as StarIconSolid, ShareIcon as ShareIconSolid } from '@heroicons/vue/24/solid';
 import GLightbox from 'glightbox';
 import 'glightbox/dist/css/glightbox.min.css';
@@ -196,6 +237,12 @@ import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
+import { vTrayDrop } from '@/Utilities/trayDrop.js';
+import { isTrayDrag } from '@/Composables/useTray.js';
+import { useClickSelection } from '@/Composables/useClickSelection.js';
+import { requestFailureMessage } from '@/Utilities/requestFailure.js';
+import SelectionBar from '@/Components/UI/SelectionBar.vue';
+import TraySelectionButton from '@/Components/Tray/TraySelectionButton.vue';
 
 const ImageAnnotator = defineAsyncComponent(() => import('@/Components/Images/ImageAnnotator.vue'));
 
@@ -434,8 +481,18 @@ const handleFiles = (event) => {
     event.target.value = '';
 };
 
-// Handle files added through drag-and-drop
+/** Something dragged off the bakje is not a file: the drop on the whole box takes it. */
+const handleDragOver = (event) => {
+    if (isTrayDrag(event)) return;
+
+    event.preventDefault();
+    isDragging.value = true;
+};
+
 const handleDrop = (event) => {
+    if (isTrayDrag(event)) return;
+
+    event.preventDefault();
     acceptFiles(Array.from(event.dataTransfer.files));
     isDragging.value = false;
 };
@@ -498,28 +555,30 @@ const deleteImage = async (id) => {
 }
 
 const deleteConfirmOpen = ref(false);
-const pendingDeleteImage = ref(null);
+/** The photos the open confirmation asks about: one from its own button, or the chosen ones. */
+const pendingDelete = ref([]);
 const deletingImage = ref(false);
 
-function confirmDeleteImage(image) {
-    pendingDeleteImage.value = image;
+function confirmDelete(images) {
+    pendingDelete.value = images;
     deleteConfirmOpen.value = true;
 }
 
 async function performPendingDelete() {
-    const target = pendingDeleteImage.value;
-    if (!target) return;
+    const target = pendingDelete.value;
+    if (target.length === 0) return;
     deletingImage.value = true;
     try {
-        await deleteImage(target.id);
+        await (target.length === 1 ? deleteImage(target[0].id) : deleteSeveral(target));
+        stopSelecting();
     } finally {
         deletingImage.value = false;
         // Only clear state if this is still the confirmation the user is looking at —
         // they may have cancelled and opened a different image's confirmation while
         // this delete was in flight.
-        if (pendingDeleteImage.value === target) {
+        if (pendingDelete.value === target) {
             deleteConfirmOpen.value = false;
-            pendingDeleteImage.value = null;
+            pendingDelete.value = [];
         }
     }
 }
@@ -539,6 +598,67 @@ const setMain = async (id, isCurrentlyMain) => {
         imageable_type: props.imageableType,
         currently_main: isCurrentlyMain,
     }, { preserveScroll: true });
+}
+
+/*
+ * Choosing photos to do something with together: put them on the bakje, to paste
+ * them among the photos of another record or on this record's other side, or
+ * delete them. On a phone the menu of a photo starts choosing too.
+ */
+const SELECTION_BUTTON = 'inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer';
+
+const {
+    active: selecting, selectedIds, isSelected, allSelected, start: startSelecting, stop: stopSelecting, toggleAll, click: clickToSelect,
+} = useClickSelection(() => thumbnails.value.map(({ image }) => image.id));
+const ownSelected = computed(() => props.existing.filter((image) => isSelected(image.id)));
+
+/**
+ * One request per photo, then the photos are fetched once, not after every one.
+ * What was deleted before a failure stays deleted, and the page says why it stopped.
+ */
+async function deleteSeveral(images) {
+    try {
+        await ensureCsrfCookie();
+
+        for (const image of images) {
+            await axios.delete(`${imagesEndpoint.value}/${image.id}`, {
+                data: { imageable_id: props.imageableId, imageable_type: props.imageableType },
+                headers: { Accept: 'application/json' },
+            });
+            emit('imageDeleted', image.id);
+        }
+    } catch (error) {
+        page.props.flash.error = requestFailureMessage(error, 'Verwijderen is mislukt');
+    } finally {
+        reloadPage();
+    }
+}
+
+/*
+ * Photos off the bakje are pasted here as copies, on this side: copying the
+ * internal photos of a werkbon to the ones the customer sees is a paste onto the
+ * same werkbon. Without a page to reload, the copies are handed up, and taken
+ * away again when the paste is undone.
+ */
+let lastPastedIds = [];
+
+const photoDrop = computed(() => ({
+    accepts: mayUpload() ? ['image'] : [],
+    target: { type: 'photos', id: props.imageableId, record: props.imageableType, internal: props.internal },
+    label: props.internal ? "bij deze interne foto's te plakken" : "bij deze foto's te plakken",
+    onDone: afterPaste,
+}));
+
+function afterPaste(data) {
+    if (data.created?.images) {
+        lastPastedIds = data.created.images.map((image) => image.id);
+        if (props.apiMode) emit('imagesUploaded', data.created.images);
+    } else if (props.apiMode) {
+        lastPastedIds.forEach((id) => emit('imageDeleted', id));
+        lastPastedIds = [];
+    }
+
+    reloadPage();
 }
 
 const toggleShared = (image) => {

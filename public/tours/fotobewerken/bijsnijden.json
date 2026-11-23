@@ -1,0 +1,28 @@
+{
+    "tour": "fotobewerken",
+    "chapter": "bijsnijden",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "bijsnijden.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met bijsnijden sleep je de hoeken van het kader naar binnen. Wat erbuiten valt, komt niet in de foto.",
+            "hash": "77c496564c675a243f23f7ee6465f3446719c83d",
+            "start": 0,
+            "end": 5.289
+        },
+        {
+            "text": "Met bijsnijden schuif je de hoeken van het kader met je vinger naar binnen. Wat erbuiten valt, komt niet in de foto.",
+            "hash": "f8a2716888384f6f395b4280782f8c2c867f6fc2",
+            "start": 6.289,
+            "end": 12.686
+        },
+        {
+            "text": "Hiermee krijg je de hele foto terug. Ook later nog: wat je wegsnijdt, blijft gewoon bewaard.",
+            "hash": "773ccb5da6f080030b7b1e5f681d9c4eeea61ec3",
+            "start": 13.686,
+            "end": 18.824
+        }
+    ]
+}

@@ -1,0 +1,372 @@
+{
+    "id": "fotobewerken",
+    "title": "Rondleiding: een foto bewerken",
+    "intro": "Kies wat je wilt zien. Elk hoofdstuk duurt ongeveer een minuut. Wat de rondleiding op de foto tekent, wordt nooit bewaard.",
+    "autoStart": true,
+    "assistant": false,
+    "requires": {
+        "permissions": [
+            "image.edit"
+        ]
+    },
+    "chapters": [
+        {
+            "id": "tekenen",
+            "version": 1,
+            "title": "Markeren en pijlen",
+            "summary": "Iets omcirkelen met de markeerstift, ernaar wijzen met een pijl, en de kleur kiezen.",
+            "steps": [
+                {
+                    "spot": "annotator.photo",
+                    "action": "chooseNothing",
+                    "title": "Tekenen op de foto",
+                    "text": "Je tekent op de foto. De foto zoals hij gemaakt is, blijft daarnaast bewaard. Zo kun je later alles nog verschuiven of weghalen. Wat de rondleiding hier tekent, komt niet op je foto.",
+                    "say": "Hier teken je op de foto. De foto zoals hij gemaakt is, blijft bewaard. Zo kun je later alles nog verschuiven of weghalen."
+                },
+                {
+                    "spot": "annotator.tool.draw",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseDraw",
+                        "demoDraw"
+                    ],
+                    "title": "Markeren",
+                    "text": "Met de **markeerstift** trek je met de muis een lijn over de foto. Zo omcirkel je wat je bedoelt. Klik je nog een keer op de stift, dan staat hij weer uit.",
+                    "say": "Met de markeerstift trek je met de muis een lijn over de foto. Zo omcirkel je wat je bedoelt.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "over de foto"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.tool.draw",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseDraw",
+                        "demoDraw"
+                    ],
+                    "title": "Markeren",
+                    "text": "Met de **markeerstift** teken je met je vinger over de foto. Zo omcirkel je wat je bedoelt. Tik je nog een keer op de stift, dan staat hij weer uit.",
+                    "say": "Met de markeerstift teken je met je vinger over de foto. Zo omcirkel je wat je bedoelt.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "over de foto"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.tool.arrow",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseArrow",
+                        "demoArrow"
+                    ],
+                    "title": "Een pijl",
+                    "text": "Met de **pijl** wijs je iets aan. Klik waar de pijl begint en sleep naar waar hij heen wijst. Een pijl die te kort is om te zien, valt weg.",
+                    "say": "Met de pijl wijs je iets aan. Klik waar de pijl begint, en sleep naar waar hij heen wijst.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "klik"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.tool.arrow",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseArrow",
+                        "demoArrow"
+                    ],
+                    "title": "Een pijl",
+                    "text": "Met de **pijl** wijs je iets aan. Zet je vinger waar de pijl begint en schuif naar waar hij heen wijst. Een pijl die te kort is om te zien, valt weg.",
+                    "say": "Met de pijl wijs je iets aan. Zet je vinger waar de pijl begint, en schuif naar waar hij heen wijst.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "zet je vinger"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.colour",
+                    "action": [
+                        "chooseArrow",
+                        "openColours",
+                        "demoColours"
+                    ],
+                    "title": "De kleur",
+                    "text": "Hier kies je de **kleur**. Geel valt op de meeste foto's het best op. Elke kleur krijgt een donkere of lichte rand, zodat hij op elke foto te zien is. Heb je iets geselecteerd? Dan krijgt dat de nieuwe kleur.",
+                    "say": "Hier kies je de kleur. Elke kleur krijgt een rand, zodat hij op elke foto te zien is. Heb je iets geselecteerd? Dan krijgt dat de nieuwe kleur.",
+                    "marks": [
+                        {
+                            "spot": "annotator.palette",
+                            "when": "kleur"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "tekst",
+            "version": 1,
+            "title": "Tekst erbij",
+            "summary": "Een label op de foto zetten, en een label later veranderen.",
+            "steps": [
+                {
+                    "spot": "annotator.tool.text",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseText",
+                        "demoText"
+                    ],
+                    "title": "Een label",
+                    "text": "Met **tekst** zet je een label op de foto. Klik waar het moet komen en typ. Met **Enter** of **Klaar** ben je klaar. Een leeg label valt vanzelf weg.",
+                    "say": "Met tekst zet je een label op de foto. Klik waar het moet komen, en typ. Met enter ben je klaar.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "klik"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.tool.text",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseText",
+                        "demoText"
+                    ],
+                    "title": "Een label",
+                    "text": "Met **tekst** zet je een label op de foto. Tik waar het moet komen en typ. Tik op **Klaar** als je klaar bent. Een leeg label valt vanzelf weg.",
+                    "say": "Met tekst zet je een label op de foto. Tik waar het moet komen, en typ. Tik op klaar als je klaar bent.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "tik waar"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.photo",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseText",
+                        "demoText"
+                    ],
+                    "title": "Een label veranderen",
+                    "text": "Wil je een label veranderen? Klik er met **tekst** aan op, en typ verder. Zo zet je ook een tikfout recht.",
+                    "say": "Wil je een label veranderen? Klik er met tekst aan op, en typ verder."
+                },
+                {
+                    "spot": "annotator.photo",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseText",
+                        "demoText"
+                    ],
+                    "title": "Een label veranderen",
+                    "text": "Wil je een label veranderen? Tik er met **tekst** aan op, en typ verder. Zo zet je ook een tikfout recht.",
+                    "say": "Wil je een label veranderen? Tik er met tekst aan op, en typ verder."
+                }
+            ]
+        },
+        {
+            "id": "aanpassen",
+            "version": 1,
+            "title": "Verschuiven, weghalen en terug",
+            "summary": "Een tekening verschuiven, weghalen met de prullenbak, en een stap terug.",
+            "steps": [
+                {
+                    "spot": "annotator.photo",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseNothing",
+                        "demoMove"
+                    ],
+                    "title": "Verschuiven",
+                    "text": "Staat er geen gereedschap aan? Dan pak je elke tekening met de muis vast en sleep je hem waarheen je wilt. Uitzetten doe je door nog een keer op het gereedschap te klikken dat aan staat.",
+                    "say": "Staat er geen gereedschap aan? Dan pak je elke tekening met de muis vast, en sleep je hem waarheen je wilt."
+                },
+                {
+                    "spot": "annotator.photo",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseNothing",
+                        "demoMove"
+                    ],
+                    "title": "Verschuiven",
+                    "text": "Staat er geen gereedschap aan? Dan schuif je elke tekening met je vinger waarheen je wilt. Uitzetten doe je door nog een keer te tikken op het gereedschap dat aan staat.",
+                    "say": "Staat er geen gereedschap aan? Dan schuif je elke tekening met je vinger waarheen je wilt."
+                },
+                {
+                    "spot": "annotator.remove",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseNothing",
+                        "demoMove"
+                    ],
+                    "title": "Weghalen",
+                    "text": "Wat je aanklikt, krijgt een stippellijn. Met de **prullenbak** haal je het weg. De **Delete**-toets werkt ook, en **Escape** zet de selectie uit.",
+                    "say": "Wat je aanklikt, krijgt een stippellijn. Met de prullenbak haal je het weg. De delete-toets werkt ook."
+                },
+                {
+                    "spot": "annotator.remove",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseNothing",
+                        "demoMove"
+                    ],
+                    "title": "Weghalen",
+                    "text": "Wat je aantikt, krijgt een stippellijn. Met de **prullenbak** haal je het weg.",
+                    "say": "Wat je aantikt, krijgt een stippellijn. Met de prullenbak haal je het weg."
+                },
+                {
+                    "spot": "annotator.undo",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": "chooseNothing",
+                    "title": "Een stap terug",
+                    "text": "Iets misgegaan? Met de **pijl terug** maak je de laatste stap ongedaan, ook bijsnijden. **Ctrl+Z** werkt ook.",
+                    "say": "Iets misgegaan? Met de pijl terug maak je de laatste stap ongedaan. Control Z werkt ook.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "annotator.undo",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "annotator.undo",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": "chooseNothing",
+                    "title": "Een stap terug",
+                    "text": "Iets misgegaan? Met de **pijl terug** maak je de laatste stap ongedaan, ook bijsnijden.",
+                    "say": "Iets misgegaan? Met de pijl terug maak je de laatste stap ongedaan.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "annotator.undo",
+                        "gesture": "click"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "bijsnijden",
+            "version": 1,
+            "title": "Bijsnijden",
+            "summary": "Alleen het stuk van de foto houden dat ertoe doet, en de hele foto terughalen.",
+            "steps": [
+                {
+                    "spot": "annotator.tool.crop",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": [
+                        "chooseCrop",
+                        "demoCrop"
+                    ],
+                    "title": "Bijsnijden",
+                    "text": "Met **bijsnijden** sleep je de hoeken van het kader naar binnen. Het hele kader schuiven kan ook. Wat erbuiten valt, komt niet in de foto.",
+                    "say": "Met bijsnijden sleep je de hoeken van het kader naar binnen. Wat erbuiten valt, komt niet in de foto.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "hoeken"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.tool.crop",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": [
+                        "chooseCrop",
+                        "demoCrop"
+                    ],
+                    "title": "Bijsnijden",
+                    "text": "Met **bijsnijden** schuif je de hoeken van het kader met je vinger naar binnen. Het hele kader schuiven kan ook. Wat erbuiten valt, komt niet in de foto.",
+                    "say": "Met bijsnijden schuif je de hoeken van het kader met je vinger naar binnen. Wat erbuiten valt, komt niet in de foto.",
+                    "marks": [
+                        {
+                            "spot": "annotator.photo",
+                            "when": "hoeken"
+                        }
+                    ]
+                },
+                {
+                    "spot": "annotator.reset",
+                    "action": "chooseCrop",
+                    "title": "De hele foto",
+                    "text": "Hiermee krijg je de **hele foto** terug. Ook later nog: wat je wegsnijdt, blijft bewaard bij de foto zoals hij gemaakt is. Zet je bijsnijden uit, dan teken je verder op het stuk dat je hebt gehouden.",
+                    "say": "Hiermee krijg je de hele foto terug. Ook later nog: wat je wegsnijdt, blijft gewoon bewaard."
+                }
+            ]
+        },
+        {
+            "id": "bewaren",
+            "version": 1,
+            "title": "Bewaren of annuleren",
+            "summary": "De tekening bewaren, of teruggaan zonder te bewaren.",
+            "steps": [
+                {
+                    "spot": "annotator.save",
+                    "action": "chooseNothing",
+                    "title": "Bewaren",
+                    "text": "Ben je klaar? Dan op **Bewaar**. Daarna ziet iedereen de foto met je tekening erop, ook in de pdf en de mail. Lukt bewaren niet, dan blijft je tekening staan met de reden erbij.",
+                    "say": "Ben je klaar? Dan op bewaar. Daarna ziet iedereen de foto met je tekening erop, ook in de pdf en de mail."
+                },
+                {
+                    "spot": "annotator.cancel",
+                    "requires": {
+                        "device": "desktop"
+                    },
+                    "action": "chooseNothing",
+                    "title": "Annuleren",
+                    "text": "Met **Annuleren** of **Escape** ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien.",
+                    "say": "Met annuleren ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien."
+                },
+                {
+                    "spot": "annotator.cancel",
+                    "requires": {
+                        "device": "phone"
+                    },
+                    "action": "chooseNothing",
+                    "title": "Annuleren",
+                    "text": "Met **Annuleren** ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien.",
+                    "say": "Met annuleren ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien."
+                }
+            ]
+        }
+    ]
+}

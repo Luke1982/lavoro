@@ -1,0 +1,46 @@
+{
+    "tour": "fotobewerken",
+    "chapter": "aanpassen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "aanpassen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Staat er geen gereedschap aan? Dan pak je elke tekening met de muis vast, en sleep je hem waarheen je wilt.",
+            "hash": "4d8953eb40a6c73f345e1f0fd33a24a5ea888812",
+            "start": 0,
+            "end": 5.814
+        },
+        {
+            "text": "Staat er geen gereedschap aan? Dan schuif je elke tekening met je vinger waarheen je wilt.",
+            "hash": "6d02ae3f0a202647f6570b527bd3325d80eb754e",
+            "start": 6.814,
+            "end": 11.684
+        },
+        {
+            "text": "Wat je aanklikt, krijgt een stippellijn. Met de prullenbak haal je het weg. De delete-toets werkt ook.",
+            "hash": "2c6dab04cf3bd85e41dec1e5f2bda185abbe5cee",
+            "start": 12.684,
+            "end": 18.432
+        },
+        {
+            "text": "Wat je aantikt, krijgt een stippellijn. Met de prullenbak haal je het weg.",
+            "hash": "a5d9681d51b080d67514f3264e5f418f3451398e",
+            "start": 19.432,
+            "end": 23.417
+        },
+        {
+            "text": "Iets misgegaan? Met de pijl terug maak je de laatste stap ongedaan. Control Z werkt ook.",
+            "hash": "f8b783039bdd1b00357766d6da53818c5b1edf20",
+            "start": 24.417,
+            "end": 29.541
+        },
+        {
+            "text": "Iets misgegaan? Met de pijl terug maak je de laatste stap ongedaan.",
+            "hash": "fa6a3b211358b442d77ecbda86e8a04df44d3cfb",
+            "start": 30.541,
+            "end": 34.29
+        }
+    ]
+}

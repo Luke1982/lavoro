@@ -1,0 +1,28 @@
+{
+    "tour": "fotobewerken",
+    "chapter": "bewaren",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "bewaren.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Ben je klaar? Dan op bewaar. Daarna ziet iedereen de foto met je tekening erop, ook in de pdf en de mail.",
+            "hash": "997ec925a09753fe71ddc6bdc0fae1276663e4cd",
+            "start": 0,
+            "end": 6.027
+        },
+        {
+            "text": "Met annuleren ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien.",
+            "hash": "86ae4c21548d9f846f365b791a06ba14940fc6ef",
+            "start": 7.027,
+            "end": 13.784
+        },
+        {
+            "text": "Met annuleren ga je terug zonder te bewaren. Heb je iets getekend? Dan wordt eerst gevraagd of je het echt wilt weggooien.",
+            "hash": "86ae4c21548d9f846f365b791a06ba14940fc6ef",
+            "start": 14.784,
+            "end": 21.541
+        }
+    ]
+}

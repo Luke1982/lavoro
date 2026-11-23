@@ -1,0 +1,46 @@
+{
+    "tour": "fotobewerken",
+    "chapter": "tekenen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "tekenen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Hier teken je op de foto. De foto zoals hij gemaakt is, blijft bewaard. Zo kun je later alles nog verschuiven of weghalen.",
+            "hash": "59027695955b7161fed2fbbd1d6f93213f900888",
+            "start": 0,
+            "end": 7.279
+        },
+        {
+            "text": "Met de markeerstift trek je met de muis een lijn over de foto. Zo omcirkel je wat je bedoelt.",
+            "hash": "f00f58f75c4e5d08cfb7de6bad33028c9ef06999",
+            "start": 8.279,
+            "end": 13.583
+        },
+        {
+            "text": "Met de markeerstift teken je met je vinger over de foto. Zo omcirkel je wat je bedoelt.",
+            "hash": "c154a82ed1fcb98d28b9641ba1aee0674782a4fa",
+            "start": 14.583,
+            "end": 19.388
+        },
+        {
+            "text": "Met de pijl wijs je iets aan. Klik waar de pijl begint, en sleep naar waar hij heen wijst.",
+            "hash": "1a228aafb0345947b4fc1c79ceef817ff863bbd1",
+            "start": 20.388,
+            "end": 25.364
+        },
+        {
+            "text": "Met de pijl wijs je iets aan. Zet je vinger waar de pijl begint, en schuif naar waar hij heen wijst.",
+            "hash": "42651927c2fd78e102f34b27c003635a9b3e098d",
+            "start": 26.364,
+            "end": 32.307
+        },
+        {
+            "text": "Hier kies je de kleur. Elke kleur krijgt een rand, zodat hij op elke foto te zien is. Heb je iets geselecteerd? Dan krijgt dat de nieuwe kleur.",
+            "hash": "21cadd4939d30b8a3ffd1c2d9c6e6c819aefc6b7",
+            "start": 33.307,
+            "end": 41.236
+        }
+    ]
+}

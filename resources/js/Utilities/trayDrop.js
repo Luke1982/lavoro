@@ -104,13 +104,14 @@ export const vTrayDrop = {
             paint()
         }
 
+        /** A drop this place does not take is left to a place around it that may. */
         tray.onDrop = (event) => {
             if (!isTrayDrag(event)) return
+            const payload = readTrayDrag(event)
+            if (!payload || !takes(payload.kind)) return
             event.preventDefault()
             event.stopPropagation()
-            const payload = readTrayDrag(event)
             endTrayDrag()
-            if (!payload || !takes(payload.kind)) return
             land((target, onDone) => pasteFromTray(payload.item_ids, target, onDone))
         }
 

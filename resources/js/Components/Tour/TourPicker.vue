@@ -1,5 +1,5 @@
 <template>
-    <ModalDialog :open="picker.open" :title="tour?.title ?? 'Rondleiding'" max-width-class="sm:max-w-xl"
+    <ModalDialog :open="picker.open" :title="tour?.title ?? 'Rondleiding'" max-width-class="sm:max-w-xl" layer-class="z-[10004]"
         @update:open="(open) => { if (!open) closePicker() }">
         <div class="space-y-4">
             <p class="text-sm text-gray-600 dark:text-slate-300">

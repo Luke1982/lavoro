@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * A storing has no customer of its own. It hangs off a machine, and a machine
  * inside another machine belongs to whoever owns the outer one.
  */
-final class TicketKind extends TrayKind
+final class TicketKind extends WorkKind
 {
     public static function name(): string
     {

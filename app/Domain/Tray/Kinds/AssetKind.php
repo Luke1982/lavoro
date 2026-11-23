@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  * Only a machine at the top of its tree has a customer and a location of its own;
  * a part built into another machine has both through the machine it sits in.
  */
-final class AssetKind extends TrayKind
+final class AssetKind extends WorkKind
 {
     public static function name(): string
     {
