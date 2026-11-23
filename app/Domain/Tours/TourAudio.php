@@ -8,17 +8,20 @@ use App\Support\AudioProbe;
 use Closure;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
  * Speaks a chapter of a rondleiding into one file the screen can play.
  *
  * Every step is spoken on its own and kept under the hash of voice and words, so
- * a rewritten sentence costs one new clip and not a whole chapter. The clips are
- * then joined, with a breath of silence after each, and the second each step
- * starts and ends is written beside the file together with the words that were
- * spoken. The player compares those words with the storyboard and runs the step
- * in silence, with the text on screen, the moment they differ.
+ * a rewritten sentence costs one new clip and not a whole chapter. The steps
+ * around it go along as context, for the melody, but stay out of the hash, so
+ * its neighbours are not spoken again. The clips are then joined, with a breath
+ * of silence after each, and the second each step starts and ends is written
+ * beside the file together with the words that were spoken. The player compares
+ * those words with the storyboard and runs the step in silence, with the text on
+ * screen, the moment they differ.
  */
 class TourAudio
 {
@@ -43,6 +46,9 @@ class TourAudio
 
     private const ANALYSIS_RATE = 16000;
 
+    /**
+     * @param  array<string, string>  $pronunciation  A word as written, and as the voice should read it.
+     */
     public function __construct(
         private readonly SpeechDriver $driver,
         private readonly string $clips_root,
@@ -50,6 +56,7 @@ class TourAudio
         private readonly string $ffmpeg,
         private readonly string $ffprobe,
         private readonly float $gap_seconds,
+        private readonly array $pronunciation = [],
     ) {}
 
     /**
@@ -62,15 +69,18 @@ class TourAudio
         $clip_folder = $this->clips_root . '/' . $tour . '/' . $chapter['id'];
         $steps = [];
         $spoken = 0;
+        $texts = array_map(fn (array $step) => trim((string) $step['say']), array_values($chapter['steps']));
+        $pronounced = array_map($this->pronounced(...), $texts);
 
-        foreach ($chapter['steps'] as $index => $step) {
-            $text = trim((string) $step['say']);
-            $hash = sha1($this->driver->signature() . "\n" . $text);
+        foreach ($texts as $index => $text) {
+            $hash = sha1($this->driver->signature() . "\n" . $pronounced[$index]);
             $path = $clip_folder . '/' . $hash . '.mp3';
 
             if ($force || !is_file($path)) {
                 File::ensureDirectoryExists($clip_folder);
-                $this->store($this->driver->speak($text), $path);
+                $previous = $pronounced[$index - 1] ?? null;
+                $next = $pronounced[$index + 1] ?? null;
+                $this->store($this->driver->speak($pronounced[$index], $previous, $next), $path);
                 $spoken++;
                 $report('  stap ' . ($index + 1) . ' ingesproken');
             }
@@ -124,6 +134,32 @@ class TourAudio
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
 
         return ['spoken' => $spoken, 'kept' => count($steps) - $spoken, 'rebuilt' => true];
+    }
+
+    /**
+     * The line as the voice should read it: a borrowed word written the way it
+     * sounds, so "planning" is said as "plenning". The screen keeps the real word.
+     * One pass, longest word first, so no word is respelled twice.
+     */
+    private function pronounced(string $text): string
+    {
+        if ($this->pronunciation === []) {
+            return $text;
+        }
+
+        $sounds_of = collect($this->pronunciation)
+            ->mapWithKeys(fn (string $sounds, string $written) => [mb_strtolower($written) => $sounds]);
+        $words = $sounds_of->keys()
+            ->sortByDesc(fn (string $word) => mb_strlen($word))
+            ->map(fn (string $word) => preg_quote($word, '/'))
+            ->implode('|');
+
+        return preg_replace_callback('/' . $words . '/iu', function (array $match) use ($sounds_of) {
+            $sounds = $sounds_of[mb_strtolower($match[0])];
+            $first = mb_substr($match[0], 0, 1);
+
+            return $first === mb_strtoupper($first) ? Str::ucfirst($sounds) : $sounds;
+        }, $text);
     }
 
     /**

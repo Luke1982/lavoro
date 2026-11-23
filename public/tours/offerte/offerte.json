@@ -1,0 +1,46 @@
+{
+    "tour": "offerte",
+    "chapter": "offerte",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "offerte.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Bovenaan staan het offertenummer, de status en de versie waar je aan werkt. Daaronder de titel, de klant en tot wanneer de offerte geldig is.",
+            "hash": "fa76fea1b6c40abe561215320177cb9819022cce",
+            "start": 0,
+            "end": 8.585
+        },
+        {
+            "text": "Je past een offerte aan zolang hij op concept staat, of de klant om een wijziging vroeg. Klik in een veld en typ. Het wordt bewaard zodra je het veld verlaat.",
+            "hash": "309f72da704a0fa6dc4fee70b687d0a8333e8139",
+            "start": 9.585,
+            "end": 18.971
+        },
+        {
+            "text": "Met \"Voorbeeld\" zie je de offerte zoals de klant hem ziet. Met \"PDF\" zie je hem op papier. Er wordt niets verstuurd.",
+            "hash": "ffd76a15c9f32cbc024cf5002c41115a115fb311",
+            "start": 19.971,
+            "end": 26.211
+        },
+        {
+            "text": "Onder de drie puntjes maak je een kopie, of bewaar je de offerte als sjabloon. Daar zet je hem ook zelf op een andere status.",
+            "hash": "419d33f5d236722cff95ff55fbdbb4f026b211cb",
+            "start": 27.211,
+            "end": 34.104
+        },
+        {
+            "text": "De offerte staat op vijf tabbladen. Je begint bij de regels.",
+            "hash": "b81341445a0503767c302f574aae6ac8a7f19f26",
+            "start": 35.104,
+            "end": 38.503
+        },
+        {
+            "text": "Rechts staat het totaal, zonder en met btw. Daaronder zie je wat er stelpost is, en wat de opties kosten die niet meetellen.",
+            "hash": "c1de08d96c5951d306811da622b4b1c15edbc56c",
+            "start": 39.503,
+            "end": 47.602
+        }
+    ]
+}

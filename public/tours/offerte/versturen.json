@@ -1,0 +1,46 @@
+{
+    "tour": "offerte",
+    "chapter": "versturen",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "versturen.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met \"Versturen\" gaat de offerte per e-mail naar de klant. Je ziet de mail eerst.",
+            "hash": "b6d8200ada6128679f99a840e9c862aa360c6312",
+            "start": 0,
+            "end": 4.039
+        },
+        {
+            "text": "De mail gaat naar de contactpersoon van de offerte. Of anders naar het adres van de klant. Je past het hier nog aan.",
+            "hash": "a3a0e675c124a21b7567f61c32a39fadc0856647",
+            "start": 5.039,
+            "end": 10.705
+        },
+        {
+            "text": "Onder de tekst komt een knop. Daarmee opent de klant de offerte, zonder in te loggen. De PDF en je voorwaarden gaan mee.",
+            "hash": "ac5c28163e10ad56e036f314d50b0334ec7ce26a",
+            "start": 11.705,
+            "end": 18.761
+        },
+        {
+            "text": "De klant geeft akkoord met een handtekening. Of hij vraagt een wijziging, of hij wijst de offerte af. Wie de offerte maakte, krijgt daar een melding van. Ook als de klant de offerte voor het eerst bekijkt.",
+            "hash": "073083ad6a6b1c89c959cc7e0649aad13ead33bb",
+            "start": 19.761,
+            "end": 31.529
+        },
+        {
+            "text": "Reageert de klant niet? Dan krijgt hij na een paar dagen vanzelf een herinnering. En verloopt de offerte bijna, dan krijgt wie hem maakte een melding.",
+            "hash": "5526a903ae5768ddca07bd78937ca16521f6b9ea",
+            "start": 32.529,
+            "end": 41.436
+        },
+        {
+            "text": "Ben je bij de klant? Met \"Akkoord vastleggen\" tekent de klant op jouw scherm. Hij krijgt de getekende offerte per mail.",
+            "hash": "03e686b95ce2d825f6f7779de5510fbae9d686c2",
+            "start": 42.436,
+            "end": 48.739
+        }
+    ]
+}

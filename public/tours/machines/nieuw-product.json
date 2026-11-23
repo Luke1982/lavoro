@@ -2,57 +2,57 @@
     "tour": "machines",
     "chapter": "nieuw-product",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "nieuw-product.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Staat het product er nog niet in? Typ dan het model, bijvoorbeeld de PX-12 Hybride. Onderaan de lijst verschijnt \"nieuw product\".",
-            "hash": "e45469ffeb6ddd556eff0b994fb4d09bdcb2bd5c",
+            "hash": "9084e3c1837ea5a891df9a962dba0cbedf7571b9",
             "start": 0,
-            "end": 7.053
+            "end": 7.682
         },
         {
             "text": "Klik daarop. Het productformulier opent dan over het machineformulier heen. Het model dat je typte staat er al in.",
-            "hash": "cb40a3f2f4cf94ee415b498d4b2d0bc37b8c9134",
-            "start": 8.053,
-            "end": 14.216
+            "hash": "8dbf820848427ba625b3527175a907c9071db20c",
+            "start": 8.682,
+            "end": 15.554
         },
         {
             "text": "Kies het producttype. Dat is het soort apparaat. Staat het er niet bij? Dan maak je het op dezelfde manier aan.",
-            "hash": "32fa2e11ed517e212c2627e08134e9f710680e69",
-            "start": 15.216,
-            "end": 21.666
+            "hash": "9651552149732d4e4402459e0cb4f0cee9fa42db",
+            "start": 16.554,
+            "end": 22.633
         },
         {
             "text": "Ook het merk Polarix bestaat nog niet. Typ het in en kies \"nieuw merk\".",
-            "hash": "cfac7a5d52577ea0c851df9292508e5aec269e38",
-            "start": 22.666,
-            "end": 26.861
+            "hash": "925faacf06383870d10c148c19936ff2156775c0",
+            "start": 23.633,
+            "end": 27.767
         },
         {
             "text": "Het merk wordt meteen aangemaakt en ingevuld. Je hoeft het productformulier er niet voor te verlaten.",
-            "hash": "16394e880755c5b70e6b528239b3903d2f760db8",
-            "start": 27.861,
-            "end": 33.506
+            "hash": "c1116b0e990fa708f806782ae75bffef99023bdc",
+            "start": 28.767,
+            "end": 33.879
         },
         {
             "text": "Een bundel is een set van andere producten. Zet \"registreerbaar\" uit voor iets dat je per stuk telt, zoals zonnepanelen. Dan vraagt Lavoro geen serienummer.",
-            "hash": "936abc30a916359a53ea88606576c8fa00182ad4",
-            "start": 34.506,
-            "end": 43.247
+            "hash": "2e0d32ad63ae129701e2f8fab038f35ce521d12c",
+            "start": 34.879,
+            "end": 44.455
         },
         {
             "text": "Klik op \"product aanmaken\" om het product op te slaan.",
-            "hash": "0098d87971bdeb9d126c8f6b13b5ab07f7017d4a",
-            "start": 44.247,
-            "end": 47.423
+            "hash": "a8a53cf6af48f7df0b50556971982cd6b80f7e74",
+            "start": 45.455,
+            "end": 48.688
         },
         {
             "text": "Je bent dan terug in het machineformulier. Het nieuwe product is al ingevuld. Vul de rest in en klik op \"toevoegen\".",
-            "hash": "8ea2211abd3a03af7f08c9df87808ae282c1f87f",
-            "start": 48.423,
-            "end": 54.864
+            "hash": "7b14144bf79ceef23d83ad5c2d66fd5ecccdac66",
+            "start": 49.688,
+            "end": 56.405
         }
     ]
 }

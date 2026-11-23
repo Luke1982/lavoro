@@ -7,6 +7,9 @@ use RuntimeException;
 
 class ElevenLabsSpeech implements SpeechDriver
 {
+    /** Style at 0: anything above it makes a cloned voice less steady. */
+    private const SETTINGS = ['stability' => 0.55, 'similarity_boost' => 0.8, 'style' => 0.0];
+
     public function __construct(
         private readonly ?string $key,
         private readonly ?string $voice,
@@ -20,14 +23,14 @@ class ElevenLabsSpeech implements SpeechDriver
 
     public function signature(): string
     {
-        return 'elevenlabs:' . $this->voice . ':' . $this->model;
+        return 'elevenlabs:' . $this->voice . ':' . $this->model . ':' . substr(sha1(json_encode(self::SETTINGS)), 0, 8);
     }
 
     /**
      * Asked with timestamps: the voice ends a line by drawing breath for a sentence
      * that never comes, and only the supplier knows where the last word stops.
      */
-    public function speak(string $text): SpokenLine
+    public function speak(string $text, ?string $previous = null, ?string $next = null): SpokenLine
     {
         if (blank($this->key) || blank($this->voice)) {
             throw new RuntimeException('ElevenLabs heeft een sleutel en een stem nodig: zet ELEVENLABS_API_KEY en '
@@ -42,7 +45,9 @@ class ElevenLabsSpeech implements SpeechDriver
                     'text' => $text,
                     'model_id' => $this->model,
                     'language_code' => 'nl',
-                    'voice_settings' => ['stability' => 0.55, 'similarity_boost' => 0.8, 'style' => 0.1],
+                    'voice_settings' => self::SETTINGS,
+                    'previous_text' => $previous,
+                    'next_text' => $next,
                 ]);
 
         $audio = base64_decode((string) $response->json('audio_base64'), true);

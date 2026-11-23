@@ -2,27 +2,27 @@
     "tour": "contract",
     "chapter": "dossier",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "dossier.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "In de tijdlijn staat wat er met het contract is gebeurd. Je ziet ook welke werkbonnen er zijn gemaakt.",
-            "hash": "74a54b27ea3af1c28c5486b25d4abd9ab4aa0139",
+            "hash": "efa860c43eabcd0d8b4f0942209dbcc4cc88037b",
             "start": 0,
-            "end": 5.218
+            "end": 5.227
         },
         {
             "text": "Onder opmerkingen zet je vragen en aantekeningen bij het contract.",
-            "hash": "33c93021ad307dea2f7336b8eb714f3d54bcc492",
-            "start": 6.218,
-            "end": 9.74
+            "hash": "bcbd5c2791936df0dd715b7662d574c72c4b53ef",
+            "start": 6.227,
+            "end": 10.213
         },
         {
             "text": "Bij documenten bewaar je bestanden bij het contract, zoals het getekende contract.",
-            "hash": "8c399d5b88a4ea2af94c94f3a6cea66f79d21e2f",
-            "start": 10.74,
-            "end": 15.117
+            "hash": "b95c62af183aaaf1869f5c863fdc08c5142d0860",
+            "start": 11.213,
+            "end": 15.199
         }
     ]
 }

@@ -2,45 +2,45 @@
     "tour": "machines",
     "chapter": "toevoegen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "toevoegen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met \"voeg machine toe\" open je het formulier. Je vindt het ook bij een klant, een locatie of een product. Wat daar al bekend is staat dan al ingevuld.",
-            "hash": "606d3d88869fc47d6422b64f9f81f495a9a5c8b8",
+            "hash": "f51c9744f2ccba452a35ae5c0f07f34b11b30199",
             "start": 0,
-            "end": 9.351
+            "end": 9.529
         },
         {
             "text": "Kies eerst het product uit de catalogus. Staat het er nog niet in? Dan maak je het hier meteen aan. Daarover gaat het volgende hoofdstuk.",
-            "hash": "9b1abcbcf8058f0fda6202e167aef5313058cd31",
-            "start": 10.351,
-            "end": 17.472
+            "hash": "321757aad089cd4b45f92ba74dc2f078bcd54bf0",
+            "start": 10.529,
+            "end": 18.609
         },
         {
             "text": "Kies dan de klant. Staat die er nog niet in? Typ dan de naam en kies \"nieuwe klant\". Daarna kies je de locatie.",
-            "hash": "30ab8bea31eead44a8e43bc91daf8fe8a6f7ec8e",
-            "start": 18.472,
-            "end": 25.079
+            "hash": "1096fc90d0f6741ebca2bb3ba1ca1b2cd43944d6",
+            "start": 19.609,
+            "end": 26.099
         },
         {
             "text": "Typ het serienummer in, of scan het typeplaatje met de camera. Lavoro leest de nummers op de foto. Jij tikt het juiste aan.",
-            "hash": "a0532248496a59ac15d9e83beba063e5695d0a5e",
-            "start": 26.079,
-            "end": 33.403
+            "hash": "75501b0f4098efe3469868e4d3b46203fa770280",
+            "start": 27.099,
+            "end": 34.519
         },
         {
             "text": "\"In gebruikname\" staat op vandaag. De volgende keuring rekent Lavoro zelf uit. Na elke goedgekeurde keuring schuift die datum vanzelf op.",
-            "hash": "4a44e1cd8c28d46878de56eb14b5208767f1a5c0",
-            "start": 34.403,
-            "end": 43.182
+            "hash": "157132257eb13f5d2a853ebcc12fc994987b522c",
+            "start": 35.519,
+            "end": 43.645
         },
         {
             "text": "\"Actief\" staat standaard aan. Klik op \"toevoegen\". Dan staat de machine in de lijst, met de vaste onderdelen van het product erbij.",
-            "hash": "1b5ef7feae33c5bebf9ee46b5b28d44997681740",
-            "start": 44.182,
-            "end": 51.755
+            "hash": "c2ce29e9d88aad9313db42d69f9d8054a122d0e7",
+            "start": 44.645,
+            "end": 52.376
         }
     ]
 }

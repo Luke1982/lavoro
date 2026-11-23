@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "kopieren",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "kopieren.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies \"kopiëren\".",
-            "hash": "c7a384e88ac51a88a4c0d3a1b22cd83930a4028e",
+            "hash": "090661efd71937202c6223627a7eb9a959e60270",
             "start": 0,
-            "end": 5.519
+            "end": 5.266
         },
         {
             "text": "Met \"naar morgen\" zet je hem één dag later neer, op dezelfde tijd.",
-            "hash": "f61827a3477afe8e986acbc79ef1d4f45eb8d8ae",
-            "start": 6.519,
-            "end": 10.781
+            "hash": "e9776c83ace93cd4dbb95fb86afc4ed8290870fa",
+            "start": 6.266,
+            "end": 9.806
         },
         {
             "text": "Met \"rest van de week\" komt hij op elke werkdag die deze week nog over is.",
-            "hash": "4368c9b21736d6b83d65dbce45a0d66cc7b8eb45",
-            "start": 11.781,
-            "end": 16.436
+            "hash": "056eaad0cda1e222d191edf4ad25abc64bf76baf",
+            "start": 10.806,
+            "end": 14.802
         },
         {
             "text": "Met \"naar volgende week\" zet je hem precies één week later.",
-            "hash": "358022be422e533a74e78917e865810b836848c7",
-            "start": 17.436,
-            "end": 20.837
+            "hash": "39ccaa1e7f5821f860d7fab2285d8ef1bc8850e1",
+            "start": 15.802,
+            "end": 19.408
         },
         {
             "text": "Je kunt ook zelf een datum kiezen, tot één jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
-            "hash": "ffdb3c0a18fb1586cb8015c195b31f1ffc7a7c6b",
-            "start": 21.837,
-            "end": 29.198
+            "hash": "1098ae21fdb07f10e6b330fc98ab383a878bac31",
+            "start": 20.408,
+            "end": 27.531
         }
     ]
 }

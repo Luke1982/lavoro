@@ -2,45 +2,45 @@
     "tour": "activiteiten",
     "chapter": "lijst",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Hier kies je hoe ver je vooruit kijkt. Je ziet de machines waarvan de keuring in die periode verloopt, of al verlopen is.",
-            "hash": "10c66f8a4858d93146407097c87725965cf6c981",
+            "hash": "36e73a055259fe21959de5dfcb5ec4a4ffed2158",
             "start": 0,
-            "end": 6.316
+            "end": 6.233
         },
         {
             "text": "Je zoekt op klant of serienummer. Ook merk en model werken.",
-            "hash": "e869717359a32eff0cc5963a1a37f39dd80f5866",
-            "start": 7.316,
-            "end": 10.375
+            "hash": "789b0191b0177975beacac4e3c1c5eb567338ad8",
+            "start": 7.233,
+            "end": 10.64
         },
         {
             "text": "Hier wissel je tussen een overzicht per klant en een tabel. Je laatste keuze blijft bewaard.",
-            "hash": "0ec3a96a6eb4b6a0c9da6e554e00dff285b010c6",
-            "start": 11.375,
-            "end": 16.616
+            "hash": "c64ae2d367b1082d8fd2bea5a1b2d61c75d25389",
+            "start": 11.64,
+            "end": 16.424
         },
         {
             "text": "In de tabel heeft elke machine een eigen regel. Ook als ze bij dezelfde klant staan. Klik op een kolomkop om te sorteren. Het plusje achter een klantnaam zegt hoeveel machines van die klant er nog meer op hetzelfde adres in de lijst staan.",
-            "hash": "d21b73903b5c5749c9536aa00bc0d87b2157147c",
-            "start": 17.616,
-            "end": 31.003
+            "hash": "dda5f43772a2a820768dd3089d5bab1a811d80d0",
+            "start": 17.424,
+            "end": 30.936
         },
         {
             "text": "In de tabel kun je ook filteren, bijvoorbeeld op klant of op planning. Planning staat standaard op \"niet gepland\".",
-            "hash": "4dcd676b0e2a287b7e157b7102bee19a231a522b",
-            "start": 32.003,
-            "end": 38.152
+            "hash": "eb908c47883afc13789a4deacdbe3f0d1e0d6b94",
+            "start": 31.936,
+            "end": 38.856
         },
         {
             "text": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze.",
-            "hash": "89861d700b6ac46421eafb5a937787453a8ad5c0",
-            "start": 39.152,
-            "end": 45.201
+            "hash": "e13e2e26b53bb282a75da081edbfdc29ee32b6cf",
+            "start": 39.856,
+            "end": 46.095
         }
     ]
 }

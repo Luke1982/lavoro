@@ -2,51 +2,51 @@
     "tour": "standaardemails",
     "chapter": "versturen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "versturen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met \"Trigger toevoegen\" kies je wanneer de mail vanzelf gaat. Zonder trigger verstuur je hem alleen met de hand.",
-            "hash": "9cc4303f1439da730e786239ab566bec0e066ea5",
+            "hash": "87992532c80b9ac5cd226bd11661717b8ce85c2a",
             "start": 0,
-            "end": 6.048
+            "end": 7.01
         },
         {
             "text": "Kies eerst het moment. Bijvoorbeeld \"Afspraak aangemaakt\". Dan gaat de mail zodra je een afspraak inplant.",
-            "hash": "cee953361c91062487a7394e6a7ec362c97d7cb1",
-            "start": 7.048,
-            "end": 12.837
+            "hash": "722988da70348e196bf66142b933d4e66f106842",
+            "start": 8.01,
+            "end": 14.651
         },
         {
             "text": "Kies dan hoe hij gaat. \"Automatisch versturen\" gaat meteen. Bij \"Bevestigen voor verzenden\" zie je de mail eerst. Bij \"Bewerken voor verzenden\" kun je hem ook nog aanpassen.",
-            "hash": "18096b850586c191ba59f37a577aa00ae769971a",
-            "start": 13.837,
-            "end": 24.345
+            "hash": "f95465f6ea1458c81629317dd9a32ce1d26ccc39",
+            "start": 15.651,
+            "end": 26.916
         },
         {
             "text": "De mail gaat naar het e-mailadres van de klant. Heeft de klant er geen? Dan gaat hij niet vanzelf.",
-            "hash": "95d22afdbc1b96cbfe87d4dd15ad78ecb565ff7c",
-            "start": 25.345,
-            "end": 30.462
+            "hash": "09a20885f39a3eac35fa66806036f11b3c709555",
+            "start": 27.916,
+            "end": 32.892
         },
         {
             "text": "Met het kruisje haal je een trigger weer weg. Je mag er ook meer toevoegen.",
-            "hash": "40dfa1d7bd2e5a28b80c25f185def9eaca8d52c3",
-            "start": 31.462,
-            "end": 35.445
+            "hash": "e97db0696d12b5d89d03b9c18f6ab089ce38706c",
+            "start": 33.892,
+            "end": 37.465
         },
         {
             "text": "Moet er altijd een bestand mee? Zoals je voorwaarden? Kies het dan hier.",
-            "hash": "9feceab123e888fe8783f161e5c15a276ba840a5",
-            "start": 36.445,
-            "end": 40.246
+            "hash": "e418ef0f6b97787ad6b686b9a6f569aa6df8f013",
+            "start": 38.465,
+            "end": 41.806
         },
         {
             "text": "Met \"Opslaan\" bewaar je de e-mail. Mist er iets? Dan zie je dat in rood.",
-            "hash": "4ba64878bcda2d566311f5e4aedafe0f7ebe77c4",
-            "start": 41.246,
-            "end": 45.184
+            "hash": "e457e903c47240e9b0cde18076d3212b5e526670",
+            "start": 42.806,
+            "end": 47.279
         }
     ]
 }

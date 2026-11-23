@@ -2,57 +2,57 @@
     "tour": "prijsformule",
     "chapter": "lijnen",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijnen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Elk blok heeft een gekleurde balk met zijn naam. Links zitten de ingangen, rechts de uitgangen. Het blok \"prijs per stuk\" krijgt bijvoorbeeld links een aantal binnen, en geeft rechts een bedrag: acht stuks keer vijftig euro is vierhonderd euro.",
-            "hash": "fe7135e9ef8ed4ecd7788b4056bf532cb2a20fba",
+            "hash": "e24a1d02eedfb2402a67acdb3c327a12d3e0b7d1",
             "start": 0,
-            "end": 13.78
+            "end": 16.091
         },
         {
             "text": "Er lopen twee soorten dingen over de lijnen. Een blauw rondje is voor machines, zoals alle airco's van een klant. Een grijs blokje is voor een getal: een aantal, zoals zes, of een bedrag, zoals driehonderd euro. Een blauwe lijn mag ook naar een grijs blokje: dan worden de machines geteld.",
-            "hash": "5a5d505c1a3e40b75208272e089a108bfc507186",
-            "start": 14.78,
-            "end": 32.01
+            "hash": "0ece0b22d373fa3146e75339e394e02c8f23c343",
+            "start": 17.091,
+            "end": 33.906
         },
         {
             "text": "Je verbindt twee blokken door van een uitgang naar een ingang te slepen. Kijk: de machines gaan nu rechtstreeks naar het blok \"prijs per stuk\".",
-            "hash": "c628007b3a0ca3815e4b7b4f7d93a551c7eacc3c",
-            "start": 33.01,
-            "end": 40.165
+            "hash": "a4e6b3cdb141c08563db3ccb656a59a8adea47a8",
+            "start": 34.906,
+            "end": 42.92
         },
         {
             "text": "Hier gaat een blauwe lijn naar een grijs blokje: een ingang voor een getal. Dat mag: de machines worden dan geteld. Acht machines worden het getal acht, en \"prijs per stuk\" maakt daar vierhonderd euro van. Bij \"als, dan\" vergelijkt het blok zo het aantal machines. Andersom kan niet: van een getal kun je geen machines maken.",
-            "hash": "1c998ff6d08f86f8e7303a7aa4e5e813fc33da35",
-            "start": 41.165,
-            "end": 59.762
+            "hash": "43489e157b13302538aa6596e9869e82ac45788f",
+            "start": 43.92,
+            "end": 63.568
         },
         {
             "text": "Zodra er iets binnenkomt, zie je bij elke ingang en elke uitgang wat erdoor gaat. Bij \"prijs per stuk\" staat links een acht: de getelde machines. Rechts staat vierhonderd euro. Zo controleer je bij elk blok of het uitrekent wat je bedoelt. Klik op het aantal machines om te zien welke het zijn.",
-            "hash": "19b74cfa9c17f9ca326135f7bd2b3dba099f2b2b",
-            "start": 60.762,
-            "end": 80.206
+            "hash": "3e68f9f50dc8d7fbe8a2d03ac591ea018476ceda",
+            "start": 64.568,
+            "end": 81.356
         },
         {
             "text": "Een grijze uitgang kan niet naar een blauwe ingang, want een getal is geen groep machines. Komen er meerdere lijnen op één ingang, dan worden ze samengevoegd. Komt er driehonderd euro binnen en zestig euro, dan wordt dat driehonderdzestig euro. Bij machines telt elke machine maar één keer mee.",
-            "hash": "92e00062ecdc73a25a0186a14b1d77f863697fbd",
-            "start": 81.206,
-            "end": 99.519
+            "hash": "4e4b832adc58361b30dab802b945e5cb690509d8",
+            "start": 82.356,
+            "end": 98.123
         },
         {
             "text": "Klik op een blok, en rechts verschijnen zijn instellingen. Bovenaan geef je het een eigen naam, zoals \"airco per stuk\". Onderaan haal je het blok weg.",
-            "hash": "a49ad9e00938de1e0175f91b429b56837a551f71",
-            "start": 100.519,
-            "end": 109.034
+            "hash": "6a98faaf09673d84c4fe22bbe37add1aa9cfdf77",
+            "start": 99.123,
+            "end": 108.135
         },
         {
             "text": "Een blok toevoegen doe je door het uit de lijst naar het canvas te slepen. Klik je er alleen op, dan komt het in het midden te staan.",
-            "hash": "7ccc2b78f46c72a0855d3a090cee9a8ee769cf88",
-            "start": 110.034,
-            "end": 117.48
+            "hash": "127777cb1e1959bd6d904eb030a3dfccca27b301",
+            "start": 109.135,
+            "end": 116.276
         }
     ]
 }

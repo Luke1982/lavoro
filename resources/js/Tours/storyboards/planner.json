@@ -572,6 +572,98 @@
             ]
         },
         {
+            "id": "e-mails",
+            "version": 1,
+            "title": "E-mails naar de klant",
+            "summary": "Een standaard e-mail versturen vanaf een afspraak, eerst bekijken of meteen weg, wat er al verstuurd is, en mails die vanzelf gaan.",
+            "requires": {
+                "device": "desktop",
+                "permissions": [
+                    "event.create"
+                ],
+                "anyPermissions": [
+                    "event.update",
+                    "event.update_others"
+                ]
+            },
+            "actions": [
+                "goToToday"
+            ],
+            "steps": [
+                {
+                    "spot": "planner.appointment.email",
+                    "action": "openExistingAppointment",
+                    "skipIfMissing": true,
+                    "title": "E-mail vanaf een afspraak",
+                    "text": "Open een afspraak die er al staat. Onderaan staat het kopje **E-mail**. Daar stuur je de klant een **standaard e-mail**: een mail die je één keer schrijft. De datum, de tijd en de klant vult Lavoro zelf in.",
+                    "say": "Open je een afspraak die er al staat? Dan zie je onderaan het kopje \"E-mail\". Daar stuur je de klant een standaard e-mail. De datum, de tijd en de klant staan er al in.",
+                    "marks": [
+                        {
+                            "spot": "planner.appointment",
+                            "when": "afspraak die er al staat"
+                        }
+                    ]
+                },
+                {
+                    "spot": "planner.appointment.email.pick",
+                    "action": "openExistingAppointment",
+                    "skipIfMissing": true,
+                    "title": "Kies een e-mail",
+                    "text": "Kies hier welke standaard e-mail je wilt sturen, bijvoorbeeld een bevestiging of een herinnering.",
+                    "say": "Kies hier welke e-mail je wilt sturen. Bijvoorbeeld een bevestiging of een herinnering."
+                },
+                {
+                    "spot": "planner.appointment.email.edit",
+                    "action": "openExistingAppointment",
+                    "skipIfMissing": true,
+                    "title": "Eerst bekijken",
+                    "text": "Met het envelopje, **Bewerken en verzenden**, zie je de mail eerst, met alles al ingevuld. Pas aan wat nodig is, ook het adres. Klik dan op **Versturen**.",
+                    "say": "Met het envelopje zie je de mail eerst, met alles al ingevuld. Pas aan wat nodig is. Klik dan op \"versturen\".",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.appointment.email.edit",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.appointment.email.send",
+                    "action": "openExistingAppointment",
+                    "skipIfMissing": true,
+                    "title": "Meteen weg",
+                    "text": "Met het pijltje, **Direct verzenden**, gaat de mail meteen naar het e-mailadres van de klant. Je ziet hem dan niet eerst.",
+                    "say": "Met het pijltje gaat de mail meteen naar de klant. Je ziet hem dan niet eerst.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.appointment.email.send",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.appointment.email.history",
+                    "action": "openExistingAppointment",
+                    "skipIfMissing": true,
+                    "title": "Wat er al verstuurd is",
+                    "text": "Hier staan de mails die al over deze afspraak zijn verstuurd, met de datum en de tijd. Met **Opnieuw versturen** stuur je er een nog een keer.",
+                    "say": "Hier zie je welke mails er al zijn verstuurd. Met \"opnieuw versturen\" stuur je er een nog een keer."
+                },
+                {
+                    "title": "Vanzelf bij het plannen",
+                    "text": "Een standaard e-mail kan ook vanzelf gaan: als je een afspraak maakt, wijzigt of verwijdert. Moet je hem eerst zien? Dan laat de planner hem na het opslaan zien. Met **Versturen** gaat hij weg, met **Annuleren** niet.",
+                    "say": "Een e-mail kan ook vanzelf gaan. Bijvoorbeeld als je een afspraak maakt of verzet. Moet je hem eerst zien? Dan laat de planner hem na het opslaan zien. Jij kiest dan of hij weggaat."
+                },
+                {
+                    "requires": {
+                        "permissions": [
+                            "standardemail.manage"
+                        ]
+                    },
+                    "title": "De e-mails zelf",
+                    "text": "De e-mails schrijf je bij **Standaard e-mails**. Daar kies je ook wanneer een mail vanzelf gaat. Die pagina heeft een eigen rondleiding.",
+                    "say": "De e-mails zelf schrijf je bij \"standaard e-mails\". Daar kies je ook wanneer ze vanzelf gaan. Die pagina heeft een eigen rondleiding."
+                }
+            ]
+        },
+        {
             "id": "samen-en-overlap",
             "version": 1,
             "title": "Samen en dubbel",

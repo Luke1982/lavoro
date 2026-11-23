@@ -2,33 +2,33 @@
     "tour": "werkbon",
     "chapter": "checks",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "checks.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een check is een vinkje bij een taak. De checks komen van de taak: uit zijn checklists, of als losse check. Ze worden gekopieerd als de taak op de werkbon komt.",
-            "hash": "5fe2437d819654dc69080e46b390f0eee26f5dff",
+            "hash": "c65c7c09f623839b63b21eafe5f92b4a87de98cf",
             "start": 0,
-            "end": 9.141
+            "end": 8.764
         },
         {
             "text": "Een check met een sterretje is verplicht. Zonder dat vinkje kun je de taak niet voltooien.",
-            "hash": "9cf72945cc908b58eac69627429085aedc119031",
-            "start": 10.141,
-            "end": 14.77
+            "hash": "b8e041a4eea70070798974da37ab026204bf76b5",
+            "start": 9.764,
+            "end": 14.31
         },
         {
             "text": "Bij meer machines kunnen de checks per machine gaan. Dan heeft elke machine een eigen blok.",
-            "hash": "c6f281cfa3bfb4240df67366cab17e352bc070f0",
-            "start": 15.77,
-            "end": 21.336
+            "hash": "b028107ed1187d97739d5a97310a1d2c686e1852",
+            "start": 15.31,
+            "end": 20.192
         },
         {
             "text": "Checklists beheer je in het menu onder werkbonnen, bij \"checklists\". Daar sleep je een check op een checklist, of rechtstreeks op een taak.",
-            "hash": "be3e7a2ab298dae8dca88e1990e2ad87f13947e8",
-            "start": 22.336,
-            "end": 30.64
+            "hash": "df66d028b8f4e290f7802ae320ffd9aa5bba6d9a",
+            "start": 21.192,
+            "end": 28.364
         }
     ]
 }

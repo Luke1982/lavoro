@@ -2,39 +2,39 @@
     "tour": "storing",
     "chapter": "storing",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "storing.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Bovenaan staan het onderwerp en de status van de storing. Daaronder zie je wanneer hij is aangemaakt en door wie.",
-            "hash": "ca166f5debbc92be181217b12cb1490c1826ad94",
+            "hash": "22e24b10ce7b0e56d77fe69d96bac094e7c0383f",
             "start": 0,
-            "end": 5.867
+            "end": 5.984
         },
         {
             "text": "Hier zie je aan welke machine de storing is. Ook de klant en de locatie staan erbij. Op alles wat blauw is kun je klikken.",
-            "hash": "c080c2899fba50fadbeb67a74634fe4bac72de72",
-            "start": 6.867,
-            "end": 13.563
+            "hash": "454785d24c9328066b5314fe742a48c0fb54b5aa",
+            "start": 6.984,
+            "end": 13.393
         },
         {
             "text": "Klik op het onderwerp, de omschrijving of de storingscode om die aan te passen. Klik daarna ernaast om te bewaren.",
-            "hash": "f32170f291fa43f3b6438dd984e4981c8e77eacd",
-            "start": 14.563,
-            "end": 21.004
+            "hash": "66345dbc70de4176eee39dc0d17713e117126c46",
+            "start": 14.393,
+            "end": 20.643
         },
         {
             "text": "De status volgt de planning. Komt er een afspraak op de werkbon? Dan gaat de storing vanzelf naar \"in behandeling\". Verdwijnt de laatste afspraak? Dan gaat hij terug naar \"open\".",
-            "hash": "06efec4e0d74f464579d4e50735ca0ee5af81184",
-            "start": 22.004,
-            "end": 31.605
+            "hash": "b6173590755c4a30280cca3629556fb2d0720e25",
+            "start": 21.643,
+            "end": 31.436
         },
         {
             "text": "De prioriteit kies je met één klik. Op de kaart van de storingen zie je die terug als kleur.",
-            "hash": "a8114808dc168dfcb326743ed7e30f6e1c0ee1a8",
-            "start": 32.605,
-            "end": 37.941
+            "hash": "c045cec1ef30b7c94209fc91168fa530987132b7",
+            "start": 32.436,
+            "end": 38.089
         }
     ]
 }

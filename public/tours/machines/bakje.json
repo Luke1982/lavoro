@@ -2,33 +2,33 @@
     "tour": "machines",
     "chapter": "bakje",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "bakje.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Bovenaan de pagina van een machine staat de knop \"op het bakje\". Zo leg je de machine klaar om hem op een andere pagina te gebruiken.",
-            "hash": "1462d1478ce382a20bf91d29268e2fd6dd487a44",
+            "hash": "0fa54e277adb88848e49e9631f2e73125e24f805",
             "start": 0,
-            "end": 7.647
+            "end": 7.67
         },
         {
             "text": "Sleep hem bijvoorbeeld naar de planner of naar een werkbon. Ook een klant, een contract of een project kan. Tijdens het slepen lichten die plekken op. Er staat dan bij wat er gaat gebeuren.",
-            "hash": "1d145379e55860d67b6e6ec8798027e4df86bd28",
-            "start": 8.647,
-            "end": 20.037
+            "hash": "7fdea38bf6128096a255e6d0eeee65e7fbdf8a7e",
+            "start": 8.67,
+            "end": 19.167
         },
         {
             "text": "Bij inplannen, verhuizen of een nieuwe werkbon vraagt Lavoro eerst wat je wilt. De rest gebeurt meteen. Dat kun je in de melding nog terugdraaien.",
-            "hash": "994fdfe18f76cc434a6497022aac2392ab385dfe",
-            "start": 21.037,
-            "end": 29.032
+            "hash": "2544476f60e9a908aedb7f5180f8644da31a3292",
+            "start": 20.167,
+            "end": 29.018
         },
         {
             "text": "Slepen hoeft niet. Kies in het bakje \"plakken\". Tik daarna op de plek waar de machine heen moet. Dat werkt ook op je telefoon.",
-            "hash": "5adf820df100f4e1f1b0f9e55c16652e6d9e0382",
-            "start": 30.032,
-            "end": 36.76
+            "hash": "8337ac805f65ef8454123335b9009795b7e231c1",
+            "start": 30.018,
+            "end": 36.761
         }
     ]
 }

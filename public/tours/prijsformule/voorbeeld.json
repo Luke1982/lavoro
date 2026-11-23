@@ -2,63 +2,63 @@
     "tour": "prijsformule",
     "chapter": "voorbeeld",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "voorbeeld.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Tot slot een complete formule, helemaal uitgerekend. Je leest hem van links naar rechts: links komen de machines binnen, rechts komt de prijs eruit. De voorbeeldklant heeft acht machines, op twee adressen. Op het eerste adres staan vier machines van het ene type, en één van het andere type. Op het tweede adres staan twee machines van het ene type, en één van het andere.",
-            "hash": "3f107ee22228b9394cdd827d625843d09fda47d8",
+            "hash": "7dd47dd5d63d9e5dab29bf1f508ef5b8ae4ce571",
             "start": 0,
-            "end": 21.428
+            "end": 21.271
         },
         {
             "text": "Eerst zoekt de formule combinaties: één machine van elk type, op hetzelfde adres. Op elk adres is dat één combinatie, dus twee in totaal. Twee pakketten van honderdtwintig euro is samen tweehonderdveertig euro. De overige vier machines gaan verder.",
-            "hash": "273ae269ba89a92051da02707596a1e7a2161bc7",
-            "start": 22.428,
-            "end": 36.812
+            "hash": "3f5f7746bcf4b257c4083b7a1c2194cf1e83b6e7",
+            "start": 22.271,
+            "end": 37.586
         },
         {
             "text": "Het filter verdeelt de overige machines. Ze zijn alle vier van dit type, want de twee machines van het andere type zitten al in de pakketten. Voor het andere type staat een aparte prijs klaar, maar daar komt nu niets binnen.",
-            "hash": "0eb4b5c0d013ee35d740283b668003ef62880d5b",
-            "start": 37.812,
-            "end": 51.45
+            "hash": "17c1bf37ca5d5b4a08c7be7805b2d0961265b0e3",
+            "start": 38.586,
+            "end": 51.162
         },
         {
             "text": "Hier worden aantallen bedragen. De eerste twee machines kosten vijftig euro per stuk, de volgende twee veertig euro. Samen honderdtachtig euro.",
-            "hash": "e91d9579958ead94fb44a6d9dd467c93a05b38ff",
-            "start": 52.45,
-            "end": 61.257
+            "hash": "51bc267263374b94f7b3b0e09d79a4cabb6351a5",
+            "start": 52.162,
+            "end": 61.314
         },
         {
             "text": "Daaronder staan de voorrijkosten: twee adressen keer vijfendertig euro is zeventig euro. En de extra bezoeken, die je per contract invult. Die zijn er hier niet.",
-            "hash": "6589831af2beaab2e692b9fd64872b2bdc139bb6",
-            "start": 62.257,
-            "end": 71.528
+            "hash": "d2c4159b4f5183e0d481cf0b8d5fd6bd8aa759da",
+            "start": 62.314,
+            "end": 72.247
         },
         {
             "text": "Het blok \"optellen\" zet alle bedragen bij elkaar: tweehonderdveertig euro voor de pakketten, plus honderdtachtig euro voor de losse machines, plus zeventig euro voorrijkosten. Samen vierhonderdnegentig euro.",
-            "hash": "54ad9e0a86f6e9b51595b8ab27eb18d8d38509d0",
-            "start": 72.528,
-            "end": 85.2
+            "hash": "ea6497db96aff2cfc1c7da69c42f5ffb4b81b08d",
+            "start": 73.247,
+            "end": 85.569
         },
         {
             "text": "Dan gaat er vijf procent korting af. Dat wordt vierhonderdvijfenzestig euro vijftig. Het wordt nooit minder dan honderd euro, maar dat speelt hier niet. Tot slot wordt het afgerond op vijf euro naar boven: vierhonderdzeventig euro.",
-            "hash": "b8ee24cc63cbdce6f709549e702138e2427b8750",
-            "start": 86.2,
-            "end": 98.965
+            "hash": "ae05d28e28b3b7bb128efd6dd5f0d0b9c450e34a",
+            "start": 86.569,
+            "end": 99.465
         },
         {
             "text": "Dat is de prijs per periode: vierhonderdzeventig euro. Daaronder staan de opstartkosten van honderdvijftig euro, als eenmalige kosten.",
-            "hash": "66fda88ac6e1128c3d3d138bec0a0a81f32659d1",
-            "start": 99.965,
-            "end": 107.884
+            "hash": "af6e1fc6fd34aa9f671e8a89de79b3702caec200",
+            "start": 100.465,
+            "end": 107.935
         },
         {
             "text": "Linksboven staat wat deze formule de voorbeeldklant kost. Nu ben jij aan de beurt. Je eigen formule staat er zo weer.",
-            "hash": "cc555d73e1169eca0557ac2e8d93fac2ee74ee4d",
-            "start": 108.884,
-            "end": 115.442
+            "hash": "d8583a59a5e724f24d5b6552b07467084e8e646f",
+            "start": 108.935,
+            "end": 115.197
         }
     ]
 }

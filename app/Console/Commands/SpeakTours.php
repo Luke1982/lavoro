@@ -48,6 +48,7 @@ class SpeakTours extends Command
             ffmpeg: (string) config('tours.ffmpeg'),
             ffprobe: (string) config('tours.ffprobe'),
             gap_seconds: (float) config('tours.gap_seconds'),
+            pronunciation: (array) config('tours.pronunciation'),
         );
 
         $failed = false;

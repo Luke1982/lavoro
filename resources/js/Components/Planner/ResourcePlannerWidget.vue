@@ -2515,6 +2515,16 @@ useTour('planner', {
 
         return () => closeModal()
     },
+    openExistingAppointment: () => {
+        if (modalOpen.value || !hasPermission('event.create')) return null
+        const today = formatLocalDateAsISO(new Date())
+        const editable = events.value.filter(canEditEvent)
+        const event = editable.find((ev) => formatLocalDateAsISO(ev.start) === today) ?? editable[0]
+        if (!event) return null
+        openEdit(event)
+
+        return () => closeModal()
+    },
     openOverlapPick: () => {
         const lane = overlapLaneOf(findSpot('planner.overlap'))
         if (!lane || overlapPick.value.open) return null

@@ -2,39 +2,39 @@
     "tour": "offertes",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Je zoekt een offerte op nummer of titel. De naam van de klant werkt ook.",
-            "hash": "0e938b2248627cb08a302972092f706116e89914",
+            "hash": "9e4ff7e00c29c8ae546f0e19d8759593b57a8b44",
             "start": 0,
-            "end": 4.305
+            "end": 3.9
         },
         {
             "text": "De lijst opent op de lopende offertes. Onder filters kies je een andere status, of een klant. Je kunt ook filteren op de reden van verlies.",
-            "hash": "e78efb80f1a59ccf03a927d34eed166e3925686e",
-            "start": 5.305,
-            "end": 13.791
+            "hash": "597d626ddbab214119f6d5e2ef9d5396951c9239",
+            "start": 4.9,
+            "end": 13.491
         },
         {
             "text": "Per offerte zie je het nummer, de titel en de klant. Ook het bedrag en tot wanneer hij geldig is. Klik erop om hem te openen.",
-            "hash": "e2a2f9c157dfd22c197a66679d75e45b39d772df",
-            "start": 14.791,
-            "end": 22.202
+            "hash": "5f1e8d3f05d05692005145025846d9dba48bfda0",
+            "start": 14.491,
+            "end": 21.911
         },
         {
             "text": "Een offerte begint als concept. Na het versturen staat hij op verzonden. Wat de klant antwoordt, bepaalt de status daarna. Bij een afgewezen offerte staat de reden eronder.",
-            "hash": "c0c2dcad0ab18520639f76853d49fd60e65fa569",
-            "start": 23.202,
-            "end": 32.624
+            "hash": "7364a0540a665b291b1356e6033b62c5c4573dad",
+            "start": 22.911,
+            "end": 32.405
         },
         {
             "text": "Wat voor elke offerte geldt, stel je in bij de offerte-instellingen. Bijvoorbeeld je algemene voorwaarden, en wat de klant op de offerte ziet.",
-            "hash": "ebce9062c252fe86c48af5d749c026280df6d765",
-            "start": 33.624,
-            "end": 41.778
+            "hash": "e4787647d54fb755c893e464f6bbaf2705faffbb",
+            "start": 33.405,
+            "end": 40.498
         }
     ]
 }

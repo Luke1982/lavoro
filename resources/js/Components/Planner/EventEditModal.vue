@@ -337,7 +337,7 @@
                         </p>
                     </div>
 
-                    <div v-if="editingExisting && form.id" class="pb-2">
+                    <div v-if="editingExisting && form.id" class="pb-2" data-tour="planner.appointment.email">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
                                 <EnvelopeIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
@@ -347,20 +347,20 @@
                         <div class="flex flex-wrap gap-2 mb-3">
                             <ComboBox v-model="selectedStandardEmailId"
                                 :options="standardEmails.map(e => ({ id: e.id, name: e.name }))" class="flex-1"
-                                placeholder="Kies standaard e-mail..." />
+                                placeholder="Kies standaard e-mail..." data-tour="planner.appointment.email.pick" />
                             <button type="button" @click="sendSelectedStandardEmailWithEdit" :disabled="!selectedStandardEmailId"
-                                v-tooltip="'Bewerken en verzenden'"
+                                v-tooltip="'Bewerken en verzenden'" data-tour="planner.appointment.email.edit"
                                 class="px-3 py-2 rounded-xl border border-lavoro-blue text-lavoro-blue dark:text-blue-400 hover:bg-lavoro-lightblue dark:hover:bg-blue-900/40 disabled:opacity-50">
                                 <MailQuestionMark class="h-4 w-4" />
                             </button>
                             <button type="button" @click="sendSelectedStandardEmailDirect"
                                 :disabled="!selectedStandardEmailId || sendingDirect"
-                                v-tooltip="'Direct verzenden'"
+                                v-tooltip="'Direct verzenden'" data-tour="planner.appointment.email.send"
                                 class="px-3 py-2 rounded-xl bg-lavoro-blue text-white hover:bg-blue-700 disabled:opacity-50">
                                 <SendHorizontal class="h-4 w-4" />
                             </button>
                         </div>
-                        <div v-if="emailHistory.length" class="flex flex-col gap-2">
+                        <div v-if="emailHistory.length" class="flex flex-col gap-2" data-tour="planner.appointment.email.history">
                             <div v-for="item in emailHistory" :key="item.id"
                                 class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 text-sm">
                                 <div class="min-w-0">

@@ -2,27 +2,27 @@
     "tour": "standaardemails",
     "chapter": "met-de-hand",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "met-de-hand.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Open een afspraak in de planner. Onderaan staat het kopje \"E-mail\". Kies daar een standaard e-mail.",
-            "hash": "e08d51a313154e161f796d089bf101541c118c82",
+            "hash": "11045c449f63b9954f5123b712ed6df004b26a32",
             "start": 0,
-            "end": 5.461
+            "end": 5.198
         },
         {
             "text": "Met het envelopje zie je de mail eerst. Dan kun je hem nog aanpassen. Met het pijltje gaat hij meteen weg.",
-            "hash": "5f26424bdfacc6a4815859005e99908b251474c0",
-            "start": 6.461,
-            "end": 11.927
+            "hash": "1a40299ae7625deb7e2a5087d9e9dd04cefb2dc0",
+            "start": 6.198,
+            "end": 11.852
         },
         {
             "text": "Daaronder zie je welke mails er al zijn verstuurd. Met \"Opnieuw versturen\" stuur je hem nog een keer.",
-            "hash": "b43c845feeeaf6770da43c5f36e37b5324089a07",
-            "start": 12.927,
-            "end": 18.214
+            "hash": "759a289a2cdfb7c97d7862793dc4b7403127a7e5",
+            "start": 12.852,
+            "end": 18.121
         }
     ]
 }

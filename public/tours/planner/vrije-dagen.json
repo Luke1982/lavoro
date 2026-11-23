@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "vrije-dagen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "vrije-dagen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een gestreept blok betekent dat een monteur er dan niet is. Het is een vrije dag, of een vast vrij moment uit zijn rooster.",
-            "hash": "645f79ff7d66ded3bc602e380ef485a8a6d803a2",
+            "hash": "bb7a7fcedc447b74a91cdaa42a3c63f3acc70392",
             "start": 0,
-            "end": 7.285
+            "end": 6.616
         },
         {
             "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment valt op een weekdag, \"elke week\" of \"om de week\". Het duurt een hele dag of een deel ervan.",
-            "hash": "2c48acf27b8e875eff416ca21ec9a3bb578de687",
-            "start": 8.285,
-            "end": 17.011
+            "hash": "1defcf3e5eb82bcfabbea47a2c2a93897373c5e7",
+            "start": 7.616,
+            "end": 17.25
         },
         {
             "text": "Daaronder staan de losse vrije dagen. Dat is één datum of een hele periode, zoals een vakantie.",
-            "hash": "3e846423f8feeaa516167303b77be09988d1723a",
-            "start": 18.011,
-            "end": 23.771
+            "hash": "fcf7757df120e93575e283cf1478828d06a4672c",
+            "start": 18.25,
+            "end": 23.782
         },
         {
             "text": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. Dan vraagt de planner eerst of je het zeker weet.",
-            "hash": "b4557b1824d575460cb79724328a170f4e8eef3b",
-            "start": 24.771,
-            "end": 32.193
+            "hash": "993da62da29570933fcdd4dc7d0d3f1d6e323399",
+            "start": 24.782,
+            "end": 31.661
         },
         {
             "text": "Wil je je eigen rooster invullen? Klik dan op \"naar mijn rooster\". Daar gaat de rondleiding verder.",
-            "hash": "c7c2654b7105d616cd9bc891182283ce63b973ad",
-            "start": 33.193,
-            "end": 38.06
+            "hash": "7117465c4c30d734dd93987faf5a349991d1d36c",
+            "start": 32.661,
+            "end": 37.451
         }
     ]
 }

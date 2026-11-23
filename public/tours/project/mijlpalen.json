@@ -2,33 +2,33 @@
     "tour": "project",
     "chapter": "mijlpalen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "mijlpalen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Mijlpalen zijn de ijkpunten van het project. Groen is behaald. Rood is over datum.",
-            "hash": "d11674284a3e22cc8fb3e1e036d91e6eebb3689f",
+            "hash": "85babaeec6ff30af56c5f30940c457c499c5ce4b",
             "start": 0,
-            "end": 4.751
+            "end": 4.666
         },
         {
             "text": "Met \"toevoegen\" maak je een mijlpaal. Je kunt ook de mijlpalen van een sjabloon erbij zetten.",
-            "hash": "940ec99b5483e8b196f0015a4c10abcaa15593d0",
-            "start": 5.751,
-            "end": 11.061
+            "hash": "d94916ac2b5c588f6d18f4ac68fb17ad3d2c33d3",
+            "start": 5.666,
+            "end": 10.451
         },
         {
             "text": "Klik op het rondje om een mijlpaal af te vinken, met vandaag als datum. Nog een keer klikken zet hem weer open.",
-            "hash": "c964f353d10247be4b567cd6ab1bef12bfda606a",
-            "start": 12.061,
-            "end": 18.459
+            "hash": "ad591e230663cd08ba1e15025609e80c93bcf65a",
+            "start": 11.451,
+            "end": 17.371
         },
         {
             "text": "Met het potloodje bewerk je een mijlpaal. Onder \"werkbonnen\" kies je waar hij op wacht. Is de laatste daarvan gesloten? Dan is de mijlpaal vanzelf behaald.",
-            "hash": "f615dffa7e6f446565dd007961a5b05b459daeb8",
-            "start": 19.459,
-            "end": 28.318
+            "hash": "8b67b7bdca253048027d11604c275e166b4c0b82",
+            "start": 18.371,
+            "end": 26.934
         }
     ]
 }

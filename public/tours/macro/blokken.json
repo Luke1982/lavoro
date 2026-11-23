@@ -2,51 +2,51 @@
     "tour": "macro",
     "chapter": "blokken",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "blokken.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "\"Taken toevoegen\" zet een taak op de werkbon. Je kiest er een product en een aantal bij.",
-            "hash": "f0d12bafe054a7372ed2d9843c68109be0e74f4e",
+            "hash": "43e20c4184e5729404ca26f17ac955d8a91a2098",
             "start": 0,
-            "end": 4.734
+            "end": 5.175
         },
         {
             "text": "Verschilt het aantal per werkbon? Zet dan \"vragen bij uitvoeren\" aan. Dan wordt het gevraagd als de macro loopt.",
-            "hash": "e8934bb8beea7bcd88272264c743fb4a825682fc",
-            "start": 5.734,
-            "end": 12.08
+            "hash": "edb4d06c8d2a7d1d263511adf2934b54af453cc9",
+            "start": 6.175,
+            "end": 13.424
         },
         {
             "text": "\"Vraag ja/nee\" splitst de macro in twee banen. Daarna loopt alleen de baan van het antwoord.",
-            "hash": "3f0dd4c06a6b0cacb925f602eab4c62016783f8d",
-            "start": 13.08,
-            "end": 18.731
+            "hash": "de743e312c9262889c0651bc24ede26cad1be49f",
+            "start": 14.424,
+            "end": 20.133
         },
         {
             "text": "\"Document uploaden\" vraagt om een bestand als de macro loopt.",
-            "hash": "6c991409433966b2b9930b17da4965c3ce28f0a9",
-            "start": 19.731,
-            "end": 22.907
+            "hash": "b931aa734b737ca33e08d5d2adfe05c4cace969b",
+            "start": 21.133,
+            "end": 24.575
         },
         {
             "text": "\"Opmerking plaatsen\" zet een opmerking op de werkbon. Die mag ook intern zijn.",
-            "hash": "f0d1d8a78d275db9c262115897dcfb101e071f16",
-            "start": 23.907,
-            "end": 28.119
+            "hash": "ce928cfb974f46ce2ec2ce525d9a2949b5e8543a",
+            "start": 25.575,
+            "end": 30.143
         },
         {
             "text": "\"Keuringen toevoegen\" zet keuringen voor de machines van de klant op de werkbon. Je kunt ook om een locatie laten vragen.",
-            "hash": "b88ef229232473d535d14894a8822e280a46d8ae",
-            "start": 29.119,
-            "end": 35.253
+            "hash": "fb6be5addc63ad752afac6dcc13248b7db8c505e",
+            "start": 31.143,
+            "end": 37.691
         },
         {
             "text": "Klik op een blok om het te openen of dicht te klappen. Met de pijltjes zet je het hoger of lager.",
-            "hash": "045b3e5b5ae70cd1b7aafbfbccccc833e6fb47a5",
-            "start": 36.253,
-            "end": 41.81
+            "hash": "346bae5dbfcdfbc655459d21b40c14bb164ab0fb",
+            "start": 38.691,
+            "end": 44.482
         }
     ]
 }

@@ -2,45 +2,45 @@
     "tour": "prijsformule",
     "chapter": "proberen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "proberen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Op het tabblad \"proberen\" reken je de formule uit terwijl je bouwt. Er wordt niets opgeslagen, en geen enkel contract verandert.",
-            "hash": "6ee1a76a7fd8e293cb3eeff956801aef348fe883",
+            "hash": "eadcabb484448dd9c9c9478f8daa927f4d4f8ec5",
             "start": 0,
-            "end": 8.252
+            "end": 7.2
         },
         {
             "text": "Vul in welke machines een voorbeeldklant heeft: hoeveel, van welk type of model, en op welk adres. Bijvoorbeeld vier machines van dit type op adres één, en twee op adres twee. Regels met hetzelfde adresnummer staan op hetzelfde adres. Dat maakt uit voor combinaties en voorrijkosten.",
-            "hash": "e0f4ec67e93de6162e8765dabbff5d5560692813",
-            "start": 9.252,
-            "end": 26.82
+            "hash": "f02d8de09ed7e1b82b54b310463186f5e02ae5bc",
+            "start": 8.2,
+            "end": 26.871
         },
         {
             "text": "Kies hoe vaak de voorbeeldklant betaalt, en hoe vaak er onderhoud is. Bij maandelijks betalen zijn er twaalf prijsperiodes per jaar. Halfjaarlijks onderhoud aan acht machines is zestien beurten.",
-            "hash": "09a0462800eca442a49b41de230c11eb134ae330",
-            "start": 27.82,
-            "end": 37.687
+            "hash": "23f68fa226f246d7e30c7389c58a3456fdcc9d32",
+            "start": 27.871,
+            "end": 38.795
         },
         {
             "text": "Heeft de formule invoer per contract, dan vul je die hier in. Hier zijn twee extra bezoeken ingevuld: de prijs gaat honderdtwintig euro omhoog, van driehonderdzestig naar vierhonderdtachtig euro. Laat je het veld leeg, dan geldt de standaardwaarde.",
-            "hash": "d2f525314e2c25c9b59bc9251f2b6c34811fa321",
-            "start": 38.687,
-            "end": 53.028
+            "hash": "f7e172e0269907ca1620cd194603e0d19f6d5fcf",
+            "start": 39.795,
+            "end": 54.67
         },
         {
             "text": "Hier staat wat het contract zou kosten, per periode en eenmalig. Ontbreekt er nog iets, bijvoorbeeld een type in een filter, dan staat hier wat.",
-            "hash": "2a190e3a2c968ebbde3533d994ee01849bf3287c",
-            "start": 54.028,
-            "end": 62.902
+            "hash": "810c94b82dae92cd415a4522529aa1bd39af2cf3",
+            "start": 55.67,
+            "end": 63.731
         },
         {
             "text": "Met \"bestaand contract\" reken je met een echt contract, met zijn eigen machines. Zo zie je wat een wijziging voor die klant betekent, voordat je iets opslaat.",
-            "hash": "830834e495ae208ac360ece16ed4de876b9fd3d4",
-            "start": 63.902,
-            "end": 73.388
+            "hash": "d8f87e8d56d5ded36b86b515b1cf49121bc5fb2f",
+            "start": 64.731,
+            "end": 73.216
         }
     ]
 }

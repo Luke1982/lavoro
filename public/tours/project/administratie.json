@@ -2,15 +2,15 @@
     "tour": "project",
     "chapter": "administratie",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "administratie.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Op het tabblad \"administratie\" houd je financiële notities bij. Die worden vanzelf opgeslagen.",
-            "hash": "8262489af28cde385ad9b64939cb634ca3f97e46",
+            "hash": "e1a87c5e9bd5a0f047b7c587c8d5d90cf38be23d",
             "start": 0,
-            "end": 5.334
+            "end": 5.597
         }
     ]
 }

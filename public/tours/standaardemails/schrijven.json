@@ -2,33 +2,33 @@
     "tour": "standaardemails",
     "chapter": "schrijven",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "schrijven.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "De naam is alleen voor jou. De klant ziet hem niet. Kies iets dat je snel terugvindt.",
-            "hash": "da88361bb53718753275d0d8eaccdd54100c46b4",
+            "hash": "9d07f9baa82c40b2339edc33d92ed7bbdfe118d3",
             "start": 0,
-            "end": 4.173
+            "end": 4.016
         },
         {
             "text": "Het onderwerp ziet de klant als eerste. Houd het kort en duidelijk.",
-            "hash": "9a7f4507d14f0f8775f3a0ae8e2f0847b86455d7",
-            "start": 5.173,
-            "end": 8.603
+            "hash": "47d6e63b5eed9c30a3a73af5cb174b6f914a09e7",
+            "start": 5.016,
+            "end": 8.209
         },
         {
             "text": "Hier schrijf je de tekst. Gewoon zoals je een brief schrijft.",
-            "hash": "7c5c77491ee59899e4a95e4a4e94f65f09249546",
-            "start": 9.603,
-            "end": 12.927
+            "hash": "e8ddb15fe04870c631dca2d5a2aef47289663a08",
+            "start": 9.209,
+            "end": 12.004
         },
         {
             "text": "Met deze knoppen maak je tekst vet of schuin. Of je maakt een lijstje. Selecteer eerst de tekst. Klik dan op de knop.",
-            "hash": "00acf31ea89a5f4905437f44d7b4538cdaa34831",
-            "start": 13.927,
-            "end": 21.171
+            "hash": "0f0ca413d97d6cff839e7502b8dbae6389aff73b",
+            "start": 13.004,
+            "end": 20.334
         }
     ]
 }

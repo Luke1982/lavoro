@@ -18,6 +18,10 @@ interface SpeechDriver
      */
     public function signature(): string;
 
-    /** The line as MP3. Throws when it cannot. */
-    public function speak(string $text): SpokenLine;
+    /**
+     * The line as MP3. Throws when it cannot. The lines around it are context
+     * only: a voice that hears them carries the melody over instead of starting
+     * and ending every sentence as if it stood alone.
+     */
+    public function speak(string $text, ?string $previous = null, ?string $next = null): SpokenLine;
 }

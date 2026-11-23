@@ -2,33 +2,33 @@
     "tour": "werkbon",
     "chapter": "macros",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "macros.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een macro doet een paar vaste stappen in één keer. Met \"macro\" kies je er een.",
-            "hash": "3e61cea04ceb57c32210e14526af536ec1c2e5bf",
+            "hash": "98a889375b7870b560b38ef66c26710186da4b16",
             "start": 0,
-            "end": 4.412
+            "end": 4.92
         },
         {
             "text": "Een macro stelt zijn vragen één voor één. Een ja of nee brengt je meteen verder.",
-            "hash": "3e84fc8f2e62a6c6b4f53a5909f279ba7c5310ed",
-            "start": 5.412,
-            "end": 10.374
+            "hash": "3c0df4656ce1895020b6a4434e5643672a9c54f1",
+            "start": 5.92,
+            "end": 9.728
         },
         {
             "text": "Met \"volgende\" ga je verder. Na de laatste vraag klik je op \"uitvoeren\". Alles gebeurt dan in één keer.",
-            "hash": "e66011ff34217799afc9abacde441b6c4aa91561",
-            "start": 11.374,
-            "end": 17.984
+            "hash": "52940dd6dc70cdfcffff828e3d52235313efb45e",
+            "start": 10.728,
+            "end": 16.775
         },
         {
             "text": "Macro's maak je in het menu onder werkbonnen, bij \"macro's\". Daar zet je blokken onder elkaar.",
-            "hash": "3503b3a774d8203a666371485f1f933338649591",
-            "start": 18.984,
-            "end": 24.207
+            "hash": "6052846d7aabb41cdbcd2225242aa27af888d0ff",
+            "start": 17.775,
+            "end": 23.093
         }
     ]
 }

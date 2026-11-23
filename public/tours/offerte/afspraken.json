@@ -1,0 +1,46 @@
+{
+    "tour": "offerte",
+    "chapter": "afspraken",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "afspraken.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "De aanhef staat boven de regels, het slot eronder. Pas je ze aan? Klik dan op \"Opslaan\" als je klaar bent.",
+            "hash": "5d38ce8bf648ab70d56a4c3370242cb2fe47be26",
+            "start": 0,
+            "end": 6.016
+        },
+        {
+            "text": "Bij afspraken kies je eerst de prijsafspraak. Een vaste prijs, of regie. Bij regie reken je af op de werkelijke uren en materialen.",
+            "hash": "98bc9584a2ea870aef17709fbcca567656fc21d2",
+            "start": 7.016,
+            "end": 14.888
+        },
+        {
+            "text": "Schrijf wanneer het werk start en hoe lang het duurt. En hoe de klant betaalt. Met betaaltermijnen verdeel je het bedrag. Samen moeten ze honderd procent zijn.",
+            "hash": "66e56c004253eba0db5e3fc5bad05f0cd505b1ae",
+            "start": 15.888,
+            "end": 25.377
+        },
+        {
+            "text": "Bij bijlagen bewaar je tekeningen en brochures bij de offerte. Ze gaan niet mee naar de klant. De getekende offerte komt hier vanzelf te staan.",
+            "hash": "1e79142fab2840a0bd537d21fc738b6580a246fe",
+            "start": 26.377,
+            "end": 33.704
+        },
+        {
+            "text": "Bij instellingen kies je wat de klant ziet. Zet je de prijzen per regel uit? Dan ziet de klant alleen het totaal.",
+            "hash": "dee4015fb8c73250343d19ed664d0337cf19fd47",
+            "start": 34.704,
+            "end": 40.068
+        },
+        {
+            "text": "Hier bepaal je of de klant zelf opties mag kiezen. En of het een particuliere klant is. Die krijgt na het akkoord twee weken bedenktijd.",
+            "hash": "d4a991b04da33fa2716bd1f0c19cf49ffcaa21fa",
+            "start": 41.068,
+            "end": 48.84
+        }
+    ]
+}

@@ -2,57 +2,57 @@
     "tour": "prijsformule",
     "chapter": "scherm",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "scherm.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een prijsformule rekent uit wat een onderhoudscontract kost, op basis van de machines die erop staan. Je bouwt hem met blokken en lijnen. Op het canvas staat nu de eenvoudigste formule: tel de machines, en reken vijftig euro per machine. Heeft een klant acht machines, dan kost het contract acht keer vijftig euro. Dat is vierhonderd euro.",
-            "hash": "0ef46e8eeae0ee02a9e9f0b2a56c62fe7a6cbc4b",
+            "hash": "bb0b82b30f450ec886a199088d0ea5b0bd22321c",
             "start": 0,
-            "end": 21.334
+            "end": 20.73
         },
         {
             "text": "Bovenaan staan de naam en de omschrijving. Kies een naam die een collega meteen begrijpt, zoals \"airco jaarcontract\". Die naam kies je straks op een contract.",
-            "hash": "15357318173124d377f295a8869241ddcc592992",
-            "start": 22.334,
-            "end": 31.687
+            "hash": "50401e34e5c524c87af42ddfb55f939275ab4e0c",
+            "start": 21.73,
+            "end": 31.394
         },
         {
             "text": "Rechts staat de versie die je nu bewerkt. Daaronder lees je of er al contracten zijn die deze versie gebruiken. Dat bepaalt wat \"opslaan\" doet. Daarover gaat een apart hoofdstuk.",
-            "hash": "aee25e10e6093224480a269a6ba7ae65e4133dd8",
-            "start": 32.687,
-            "end": 42.246
+            "hash": "9631bf47ff7fbfaebbbc9fbb963e82c778de6d41",
+            "start": 32.394,
+            "end": 42.698
         },
         {
             "text": "Links staan de blokken, in vijf groepen. Bij \"bronnen\" begint het, bijvoorbeeld met de machines. Met \"filters\" splits je machines op, zoals airco's apart van warmtepompen. Met \"tellen\" maak je van de machines een getal, zoals het aantal adressen. Met \"rekenen\" maak je van een aantal een bedrag. En \"resultaat\" is de prijs die op het contract komt.",
-            "hash": "90c9b94ef3264a8c26dd4346574e7811f1eccdc3",
-            "start": 43.246,
-            "end": 62.909
+            "hash": "975d56d52f8314712f4de6bd4b5d95328096c332",
+            "start": 43.698,
+            "end": 64.509
         },
         {
             "text": "Zoomen doe je met het scrollwiel, of met de knoppen plus en min linksonder. Schuiven doe je door de lege achtergrond te slepen. Rechtsonder staat een kaartje van de hele formule.",
-            "hash": "1314ec33aa17cc124317521628510f50e89b88dd",
-            "start": 63.909,
-            "end": 73.633
+            "hash": "9ccbbef90eb9890d9493e8f19b6ff2de5c46d953",
+            "start": 65.509,
+            "end": 75.501
         },
         {
             "text": "Rechts staan twee tabbladen. Op \"blok\" stel je het blok in dat je hebt aangeklikt, bijvoorbeeld het bedrag per machine. Op \"proberen\" reken je de formule uit voor een voorbeeldklant, of voor een bestaand contract.",
-            "hash": "26f0ea582e75f3959480ab9a3eb97d6bec1b8f70",
-            "start": 74.633,
-            "end": 86.655
+            "hash": "3b16924425f12be15d3c9f6ca952ea19b9faeb05",
+            "start": 76.501,
+            "end": 89.759
         },
         {
             "text": "Linksboven staat altijd wat de formule nu oplevert: de prijs per periode, en de eenmalige kosten. Verander je iets, dan wordt alles meteen opnieuw uitgerekend.",
-            "hash": "81e8b9b7fb13688d0c9ccdd5171e5e6464e3577a",
-            "start": 87.655,
-            "end": 96.512
+            "hash": "a3933932040d842838fab0a73ccd9a1c52c00985",
+            "start": 90.759,
+            "end": 100.067
         },
         {
             "text": "Onder het canvas staan de contracten die deze formule gebruiken. Daar zet je ze ook over op een nieuwere versie.",
-            "hash": "4c1b0643bf6750ec1a6b6c59f5c1b590dae8d66b",
-            "start": 97.512,
-            "end": 103.678
+            "hash": "ab96d5e5845093c6409876c819c2a81c5d596138",
+            "start": 101.067,
+            "end": 106.934
         }
     ]
 }

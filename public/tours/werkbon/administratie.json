@@ -2,27 +2,27 @@
     "tour": "werkbon",
     "chapter": "administratie",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "administratie.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Bovenaan staan de tabbladen \"details\", \"administratie\" en \"exporteren\".",
-            "hash": "b413c29de780e07e0fb2a79587fd259dba7d42f9",
+            "hash": "0d4c69b8986843eb4aa665107dc77197d52a4b95",
             "start": 0,
-            "end": 4.542
+            "end": 4.632
         },
         {
             "text": "Onder \"administratie\" staan de materialen met hun prijzen. De totalen zie je als je op het oogje klikt.",
-            "hash": "c64f8a2906308a903354b12e7227f9d02b689810",
-            "start": 5.542,
-            "end": 11.201
+            "hash": "ea01b1c46223730a65e3bda0fce67ea65ceeaf2a",
+            "start": 5.632,
+            "end": 11.516
         },
         {
             "text": "Onder \"exporteren\" kies je de werkbon of een keuring. Je ziet dan de PDF, en je kunt hem mailen.",
-            "hash": "23d185f9280351bde221537a3a0ca740cd46e108",
-            "start": 12.201,
-            "end": 17.852
+            "hash": "fd9d3a8e45bba6b00eeff438c3e123618ab00a11",
+            "start": 12.516,
+            "end": 18.659
         }
     ]
 }

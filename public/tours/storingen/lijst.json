@@ -2,45 +2,45 @@
     "tour": "storingen",
     "chapter": "lijst",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Bovenaan zie je hoeveel storingen er per status zijn. Het percentage zegt hoeveel dat aantal boven of onder het gemiddelde ligt. Groen is gunstig. Rood vraagt aandacht.",
-            "hash": "58fd0c8fb4e9d8ec223c8a3b02a4cadc9d1fe4fe",
+            "hash": "9c12ea4b12ceaba8c60a777a7f0c7c4b3b397c65",
             "start": 0,
-            "end": 10.21
+            "end": 10.697
         },
         {
             "text": "Je zoekt op onderwerp of serienummer. Een product, type of klant werkt ook.",
-            "hash": "f8679bb590ad0482faf5df9e4da8df01e2805d8d",
-            "start": 11.21,
-            "end": 15.806
+            "hash": "b1a86381b7dcc9415352676eb1642d0be7472c6a",
+            "start": 11.697,
+            "end": 15.737
         },
         {
             "text": "Onder filters kies je bijvoorbeeld een status of een prioriteit. Je browser onthoudt die keuze.",
-            "hash": "c748df6599566ed1ea5d1000b58b8397cf7ad65f",
-            "start": 16.806,
-            "end": 22.531
+            "hash": "723cee10f065e3b88f8a3558ff2be69904e94b11",
+            "start": 16.737,
+            "end": 22.338
         },
         {
             "text": "Per storing zie je het onderwerp, de machine en de klant. De prioriteit wijzig je hier meteen.",
-            "hash": "183f104b5f033d79af0f12c42e6f112c0ca6503a",
-            "start": 23.531,
-            "end": 29.05
+            "hash": "eddfa221396b5db34aebeadc4f262d16652f6ca9",
+            "start": 23.338,
+            "end": 28.716
         },
         {
             "text": "Per storing zie je het onderwerp, de status en de prioriteit. Met het oogje open je de storing.",
-            "hash": "36306b33e177f12a62308ea0213991dca5602f2b",
-            "start": 30.05,
-            "end": 36.098
+            "hash": "4057d4b9837c196d61fbbf7020f098adabbbc837",
+            "start": 29.716,
+            "end": 35.537
         },
         {
             "text": "Een paars label betekent dat de machine onder een onderhoudscontract valt. Klik erop om het contract te openen.",
-            "hash": "3496720eefe4295a3af8f0a017b7f9cc3bf02279",
-            "start": 37.098,
-            "end": 43.403
+            "hash": "7bc5898371441f61167aec2a134fb1e189a54d43",
+            "start": 36.537,
+            "end": 42.288
         }
     ]
 }

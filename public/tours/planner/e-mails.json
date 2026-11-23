@@ -1,0 +1,52 @@
+{
+    "tour": "planner",
+    "chapter": "e-mails",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "e-mails.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Open je een afspraak die er al staat? Dan zie je onderaan het kopje \"E-mail\". Daar stuur je de klant een standaard e-mail. De datum, de tijd en de klant staan er al in.",
+            "hash": "45375c6d665af00acc56c82678e5f7661047bcd4",
+            "start": 0,
+            "end": 9.356
+        },
+        {
+            "text": "Kies hier welke e-mail je wilt sturen. Bijvoorbeeld een bevestiging of een herinnering.",
+            "hash": "14d358b7da1c075de36e09a75f9c557e950a1ffc",
+            "start": 10.356,
+            "end": 14.694
+        },
+        {
+            "text": "Met het envelopje zie je de mail eerst, met alles al ingevuld. Pas aan wat nodig is. Klik dan op \"versturen\".",
+            "hash": "f241457d3e8d381039af27a6c62536496fba8cf6",
+            "start": 15.694,
+            "end": 22.36
+        },
+        {
+            "text": "Met het pijltje gaat de mail meteen naar de klant. Je ziet hem dan niet eerst.",
+            "hash": "e9d5905ef7e0116cd2003a391e75909b4fef9e16",
+            "start": 23.36,
+            "end": 26.843
+        },
+        {
+            "text": "Hier zie je welke mails er al zijn verstuurd. Met \"opnieuw versturen\" stuur je er een nog een keer.",
+            "hash": "9f3a42e49eaa0da4792d7085d5e20ecea8d3b78c",
+            "start": 27.843,
+            "end": 33.837
+        },
+        {
+            "text": "Een e-mail kan ook vanzelf gaan. Bijvoorbeeld als je een afspraak maakt of verzet. Moet je hem eerst zien? Dan laat de planner hem na het opslaan zien. Jij kiest dan of hij weggaat.",
+            "hash": "b6c6cbd10801ebe0e13dcf2ef7aa280cdad509cb",
+            "start": 34.837,
+            "end": 45.169
+        },
+        {
+            "text": "De e-mails zelf schrijf je bij \"standaard e-mails\". Daar kies je ook wanneer ze vanzelf gaan. Die pagina heeft een eigen rondleiding.",
+            "hash": "04b13783049e00208f637ad024ced90fd4b4fd55",
+            "start": 46.169,
+            "end": 53.725
+        }
+    ]
+}

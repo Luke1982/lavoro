@@ -2,45 +2,45 @@
     "tour": "planner",
     "chapter": "slepen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "slepen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Rechts staan de werkbonnen die nog ingepland moeten worden.",
-            "hash": "1b10107cc6cd2643f83741a77a33fb9562e21133",
+            "hash": "80736d637d2848175ce541f1d58b55a287367f22",
             "start": 0,
-            "end": 3.104
+            "end": 3.203
         },
         {
             "text": "Bovenaan de lijst zoek je een werkbon op nummer of klant. Een plaats of omschrijving werkt ook.",
-            "hash": "a9f7b246642dc78235c7b9556d6f743f28434547",
-            "start": 4.104,
-            "end": 9.38
+            "hash": "b25d07b803685021fc72346368245629abefc768",
+            "start": 4.203,
+            "end": 9.832
         },
         {
             "text": "Sleep een werkbon naar de rij van een monteur. Laat hem los op het tijdstip waarop het werk begint. Er staat meteen een afspraak met de standaardduur.",
-            "hash": "29734298d06fc6f00c32278def04d742d4ee9fb8",
-            "start": 10.38,
-            "end": 19.284
+            "hash": "a2f18215ec216755400bbce60710275f1685e618",
+            "start": 10.832,
+            "end": 18.795
         },
         {
             "text": "Met de rechtermuisknop open of verwijder je een werkbon. Bij verwijderen vraagt de planner eerst of je het zeker weet.",
-            "hash": "ce1ba26e67addf82141daacd781ce4c94c1dac8b",
-            "start": 20.284,
-            "end": 26.574
+            "hash": "023feae397e6884822e796b89160e8d2c640de02",
+            "start": 19.795,
+            "end": 26.273
         },
         {
             "text": "Werkbonnen uit een onderhoudscontract staan standaard niet in de lijst, omdat het er vaak veel zijn. Met deze schakelaar zet je ze erbij.",
-            "hash": "b5bfe909fb23b85aa49b4a8ec19dbdf7d4e9cd2c",
-            "start": 27.574,
-            "end": 35.255
+            "hash": "b34f1fd282ff2c62a5e49d27a0d89e82aeb9995a",
+            "start": 27.273,
+            "end": 34.789
         },
         {
             "text": "Hoort een werkbon bij een lopend project? Dan hangt hij onder de balk van dat project. Ook die sleep je zo naar een monteur.",
-            "hash": "289f22b2f8bc942f88fd74dc2d9409be949a5228",
-            "start": 36.255,
-            "end": 43.393
+            "hash": "1d9c70e5b3368d24562abbd87a3a34062e4817b2",
+            "start": 35.789,
+            "end": 42.301
         }
     ]
 }

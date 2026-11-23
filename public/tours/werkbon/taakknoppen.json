@@ -2,57 +2,57 @@
     "tour": "werkbon",
     "chapter": "taakknoppen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "taakknoppen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Achter elke taak staan een label en een paar knopjes. We lopen ze langs bij een voorbeeldtaak.",
-            "hash": "b69ba989236cab47de4b1edf2a6564ceb335616b",
+            "hash": "9bea561ca407ed1a8c119537c8d540e70753d664",
             "start": 0,
-            "end": 5.256
+            "end": 5.005
         },
         {
             "text": "Het pakketje is \"materialen\". Daarmee boek je materiaal op deze taak.",
-            "hash": "1ee0516683c308c891598ffa600cd5ca9c5abb20",
-            "start": 6.256,
-            "end": 10.871
+            "hash": "86e80b1c90821a39856df6c709da3bb048401ab5",
+            "start": 6.005,
+            "end": 9.746
         },
         {
             "text": "Hier boek je materiaal op deze taak. Op de werkbon staat bij die regel dan de naam van de taak. Op de PDF staat er \"gebruikt voor\" achter, met de naam van de taak.",
-            "hash": "23419ca62974a4c25e2f60a79b8d90c99117c3e1",
-            "start": 11.871,
-            "end": 21.755
+            "hash": "f5f35b9d84aaa110041e110eaf44942a82c62563",
+            "start": 10.746,
+            "end": 20.627
         },
         {
             "text": "Het rode verbodsteken is \"annuleer taak\". Je geeft er een reden bij. Een geannuleerde taak kun je niet terugzetten.",
-            "hash": "8e310a5f89fd56b0c922054dbc1846dec49a3368",
-            "start": 22.755,
-            "end": 29.921
+            "hash": "ed248e1717b39db644438bcc9422ed5841397412",
+            "start": 21.627,
+            "end": 28.261
         },
         {
             "text": "De drie puntjes zijn \"bewerk taak\". Daarmee pas je de titel, het product of de checks aan.",
-            "hash": "3387c14cfa074ac753f8554ffb7ea3e63db9e4b0",
-            "start": 30.921,
-            "end": 35.756
+            "hash": "76028e407d58b50ada05d991f777530be567b059",
+            "start": 29.261,
+            "end": 34.767
         },
         {
             "text": "De prullenbak is \"verwijder taak\". Daarmee haal je de taak van de werkbon.",
-            "hash": "fd4a6f07e43b5884bbfc1ed6ed516f50499d6b68",
-            "start": 36.756,
-            "end": 40.417
+            "hash": "22cea088bd86f75631f7bcf9cda7ddd02a843da7",
+            "start": 35.767,
+            "end": 40.067
         },
         {
             "text": "Is de taak voltooid? Dan verschijnt er een pennetje. Met \"laten ondertekenen\" tekent de klant voor deze ene taak.",
-            "hash": "50838f9a7bae4b67636c4b00a2436ed6691ffa0d",
-            "start": 41.417,
-            "end": 48.041
+            "hash": "1ef4993be675e765c766e4dce0c56c9d9f1e9958",
+            "start": 41.067,
+            "end": 47.685
         },
         {
             "text": "Heeft de klant getekend? Dan staat er een groen vinkje. Klik op \"ondertekend\" en je ziet de handtekening.",
-            "hash": "b5172284cf83f9335323d594bce1a830ddf3a0ec",
-            "start": 49.041,
-            "end": 54.84
+            "hash": "63a82b523b7d7e254c35881e07ae007e757a1eba",
+            "start": 48.685,
+            "end": 54.897
         }
     ]
 }

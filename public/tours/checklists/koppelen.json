@@ -2,27 +2,27 @@
     "tour": "checklists",
     "chapter": "koppelen",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "koppelen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Sleep een check op een checklist. Of sleep hem rechtstreeks op een taak, zonder checklist.",
-            "hash": "4b28733ef30db852b2828bdf328b929de8aee320",
+            "hash": "bc90bc9bd8802bb9af89a31bb5b49d125682a6eb",
             "start": 0,
-            "end": 4.869
+            "end": 4.828
         },
         {
             "text": "Bij een doorgetrokken lijn is de check verplicht. Bij een stippellijn is hij optioneel. Klik op een kaart om alleen zijn lijnen te zien.",
-            "hash": "a246fdada1085a0708ac32ccb9d22c82a392775c",
-            "start": 5.869,
-            "end": 12.596
+            "hash": "8630d83e2934c4766f54a4f936004a52cfda313e",
+            "start": 5.828,
+            "end": 12.31
         },
         {
             "text": "Klik op een lijn om de check \"verplicht\" of \"optioneel\" te maken. Met \"ontkoppelen\" haal je hem weg.",
-            "hash": "fb35d5f338c426bc960ae8f9df6c7d1015fd8611",
-            "start": 13.596,
-            "end": 19.169
+            "hash": "daed58ffcdcbe5a8b0d4d92ab256cb0e135f91de",
+            "start": 13.31,
+            "end": 18.97
         }
     ]
 }

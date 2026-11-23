@@ -2,33 +2,33 @@
     "tour": "standaardemails",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een standaard e-mail schrijf je één keer. Daarna gebruik je hem steeds opnieuw. Lavoro vult zelf de datum, de tijd en de klant in.",
-            "hash": "d43793fe15b7b5a4490675b9abdb1db3fccd50f0",
+            "hash": "602bcb5342a5dfcfd34bd552b9834658129ba57a",
             "start": 0,
-            "end": 7.768
+            "end": 7.598
         },
         {
             "text": "Hier staan je e-mails. Je ziet de naam en het onderwerp. De groene labels zeggen bij welk moment de mail hoort.",
-            "hash": "2251dec543df841140a68bfc05b30059ab735156",
-            "start": 8.768,
-            "end": 14.801
+            "hash": "18a12e079b27244ff164ce31bfa3519cbee812c9",
+            "start": 8.598,
+            "end": 14.911
         },
         {
             "text": "Met \"Bewerken\" pas je een e-mail aan. Met \"Verwijderen\" gooi je hem weg.",
-            "hash": "8243e3e52e811742656eeda249be9001870cb06a",
-            "start": 15.801,
-            "end": 19.924
+            "hash": "484fc30098082a529ca0ab6a89f304a0822b0da3",
+            "start": 15.911,
+            "end": 19.7
         },
         {
             "text": "Met \"Nieuwe standaard e-mail\" begin je aan een nieuwe.",
-            "hash": "2566a39ae01092fbd856769efc000fa49ae18ea1",
-            "start": 20.924,
-            "end": 24.021
+            "hash": "8e48b2246f5ffc55d0578d37002b1ef3fb026279",
+            "start": 20.7,
+            "end": 23.24
         }
     ]
 }

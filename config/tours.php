@@ -65,6 +65,24 @@ return [
      */
     'gap_seconds' => 1.0,
 
+    /*
+     * Leenwoorden die we op zijn Engels uitspreken, geschreven zoals ze klinken.
+     * Alleen de stem krijgt deze spelling; in beeld staat het echte woord. Elk
+     * woord telt ook midden in een ander woord: "planning" dekt "werkplanning"
+     * en "planningen", "gepland" dekt "ingeplande". Het losse woord "plan" staat
+     * er bewust niet in: dat zeggen we gewoon op zijn Nederlands.
+     */
+    'pronunciation' => [
+        'planbord' => 'plenbord',
+        'planning' => 'plenning',
+        'planner' => 'plenner',
+        'plannen' => 'plennen',
+        'gepland' => 'geplend',
+        'inplant' => 'inplent',
+        'planrol' => 'plenrol',
+        'plangroep' => 'plengroep',
+    ],
+
     'ffmpeg' => env('FFMPEG_BINARY', '/usr/bin/ffmpeg'),
     'ffprobe' => env('FFPROBE_BINARY', '/usr/bin/ffprobe'),
 

@@ -2,39 +2,39 @@
     "tour": "rooster",
     "chapter": "rooster",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "rooster.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Dit is je rooster. Alles wat je hier invult zie je als blok in de planner.",
-            "hash": "43b44399dfd91a20c23ddd2f621a51ab046c4156",
+            "hash": "815afa6a39bf45445224972af07c7659e0ea5f1a",
             "start": 0,
-            "end": 4.496
+            "end": 3.966
         },
         {
             "text": "Een vast vrij moment stel je in per weekdag. Dat kan \"elke week\" of \"om de week\". Vul de tijden in en geef het een label, zoals papadag.",
-            "hash": "7bbb77ba945a2bcad6519c45f61e1deac16a7218",
-            "start": 5.496,
-            "end": 14.244
+            "hash": "d8a957248cf865915e2ae2fb2861bd1a5aa2c8b8",
+            "start": 4.966,
+            "end": 13.023
         },
         {
             "text": "Kies je \"om de week\"? Vul dan ook de eerste keer in. Vanaf die dag rekent de planner zelf verder.",
-            "hash": "6807f2459c0e341ebd24113216aabdf5de2c461b",
-            "start": 15.244,
-            "end": 20.732
+            "hash": "51b7112993078ca69165f1badcab57ca4ba47876",
+            "start": 14.023,
+            "end": 19.361
         },
         {
             "text": "Losse vrije dagen vul je hieronder in. Kies één datum of een periode. Geef het een label, zoals vakantie.",
-            "hash": "8c2df8070319c7ad192bf31eed3733cfc6eaa0c4",
-            "start": 21.732,
-            "end": 27.605
+            "hash": "b92d69c17fc17f1eec74943a9d2f0cc9bda73da1",
+            "start": 20.361,
+            "end": 27.026
         },
         {
             "text": "Sla op. Dan staat het blok meteen in de planner. Met het kruisje achter een regel haal je het weer weg.",
-            "hash": "9c6c61e46e4090ad1ca959f3f1deac9674b27e36",
-            "start": 28.605,
-            "end": 34.298
+            "hash": "c0795946ef020860174484dd7f77323d1efa61d9",
+            "start": 28.026,
+            "end": 33.48
         }
     ]
 }

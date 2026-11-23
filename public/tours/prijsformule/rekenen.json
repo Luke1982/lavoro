@@ -2,69 +2,69 @@
     "tour": "prijsformule",
     "chapter": "rekenen",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "rekenen.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Het blok \"prijs per stuk\" maakt van een aantal een bedrag. Hier kost elke machine van dit type vijftig euro per stuk. Komen er zes machines binnen, dan komt er driehonderd euro uit.",
-            "hash": "d0325eb1f318753234a26cf5488002eab9bccf8c",
+            "hash": "332bdad21333ed80581b4962ddb7bd6dc2872aaf",
             "start": 0,
-            "end": 10.898
+            "end": 11.153
         },
         {
             "text": "Met een staffel wordt het per stuk goedkoper vanaf een bepaald aantal. Hier kost elk stuk vanaf het derde veertig euro in plaats van vijftig. Zes machines kosten dan twee keer vijftig, plus vier keer veertig. Samen tweehonderdzestig euro.",
-            "hash": "823903bb2a9588621f1644bd3794beabcdc34cae",
-            "start": 11.898,
-            "end": 25.544
+            "hash": "f2f386d78c621e7bfe264835aaf260252a2786e2",
+            "start": 12.153,
+            "end": 27.129
         },
         {
             "text": "Kies voor welke stuks de lagere prijs geldt: alleen de stuks vanaf die stap, of alle stuks, zodra die stap is bereikt. Stel dat de stap bij het derde stuk ligt. Vier machines kosten dan met de eerste keuze honderdtachtig euro, en met de tweede keuze honderdzestig euro. Let op bij die tweede keuze: ligt de stap bij zes stuks, dan kosten vijf machines tweehonderdvijftig euro, en zes machines maar tweehonderdveertig. Een machine erbij maakt het contract dan goedkoper.",
-            "hash": "499fcd2f208c0cf73b2bf63ef10d2e452c6dd540",
-            "start": 26.544,
-            "end": 54.107
+            "hash": "d6f0a017519c44f0c2d1c9ab20fd274ba83eaf6d",
+            "start": 28.129,
+            "end": 57.577
         },
         {
             "text": "Het blok \"optellen\" telt alles bij elkaar op wat binnenkomt. Hier komt driehonderd euro binnen, en zestig euro. Eruit komt driehonderdzestig euro. Je kunt er zoveel lijnen op aansluiten als je wilt.",
-            "hash": "7071b99a48216f22504738e2459cdf34990c05aa",
-            "start": 55.107,
-            "end": 66.858
+            "hash": "1da9b03a059a6f201e4aab840ef147fea8887acf",
+            "start": 58.577,
+            "end": 69.497
         },
         {
             "text": "Het blok \"vermenigvuldigen\" rekent A keer B. Hier is A het aantal adressen, en B is vijfendertig euro. Bij twee adressen komt er dus zeventig euro uit. Is er geen lijn op B aangesloten, dan gebruikt het blok het getal uit de instellingen.",
-            "hash": "f2815dd9641402fc5ab25a7bab7746bb3dc95ae4",
-            "start": 67.858,
-            "end": 82.371
+            "hash": "b2897178388b583756c610c129cec5097a19ebc4",
+            "start": 70.497,
+            "end": 85.989
         },
         {
             "text": "Zo werken ook de blokken \"delen\", \"aftrekken\" en \"maximaal\". Met \"delen\" maak je van een jaarprijs een maandprijs: zeshonderd euro per jaar, gedeeld door twaalf, is vijftig euro per maand. Met \"aftrekken\" haal je er een vast bedrag af: driehonderdzestig euro min vijfentwintig euro is driehonderdvijfendertig euro. En \"maximaal\" zorgt dat de prijs nooit boven een grens komt. Is die grens vijfhonderd euro, dan blijft driehonderdzestig euro gewoon staan, maar wordt zeshonderdtwintig euro vijfhonderd euro.",
-            "hash": "6e3cc9db6359ac636af129f0cc6832c67e8b08d0",
-            "start": 83.371,
-            "end": 114.001
+            "hash": "9c970a699e5927ea6a0b7e81f685bbfaa7663057",
+            "start": 86.989,
+            "end": 119.744
         },
         {
             "text": "Het blok \"korting of toeslag\" telt een percentage op, of trekt het af. Met een min ervoor is het korting: vijf procent van driehonderdnegentig euro is negentien euro vijftig. Eruit komt dus driehonderdzeventig euro vijftig. De tweede uitgang, \"alleen het percentage\", geeft alleen de korting zelf: die negentien euro vijftig, bijvoorbeeld om die apart te laten zien.",
-            "hash": "de8a49296075f6f8ea5814e93d8e980869f83f0c",
-            "start": 115.001,
-            "end": 137.542
+            "hash": "42804fcd390740c3eb6f178eb6b1bb49f9e2ba1b",
+            "start": 120.744,
+            "end": 142.48
         },
         {
             "text": "Het blok \"minimaal\" geeft nooit minder dan B. Zo maak je een minimumprijs, hier honderd euro. Komt een kleine klant uit op vijftig euro, dan wordt het toch honderd euro. Een hoger bedrag blijft gewoon staan.",
-            "hash": "37398d824409761864f35e2ce337dac76262d77e",
-            "start": 138.542,
-            "end": 150.718
+            "hash": "2f44446566c1afcc24a7490e04e1f1c025ccfd24",
+            "start": 143.48,
+            "end": 156.301
         },
         {
             "text": "Het blok \"afronden\" maakt van een krom bedrag een rond bedrag. Hier wordt afgerond op vijf euro, naar boven: driehonderdzeventig euro vijftig wordt driehonderdvijfenzeventig euro.",
-            "hash": "2921d994d219ddefc778cb10993b83d5a87704bd",
-            "start": 151.718,
-            "end": 162.617
+            "hash": "bb9e83edcf43b9e113389efa5c9caee9495ee4fe",
+            "start": 157.301,
+            "end": 167.77
         },
         {
             "text": "Het blok \"als, dan\" vergelijkt een getal met een ander getal. Sluit je de machines rechtstreeks aan, dan vergelijkt het blok het aantal machines. Klopt de vergelijking, dan geeft het blok de waarde bij \"dan\", en anders de waarde bij \"anders\". Hier krijgt de klant vanaf vijf machines vijfentwintig euro korting. Met acht machines betaalt de klant dus driehonderdvijfenzeventig euro, in plaats van vierhonderd.",
-            "hash": "a449d4b04ecf78430abd2a9d511b3e6af770d250",
-            "start": 163.617,
-            "end": 187.733
+            "hash": "c3b6c6dd187a942f7d13c4ae1794c87ab12e4c80",
+            "start": 168.77,
+            "end": 193.728
         }
     ]
 }

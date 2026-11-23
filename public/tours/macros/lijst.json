@@ -2,33 +2,33 @@
     "tour": "macros",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Een macro zet in één klik een vast rijtje dingen op een werkbon. Bijvoorbeeld taken of keuringen. Met \"nieuwe macro\" maak je er een.",
-            "hash": "3c209929561805c4d45ab7fc14a764544139eb94",
+            "hash": "7e9791fe0c31167f0fa7e1d0e84baa72e42ce75d",
             "start": 0,
-            "end": 8.024
+            "end": 7.56
         },
         {
             "text": "Elke macro staat hier met zijn stappen in gewone zinnen. Klik erop en je ziet zijn blokken onder elkaar. Daar pas je hem aan.",
-            "hash": "51a7d8d0769d70e3c0354739f766dfb37db23eb1",
-            "start": 9.024,
-            "end": 16.092
+            "hash": "0369fde2de7581302b11d70e2a16c72db315420e",
+            "start": 8.56,
+            "end": 15.488
         },
         {
             "text": "Op een open werkbon staat de knop \"Macro\". Je beantwoordt de vragen één voor één. Daarna gebeurt alles in één keer.",
-            "hash": "971fa592468ae9e9ed2d0fc491475b0c3ebe149c",
-            "start": 17.092,
-            "end": 23.819
+            "hash": "0f26831356231e4a7f4e02763a6d77889f989619",
+            "start": 16.488,
+            "end": 23.017
         },
         {
             "text": "Wil je zien hoe je een macro opbouwt? Open dan een nieuwe macro. De rondleiding laat er een voorbeeld in zien.",
-            "hash": "3f3759ec9c18478fc3edd33e572d1d23e4e4d16d",
-            "start": 24.819,
-            "end": 30.704
+            "hash": "633e79c8cf761716a7e4635da282f0edfecfcdba",
+            "start": 24.017,
+            "end": 29.698
         }
     ]
 }

@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "kaart-en-route",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "kaart-en-route.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Delen je monteurs hun locatie? Dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
-            "hash": "7bf2acc0b0e20dbd477e23a3f44d64b0b275acef",
+            "hash": "52dc104f7b7fde5b1934ba2c393437fd818990ec",
             "start": 0,
-            "end": 4.948
+            "end": 5.784
         },
         {
             "text": "Zo staan ze allemaal op de kaart.",
-            "hash": "a91e34366dc1c14d58073cd97f7f5ca43bf4697a",
-            "start": 5.948,
-            "end": 7.888
+            "hash": "bd71b583c18cf73d2fce544a0932711b4eae1e4e",
+            "start": 6.784,
+            "end": 8.389
         },
         {
             "text": "In de rij van een monteur staat zijn laatste locatie op een kleine kaart. Met het pijltje maak je hem groter.",
-            "hash": "aa5a277f97091414820279183eff70d17c19c1bd",
-            "start": 8.888,
-            "end": 15.193
+            "hash": "8292c8493a05936238f390e6673aecf50dedd4d2",
+            "start": 9.389,
+            "end": 15.508
         },
         {
             "text": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\". Die opent de route in Google Maps.",
-            "hash": "70fd86af60b940a48ae3c7ca6d7963c996127f4a",
-            "start": 16.193,
-            "end": 23.475
+            "hash": "7ea7c55360f86621c4797e9ccebbda49337d633e",
+            "start": 16.508,
+            "end": 22.528
         },
         {
             "text": "Een route maak je op de kaart van de keuringen of van de storingen. Zet je hem in de planning, dan verschijnt hij hier bij de monteur.",
-            "hash": "fe4f0b084085cebdc760e67df7dc3fd0521c44c5",
-            "start": 24.475,
-            "end": 31.89
+            "hash": "c20597b37610c53e62cc9da9ce53af5493bbc115",
+            "start": 23.528,
+            "end": 30.233
         }
     ]
 }

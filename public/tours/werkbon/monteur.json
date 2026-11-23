@@ -2,63 +2,63 @@
     "tour": "werkbon",
     "chapter": "monteur",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "monteur.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "De schakelaar gaat nu naar \"monteur\". Dit is de monteursweergave. Je ziet wat je op locatie nodig hebt, van boven naar beneden.",
-            "hash": "8f8d397daa98863378f13eeb69ca3f4462786384",
+            "hash": "74c516b2d2fdbfe66e30d85e2d0842ced97a8c86",
             "start": 0,
-            "end": 7.697
+            "end": 7.185
         },
         {
             "text": "Bovenaan staan de klant en het adres. Met \"navigeer\" opent Google Maps, en met \"bel klant\" bel je meteen.",
-            "hash": "6495e003cdfdda115014aeb682107bbceb1d3426",
-            "start": 8.697,
-            "end": 15.04
+            "hash": "87acdb7b1ce655923d983f176431d483c6dd37f4",
+            "start": 8.185,
+            "end": 15.019
         },
         {
             "text": "Hier staat de afspraak van vandaag, of de eerstvolgende. Zijn er meer? Blader dan met de pijltjes.",
-            "hash": "b975bc016d3661dd02983e5681b14230126f0a9f",
-            "start": 16.04,
-            "end": 21.043
+            "hash": "4b7d4a7d3ab0b5fb70916ef5c85708e61c3b256f",
+            "start": 16.019,
+            "end": 21.616
         },
         {
             "text": "Sta jij op de afspraak? Dan vul je met \"tijden invullen\" je uren in. De klant tekent erbij.",
-            "hash": "b030ac80a005b4026a6ac513c46ae4951f9e0b0e",
-            "start": 22.043,
-            "end": 27.556
+            "hash": "d7532b3fbcffc5ea359e3ba75de196ab40e3d8e4",
+            "start": 22.616,
+            "end": 27.607
         },
         {
             "text": "Hier staat al het werk. Een keuring open je met \"uitvoeren\", een storing met \"oplossen\". Daaronder staan de taken.",
-            "hash": "d8332259b959ae1b743fae57a61668cf4042e606",
-            "start": 28.556,
-            "end": 35.442
+            "hash": "e49063e5f0d2898ff7aa2611bea5b70932c55fae",
+            "start": 28.607,
+            "end": 35.647
         },
         {
             "text": "Heeft een taak machines of checks? Dan klapt \"uitvoeren\" hem open, op dezelfde plek. Daar vink je de checks af.",
-            "hash": "a57b6720321149f10827485969505b2003d759c9",
-            "start": 36.442,
-            "end": 42.602
+            "hash": "78a9b91050496e1a9a359d1f7259709ce6743cf5",
+            "start": 36.647,
+            "end": 42.905
         },
         {
             "text": "Tik op een materiaal om het aantal aan te passen. Met \"toevoegen\" boek je iets nieuws.",
-            "hash": "b9ff47bea24892aa3e2477471cc0d7c465a69ab2",
-            "start": 43.602,
-            "end": 48.051
+            "hash": "e0677c414d7d78fc359fb5a2457811f408eabc92",
+            "start": 43.905,
+            "end": 48.478
         },
         {
             "text": "Opmerkingen en foto's hebben een interne en een externe kant. Alleen de externe kant komt op de werkbon voor de klant.",
-            "hash": "8a15eb929c1b7052326d232d8650ab07f886625c",
-            "start": 49.051,
-            "end": 56.326
+            "hash": "71fd3b0f8175d4b65bd11c1a440200434f92fa8f",
+            "start": 49.478,
+            "end": 57.633
         },
         {
             "text": "Onderaan staat steeds de volgende stap. Eerst laat je de klant tekenen. Daarna rond je de werkbon af.",
-            "hash": "312f2152845dd849739c2af6b10f2efe91861b7b",
-            "start": 57.326,
-            "end": 63.03
+            "hash": "b20921363898ebce49cb39b488dabe685fb81304",
+            "start": 58.633,
+            "end": 64.24
         }
     ]
 }

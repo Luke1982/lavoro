@@ -2,27 +2,27 @@
     "tour": "checklists",
     "chapter": "inhoud",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "inhoud.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met het pijltje zie je wat er in een kaart zit. Sleep een regel om de volgorde te veranderen.",
-            "hash": "bf4011f1797f9a5e11a650973539b2818e6846aa",
+            "hash": "c19402b860d465d92d362579d969d6d20c971940",
             "start": 0,
-            "end": 5.102
+            "end": 4.667
         },
         {
             "text": "Onder de drie puntjes kun je een kaart hernoemen of verwijderen.",
-            "hash": "de3abee18dadb12b2f2126641cc261b1fb71a1e1",
-            "start": 6.102,
-            "end": 9.616
+            "hash": "9cb9d3b2084756d0cc40bc005611355a562e0a88",
+            "start": 5.667,
+            "end": 8.809
         },
         {
             "text": "Een taak op een werkbon krijgt de checks van dat moment mee. Pas je hier later iets aan? Dan veranderen bestaande werkbonnen niet.",
-            "hash": "6b346f3d1297a4ee39465d96e09d0b7f188203c8",
-            "start": 10.616,
-            "end": 18.062
+            "hash": "5174c0bdda794df43b99ffa986c5ec7bc8f4b242",
+            "start": 9.809,
+            "end": 16.759
         }
     ]
 }

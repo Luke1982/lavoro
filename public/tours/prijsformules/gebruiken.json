@@ -2,27 +2,27 @@
     "tour": "prijsformules",
     "chapter": "gebruiken",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "gebruiken.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Op een contract kies je een formule in het blok \"prijsformule\". De prijs vul je dan niet meer zelf in: die wordt berekend uit de machines op het contract.",
-            "hash": "237b09a3b7625af54cb80dc245963db5226a5962",
+            "hash": "e292db18a940581eb0bc99b04cb9bf66497e1bff",
             "start": 0,
-            "end": 8.583
+            "end": 9.551
         },
         {
             "text": "Komt er een machine bij, of gaat er één af, dan wordt de prijs opnieuw berekend. Een melding zegt van welke prijs naar welke prijs het gaat.",
-            "hash": "324f5f24b98bfd3b013448452cd3759ed768feb0",
-            "start": 9.583,
-            "end": 17.273
+            "hash": "becf2a098fcebcb36756bd9a52e33d952188ebd7",
+            "start": 10.551,
+            "end": 18.788
         },
         {
             "text": "Ook op een sjabloon kies je een formule. Maak je uit dat sjabloon een nieuw contract, dan hoef je geen prijs in te vullen.",
-            "hash": "f173b87d84a6b8811e2eb2082c024c52e0d1162a",
-            "start": 18.273,
-            "end": 24.765
+            "hash": "578914c0ad82d90478d0b7965523736fd78bf226",
+            "start": 19.788,
+            "end": 25.537
         }
     ]
 }

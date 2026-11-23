@@ -2,51 +2,51 @@
     "tour": "projecten",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Je zoekt een project op nummer of titel. Een klant of projectleider werkt ook.",
-            "hash": "2c4414e4781c9c444b7049332047ec13fae0643a",
+            "hash": "9b14caf0ecb29708fef8e47a9cf834934d074600",
             "start": 0,
-            "end": 4.449
+            "end": 4.44
         },
         {
             "text": "De lijst opent op de lopende projecten. Onder filters kies je een andere status. Je kunt ook filteren op projectleider of klant.",
-            "hash": "d2d51751853fe88c3e1eaaa485e457e5474ef7f0",
-            "start": 5.449,
-            "end": 12.452
+            "hash": "13f491fd69e1694c5c77d0eed305b52da58a05aa",
+            "start": 5.44,
+            "end": 12.486
         },
         {
             "text": "Per project zie je de titel en het nummer. Ook de klant en de status staan erbij. Klik op de titel om het project te openen.",
-            "hash": "77ed2719df4b0de27b6e46dea19a7942fa86a85d",
-            "start": 13.452,
-            "end": 20.406
+            "hash": "ba3f1e994b380bcb23f3f687c6464754deb38234",
+            "start": 13.486,
+            "end": 20.489
         },
         {
             "text": "Onder voortgang zie je hoeveel werkbonnen gesloten zijn. Ook de behaalde mijlpalen staan erbij. Wat te laat is, staat in rood.",
-            "hash": "26a771b1c1428c0161ae1026775f05e2f207e34b",
-            "start": 21.406,
-            "end": 28.243
+            "hash": "5883415a0dde7f53a8776739a13ba7ea979284c8",
+            "start": 21.489,
+            "end": 28.405
         },
         {
             "text": "Klik op een kolomkop om daarop te sorteren. Nog een keer klikken draait de volgorde om.",
-            "hash": "1950f6c0b1cb3cb2ed8e7d78f0a16b0e7a3cae52",
-            "start": 29.243,
-            "end": 34.01
+            "hash": "dad42725393254a55b628aa6dfd13acf35def800",
+            "start": 29.405,
+            "end": 34.112
         },
         {
             "text": "De status wijzig je hier meteen. Klik erop en kies een andere.",
-            "hash": "5c917b8645915d2fa995b0fcb1dbb3a967be6c20",
-            "start": 35.01,
-            "end": 38.263
+            "hash": "1b69cf66c38f3a7341418f8025f6deb5f21da1f3",
+            "start": 35.112,
+            "end": 39.136
         },
         {
             "text": "Een project verwijderen kan alleen als er geen werkbonnen onder staan. Is het prullenbakje grijs? Zet het project dan op \"geannuleerd\".",
-            "hash": "334e105fee4b9954e22dd5505dcee1405249f1d9",
-            "start": 39.263,
-            "end": 46.729
+            "hash": "d8ac4cae438982f16afe1855c1848fe4cb0eb88d",
+            "start": 40.136,
+            "end": 47.922
         }
     ]
 }

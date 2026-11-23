@@ -2,45 +2,45 @@
     "tour": "offertes",
     "chapter": "nieuw",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "nieuw.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met \"Nieuwe offerte\" open je een la voor een nieuwe offerte.",
-            "hash": "f85861f612adc1ec9ee1c635c3672b051f41386f",
+            "hash": "62780279b03825f05fc55d0dfaa2774fe5c54c8f",
             "start": 0,
-            "end": 3.169
+            "end": 3.474
         },
         {
             "text": "Geef de offerte een titel die de klant begrijpt. Kies dan de klant.",
-            "hash": "7ee009283035886fbcb35bb4d36b25cae6902916",
-            "start": 4.169,
-            "end": 7.681
+            "hash": "3a2d8db7722d1cde5f578043c35cc8d98a2bf0bd",
+            "start": 4.474,
+            "end": 8.003
         },
         {
             "text": "Kies je een sjabloon? Dan begint de offerte met de regels en teksten daarvan. Zonder sjabloon begin je leeg.",
-            "hash": "80fc6355e9a9664a0dddb99cc7f37edb6411ca9f",
-            "start": 8.681,
-            "end": 14.194
+            "hash": "b878d9ed0366f23e37d5cfdc4b4a37bbe295e653",
+            "start": 9.003,
+            "end": 14.761
         },
         {
             "text": "De offertedatum is vandaag. Laat je \"geldig tot\" leeg? Dan is de offerte een maand geldig. Het nummer komt vanzelf.",
-            "hash": "1fb8ac0e03208cb59665db131b787d3d494e6c7e",
-            "start": 15.194,
-            "end": 21.978
+            "hash": "04d6d38e0eb9ff44b8266f14930d03e421d9a84f",
+            "start": 15.761,
+            "end": 22.335
         },
         {
             "text": "Met \"Opslaan\" maak je de offerte. Hij gaat dan meteen open, en daar zet je de regels erop.",
-            "hash": "41c737ce06da0d5ebe6775ab668cf6a8a404d2c7",
-            "start": 22.978,
-            "end": 28.006
+            "hash": "cd1143df2ce0b7c8f59960eb0656a3a17f62c217",
+            "start": 23.335,
+            "end": 28.172
         },
         {
             "text": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kiest zelf wat je nog meer overneemt.",
-            "hash": "0c4806ec80c77729a2b2554738ffdc5ef022a779",
-            "start": 29.006,
-            "end": 37.748
+            "hash": "52b3c219d3986e47c8dda37ab70981958decff49",
+            "start": 29.172,
+            "end": 37.986
         }
     ]
 }

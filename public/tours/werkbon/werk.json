@@ -2,27 +2,27 @@
     "tour": "werkbon",
     "chapter": "werk",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "werk.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Onder keuringen staan de machines die gekeurd worden. Met \"meerdere machines\" zet je er in één keer meer op.",
-            "hash": "3485e21f1004885096944e8e0bfad04724c2be22",
+            "hash": "9f3783f07fdf5c73313c65e156fc704a85183ece",
             "start": 0,
-            "end": 5.681
+            "end": 6.008
         },
         {
             "text": "Onder storingen koppel je een storing aan de werkbon. Kies een bestaande storing of maak een nieuwe.",
-            "hash": "91ae1cc39ec1f9228c2f37fa6692324e4e43aa4f",
-            "start": 6.681,
-            "end": 12.146
+            "hash": "c6f57248b530f9147b6a240016a88affc2478121",
+            "start": 7.008,
+            "end": 12.223
         },
         {
             "text": "Onder materialen boek je wat er gebruikt is.",
-            "hash": "b1d5b1382623edfade1b3f6d15ceca87cca0e0d8",
-            "start": 13.146,
-            "end": 15.472
+            "hash": "20a2dea8a6ef22ab6e3bd4b0c2ed597b5d67a733",
+            "start": 13.223,
+            "end": 15.483
         }
     ]
 }

@@ -29,7 +29,7 @@ class OpenAiSpeech implements SpeechDriver
         return 'openai:' . $this->voice . ':' . $this->model . ':' . substr(sha1((string) $this->instructions), 0, 8);
     }
 
-    public function speak(string $text): SpokenLine
+    public function speak(string $text, ?string $previous = null, ?string $next = null): SpokenLine
     {
         if (blank($this->key)) {
             throw new RuntimeException('OpenAI heeft een sleutel nodig: zet TOUR_OPENAI_API_KEY (of OPENAI_API_KEY) in .env.');

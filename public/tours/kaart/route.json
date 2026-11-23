@@ -2,45 +2,45 @@
     "tour": "kaart",
     "chapter": "route",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "route.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Wil je langs een paar adressen rijden? Zet dan \"route plannen\" aan.",
-            "hash": "191d6388e345b14b49506e2997fe89b7b7f77a35",
+            "hash": "a7f43c783d5ab9bf147f6d7ed69141a2746b9209",
             "start": 0,
-            "end": 3.884
+            "end": 3.256
         },
         {
             "text": "Bovenaan staat je werkdag, zoals je die in de planner hebt ingesteld. Je kunt hem per route aanpassen.",
-            "hash": "5bf8a65cfa739a152ab2fddf31a0927df0173f92",
-            "start": 4.884,
-            "end": 11
+            "hash": "739b7a42203a0f0e4995efb013e816191f653afa",
+            "start": 4.256,
+            "end": 10.038
         },
         {
             "text": "Hier kies je waar de route begint en eindigt. Dat kan bij het bedrijf, bij een monteur thuis of op een ander adres.",
-            "hash": "addc7e2ca7b2344eeb15dc9e9c5d027b547577fb",
-            "start": 12,
-            "end": 18.636
+            "hash": "8400d99f4437bd2edd81a151bc7947fbc030712d",
+            "start": 11.038,
+            "end": 17.376
         },
         {
             "text": "Klik de adressen aan die je wilt bezoeken. De speld wordt blauw en het adres komt in de lijst. Klik nog een keer om het weer weg te halen.",
-            "hash": "2577043b0394d818861c04daa0c0532f1e2dd80b",
-            "start": 19.636,
-            "end": 27.24
+            "hash": "7ba52c5a0e493eb3c482929d8f52f436ecf0eecd",
+            "start": 18.376,
+            "end": 25.14
         },
         {
             "text": "Per adres geef je aan hoe lang je er bent. Moet je vóór een bepaalde tijd beginnen? Dat zet je hier ook. En een spoedadres gaat voor.",
-            "hash": "ee3422050b1bf2e247299c937cae67bb44eadb46",
-            "start": 28.24,
-            "end": 35.316
+            "hash": "56a4c01de9657e770e4de3e444848f980d0206a3",
+            "start": 26.14,
+            "end": 33.741
         },
         {
             "text": "Klik op \"route berekenen\". Lavoro neemt eerst de spoedadressen mee en daarna zoveel mogelijk andere. Dan zoekt hij de snelste volgorde.",
-            "hash": "3d1da59dbaba5c9e1257c172d9d13cd70ff19ac5",
-            "start": 36.316,
-            "end": 43.232
+            "hash": "0cf4336087f063a61179f47504630ee29df5910e",
+            "start": 34.741,
+            "end": 42.096
         }
     ]
 }

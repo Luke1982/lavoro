@@ -2,57 +2,57 @@
     "tour": "contracten",
     "chapter": "nieuw",
     "version": 2,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "nieuw.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met \"voeg contract toe\" open je het formulier voor een nieuw contract.",
-            "hash": "8de0dc7a8ce1deda6b20d02cffd45c469ebe8d04",
+            "hash": "4773a4fc4b4adf53867c18f41c1b15d05b80c013",
             "start": 0,
-            "end": 4.185
+            "end": 4.222
         },
         {
             "text": "Sluit je vaker hetzelfde contract af? Kies dan een sjabloon. Dat vult de velden alvast in. Daarna kun je alles nog aanpassen.",
-            "hash": "7742cd11f240826b3719671aa01d9103cbc2869f",
-            "start": 5.185,
-            "end": 12.397
+            "hash": "1bf5cae30dd12e4b2b7f9de6c177458677d90477",
+            "start": 5.222,
+            "end": 13.488
         },
         {
             "text": "Kies de klant. De machines koppel je later, op de pagina van het contract.",
-            "hash": "705e4f0fd3223f756bb7a261a92c8ee909d10e44",
-            "start": 13.397,
-            "end": 17.355
+            "hash": "1db1d613e642252c64e9a61563d1c4b85585e0f4",
+            "start": 14.488,
+            "end": 18.395
         },
         {
             "text": "Vul de startdatum in. De einddatum mag leeg blijven. Dan loopt het contract door tot je het annuleert.",
-            "hash": "f77fdcd1161e971f1c4989c69e22d647c3c6a9c2",
-            "start": 18.355,
-            "end": 24.196
+            "hash": "a66a958d2304c114dfeab414233ca8d32d46c909",
+            "start": 19.395,
+            "end": 25.512
         },
         {
             "text": "Vul de prijs in, en hoe vaak je die rekent.",
-            "hash": "d15c1426999d989169aa748fb2b5ba7ad153b995",
-            "start": 25.196,
-            "end": 27.511
+            "hash": "50df686923ddeabceaf8f116fcf3f408f50a2b08",
+            "start": 26.512,
+            "end": 28.763
         },
         {
             "text": "De servicefrequentie zegt hoe vaak er onderhoud is. Moet elke machine een eigen frequentie krijgen? Zet dan deze schakelaar aan.",
-            "hash": "e14792ddb63a07a517eff7a7463829f8c06fca6c",
-            "start": 28.511,
-            "end": 36.215
+            "hash": "c768e743559287112a2b164dff357f28f04cb527",
+            "start": 29.763,
+            "end": 36.915
         },
         {
             "text": "Zet je dit aan? Dan maakt Lavoro de werkbonnen zelf, zodra een machine aan de beurt is.",
-            "hash": "2e07fe9064ad76802db2b7812b30b43a8e2f6203",
-            "start": 37.215,
-            "end": 42.222
+            "hash": "b72d6dd92b678f7e35cc4c3596fc3e7f9bd2709e",
+            "start": 37.915,
+            "end": 42.958
         },
         {
             "text": "Met \"opslaan\" staat het contract in de lijst. Open het daarna om er machines aan te koppelen.",
-            "hash": "87e67996ea73bbd1b51306dd97df8cc0fe1bf760",
-            "start": 43.222,
-            "end": 48.509
+            "hash": "ce39eef2b05fc1681e9381a3f1fd87f63a3a25f8",
+            "start": 43.958,
+            "end": 48.729
         }
     ]
 }

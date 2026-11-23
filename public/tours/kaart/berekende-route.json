@@ -2,39 +2,39 @@
     "tour": "kaart",
     "chapter": "berekende-route",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "berekende-route.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Elk adres krijgt een nummer en een aankomsttijd. De route staat op de kaart. Bovenaan zie je hoe laat je terug bent en hoeveel kilometer je rijdt.",
-            "hash": "0957c6b424fda04d0586ca216e60abff3381f0e0",
+            "hash": "3914cc78b31dd742852396b4ac2f9a08ba2f8ace",
             "start": 0,
-            "end": 7.927
+            "end": 8.778
         },
         {
             "text": "Past een adres niet in je werkdag? Dan zie je dat onderaan, met de reden erbij.",
-            "hash": "561c2942c30bbc9b8171571b13baca4fa23901d7",
-            "start": 8.927,
-            "end": 13.17
+            "hash": "9ff6b5b406d31fbe3db7917968682e5aa824548b",
+            "start": 9.778,
+            "end": 13.915
         },
         {
             "text": "Met \"andersom\" rijd je dezelfde route in omgekeerde volgorde. Haal je dan een tijd niet? Dan zie je dat in rood.",
-            "hash": "26dfc2bb4910e1c4c1234d6d89147847713ee8b9",
-            "start": 14.17,
-            "end": 20.503
+            "hash": "5ece33f4fd7cd7f48a8d33cb1e0953de38d686c8",
+            "start": 14.915,
+            "end": 21.016
         },
         {
             "text": "Met \"openen in Google Maps\" start je de navigatie, ook op je telefoon.",
-            "hash": "5c2751e06c6ee9d4523d624e74c399060b430f7d",
-            "start": 21.503,
-            "end": 25.838
+            "hash": "11382cbc9e8d129106d3a3669c5288a47246b99a",
+            "start": 22.016,
+            "end": 25.76
         },
         {
             "text": "Kies een monteur en een dag. Dan staat de route in de planner bij die dag.",
-            "hash": "32425382168055bea67706f0529e884a8ee1fddc",
-            "start": 26.838,
-            "end": 31.313
+            "hash": "302c87b297f38d27e7aa4cac875c7e49d337c9aa",
+            "start": 26.76,
+            "end": 30.647
         }
     ]
 }

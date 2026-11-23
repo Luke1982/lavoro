@@ -2,39 +2,39 @@
     "tour": "storing",
     "chapter": "informatie",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "informatie.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Mist er iets om de storing goed in te schatten? Met \"informatie opvragen\" stuur je de klant een mail met een link. Via die link levert hij foto's en video's aan. Inloggen hoeft niet.",
-            "hash": "d66a023641b7947322ed4b5d2cf70776c7b50ff2",
+            "hash": "8c8aada6f30f2124470be4851ec6f84d55229afb",
             "start": 0,
-            "end": 10.602
+            "end": 10.408
         },
         {
             "text": "Het onderwerp staat al ingevuld. Heeft de klant een mailadres? Dan staat dat er ook al. Je kunt ze allebei aanpassen.",
-            "hash": "099f3c5893648ddb4f5c020a5497efb7a69f87c5",
-            "start": 11.602,
-            "end": 18.186
+            "hash": "25ca2ab9feb73720c368de3eaa5db7b766bc1506",
+            "start": 11.408,
+            "end": 17.818
         },
         {
             "text": "Kies wat je wilt ontvangen. Wat je kiest komt als lijstje in de brief. Klik je nog een keer, dan gaat het er weer uit.",
-            "hash": "e6bc3210dd5853cb9d5eda009a951808f196cf90",
-            "start": 19.186,
-            "end": 24.703
+            "hash": "15aa9fc45fec3e1d1549c03d4dc04a375170b911",
+            "start": 18.818,
+            "end": 24.502
         },
         {
             "text": "De brief mag je zelf herschrijven. De knop naar de aanleverpagina komt er altijd onder.",
-            "hash": "9cbd57b93741bec655eb4f56d3f988aa7f925520",
-            "start": 25.703,
-            "end": 30.61
+            "hash": "ba0df08ceebb60058010fab578317dcd5a59e9bf",
+            "start": 25.502,
+            "end": 29.745
         },
         {
             "text": "Na \"versturen\" wacht de storing op de klant. Wat de klant aanlevert komt vanzelf bij deze storing. Daarna gaat hij terug naar \"in behandeling\".",
-            "hash": "d312bdc585daa142102eeb8d2ad4dc3ab5783a6f",
-            "start": 31.61,
-            "end": 40.567
+            "hash": "aff9db7d785bf30aa6e53418632949d4fbe254ac",
+            "start": 30.745,
+            "end": 39.79
         }
     ]
 }

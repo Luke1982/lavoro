@@ -2,33 +2,33 @@
     "tour": "kaart",
     "chapter": "spelden",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "spelden.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Elke speld is een adres. Het getal zegt hoeveel er te doen is. De kleur zegt hoe dringend het is.",
-            "hash": "bf80d31550ac27811502c21890a8e2f939385b3e",
+            "hash": "b2d49a63aee6487125cce2b1f5654cfa2b100765",
             "start": 0,
-            "end": 5.236
+            "end": 6.237
         },
         {
             "text": "Rechtsonder in de legenda staat wat elke kleur betekent.",
-            "hash": "0c4afb0ebcb18855af26214b1997b6d1d3ffe965",
-            "start": 6.236,
-            "end": 9.755
+            "hash": "6b1de8be20a14483719f17bec127ffa7d7ad794b",
+            "start": 7.237,
+            "end": 10.115
         },
         {
             "text": "Klik op een speld. Dan zie je precies wat er op dat adres staat.",
-            "hash": "684fd5fc3487664029681659df2894639c1f721c",
-            "start": 10.755,
-            "end": 14.155
+            "hash": "84f93bc87ca115c7e9ac42a6b4e39613264c4190",
+            "start": 11.115,
+            "end": 15.111
         },
         {
             "text": "Zoom je uit? Dan worden spelden die dicht bij elkaar liggen samengevoegd tot een rondje. Het getal is het totaal. Klik erop om in te zoomen.",
-            "hash": "1c8eb9c8f0b09777012df07b3576754d9f3d0a62",
-            "start": 15.155,
-            "end": 23.389
+            "hash": "9311914657de67b67f119946c1cc1d85151f94a1",
+            "start": 16.111,
+            "end": 24.949
         }
     ]
 }

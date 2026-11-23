@@ -2,33 +2,33 @@
     "tour": "macro",
     "chapter": "basis",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "basis.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Geef de macro een naam die zegt wat hij doet. Een omschrijving mag erbij.",
-            "hash": "327d6127682885004dc24daeeb11b6608674c14f",
+            "hash": "d9fd27e8774ddd8967a9917e0660925f2d479828",
             "start": 0,
-            "end": 4.587
+            "end": 3.51
         },
         {
             "text": "Links staan de blokken waar een macro uit bestaat.",
-            "hash": "5438320a100abcc4d50c8796c098efe3a77055ca",
-            "start": 5.587,
-            "end": 8.575
+            "hash": "2891688e7cff3e06b9db0ba63996b9f0d52b68fd",
+            "start": 4.51,
+            "end": 7.28
         },
         {
             "text": "Rechts staat de macro zelf. Hij loopt van \"Start\" naar \"Klaar\", van boven naar beneden.",
-            "hash": "900de7f6ccea79b364193db6a4815d9fd5737750",
-            "start": 9.575,
-            "end": 14.508
+            "hash": "01bfe7f514f269235f26179e8c854469c5b33145",
+            "start": 8.28,
+            "end": 12.717
         },
         {
             "text": "Sleep een blok op een plus. Of klik op een plus en kies er een.",
-            "hash": "4fb797a48ccba41dfaa973d345a7c078a17bdadf",
-            "start": 15.508,
-            "end": 18.882
+            "hash": "94cb220536df791b94863c46ad5ea89df86753c6",
+            "start": 13.717,
+            "end": 17.186
         }
     ]
 }

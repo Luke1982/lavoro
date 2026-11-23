@@ -2,33 +2,33 @@
     "tour": "prijsformule",
     "chapter": "opslaan",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "opslaan.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Heb je iets veranderd, dan verschijnt hier de knop \"opslaan\". Op de knop staat ook of het een nieuwe versie wordt. Tijdens de rondleiding doen de knoppen niets.",
-            "hash": "c2613da1dd66bb4c9f13c39b08f6f77175db10ff",
+            "hash": "a633a1d2a00906ebdc15d79863b8d321180fce4b",
             "start": 0,
-            "end": 8.885
+            "end": 8.577
         },
         {
             "text": "Met \"wijzigingen weggooien\" zet je het canvas terug naar hoe het was bij de laatste keer opslaan.",
-            "hash": "8b3789d4558f55ae607e4e8c0356c310ee6d0dde",
-            "start": 9.885,
-            "end": 15.348
+            "hash": "6c0433a236ba9353244c433142763cccb427d59e",
+            "start": 9.577,
+            "end": 14.855
         },
         {
             "text": "Gebruikt nog geen enkel contract deze versie, dan wordt die bij opslaan gewoon bijgewerkt. Gebruiken er wel contracten deze versie, dan maakt opslaan een nieuwe versie. Stel: tien contracten staan op versie twee, en jij verhoogt de prijs per stuk van vijftig naar vijfenvijftig euro. Dan wordt het versie drie, en die tien contracten houden hun oude prijs, tot je ze bijwerkt. Zo verandert een prijs nooit zonder dat je het weet.",
-            "hash": "58bd6793dde9b4870f50553552f09800b4cf4d2e",
-            "start": 16.348,
-            "end": 40.559
+            "hash": "450fe61d9bc4da8d9d57a1f1bda73004bc1b8954",
+            "start": 15.855,
+            "end": 40.289
         },
         {
             "text": "Na het opslaan zegt een melding wat er is gebeurd, en hoeveel contracten nog op een oudere versie staan. Ga je weg zonder op te slaan, dan vraagt Lavoro eerst of je dat zeker weet.",
-            "hash": "dc05d894b4d78362513dc1f79dd6a50530322b7a",
-            "start": 41.559,
-            "end": 52.084
+            "hash": "9f3f5f9764dd85a7dddfbe4184520a38a3051575",
+            "start": 41.289,
+            "end": 52.174
         }
     ]
 }

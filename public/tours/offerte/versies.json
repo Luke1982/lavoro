@@ -2,33 +2,33 @@
     "tour": "offerte",
     "chapter": "versies",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "versies.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Jij bepaalt wanneer een offerte een nieuwe versie wordt. Kies daarvoor onder de drie puntjes \"Nieuwe versie maken\". De vorige versie blijft bewaard.",
-            "hash": "6af737abbb6abcd71ec79194aab1bf7a330832fb",
+            "hash": "b8a3a8a67b2edefc53dfcc967564587ae9b21b3a",
             "start": 0,
-            "end": 8.237
+            "end": 8.591
         },
         {
             "text": "Hier staat elke keer dat de offerte verstuurd is. Precies zoals de klant hem kreeg. Je ziet ook wanneer de klant hem bekeek.",
-            "hash": "d3dad5fabf4bf14624608b2d8b6005cd173eb010",
-            "start": 9.237,
-            "end": 15.578
+            "hash": "9947d0a2fe43c64145b42bea1824b40b5696b3f5",
+            "start": 9.591,
+            "end": 16.352
         },
         {
             "text": "Is de offerte geaccepteerd? Dan staat hier \"Werkbon maken\". Wat de klant nam, gaat in één keer mee naar de werkbon.",
-            "hash": "4aa8969835ed011b07a74b22cebccd9324509925",
-            "start": 16.578,
-            "end": 23.251
+            "hash": "d66749f3f813fcdf7246b42cad9fcdcec522276f",
+            "start": 17.352,
+            "end": 24.119
         },
         {
             "text": "In de tijdlijn staat alles wat er met de offerte gebeurde. Ook wanneer de klant keek, en elke nieuwe status.",
-            "hash": "569006ae9e081a29073c92fdeeebc287b6d43d07",
-            "start": 24.251,
-            "end": 30.501
+            "hash": "0c143ec524c8c597299a4fac4840048306ae1a33",
+            "start": 25.119,
+            "end": 31.175
         }
     ]
 }

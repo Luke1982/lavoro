@@ -2,45 +2,45 @@
     "tour": "werkbon",
     "chapter": "afronden",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "afronden.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Hier schrijf je wat er gedaan is. Dat komt op de werkbon voor de klant. Daaronder staan de aankomsttijd en de vertrektijd.",
-            "hash": "6aaa7d581fba9fa3643cd9272c67f2a9c709fd5f",
+            "hash": "feb2c5b084802dea189366df7474aee93ee2f9ef",
             "start": 0,
-            "end": 6.462
+            "end": 6.614
         },
         {
             "text": "Met \"bekijk en onderteken\" opent het overzicht voor de klant.",
-            "hash": "8605bcd37971322e572fe41b1f071bfe02008e38",
-            "start": 7.462,
-            "end": 10.841
+            "hash": "417b55e99281660d21402231ea92631690195670",
+            "start": 7.614,
+            "end": 11.405
         },
         {
             "text": "Hier ziet de klant wat er gedaan is, met de foto's en de materialen.",
-            "hash": "413a466a2aad8def4887f87cd87a8cc29fdac6a3",
-            "start": 11.841,
-            "end": 15.688
+            "hash": "b52cca1eb0fc9d6027569bbd9aa5472448045c1e",
+            "start": 12.405,
+            "end": 16.108
         },
         {
             "text": "Is er nog werk te doen? Zet \"werkzaamheden gereed\" dan uit.",
-            "hash": "fca924fecb2e457acee22a59a55b64e44af9ba01",
-            "start": 16.688,
-            "end": 20.127
+            "hash": "e045c8f18e02de8b68bb797aa906bee974697afd",
+            "start": 17.108,
+            "end": 20.314
         },
         {
             "text": "Hier tekent de klant, met zijn naam erbij. Daarna klik je op \"akkoord\". De werkbon is dan getekend, maar nog niet gesloten.",
-            "hash": "7b6726d76d84508fce54599168225b8c77b1dba2",
-            "start": 21.127,
-            "end": 28.712
+            "hash": "e897badb4ec8838b4064cb878918d742381a7e7f",
+            "start": 21.314,
+            "end": 29.241
         },
         {
             "text": "Een werkbon sluit pas als alle taken af zijn en de klant heeft getekend. Daarna sluit je hem met \"werkbon afsluiten\".",
-            "hash": "016cf209a24108b138f361ca47d281ccb2e83553",
-            "start": 29.712,
-            "end": 36.923
+            "hash": "39a17c4c01c55b511925009ba3bee42b4eeb58cc",
+            "start": 30.241,
+            "end": 37.778
         }
     ]
 }

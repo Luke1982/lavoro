@@ -2,33 +2,33 @@
     "tour": "checklists",
     "chapter": "overzicht",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "overzicht.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Links staan de checks. Een check is één ding dat de monteur afvinkt.",
-            "hash": "a017059604521c975b66390fbbfda061509bc653",
+            "hash": "dcc40bd6f7b3844549e53b599201d6e5baf4c8bc",
             "start": 0,
-            "end": 4.194
+            "end": 4.268
         },
         {
             "text": "In het midden staan de checklists. Dat zijn vaste rijtjes checks.",
-            "hash": "eaf6408eb4e3c7eeb487bfb3262942d33cdd4248",
-            "start": 5.194,
-            "end": 8.692
+            "hash": "c47531dc8fb22f8d52297a5f29422267e84eae54",
+            "start": 5.268,
+            "end": 8.411
         },
         {
             "text": "Rechts staan de taken. Hier geef je een taak zijn checks en checklists.",
-            "hash": "a0cd6d512124ef8fd46b2b548cc4b9d4bb11caa6",
-            "start": 9.692,
-            "end": 14.12
+            "hash": "78526a1af1e9cc23e01437591794e03eba90399b",
+            "start": 9.411,
+            "end": 13.247
         },
         {
             "text": "Typ een nieuwe check in het veld \"nieuwe check\". Druk dan op enter.",
-            "hash": "aa1501b0172d94be4cc46c302ecd173fef06fe63",
-            "start": 15.12,
-            "end": 19.238
+            "hash": "1e028fa8312e1070101805e03270a43d22552477",
+            "start": 14.247,
+            "end": 17.995
         }
     ]
 }

@@ -2,39 +2,39 @@
     "tour": "planner",
     "chapter": "uitvoering",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "uitvoering.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok is voor je tijden en de handtekening. Met het kruisje annuleer je je eigen deel.",
-            "hash": "759e030542b4ed4c2cbd11ef102c5b72587e8f0f",
+            "hash": "bac7ca3bae3dffaa63301f7aa628736a073bed7d",
             "start": 0,
-            "end": 8.249
+            "end": 8.499
         },
         {
             "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging. Vul je reistijd in en laat de klant tekenen.",
-            "hash": "2f4272ae5e6ff36ee638c798e21150267a0c812f",
-            "start": 9.249,
-            "end": 16.46
+            "hash": "c78eea36ca403ac197daf5b61a20c0ec635fa407",
+            "start": 9.499,
+            "end": 16.892
         },
         {
             "text": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
-            "hash": "7006187e50378e2a937ff41533bc71deaae6e0a5",
-            "start": 17.46,
-            "end": 21.538
+            "hash": "5ff2ffe077e164531c7b7e8dd8b960c995bc53ab",
+            "start": 17.892,
+            "end": 22.293
         },
         {
             "text": "Mag je tijden voor een ander invullen? Dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als voor jezelf.",
-            "hash": "d2881697de0f4b948ada750e19a3ea65e4a9d5ac",
-            "start": 22.538,
-            "end": 31.74
+            "hash": "b07805e287aa28019ae42bcbc99bae3610f16645",
+            "start": 23.293,
+            "end": 32.684
         },
         {
             "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij. Of je trekt er een annulering mee in. Dat geldt alleen voor de monteur in die rij.",
-            "hash": "38ce9030ef544ccb2c9b27562699bb39df2607bf",
-            "start": 32.74,
-            "end": 41.084
+            "hash": "425d3a40a24d20c53258479fed98f0b30d8959d8",
+            "start": 33.684,
+            "end": 41.268
         }
     ]
 }

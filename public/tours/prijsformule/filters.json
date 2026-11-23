@@ -2,39 +2,39 @@
     "tour": "prijsformule",
     "chapter": "filters",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "filters.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Het blok \"filter op type\" haalt de machines van één producttype uit de rest, bijvoorbeeld de airco's. Ook de types die eronder vallen, tellen mee. Welk type je wilt, kies je rechts.",
-            "hash": "552ff6355ae5526eda59b189584ef0075c5ce5ff",
+            "hash": "2631ffe77e209f44b08744f3aaa55f12e3415367",
             "start": 0,
-            "end": 11.253
+            "end": 10.801
         },
         {
             "text": "Een filter heeft twee uitgangen. \"Voldoet\" geeft de machines van het gekozen type. \"Overige\" geeft alle andere. Heeft een klant zes machines van dit type, en twee van een ander type, dan komen er zes uit bij \"voldoet\", en twee bij \"overige\".",
-            "hash": "9e952badb076e7179cfe00bc80a09eb882e98b4e",
-            "start": 12.253,
-            "end": 27.153
+            "hash": "6ec28de88b0ce268688be2105b781895a04f77d4",
+            "start": 11.801,
+            "end": 27.146
         },
         {
             "text": "Gebruik \"overige\" voor de rest. Hier kosten machines van dit type vijftig euro per stuk, en de rest dertig euro. Zes machines keer vijftig euro is driehonderd euro, en twee machines keer dertig euro is zestig euro. Samen driehonderdzestig euro. Zo krijgt elke machine precies één prijs.",
-            "hash": "d371d58560e7d6e5d10c0e470a40ec02555da655",
-            "start": 28.153,
-            "end": 47.364
+            "hash": "ec7b320401de8d930cd8dfff7d583cd9d196d791",
+            "start": 28.146,
+            "end": 47.19
         },
         {
             "text": "Het blok \"filter op model\" haalt de machines van één bepaald model eruit. Het blok \"filter op merk\" haalt alle machines van één merk eruit, bijvoorbeeld alles van Mitsubishi.",
-            "hash": "535576036bdc07bdb266e837d45c4b8fb3a2af69",
-            "start": 48.364,
-            "end": 58.938
+            "hash": "faf1d9bbb43e8293d8070d725d84d3a71884eb4b",
+            "start": 48.19,
+            "end": 58.029
         },
         {
             "text": "Het blok \"filter op kenmerk\" kijkt naar een kenmerk van het model, zoals het koelvermogen. Bijvoorbeeld: koelvermogen tien of meer. Zo zet je grote installaties apart van kleine, en geef je ze een hogere prijs.",
-            "hash": "52ac11c866077c92375c2130e37c30eaf1b49a09",
-            "start": 59.938,
-            "end": 71.566
+            "hash": "43f14aeb257b78365cdd14fe536dce578acec94c",
+            "start": 59.029,
+            "end": 71.69
         }
     ]
 }

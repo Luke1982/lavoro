@@ -2,15 +2,15 @@
     "tour": "storingen",
     "chapter": "kaart",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "kaart.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Met de knop \"kaart\" zie je alle openstaande storingen op een kaart. Zo zie je meteen waar het dringend is. Klik op \"open de kaart\". Dan gaat de rondleiding daar verder.",
-            "hash": "54b6adca50bd21f46195a6c3a736e1bc36cf1fc6",
+            "hash": "314a2d489c58f34b31f3b393af812a187765b9b0",
             "start": 0,
-            "end": 9.353
+            "end": 8.929
         }
     ]
 }

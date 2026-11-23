@@ -2,21 +2,21 @@
     "tour": "storingen",
     "chapter": "selecteren",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "selecteren.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Vink de storingen aan waarmee je iets wilt doen.",
-            "hash": "4e0096ff5d0a1d614d1779aa0b9d6399ee47852f",
+            "hash": "d4572f7916eca0eb2d0961c807098756b673e8f4",
             "start": 0,
-            "end": 2.965
+            "end": 2.444
         },
         {
             "text": "Onderin verschijnt dan een balk. Met \"bewerken\" geef je ze allemaal tegelijk een nieuwe status. Met \"op het bakje\" leg je ze klaar voor de planner of een werkbon.",
-            "hash": "b53cf98547d99352d966d6e202f650c2dad4a71b",
-            "start": 3.965,
-            "end": 13.149
+            "hash": "d78dced00b0be593cf1dd38c52e248b26899c597",
+            "start": 3.444,
+            "end": 12.611
         }
     ]
 }

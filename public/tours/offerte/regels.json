@@ -1,0 +1,52 @@
+{
+    "tour": "offerte",
+    "chapter": "regels",
+    "version": 1,
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
+    "audio": "regels.mp3",
+    "gap": 1,
+    "steps": [
+        {
+            "text": "Met deze vier knoppen zet je iets op de offerte. Een product of materiaal uit de catalogus. Een eigen regel, zoals montage-uren. Een tekstregel zonder bedrag. Of een optie die de klant erbij kan nemen.",
+            "hash": "fa8969be7aca3e296d604befa16ccd4d3f5e000b",
+            "start": 0,
+            "end": 12.596
+        },
+        {
+            "text": "Zoek op merk, model, naam of code. Vul het aantal in en klik op \"Toevoegen\". Moet er bij een product iets gekozen worden, zoals hoeveel meter leiding? Dan vraagt Lavoro dat eerst.",
+            "hash": "ee313d8eceddc23cbcfd1649da3da004080ed997",
+            "start": 13.596,
+            "end": 24.939
+        },
+        {
+            "text": "Op een regel pas je alles direct aan. De naam, de ruimte, het aantal en de prijs. Het wordt bewaard zodra je het veld verlaat.",
+            "hash": "ed97bcbab14a12a1c6f50528b6494ec39496d309",
+            "start": 25.939,
+            "end": 33.128
+        },
+        {
+            "text": "Onder dit menu maak je een regel optioneel, of een alternatief voor de regel erboven. Je maakt er ook een stelpost van, of je geeft korting.",
+            "hash": "d000a165596d9f084ac9e92ab90947e864fae21a",
+            "start": 34.128,
+            "end": 43.229
+        },
+        {
+            "text": "Een optie heeft een vinkje. Aangevinkt telt hij mee in het totaal. Bij alternatieven kies je met het rondje welke meetelt.",
+            "hash": "7a81560dcf039ceb9ae4ce5d5c7cbc670f3e1988",
+            "start": 44.229,
+            "end": 51.111
+        },
+        {
+            "text": "Onder een product staan de materialen die meekomen. Verander je het aantal van het product? Dan gaan de standaardmaterialen mee.",
+            "hash": "8e0b28a4e96f836447d6824c5dc826d9c3600e46",
+            "start": 52.111,
+            "end": 59.264
+        },
+        {
+            "text": "Met het raster links sleep je een regel naar een andere plek. Met \"Volgorde\" zie je alleen de namen, en sleep je nog makkelijker.",
+            "hash": "4fdaa1bc2738b2e4daa486b9bdb40940f1b0bfad",
+            "start": 60.264,
+            "end": 67.123
+        }
+    ]
+}

@@ -2,33 +2,33 @@
     "tour": "machines",
     "chapter": "lijst",
     "version": 1,
-    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2",
+    "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
             "text": "Je zoekt een machine op serienummer of klant. Ook merk, model en soort werken. De lijst past zich aan terwijl je typt.",
-            "hash": "db1a1ad5f7d6974dcb39e39160d2f4a5000dcffd",
+            "hash": "95178313291d8352b3ac272ab82e1730c2af6dbb",
             "start": 0,
-            "end": 7.05
+            "end": 6.899
         },
         {
             "text": "Onder filters kies je een status. Je kunt ook alleen machines met storingen laten zien. Het filter blijft staan tot je het wist.",
-            "hash": "a23ce3f9c9eed06a1b92c9d985340bf0e9dae498",
-            "start": 8.05,
-            "end": 15.507
+            "hash": "7e9141a94c6e99d45a537f0ae18ec27b76b5f557",
+            "start": 7.899,
+            "end": 14.854
         },
         {
             "text": "Per machine zie je het merk, het model en de klant. Ook het serienummer en de volgende keuring staan erbij. Is die datum rood? Dan is de keuring al verlopen. Rechts staan de open, lopende en gesloten storingen. Klik op een regel om de machine te openen.",
-            "hash": "49279889ff14be0a747ef044e7106b6ff11b4e8f",
-            "start": 16.507,
-            "end": 31.123
+            "hash": "a76ebf8708f7e8fb1aec0519eb9acba8d81147b4",
+            "start": 15.854,
+            "end": 29.7
         },
         {
             "text": "Per machine zie je het merk, het model en de klant. Rechts staan de status en de volgende keuring. Tik op een regel om de machine te openen.",
-            "hash": "d24a9bf3669b91d43d3721d7de0b3f7e046a90f5",
-            "start": 32.123,
-            "end": 40.453
+            "hash": "196f54ce4d97c82b12bd73831559d4b1597bc301",
+            "start": 30.7,
+            "end": 39
         }
     ]
 }
