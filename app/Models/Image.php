@@ -72,6 +72,20 @@ class Image extends Model
         });
     }
 
+    /** How a record photos hang off is named in a sentence: "Werkbon WB-0012", 'Keurpunt "Lekdicht"'. */
+    public static function labelOf(Model $record): string
+    {
+        return $record instanceof ServiceCheckInstance
+            ? 'Keurpunt "' . ($record->serviceCheck?->name ?? 'onbekend') . '"'
+            : (string) $record->historyLabel();
+    }
+
+    /** Where photos are, by record and side: "de interne foto's van Werkbon WB-0012". */
+    public static function placeOf(Model $record, bool $internal): string
+    {
+        return ($internal ? "de interne foto's van " : "de foto's van ") . self::labelOf($record);
+    }
+
     /**
      * The photo as it was taken, without any drawing on it.
      */

@@ -9,6 +9,7 @@ use App\Domain\Signals\Attachments\DocumentChanged;
 use App\Domain\Signals\Attachments\DocumentRemoved;
 use App\Domain\Signals\Attachments\ImageAnnotated;
 use App\Domain\Signals\Attachments\ImageAttached;
+use App\Domain\Signals\Attachments\ImageMoved;
 use App\Domain\Signals\Attachments\ImageRemoved;
 use App\Domain\Signals\Attachments\ImageRenamed;
 use App\Domain\Signals\Attachments\ImageReplaced;
@@ -124,7 +125,7 @@ trait BuildsEverySignal
 
         $records = match ($class) {
             ImageAttached::class, ImageAnnotated::class, ImageReplaced::class, ImageRenamed::class,
-            ImageRemoved::class, MainImageChanged::class => Image::ATTACHABLE_TO,
+            ImageRemoved::class, ImageMoved::class, MainImageChanged::class => Image::ATTACHABLE_TO,
             ImageShareChanged::class => [Project::class],
             DocumentAttached::class, DocumentChanged::class, DocumentRemoved::class => Document::ATTACHABLE_TO,
             RemarkAdded::class, RemarkRemoved::class => Remark::ATTACHABLE_TO,

@@ -101,14 +101,6 @@ final class ImageKind extends TrayKind
         };
     }
 
-    /** How a record photos hang off is named in a sentence: "Werkbon WB-0012", 'Keurpunt "Lekdicht"'. */
-    public static function recordLabel(Model $record): string
-    {
-        return $record instanceof ServiceCheckInstance
-            ? 'Keurpunt "' . ($record->serviceCheck?->name ?? 'onbekend') . '"'
-            : (string) $record->historyLabel();
-    }
-
     /** @param  Image  $image */
     public static function title(Model $image): string
     {
@@ -122,19 +114,25 @@ final class ImageKind extends TrayKind
      */
     public static function subtitle(Model $image): ?string
     {
-        $record = self::record($image);
+        $record = self::source($image);
 
         if ($record === null) {
             return null;
         }
 
-        return self::recordLabel($record) . ($image->tray_internal ? ' · intern' : '');
+        return Image::labelOf($record) . (self::internal($image) ? ' · intern' : '');
+    }
+
+    /** Whether it lies among the internal photos of what it hangs off. */
+    public static function internal(Image $image): bool
+    {
+        return (bool) $image->tray_internal;
     }
 
     /** @param  Image  $image */
     public static function customerId(Model $image): ?int
     {
-        $record = self::record($image);
+        $record = self::source($image);
 
         return match (true) {
             $record instanceof Asset => $record->resolvedCustomerId(),
@@ -153,7 +151,7 @@ final class ImageKind extends TrayKind
     protected static function card(Model $image): array
     {
         $file = '/files/images/' . $image->id;
-        $record = self::record($image);
+        $record = self::source($image);
 
         $page = match (true) {
             $record instanceof ServiceCheckInstance => '/serviceorders/' . $record->serviceJob?->service_order_id,
@@ -168,7 +166,7 @@ final class ImageKind extends TrayKind
      * The record this photo hangs off, if it still exists. Kept on the photo, so
      * describing it asks once.
      */
-    private static function record(Image $image): ?Model
+    public static function source(Image $image): ?Model
     {
         if (!$image->relationLoaded('trayRecord')) {
             $class = Image::attachableType($image->tray_record_type);

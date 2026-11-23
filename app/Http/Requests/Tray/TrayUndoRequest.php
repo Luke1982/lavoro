@@ -49,6 +49,13 @@ class TrayUndoRequest extends FormRequest
                 new AttachableType(Image::ATTACHABLE_TO, 'foto'),
             ],
             'undo.imageable_id' => [Rule::requiredIf($this->undoes('image:photos')), 'integer'],
+            'undo.origins' => ['exclude_unless:undo.handler,image:photos', 'sometimes', 'array', 'max:100'],
+            'undo.origins.*.image_id' => ['required', 'integer'],
+            'undo.origins.*.imageable_type' => ['required', 'string', new AttachableType(Image::ATTACHABLE_TO, 'foto')],
+            'undo.origins.*.imageable_id' => ['required', 'integer'],
+            'undo.origins.*.internal' => ['required', 'boolean'],
+            'undo.origins.*.main' => ['required', 'boolean'],
+            'undo.origins.*.shared' => ['required', 'boolean'],
         ];
     }
 
