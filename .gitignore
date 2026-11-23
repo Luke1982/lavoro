@@ -34,6 +34,3 @@ Thumbs.db
 # Uploads van klanten horen niet in git: dat is gegevens, geen code.
 /storage/tenant-*
 /storage/framework/web-server.json
-
-# Losse ingesproken stappen van de rondleidingen: een cache van tours:speak.
-/resources/tours/clips
