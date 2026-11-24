@@ -340,13 +340,14 @@ class ReadToolScopeTest extends TestCase
         $customer = Customer::factory()->create();
         $product = Product::factory()->create();
 
-        Asset::factory()->count(5)->create([
+        Asset::factory()->count(5)->sequence(fn ($sequence) => ['serial_number' => 'SN-TEST-' . $sequence->index])->create([
             'customer_id' => $customer->id,
             'product_id' => $product->id,
             'next_service_date' => Clock::today(),
         ]);
 
-        $found = $this->invoke('find_asset', $user, ['due_within_days' => 30]);
+        /** By serial number, because that is when find_asset offers a choice and says so in its note. */
+        $found = $this->invoke('find_asset', $user, ['due_within_days' => 30, 'serial_number' => 'SN-TEST']);
 
         $this->assertSame(5, $found->content['total']);
 

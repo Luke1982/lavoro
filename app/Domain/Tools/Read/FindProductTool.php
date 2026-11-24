@@ -168,8 +168,13 @@ class FindProductTool implements Tool
          * A handful of matches with no way to tell which was meant is a choice, and
          * it comes from here rather than from the model remembering to ask. Asked
          * the same thing twice it offered buttons once and a bulleted list the next.
+         *
+         * Only when it was searched by name or model, though. Asked for the
+         * catalogue of a brand or a soort, the model is reading a list — building a
+         * price formula, it got "Welk product bedoel je?" put in front of somebody
+         * who had asked about soorten, not products.
          */
-        $choice = $this->choiceOf(
+        $choice = blank($call->stringArgument('query')) ? null : $this->choiceOf(
             $products,
             'Welk product bedoel je?',
             'product',

@@ -119,8 +119,13 @@ class FindAssetTool implements Tool
          * A handful of matches with no way to tell which was meant is a choice, and
          * it comes from here rather than from the model remembering to ask. Asked
          * the same thing twice it offered buttons once and a bulleted list the next.
+         *
+         * Only when it was searched by serial number, though. Listing a customer's
+         * machines is a list somebody asked for, and a "Welke machine bedoel je?"
+         * under it sat beside the question the model was really asking — twice
+         * in one turn, and the user answered both, differently.
          */
-        $choice = $this->choiceOf(
+        $choice = blank($call->stringArgument('serial_number')) ? null : $this->choiceOf(
             $assets,
             'Welke machine bedoel je?',
             'machine',

@@ -9,6 +9,7 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
+use App\Models\ProductType;
 use App\Models\User;
 
 /**
@@ -73,8 +74,16 @@ class ReadPriceFormulasTool implements Tool
                 . 'telt één keer. Alleen wat in output_periodic (prijs per prijsperiode van het contract) en '
                 . 'output_one_time aankomt, telt. Werk met de rest-uitgang van een filter verder, zodat elke '
                 . 'machine één prijs krijgt. Bedragen zijn euro\'s exclusief btw. Probeer een formule met '
-                . 'try_price_formula en stel hem dan voor met save_price_formula.',
+                . 'try_price_formula en stel hem dan voor met save_price_formula. De soorten voor filter_type '
+                . 'staan in productsoorten; zoek ze niet op met find_products, dat legt de gebruiker een keuze '
+                . 'tussen losse producten voor. Vraag vóór het bouwen of de bedragen per onderhoudsbeurt, per jaar '
+                . 'of per prijsperiode gelden, tenzij de gebruiker dat al zei; een prijslijst en voorrijkosten zijn '
+                . 'meestal per beurt. Per beurt: vermenigvuldig met het aantal beurten per jaar (visits) en deel door '
+                . 'contract.periods, want output_periodic is de prijs per prijsperiode. Geef elke soort machine een '
+                . 'eigen filter op zijn eigen productsoorten; reken nooit de rest-uitgang als een soort, anders betaalt '
+                . 'elk ander apparaat ook die prijs.',
             'blokken' => CompactFormula::catalogue(),
+            'productsoorten' => array_values(ProductType::pathMap()),
             'formules' => $formulas->map(fn (PriceFormula $formula) => [
                 'formula_id' => $formula->id,
                 'naam' => $formula->name,

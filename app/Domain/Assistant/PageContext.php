@@ -26,6 +26,9 @@ class PageContext
         'customers' => 'klant',
         'projects' => 'project',
         'products' => 'product',
+        'maintenancecontracts' => 'onderhoudscontract',
+        'priceformulas' => 'prijsformule',
+        'quotes' => 'offerte',
     ];
 
     /** @var array<string, string> */
@@ -37,6 +40,9 @@ class PageContext
         'customers' => 'het klantenoverzicht',
         'projects' => 'het projectenoverzicht',
         'products' => 'het productenoverzicht',
+        'maintenancecontracts' => 'het overzicht van onderhoudscontracten',
+        'priceformulas' => 'het overzicht van prijsformules',
+        'quotes' => 'het overzicht van offertes',
     ];
 
     public function describe(?string $path): string
