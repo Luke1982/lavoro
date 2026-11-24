@@ -1,7 +1,7 @@
 {
     "tour": "activiteiten",
     "chapter": "lijst",
-    "version": 2,
+    "version": 3,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
@@ -37,10 +37,16 @@
             "end": 38.856
         },
         {
-            "text": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze.",
-            "hash": "e13e2e26b53bb282a75da081edbfdc29ee32b6cf",
+            "text": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Hier kies je of je alleen die machines ziet, ze gemengd met de rest ziet, of ze verbergt.",
+            "hash": "9dd8555f5f67ccd4d7b406ee30bcfd77dcaa6ebe",
             "start": 39.856,
-            "end": 46.095
+            "end": 48.373
+        },
+        {
+            "text": "In de gemengde lijst herken je een contractmachine aan dit paarse label. Klik erop en je gaat naar het contract.",
+            "hash": "05bbc6a60bc29d2754a6799aa0b289be08358770",
+            "start": 49.373,
+            "end": 55.487
         }
     ]
 }
