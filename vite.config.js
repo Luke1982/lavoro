@@ -41,6 +41,11 @@ function swGitHash() {
 
 export default defineConfig({
     publicDir: 'public',
+    server: {
+        watch: {
+            ignored: ["**/vendor/**", "**/storage/**"],
+        },
+    },
     plugins: [
         laravel({
             input: [
