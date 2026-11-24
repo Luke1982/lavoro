@@ -1,21 +1,19 @@
 <template>
     <div class="mx-auto flex max-w-3xl flex-col gap-4">
         <VisitCard data-tour="mechanic.visit" :service-order-id="serviceOrder.id" :customer="serviceOrder.customer"
-            :initial-events="events" :fallback-location="mapLocation"
-            @times-updated="$emit('times-updated', $event)" />
+            :initial-events="events" :fallback-location="mapLocation" @times-updated="$emit('times-updated', $event)" />
 
         <WorkToDo data-tour="mechanic.work" :service-order-id="serviceOrder.id" :servicejobs="serviceOrder.servicejobs"
             :tickets="serviceOrder.tickets" :task-instances="serviceOrder.task_instances"
             :hidden-task-count="hiddenTaskCount" :is-closed="serviceOrder.is_closed"
             :sent-to-administration="serviceOrder.sent_to_administration" :type="serviceOrder.type"
-            :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax" :material-categories="materialCategories"
-            :material-usage-units="materialUsageUnits" />
+            :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+            :material-categories="materialCategories" :material-usage-units="materialUsageUnits" />
 
         <MaterialsCompact data-tour="mechanic.materials" :service-order-id="serviceOrder.id" :materials="materials"
-            :freeform-materials="freeformMaterials" :all-materials="allMaterials"
-            :materials-use-ajax="materialsUseAjax" :categories="materialCategories" :usage-units="materialUsageUnits"
-            :is-closed="serviceOrder.is_closed" :sent-to-administration="serviceOrder.sent_to_administration"
-            :type="serviceOrder.type" />
+            :freeform-materials="freeformMaterials" :all-materials="allMaterials" :materials-use-ajax="materialsUseAjax"
+            :categories="materialCategories" :usage-units="materialUsageUnits" :is-closed="serviceOrder.is_closed"
+            :sent-to-administration="serviceOrder.sent_to_administration" :type="serviceOrder.type" />
 
         <AudienceBox data-tour="mechanic.remarks" title="Opmerkingen" :icon="MessageSquare" chapter="remarks"
             :internal-count="serviceOrder.internal_remarks.length" :external-count="serviceOrder.remarks.length">
@@ -29,11 +27,12 @@
         </AudienceBox>
 
         <AudienceBox data-tour="mechanic.photos" title="Foto's" :icon="Camera" chapter="photos" initial="external"
-            :internal-count="serviceOrder.internal_images.length + serviceOrder.shared_images.length" :external-count="serviceOrder.images.length">
+            :internal-count="serviceOrder.internal_images.length + serviceOrder.shared_images.length"
+            :external-count="serviceOrder.images.length">
             <template #default="{ internal }">
                 <ImageUploadComponent :key="side(internal)" bare :existing="images(internal)"
-                    :shared="internal ? serviceOrder.shared_images : []"
-                    :imageable-id="serviceOrder.id" imageable-type="App\Models\ServiceOrder" :internal="internal" />
+                    :shared="internal ? serviceOrder.shared_images : []" :imageable-id="serviceOrder.id"
+                    imageable-type="App\Models\ServiceOrder" :internal="internal" />
             </template>
         </AudienceBox>
 
@@ -42,8 +41,8 @@
 
         <div v-if="finish" class="h-20" aria-hidden="true" />
 
-        <FinishBar v-if="finish" data-tour="mechanic.finish" :label="finish.label" :icon="finish.icon" :tone="finish.tone"
-            @click="$emit(finish.emits)" />
+        <FinishBar v-if="finish" data-tour="mechanic.finish" :label="finish.label" :icon="finish.icon"
+            :tone="finish.tone" @click="$emit(finish.emits)" />
     </div>
 </template>
 
@@ -111,7 +110,7 @@ const finish = computed(() => {
 
     if (!props.isSigned) {
         return props.plannedAfterToday
-            ? { label: 'Let op, deze bon is in de toekomst nog ingepland', icon: TriangleAlert, tone: 'orange', emits: 'open-signoff' }
+            ? { label: 'Vraag handtekening aan de klant', icon: TriangleAlert, tone: 'orange', emits: 'open-signoff' }
             : { label: 'Vraag handtekening aan de klant', icon: Signature, tone: 'blue', emits: 'open-signoff' }
     }
 
