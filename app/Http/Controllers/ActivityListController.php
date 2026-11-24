@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Search\SearchTerm;
 use App\Enums\AssetStatusses;
+use App\Enums\ContractAssetFilter;
 use App\Http\Requests\ActivityListReadRequest;
 use App\Models\Asset;
 use App\Models\Customer;
@@ -38,18 +39,17 @@ class ActivityListController extends Controller
 
         $view = $request->session()->get(self::VIEW_SESSION_KEY, 'list');
         $contract_assets = $request->contractAssets();
-        $hide_contract_assets = $contract_assets['hidden'];
         $content = $view === 'table'
             ? ['table' => $table->build(
                 $days,
                 $search,
                 $request->tableQuery(),
                 $this->perPage($request),
-                $hide_contract_assets
+                $contract_assets
             )]
             : [
-                'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search, $hide_contract_assets),
-                'expiredAssets' => $this->buildCustomerAssetList('expired', $days, $search, $hide_contract_assets),
+                'upcomingAssets' => $this->buildCustomerAssetList('upcoming', $days, $search, $contract_assets),
+                'expiredAssets' => $this->buildCustomerAssetList('expired', $days, $search, $contract_assets),
             ];
 
         return inertia('ActivityList/UpcomingActivities', [
@@ -61,11 +61,15 @@ class ActivityListController extends Controller
         ]);
     }
 
-    private function buildCustomerAssetList(string $type, int $days, ?string $search, bool $hide_contract_assets)
+    /**
+     * @param  array{filter: ContractAssetFilter, marked: bool}  $contract_assets
+     */
+    private function buildCustomerAssetList(string $type, int $days, ?string $search, array $contract_assets)
     {
+        $contract_filter = $contract_assets['filter'];
         $matching_query = $type === 'upcoming'
-            ? $this->getUpcomingAssetsQuery($days, $hide_contract_assets)
-            : $this->getExpiredAssetsQuery($hide_contract_assets);
+            ? $this->getUpcomingAssetsQuery($days, $contract_filter)
+            : $this->getExpiredAssetsQuery($contract_filter);
 
         // Outer: one asset per customer. Drives ordering of customers on the page.
         $candidates = $this->applySearchFilter($matching_query, $search)
@@ -115,7 +119,7 @@ class ActivityListController extends Controller
             ->where(fn (Builder $q) => $q
                 ->whereIn('customer_id', $customer_ids)
                 ->orWhereIn('id', $child_ownership->keys()))
-            ->when($hide_contract_assets, fn (Builder $q) => $q->notUnderActiveContract())
+            ->filteredOnContract($contract_filter)
             ->with([
                 'product.brand',
                 'product.productType',
@@ -128,6 +132,9 @@ class ActivityListController extends Controller
             ]);
 
         $inner_assets = $this->applyServiceDateWindow($inner_query, $type, $days)->get();
+        $contracts_of = $contract_assets['marked']
+            ? Asset::activeContractsCovering($inner_assets->modelKeys())
+            : [];
 
         $root_of = fn (Asset $asset) => $asset->customer_id !== null
             ? ['customer_id' => $asset->customer_id, 'location_id' => $asset->location_id]
@@ -145,9 +152,10 @@ class ActivityListController extends Controller
             $main->setRelation('customer', $customer);
 
             $assets = $inner_by_customer->get($customer->id, collect());
-            $assets->each(function (Asset $asset) use ($root_of) {
+            $assets->each(function (Asset $asset) use ($root_of, $contracts_of) {
                 $this->attachEarlierPlannedEvents($asset);
                 $asset->setAttribute('resolved_location_id', $root_of($asset)['location_id']);
+                $asset->setAttribute('active_contracts', $contracts_of[$asset->id] ?? []);
             });
 
             $customer->upcoming_asset_days = $days;
@@ -219,29 +227,27 @@ class ActivityListController extends Controller
                 ->orWhereHas('brand', fn (Builder $b) => $b->where('name', 'like', $like))));
     }
 
-    private function getUpcomingAssetsQuery(int $days, bool $hide_contract_assets): Builder
+    private function getUpcomingAssetsQuery(int $days, ContractAssetFilter $contract_filter): Builder
     {
-        return Asset::upcomingAndUnplanned($days)
-            ->when($hide_contract_assets, fn (Builder $q) => $q->notUnderActiveContract());
+        return Asset::upcomingAndUnplanned($days)->filteredOnContract($contract_filter);
     }
 
-    private function getExpiredAssetsQuery(bool $hide_contract_assets): Builder
+    private function getExpiredAssetsQuery(ContractAssetFilter $contract_filter): Builder
     {
-        return Asset::expired()
-            ->when($hide_contract_assets, fn (Builder $q) => $q->notUnderActiveContract());
+        return Asset::expired()->filteredOnContract($contract_filter);
     }
 
     public function map(ActivityListReadRequest $request, RoutePlanner $route_planner)
     {
         $days = (int) $request->input('days', 60);
         $contract_assets = $request->contractAssets();
-        $hide_contract_assets = $contract_assets['hidden'];
+        $contract_filter = $contract_assets['filter'];
 
-        $upcoming_customer_ids = $this->getUpcomingAssetsQuery($days, $hide_contract_assets)
+        $upcoming_customer_ids = $this->getUpcomingAssetsQuery($days, $contract_filter)
             ->whereNotNull('customer_id')
             ->pluck('customer_id');
 
-        $expired_customer_ids = $this->getExpiredAssetsQuery($hide_contract_assets)
+        $expired_customer_ids = $this->getExpiredAssetsQuery($contract_filter)
             ->whereNotNull('customer_id')
             ->pluck('customer_id');
 
@@ -249,7 +255,7 @@ class ActivityListController extends Controller
 
         $customers = Customer::whereIn('id', $customer_ids)->with(['assets' => fn ($q) => $q
             ->select('id', 'customer_id', 'location_id', 'next_service_date', 'status', 'serial_number', 'product_id')
-            ->when($hide_contract_assets, fn (Builder $assets) => $assets->notUnderActiveContract())
+            ->filteredOnContract($contract_filter)
             ->with(['product.productType', 'linkedLocation']),
         ])->get(['id', 'name', 'address', 'postal_code', 'city', 'lat', 'lon']);
 

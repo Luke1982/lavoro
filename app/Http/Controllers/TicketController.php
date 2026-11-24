@@ -57,23 +57,6 @@ class TicketController extends Controller
             $data
         );
 
-        if ($request->user()->can('viewAny', MaintenanceContract::class)) {
-            $contract_columns = [
-                'maintenance_contracts.id',
-                'maintenance_contracts.customer_id',
-                'maintenance_contracts.title',
-                'maintenance_contracts.start_date',
-                'maintenance_contracts.end_date',
-                'maintenance_contracts.cancelled_at',
-            ];
-
-            $query->with([
-                'asset.maintenanceContracts' => fn ($contracts) => $contracts->active()
-                    ->select($contract_columns)
-                    ->with('customer:id,name'),
-            ]);
-        }
-
         if (!is_string($search) || trim($search) === '') {
             $search = '';
         }
@@ -94,8 +77,13 @@ class TicketController extends Controller
 
         $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
 
+        $contracts_of = $request->user()->can('viewAny', MaintenanceContract::class)
+            ? Asset::activeContractsCovering($tickets->getCollection()->pluck('asset_id')->filter()->all())
+            : [];
+
         foreach ($tickets as $ticket) {
             $this->resolveAssetOwnership($ticket);
+            $ticket->asset?->setAttribute('active_contracts', $contracts_of[$ticket->asset_id] ?? []);
         }
 
         $closed_by_options = User::whereIn(

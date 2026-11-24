@@ -74,6 +74,9 @@
                         </div>
                     </div>
                 </label>
+                <div v-if="asset.active_contracts?.length" class="mt-1" data-tour="activities.contract">
+                    <ContractBadge :contracts="asset.active_contracts" :asset-id="asset.id" size="sm" />
+                </div>
                 <div v-if="asset.pending_service_jobs.length > 0 || asset.has_past_planned_event">
                     <span class="text-xs text-gray-600 dark:text-slate-400">Er zijn nog openstaande keuringen voor
                         deze machine:</span>
@@ -180,6 +183,7 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import CustomerHeaderComponent from '@/Components/CustomerHeaderComponent.vue';
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue';
+import ContractBadge from '@/Components/MaintenanceContracts/ContractBadge.vue';
 import TicketSelectCard from '@/Components/TicketSelectCard.vue';
 import { nlDate } from '@/Utilities/Utilities';
 import BoxComponent from '@/Components/BoxComponent.vue';

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\AssetStatusses;
+use App\Enums\ContractAssetFilter;
 use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Location;
@@ -52,19 +53,20 @@ class UpcomingAssetTable
      *     sort: string, direction: string, planning: string,
      *     customer: ?int, type: ?int, due: ?string, tickets: ?string,
      * }  $query
+     * @param  array{filter: ContractAssetFilter, marked: bool}  $contract_assets
      */
     public function build(
         int $days,
         ?string $search,
         array $query,
         int $per_page,
-        bool $hide_contract_assets
+        array $contract_assets
     ): array {
         $due_groups = $this->dueGroups();
-        $candidates = $this->candidates($days, $query['planning'], $due_groups, $hide_contract_assets);
+        $candidates = $this->candidates($days, $query['planning'], $due_groups, $contract_assets['filter']);
         $rows = $this->search($candidates, $search);
         $listed = $this->sort($this->filter($rows, $query), $query);
-        $page = $this->paginate($listed, $per_page);
+        $page = $this->paginate($listed, $per_page, $contract_assets['marked']);
 
         return [
             'rows' => $page,
@@ -74,7 +76,7 @@ class UpcomingAssetTable
         ];
     }
 
-    private function candidates(int $days, string $planning, array $due_groups, bool $hide_contract_assets): Collection
+    private function candidates(int $days, string $planning, array $due_groups, ContractAssetFilter $contract_filter): Collection
     {
         $assets = Asset::query()
             ->select([
@@ -97,7 +99,7 @@ class UpcomingAssetTable
             ->where('assets.next_service_date', '<=', now()->addDays($days))
             ->when($planning === 'planned', fn (Builder $q) => $q->planned())
             ->when($planning === 'unplanned', fn (Builder $q) => $q->unplanned())
-            ->when($hide_contract_assets, fn (Builder $q) => $q->notUnderActiveContract())
+            ->filteredOnContract($contract_filter)
             ->toBase()
             ->get();
 
@@ -232,13 +234,13 @@ class UpcomingAssetTable
         ];
     }
 
-    private function paginate(Collection $rows, int $per_page): LengthAwarePaginator
+    private function paginate(Collection $rows, int $per_page, bool $mark_contracts): LengthAwarePaginator
     {
         $last_page = max(1, (int) ceil($rows->count() / $per_page));
         $page = min(LengthAwarePaginator::resolveCurrentPage(), $last_page);
 
         return (new LengthAwarePaginator(
-            $this->withDetails($rows->forPage($page, $per_page)->values()),
+            $this->withDetails($rows->forPage($page, $per_page)->values(), $mark_contracts),
             $rows->count(),
             $per_page,
             $page,
@@ -246,7 +248,7 @@ class UpcomingAssetTable
         ))->withQueryString();
     }
 
-    private function withDetails(Collection $rows): Collection
+    private function withDetails(Collection $rows, bool $mark_contracts): Collection
     {
         $assets = Asset::with([
             'product.mainImage',
@@ -254,14 +256,16 @@ class UpcomingAssetTable
             'plannableTickets',
             'pendingServiceJobs.serviceOrder.comingEvents',
         ])->findMany($rows->pluck('id'))->keyBy('id');
+        $contracts_of = $mark_contracts ? Asset::activeContractsCovering($rows->pluck('id')->all()) : [];
 
-        return $rows->map(function (array $row) use ($assets) {
+        return $rows->map(function (array $row) use ($assets, $contracts_of) {
             $asset = $assets[$row['id']];
 
             return [
                 ...$row,
                 'image_id' => $asset->product?->mainImage->first()?->id,
                 'parent' => $asset->parentAsset?->only(['id', 'serial_number']),
+                'active_contracts' => $contracts_of[$row['id']] ?? [],
                 'tickets' => $asset->plannableTickets
                     ->map->only(['id', 'subject', 'description', 'status', 'status_code', 'created_at'])
                     ->values(),

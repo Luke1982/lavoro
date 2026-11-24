@@ -23,8 +23,8 @@
             <div v-if="contractAssets.choosable || contractAssets.forced" data-tour="activities.contracts"
                 class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
                 <span>Contractmachines</span>
-                <SwitchComponent v-model="showContractAssets" :disabled="contractAssets.forced"
-                    :title="contractSwitchTitle" />
+                <SegmentedToggle v-model="contractFilter" :options="contractFilterOptions"
+                    :disabled="contractAssets.forced" v-tooltip="contractToggleTitle" />
             </div>
             <SegmentedToggle v-model="chosenView" :options="viewOptions" data-tour="activities.views" />
         </div>
@@ -169,7 +169,6 @@ import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue';
 import TourButton from '@/Components/Tour/TourButton.vue';
 import { useTour, addressStartingTour } from '@/Composables/useTour';
 import { useBottomBars } from '@/Composables/useBottomBars.js';
-import SwitchComponent from '@/Components/UI/SwitchComponent.vue';
 import { ClipboardDocumentCheckIcon, CalendarIcon } from '@heroicons/vue/24/outline';
 import { CalendarDaysIcon, LoaderCircle, MapIcon, CalendarCogIcon, LayoutListIcon, TableIcon } from '@lucide/vue';
 import { useForm, usePage } from '@inertiajs/vue3';
@@ -213,7 +212,7 @@ const { view, table, upcomingAssets, expiredAssets, eventTypes, allUsers, contra
         type: Array,
         default: () => []
     },
-    /** { hidden, forced, choosable }: machines under a running maintenance contract. */
+    /** { filter, marked, forced, choosable }: machines under a running maintenance contract. */
     contractAssets: {
         type: Object,
         required: true
@@ -277,16 +276,21 @@ watch(chosenView, (value) => {
     }
 });
 
-const { shown: showContractAssets } = useUpcomingContractAssets(() => contractAssets);
+const { filter: contractFilter } = useUpcomingContractAssets(() => contractAssets);
 
-const contractSwitchTitle = computed(() => {
-    if (contractAssets.forced) {
-        return 'Machines onder een onderhoudscontract zijn voor iedereen verborgen (Instellingen)';
-    }
-    return showContractAssets.value
-        ? 'Machines onder een onderhoudscontract verbergen'
-        : 'Machines onder een onderhoudscontract tonen';
-});
+const contractFilterOptions = [
+    { value: 'only', label: 'Alleen' },
+    { value: 'mixed', label: 'Gemengd' },
+    { value: 'hide', label: 'Verbergen' },
+];
+
+const contractToggleTitle = computed(() => ({
+    only: 'Alleen machines onder een onderhoudscontract',
+    mixed: 'Alle machines; die onder een onderhoudscontract hebben een label',
+    hide: contractAssets.forced
+        ? 'Machines onder een onderhoudscontract zijn voor iedereen verborgen (Instellingen)'
+        : 'Machines onder een onderhoudscontract verborgen',
+})[contractFilter.value]);
 
 /** A werkbon is for one customer and one place, so a selection spanning two cannot become one. */
 const canCreateWorkOrder = computed(() => workSelectionState(form.selectedAssets, form.selectedTickets));

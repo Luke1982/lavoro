@@ -155,7 +155,7 @@
                     <p class="text-sm font-medium text-gray-700 dark:text-slate-300">Machines onder een onderhoudscontract verbergen</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
                         Voor iedereen, in de lijst en op de kaart; een lopend contract maakt zijn werkbonnen zelf aan.
-                        Staat dit uit, dan kiest ieder die onderhoudscontracten mag inzien het zelf, met de schakelaar
+                        Staat dit uit, dan kiest ieder die onderhoudscontracten mag inzien het zelf, met de knoppen
                         Contractmachines boven de lijst.
                     </p>
                 </div>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Actions\Contracts\DetachContractAssetAction;
 use App\Enums\AssetStatusses;
+use App\Enums\ContractAssetFilter;
 use App\Enums\EventStatusses;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\TicketStatusses;
@@ -15,6 +16,7 @@ use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class Asset extends Model
@@ -378,17 +380,72 @@ class Asset extends Model
     }
 
     /**
-     * Leaves out the assets idsUnderActiveContract() would name, inside the query
-     * itself, so a list of any length can drop them before a row is fetched.
+     * Keeps the assets idsUnderActiveContract() would name, or with $under false leaves
+     * them out, inside the query itself, so a list of any length is narrowed before a row
+     * is fetched.
      */
-    public function scopeNotUnderActiveContract(Builder $query): Builder
+    public function scopeUnderActiveContract(Builder $query, bool $under = true): Builder
     {
         $roots = self::contractRoots();
 
         return $query->whereRaw(
-            $query->qualifyColumn('id') . ' NOT IN (' . self::treeSql($roots) . ')',
+            $query->qualifyColumn('id') . ($under ? ' IN (' : ' NOT IN (') . self::treeSql($roots) . ')',
             $roots->getBindings()
         );
+    }
+
+    public function scopeNotUnderActiveContract(Builder $query): Builder
+    {
+        return $query->underActiveContract(false);
+    }
+
+    public function scopeFilteredOnContract(Builder $query, ContractAssetFilter $filter): Builder
+    {
+        return match ($filter) {
+            ContractAssetFilter::only => $query->underActiveContract(),
+            ContractAssetFilter::hide => $query->notUnderActiveContract(),
+            ContractAssetFilter::mixed => $query,
+        };
+    }
+
+    /**
+     * The running contracts each of the given assets falls under: its own, and those of
+     * every machine it is built into. Assets under none are left out.
+     *
+     * @param  array<int, int>  $asset_ids
+     * @return array<int, array<int, array{id: int, display_title: string}>>
+     */
+    public static function activeContractsCovering(array $asset_ids): array
+    {
+        if ($asset_ids === []) {
+            return [];
+        }
+
+        $covered_by = self::treeRows(self::contractRoots(), 'id, root_id', array_values(array_unique($asset_ids)))
+            ->groupBy(fn (object $row) => (int) $row->id);
+
+        $contracts_of = self::whereIn('id', $covered_by->flatten()->pluck('root_id')->unique()->values())
+            ->with(['maintenanceContracts' => fn ($contracts) => $contracts->active()
+                ->select([
+                    'maintenance_contracts.id',
+                    'maintenance_contracts.customer_id',
+                    'maintenance_contracts.title',
+                    'maintenance_contracts.start_date',
+                    'maintenance_contracts.end_date',
+                ])
+                ->with('customer:id,name'),
+            ])
+            ->get(['id'])
+            ->mapWithKeys(fn (Asset $root) => [$root->id => $root->maintenanceContracts]);
+
+        return $covered_by
+            ->map(fn ($rows) => $rows
+                ->flatMap(fn (object $row) => $contracts_of[$row->root_id])
+                ->unique('id')
+                ->map(fn (MaintenanceContract $contract) => $contract->only(['id', 'display_title']))
+                ->values()
+                ->all())
+            ->all();
     }
 
     private static function contractRoots(): Builder
@@ -406,22 +463,35 @@ class Asset extends Model
      */
     private static function treeIds(Builder $roots, ?array $only = null): array
     {
+        return self::treeRows($roots, 'DISTINCT id', $only)->map(fn (object $row) => (int) $row->id)->all();
+    }
+
+    /**
+     * @param  array<int, int>|null  $only
+     * @return Collection<int, object>
+     */
+    private static function treeRows(Builder $roots, string $columns, ?array $only = null): Collection
+    {
         $filter = $only === null ? '' : ' WHERE id IN (' . implode(',', array_fill(0, count($only), '?')) . ')';
 
         return collect(DB::select(
-            self::treeSql($roots) . $filter,
+            self::treeSql($roots, $columns) . $filter,
             [...$roots->getBindings(), ...($only ?? [])]
-        ))->map(fn ($row) => (int) $row->id)->all();
+        ));
     }
 
-    private static function treeSql(Builder $roots): string
+    /**
+     * Each asset in the trees with the root it was reached from; an asset under two
+     * roots comes back once for each.
+     */
+    private static function treeSql(Builder $roots, string $columns = 'id'): string
     {
-        return 'WITH RECURSIVE asset_tree (id) AS ('
-            . $roots->toSql()
+        return 'WITH RECURSIVE asset_tree (id, root_id) AS ('
+            . 'SELECT roots.id, roots.id FROM (' . $roots->toSql() . ') AS roots'
             . ' UNION ALL'
-            . ' SELECT assets.id FROM assets'
+            . ' SELECT assets.id, asset_tree.root_id FROM assets'
             . ' INNER JOIN asset_tree ON assets.parent_asset_id = asset_tree.id'
-            . ') SELECT id FROM asset_tree';
+            . ') SELECT ' . $columns . ' FROM asset_tree';
     }
 
     public function maintenanceContracts()

@@ -44,6 +44,9 @@
                     <div class="lg:hidden mt-1 text-xs text-gray-600 dark:text-slate-300">
                         {{ [row.serial_number, customerWithOthers(row), row.location, nlDate(row.next_service_date)].filter(Boolean).join(' · ') }}
                     </div>
+                    <div v-if="row.active_contracts?.length" class="mt-1.5" data-tour="activities.contract">
+                        <ContractBadge :contracts="row.active_contracts" :asset-id="row.id" size="sm" />
+                    </div>
                     <div v-if="row.service_orders.length" class="mt-1.5 flex flex-wrap gap-1">
                         <BadgeComponent v-for="order in row.service_orders" :key="order.id" color="blue" size="sm"
                             :has-dot="false" :url="`/serviceorders/${order.id}`"
@@ -166,6 +169,7 @@ import { Building2Icon, CalendarIcon, MapPinIcon, WrenchIcon } from '@lucide/vue
 import BoxComponent from '@/Components/BoxComponent.vue'
 import TicketSelectCard from '@/Components/TicketSelectCard.vue'
 import BadgeComponent from '@/Components/UI/BadgeComponent.vue'
+import ContractBadge from '@/Components/MaintenanceContracts/ContractBadge.vue'
 import ModalDialog from '@/Components/UI/ModalDialog.vue'
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue'
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue'

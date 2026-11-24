@@ -12,7 +12,7 @@
     "chapters": [
         {
             "id": "lijst",
-            "version": 2,
+            "version": 3,
             "title": "De lijst",
             "summary": "Hoe ver vooruit, zoeken, per klant of als tabel, sorteren en filteren, en contractmachines.",
             "steps": [
@@ -62,8 +62,15 @@
                     "spot": "activities.contracts",
                     "skipIfMissing": true,
                     "title": "Contractmachines",
-                    "text": "Machines met een lopend onderhoudscontract krijgen hun werkbon van het contract zelf. Met **Contractmachines** haal je ze uit de lijst en van de kaart. Je browser onthoudt de stand.",
-                    "say": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Met deze schakelaar verberg je ze."
+                    "text": "Machines met een lopend onderhoudscontract krijgen hun werkbon van het contract zelf. Kies wat je van ze ziet: **Alleen** de contractmachines, **Gemengd** met de rest, of **Verbergen**. Dat geldt voor de lijst én de kaart. Je browser onthoudt je keuze.",
+                    "say": "Machines met een onderhoudscontract krijgen hun werkbon van het contract. Hier kies je of je alleen die machines ziet, ze gemengd met de rest ziet, of ze verbergt."
+                },
+                {
+                    "spot": "activities.contract",
+                    "skipIfMissing": true,
+                    "title": "Het label Onderhoudscontract",
+                    "text": "In **Gemengd** herken je een contractmachine aan het paarse label **Onderhoudscontract**, ook een onderdeel van een machine onder contract. Klik erop en je gaat naar het contract.",
+                    "say": "In de gemengde lijst herken je een contractmachine aan dit paarse label. Klik erop en je gaat naar het contract."
                 }
             ]
         },
