@@ -2,13 +2,19 @@
 
 namespace App\Policies;
 
+use App\Models\Material;
 use App\Models\User;
 
 class MaterialPolicy
 {
-    public function view(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('material.read');
+    }
+
+    public function view(User $user, Material $material): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

@@ -24,6 +24,9 @@ class PhotoPermissionsTest extends TestCase
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
 
+    /** Changing a photo takes one this person may open: here, on a product. */
+    private const SEES_THE_PHOTO = ['image.see', 'product.read'];
+
     private Product $product;
 
     private Image $image;
@@ -39,7 +42,7 @@ class PhotoPermissionsTest extends TestCase
 
     public function test_renaming_takes_the_rename_permission(): void
     {
-        $this->actingAs($this->userWithPermissions('image.update'))
+        $this->actingAs($this->userWithPermissions('image.update', ...self::SEES_THE_PHOTO))
             ->postJson(route('images.update', $this->image), $this->on($this->product, ['newTitle' => 'Typeplaatje']))
             ->assertOk();
 
@@ -56,7 +59,7 @@ class PhotoPermissionsTest extends TestCase
     /** The annotation form sends its empty title along, which must not count as renaming. */
     public function test_annotating_takes_only_the_annotate_permission(): void
     {
-        $this->actingAs($this->userWithPermissions('image.edit'))
+        $this->actingAs($this->userWithPermissions('image.edit', ...self::SEES_THE_PHOTO))
             ->postJson(route('images.update', $this->image), $this->on($this->product, [
                 'imageToUpdate' => UploadedFile::fake()->image('image.jpg'),
                 'newTitle' => '',
@@ -84,8 +87,10 @@ class PhotoPermissionsTest extends TestCase
 
     public function test_feedback_uploads_renames_promotes_and_removes_photos_of_its_event(): void
     {
+        $user = $this->userWithPermissions('event.provide_feedback');
         $event = Event::factory()->create();
-        $this->actingAs($this->userWithPermissions('event.provide_feedback'));
+        $event->syncExecutingUsers([$user->id]);
+        $this->actingAs($user);
 
         $this->postJson('/api/images', $this->on($event, ['images' => [UploadedFile::fake()->image('image.jpg')]]))
             ->assertCreated();

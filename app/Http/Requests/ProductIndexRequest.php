@@ -18,7 +18,7 @@ class ProductIndexRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()->can('viewAny', Product::class);
+        return $this->user()->can('list', Product::class);
     }
 
     protected function prepareForValidation(): void

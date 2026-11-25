@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -34,6 +35,12 @@ class TrayItem extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** One's own bakje, and nobody else's. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return $user ? $query->where($query->qualifyColumn('user_id'), $user->id) : $query->whereRaw('1 = 0');
     }
 
     public function trayable(): MorphTo

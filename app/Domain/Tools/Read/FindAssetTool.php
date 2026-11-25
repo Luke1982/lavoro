@@ -53,7 +53,7 @@ class FindAssetTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('listRelevant', Asset::class);
+        return $user->can('viewAny', Asset::class);
     }
 
     /** Serienummer of klant uit de vraag halen; de rest is filteren. */

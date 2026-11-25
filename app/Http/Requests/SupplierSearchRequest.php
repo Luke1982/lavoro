@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Supplier;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SupplierSearchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('supplier.read'));
+        return (bool) $this->user()?->can('viewAny', Supplier::class);
     }
 
     public function rules(): array

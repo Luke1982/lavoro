@@ -12,9 +12,10 @@ class ImagePolicy
         return $user->hasPermission('image.see') || $user->hasPermission('image.upload');
     }
 
+    /** This one photo: by viewAny, on a record this person may read (Image::scopeVisibleTo). */
     public function view(User $user, Image $image): bool
     {
-        return $user->hasPermission('image.see') || $user->hasPermission('image.upload');
+        return Image::visibleTo($user)->whereKey($image->id)->exists();
     }
 
     public function create(User $user): bool
@@ -22,10 +23,16 @@ class ImagePolicy
         return $user->hasPermission('image.upload');
     }
 
-    /** Also asked of the class: choosing a main photo is the same right for every photo. */
+    /**
+     * Also asked of the class: choosing a main photo is the same right for every photo.
+     * Changing, sharing, annotating and removing one take a photo this person may
+     * open (view), and leave a keurpunt of a keuring they may only read alone
+     * (keurpuntenAllowChangesBy).
+     */
     public function update(User $user, ?Image $image = null): bool
     {
-        return $user->hasPermission('image.update');
+        return $user->hasPermission('image.update')
+            && ($image === null || $this->mayChange($user, $image));
     }
 
     /**
@@ -33,16 +40,21 @@ class ImagePolicy
      */
     public function share(User $user, Image $image): bool
     {
-        return $user->hasPermission('image.update');
+        return $user->hasPermission('image.update') && $this->mayChange($user, $image);
     }
 
     public function edit(User $user, Image $image): bool
     {
-        return $user->hasPermission('image.edit');
+        return $user->hasPermission('image.edit') && $this->mayChange($user, $image);
     }
 
     public function delete(User $user, Image $image): bool
     {
-        return $user->hasPermission('image.delete');
+        return $user->hasPermission('image.delete') && $this->mayChange($user, $image);
+    }
+
+    private function mayChange(User $user, Image $image): bool
+    {
+        return $this->view($user, $image) && $image->keurpuntenAllowChangesBy($user);
     }
 }

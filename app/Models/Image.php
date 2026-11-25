@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Models\Traits\HangsOffARecord;
 use App\Models\Traits\Shareable;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -70,6 +72,38 @@ class Image extends Model
                 }
             }
         });
+    }
+
+    /**
+     * A photo shared from a project shows on every werkbon of that project
+     * (ServiceOrder::sharedImages), so whoever may open one of those werkbonnen
+     * may read it, project or not.
+     */
+    protected static function alsoVisibleTo(EloquentBuilder $query, User $user): void
+    {
+        if ($user->cannot('viewAny', ServiceOrder::class)) {
+            return;
+        }
+
+        $query->orWhereExists(fn (QueryBuilder $shares) => $shares->from('shares')
+            ->whereColumn('shares.shareable_id', 'images.id')
+            ->where('shares.shareable_type', (new self)->getMorphClass())
+            ->where('shares.source_type', (new Project)->getMorphClass())
+            ->whereIn(
+                'shares.source_id',
+                ServiceOrder::visibleTo($user)->whereNotNull('service_orders.project_id')->select('service_orders.project_id')
+            ));
+    }
+
+    /**
+     * Whether this person may add photos to this record by hand, as the upload on
+     * its screen decides: on an appointment by its feedback, anywhere else with
+     * the right to upload photos; and in both by mayPlaceOn.
+     */
+    public static function mayUploadOn(User $user, Model $record): bool
+    {
+        return ($record instanceof Event || $user->can('create', self::class))
+            && self::mayPlaceOn($user, $record);
     }
 
     /** How a record photos hang off is named in a sentence: "Werkbon WB-0012", 'Keurpunt "Lekdicht"'. */

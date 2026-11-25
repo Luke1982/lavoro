@@ -48,10 +48,10 @@ class Activity extends Model
         $held = $user ? $user->permissionNames() : [];
 
         return $query->where(function (Builder $q) use ($held) {
-            $q->whereNull('required_permission');
+            $q->whereNull($q->qualifyColumn('required_permission'));
 
             if ($held !== []) {
-                $q->orWhereIn('required_permission', $held);
+                $q->orWhereIn($q->qualifyColumn('required_permission'), $held);
             }
         });
     }

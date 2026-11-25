@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Assistant;
 
-use App\Domain\Assistant\PageContext;
+use App\Domain\Assistant\Reading\RecordKinds;
 use App\Domain\Assistant\ReferenceCheck;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -51,7 +51,7 @@ class LinkablePathTest extends TestCase
      */
     public function test_every_record_page_it_recognises_is_a_real_page(): void
     {
-        $missing = array_diff(array_keys(PageContext::RECORDS), $this->pathsWithAnId());
+        $missing = array_diff(array_keys(RecordKinds::recordPages()), $this->pathsWithAnId());
 
         $this->assertSame([], array_values($missing), 'no such record page: ' . implode(', ', $missing));
     }
@@ -66,7 +66,7 @@ class LinkablePathTest extends TestCase
             }
         }
 
-        $missing = array_diff(array_keys(PageContext::SCREENS), $overviews);
+        $missing = array_diff(array_keys(RecordKinds::SCREENS), $overviews);
 
         $this->assertSame([], array_values($missing), 'no such overview: ' . implode(', ', $missing));
     }

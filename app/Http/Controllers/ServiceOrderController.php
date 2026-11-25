@@ -32,6 +32,7 @@ use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Mail\ServiceOrderPdfMail;
 use App\Mail\ServiceOrderWithJobsPdfMail;
+use App\Models\AssistantFilter;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
@@ -99,7 +100,7 @@ class ServiceOrderController extends Controller
             'events.executingUsers:id,name',
         ]);
 
-        $query->visibleTo($user);
+        $query->visibleTo($user)->tap(AssistantFilter::from($request));
 
         if (filled($search)) {
             $query->matchesSearch($search);

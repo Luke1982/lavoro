@@ -15,6 +15,7 @@ use App\Http\Requests\AssetTransferPreviewRequest;
 use App\Http\Requests\AssetUpdateLocationRequest;
 use App\Http\Requests\AssetUpdateRequest;
 use App\Models\Asset;
+use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\MaintenanceContract;
@@ -91,9 +92,11 @@ class AssetController extends Controller
         }
 
         $assets = $query
+            ->tap(AssistantFilter::from($request))
             ->orderBy('next_service_date', 'ASC')
             ->paginate($this->perPage($request))
-            ->appends(['search' => $search, ...$filters]);
+            ->appends(['search' => $search, ...$filters])
+            ->withQueryString();
 
         $this->attachOwningCustomers($assets->getCollection());
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\EventType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * EventType index & show authorization.
@@ -23,9 +23,7 @@ class EventTypeReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('eventtype.read'));
+        return (bool) $this->user()?->can('viewAny', EventType::class);
     }
 
     public function rules(): array

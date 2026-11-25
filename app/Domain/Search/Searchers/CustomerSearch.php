@@ -17,7 +17,7 @@ class CustomerSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        if (!$user->isAdmin() && !$user->hasPermission('customer.read')) {
+        if ($user->cannot('viewAny', Customer::class)) {
             return [];
         }
 

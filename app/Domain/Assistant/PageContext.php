@@ -2,6 +2,8 @@
 
 namespace App\Domain\Assistant;
 
+use App\Domain\Assistant\Reading\RecordKinds;
+
 /**
  * Turns the page somebody is looking at into a sentence the model can use.
  *
@@ -13,38 +15,12 @@ namespace App\Domain\Assistant;
  * than read. Anything unrecognised produces nothing, so a made-up path cannot
  * put words of its own into the prompt.
  *
- * The nouns match the ones SearchActivityTool accepts, so a page the assistant
- * is told about is a page it can look the history up for without translating.
+ * The pages and their nouns come from RecordKinds, the same words the history
+ * search and the read tool accept, so a page the assistant is told about is a
+ * page it can look up without translating.
  */
 class PageContext
 {
-    /** @var array<string, string> */
-    public const RECORDS = [
-        'serviceorders' => 'werkbon',
-        'tickets' => 'storing',
-        'assets' => 'machine',
-        'customers' => 'klant',
-        'projects' => 'project',
-        'products' => 'product',
-        'maintenancecontracts' => 'onderhoudscontract',
-        'priceformulas' => 'prijsformule',
-        'quotes' => 'offerte',
-    ];
-
-    /** @var array<string, string> */
-    public const SCREENS = [
-        'planner' => 'de planning',
-        'serviceorders' => 'het overzicht van werkbonnen',
-        'tickets' => 'het overzicht van storingen',
-        'assets' => 'het overzicht van machines',
-        'customers' => 'het klantenoverzicht',
-        'projects' => 'het projectenoverzicht',
-        'products' => 'het productenoverzicht',
-        'maintenancecontracts' => 'het overzicht van onderhoudscontracten',
-        'priceformulas' => 'het overzicht van prijsformules',
-        'quotes' => 'het overzicht van offertes',
-    ];
-
     public function describe(?string $path): string
     {
         if ($path === null || $path === '') {
@@ -67,13 +43,15 @@ class PageContext
          */
         $is_id = $id !== null && ctype_digit($id) && (string) (int) $id === $id;
 
-        if ($is_id && isset(self::RECORDS[$resource])) {
-            return 'De gebruiker kijkt naar ' . self::RECORDS[$resource] . ' #' . (int) $id . '. '
+        $pages = RecordKinds::recordPages();
+
+        if ($is_id && isset($pages[$resource])) {
+            return 'De gebruiker kijkt naar ' . RecordKinds::noun($pages[$resource]) . ' #' . (int) $id . '. '
                 . 'Als de vraag "deze" of "dit" bevat zonder verder iets te noemen, gaat het daarover.';
         }
 
-        if ($id === null && isset(self::SCREENS[$resource])) {
-            return 'De gebruiker kijkt naar ' . self::SCREENS[$resource] . '.';
+        if ($id === null && ($screen = RecordKinds::screenName($resource)) !== null) {
+            return 'De gebruiker kijkt naar ' . $screen . '.';
         }
 
         return '';

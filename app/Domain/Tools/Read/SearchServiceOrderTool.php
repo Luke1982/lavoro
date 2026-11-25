@@ -81,7 +81,7 @@ class SearchServiceOrderTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('list', ServiceOrder::class);
+        return $user->can('viewAny', ServiceOrder::class);
     }
 
     /** Acht filters, waarvan hooguit twee of drie tegelijk uit een zin komen. */

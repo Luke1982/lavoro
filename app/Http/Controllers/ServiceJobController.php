@@ -11,8 +11,14 @@ use App\Enums\ServiceCheckTypes;
 use App\Enums\ServiceJobOutcomes;
 use App\Enums\ServiceJobOutcomes as ServiceJobOutcomeEnum;
 use App\Exceptions\Refusal;
+use App\Http\Requests\ServiceJobAddMissingInstancesRequest;
 use App\Http\Requests\ServiceJobAssetSerialUpdateRequest;
+use App\Http\Requests\ServiceJobClearCompletedOnRequest;
 use App\Http\Requests\ServiceJobCreateRequest;
+use App\Http\Requests\ServiceJobDestroyRequest;
+use App\Http\Requests\ServiceJobEmailPdfRequest;
+use App\Http\Requests\ServiceJobExportPdfRequest;
+use App\Http\Requests\ServiceJobShowRequest;
 use App\Http\Requests\ServiceJobUpdateRequest;
 use App\Mail\ServiceJobPdfMail;
 use App\Models\Asset;
@@ -75,7 +81,7 @@ class ServiceJobController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(ServiceJob $servicejob)
+    public function show(ServiceJobShowRequest $request, ServiceJob $servicejob)
     {
         $servicejob->load([
             'asset.product.productType.serviceChecks',
@@ -113,6 +119,7 @@ class ServiceJobController extends Controller
 
         return inertia('ServiceJob/ShowPage', [
             'servicejob' => $servicejob,
+            'can_update' => Auth::user()->can('update', $servicejob),
             'can_set_serial' => $servicejob->asset !== null
                 && Auth::user()->can('setSerial', $servicejob->asset),
             'checkTypesWithOptions' => array_keys(ServiceCheckTypes::getTypesWithOptions()),
@@ -271,7 +278,7 @@ class ServiceJobController extends Controller
         }
     }
 
-    public function addMissingInstances(ServiceJob $servicejob)
+    public function addMissingInstances(ServiceJobAddMissingInstancesRequest $request, ServiceJob $servicejob)
     {
         $servicejob->load('asset.product.productType.serviceChecks', 'checkInstances');
         $all_checks = collect($servicejob->asset?->product?->productType?->serviceChecks ?? []);
@@ -365,7 +372,7 @@ class ServiceJobController extends Controller
      * Opens a finished keuring again. One that was not finished has nothing to undo, so
      * nothing is announced and the machine's date stays where it is.
      */
-    public function clearCompletedOn(ServiceJob $servicejob)
+    public function clearCompletedOn(ServiceJobClearCompletedOnRequest $request, ServiceJob $servicejob)
     {
         $previous_completed_on = $servicejob->getRawOriginal('completed_on');
         $previous_completed_by = $servicejob->completed_by;
@@ -402,7 +409,7 @@ class ServiceJobController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ServiceJob $servicejob)
+    public function destroy(ServiceJobDestroyRequest $request, ServiceJob $servicejob)
     {
         DB::transaction(function () use ($servicejob) {
             $servicejob->childJobs->each->delete();
@@ -415,7 +422,7 @@ class ServiceJobController extends Controller
     /**
      * Export a PDF representation of the service job checklist.
      */
-    public function exportPdf(ServiceJob $servicejob)
+    public function exportPdf(ServiceJobExportPdfRequest $request, ServiceJob $servicejob)
     {
         $pdf = $this->generateServiceJobPdf($servicejob);
 
@@ -432,7 +439,7 @@ class ServiceJobController extends Controller
     /**
      * Generate PDF and email it to the customer.
      */
-    public function emailPdf(ServiceJob $servicejob)
+    public function emailPdf(ServiceJobEmailPdfRequest $request, ServiceJob $servicejob)
     {
         $recipients = array_unique(array_filter([
             $servicejob->asset?->customer?->email,

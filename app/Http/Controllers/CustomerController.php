@@ -10,6 +10,7 @@ use App\Http\Requests\CustomerReadRequest;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateCoordsRequest;
 use App\Http\Requests\CustomerUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\IntegrationConnection;
 use App\Models\Project;
@@ -56,9 +57,11 @@ class CustomerController extends Controller
                 ->orWhere('postal_city', 'like', "%{$search}%")
                 ->orWhere('postal_country', 'like', "%{$search}%")
                 ->orWhere('location_code', 'like', "%{$search}%")))
+            ->tap(AssistantFilter::from($request))
             ->orderBy('name')
             ->paginate(25)
-            ->appends(['search' => $search]);
+            ->appends(['search' => $search])
+            ->withQueryString();
 
         return inertia('Customers/IndexPage', [
             'customers' => $customers,

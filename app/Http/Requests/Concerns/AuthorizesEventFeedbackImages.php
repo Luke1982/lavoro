@@ -8,8 +8,9 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Photos posted against an event are feedback on it, so they follow the event's
- * provideFeedback ability instead of the image permissions. An existing photo must
- * also hang from that event: otherwise naming any event would open every photo.
+ * rule (Image::mayPlaceOn: seeing it and giving feedback on it) instead of the
+ * image permissions. An existing photo must also hang from that event:
+ * otherwise naming any event would open every photo.
  *
  * @mixin FormRequest
  */
@@ -25,7 +26,7 @@ trait AuthorizesEventFeedbackImages
         $event = Event::find($this->integer('imageable_id'));
 
         return $event !== null
-            && $this->user()->can('provideFeedback', $event)
+            && Image::mayPlaceOn($this->user(), $event)
             && ($image === null || $event->images()->whereKey($image->id)->exists());
     }
 }

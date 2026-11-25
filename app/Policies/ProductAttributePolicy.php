@@ -7,9 +7,14 @@ use App\Models\User;
 
 class ProductAttributePolicy
 {
-    public function read(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('productattribute.read');
+    }
+
+    public function view(User $user, ProductAttribute $product_attribute): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

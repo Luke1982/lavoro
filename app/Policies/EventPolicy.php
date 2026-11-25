@@ -12,6 +12,16 @@ class EventPolicy
         return $user->isAdmin() || $user->hasPermission('event.read');
     }
 
+    /**
+     * This one appointment: everybody's with event.see_all, otherwise one you are
+     * on or made, by Event::scopeVisibleTo. Reading appointments at all is
+     * viewAny's question; the planner asks both.
+     */
+    public function view(User $user, Event $event): bool
+    {
+        return Event::query()->visibleTo($user)->whereKey($event->id)->exists();
+    }
+
     /** Seeing everybody's appointments, the planner's other rows included. */
     public function seeAll(User $user): bool
     {
@@ -58,7 +68,7 @@ class EventPolicy
     /** Copying an appointment makes new ones, from one this person can see. */
     public function copy(User $user, Event $event): bool
     {
-        return $this->create($user) && Event::query()->visibleTo($user)->whereKey($event->id)->exists();
+        return $this->create($user) && $this->view($user, $event);
     }
 
     /**

@@ -44,7 +44,7 @@ class AddServiceJobsTest extends TestCase
 
     private function add(array $data, ?array $permissions = null)
     {
-        return $this->actingAs($this->userWithPermissions(...($permissions ?? ['servicejob.create'])))
+        return $this->actingAs($this->userWithPermissions(...($permissions ?? ['serviceorder.read', 'servicejob.create'])))
             ->post("/serviceorders/{$this->order->id}/servicejobs", $data);
     }
 
@@ -132,6 +132,23 @@ class AddServiceJobsTest extends TestCase
         $this->assertSame([], $this->machinesOnOrder());
     }
 
+    public function test_keuringen_go_only_on_a_werkbon_one_may_open(): void
+    {
+        $machine = $this->machine();
+        $user = $this->userWithPermissions('serviceorder.read_own', 'servicejob.create');
+
+        $this->actingAs($user)
+            ->post("/serviceorders/{$this->order->id}/servicejobs", ['location_id' => null])
+            ->assertSessionHas('error');
+        $this->actingAs($user)->post('/servicejobs', [
+            'service_order_id' => $this->order->id,
+            'asset_id' => $machine->id,
+            'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,
+        ])->assertSessionHas('error');
+
+        $this->assertSame([], $this->machinesOnOrder());
+    }
+
     public function test_adding_one_machine_still_adds_its_parts(): void
     {
         $machine = $this->machine();
@@ -142,7 +159,7 @@ class AddServiceJobsTest extends TestCase
             'status' => 'Actief',
         ]);
 
-        $this->actingAs($this->userWithPermissions('servicejob.create'))->post('/servicejobs', [
+        $this->actingAs($this->userWithPermissions('serviceorder.read', 'servicejob.create', 'asset.read'))->post('/servicejobs', [
             'service_order_id' => $this->order->id,
             'asset_id' => $machine->id,
             'outcome' => ServiceJobOutcomes::nog_geen_uitkomst->value,

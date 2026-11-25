@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CatalogImportKind;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -30,6 +31,29 @@ class ImportMapping extends Model
             'kind' => CatalogImportKind::class,
             'settings' => 'array',
         ];
+    }
+
+    /**
+     * The kinds this person may import, and so read the saved mappings of.
+     *
+     * @return array<int, CatalogImportKind>
+     */
+    public static function importableKinds(User $user): array
+    {
+        return array_values(array_filter(
+            CatalogImportKind::cases(),
+            fn (CatalogImportKind $kind) => $user->can('import', $kind->modelClass()),
+        ));
+    }
+
+    /** The mappings this person may read, mirroring ImportMappingPolicy. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn($query->qualifyColumn('kind'), array_map(fn (CatalogImportKind $kind) => $kind->value, self::importableKinds($user)));
     }
 
     public function supplier(): BelongsTo

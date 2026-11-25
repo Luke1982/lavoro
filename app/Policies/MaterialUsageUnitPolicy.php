@@ -7,9 +7,14 @@ use App\Models\User;
 
 class MaterialUsageUnitPolicy
 {
-    public function read(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('materialusageunit.read');
+    }
+
+    public function view(User $user, MaterialUsageUnit $unit): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

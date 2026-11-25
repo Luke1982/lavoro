@@ -333,6 +333,7 @@ import AnimatedCheckbox from '@/Components/UI/AnimatedCheckbox.vue'
 import ProductFormFields from '@/Components/Products/ProductFormFields.vue'
 import { useProductForm } from '@/Composables/useProductForm'
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
+import { opensWithAssistantFilter } from '@/Utilities/assistantFilter'
 
 const { products, brands, productTypes, productAttributes, ranges, perPage, canImport } = defineProps({
     products: { type: Object, required: true },
@@ -549,6 +550,7 @@ function storedRanges() {
 }
 
 onMounted(() => {
+    if (opensWithAssistantFilter()) return
     if (typeFromURL.length || brandFromURL.length || attrValFromURL.length || Object.keys(ranges).length) return
     const lsTypes = idsFrom(localStorage.getItem('productFilter_types'))
     const lsBrands = idsFrom(localStorage.getItem('productFilter_brands'))

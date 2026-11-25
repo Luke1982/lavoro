@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -48,6 +49,15 @@ class ServiceOrderTaskInstanceCheck extends Model
     public function instance(): BelongsTo
     {
         return $this->belongsTo(ServiceOrderTaskInstance::class, 'service_order_task_instance_id');
+    }
+
+    /** The checks of the tasks this person may see. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return $query->whereIn(
+            $query->qualifyColumn('service_order_task_instance_id'),
+            ServiceOrderTaskInstance::visibleTo($user)->select('service_order_task_instances.id')
+        );
     }
 
     public function asset(): BelongsTo

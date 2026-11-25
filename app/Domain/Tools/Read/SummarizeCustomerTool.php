@@ -54,7 +54,7 @@ class SummarizeCustomerTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('list', Customer::class);
+        return $user->can('viewAny', Customer::class);
     }
 
     /** Eén argument, maar het vraagt wel te zien dat een overzicht gevraagd wordt in plaats van een losse zoekopdracht. */

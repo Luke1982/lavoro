@@ -114,6 +114,7 @@ import { useComboSearch } from '@/Composables/useComboSearch'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour } from '@/Composables/useTour'
 import { canCreateMaintenanceContract, hasPermission, nlDate, nlCurrency, maintenanceContractStatusText, maintenanceContractStatusClasses } from '@/Utilities/Utilities'
+import { withAssistantFilter } from '@/Utilities/assistantFilter'
 
 const props = defineProps({
     maintenanceContracts: { type: Object, required: true },
@@ -156,7 +157,7 @@ const filterParams = computed(() => ({
 }))
 
 function applyFilters() {
-    router.get('/maintenancecontracts', { ...filterParams.value, search: searchParam || undefined }, {
+    router.get('/maintenancecontracts', withAssistantFilter({ ...filterParams.value, search: searchParam || undefined }), {
         preserveState: true,
         preserveScroll: true,
         replace: true,

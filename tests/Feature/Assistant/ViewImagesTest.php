@@ -149,6 +149,28 @@ class ViewImagesTest extends TestCase
         $this->assertSame([], $result->attachments);
     }
 
+    /**
+     * A customer carries no photos of its own: they hang on its werkbonnen and
+     * machines. Asked for one, the tool names the kinds it does know instead of
+     * getting stuck on a relation the customer does not have.
+     */
+    public function test_a_customer_is_answered_with_the_kinds_that_carry_photos(): void
+    {
+        $this->seeing();
+
+        $customer = Customer::factory()->create();
+
+        $result = app(ToolExecutor::class)->run(new ToolCall(
+            'view_images',
+            ['subject_type' => 'klant', 'subject_id' => $customer->id],
+            $this->userWith('customer.read'),
+        ));
+
+        $this->assertTrue($result->is_error);
+        $this->assertStringContainsString('werkbon', (string) $result->summary);
+        $this->assertStringNotContainsString('liep vast', (string) $result->summary);
+    }
+
     public function test_placeholder_machines_are_found_for_backfilling(): void
     {
         $user = $this->userWith('asset.read');

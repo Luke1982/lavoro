@@ -8,16 +8,12 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Wie welke werkbontaak te zien krijgt.
+ * Wie welke werkbontaak te zien krijgt, op een werkbon die al in handen is.
  *
- * Een taak zonder rollen is van iedereen. Een taak met rollen is van de mensen die
- * de werkbon in een van die rollen uitvoeren, en die rollen staan bij de afspraak,
- * niet bij de gebruiker: dezelfde monteur kan de ene bon als elektricien draaien en
- * de andere als installateur.
- *
- * De regel staat hier en niet in de controller, omdat het scherm en het weigeren van
- * het sluiten dezelfde vraag stellen. Zouden ze uit elkaar lopen, dan blokkeert een
- * taak het sluiten die de lezer nergens terugvindt zonder dat iets dat uitlegt.
+ * De regel zelf staat in ServiceOrderTaskInstance::scopeSeenBy, zodat het scherm,
+ * het weigeren van het sluiten en elke vraag aan de database dezelfde regel stellen.
+ * Zouden ze uit elkaar lopen, dan blokkeert een taak het sluiten die de lezer nergens
+ * terugvindt zonder dat iets dat uitlegt.
  */
 class TaskInstanceVisibility
 {
@@ -37,33 +33,21 @@ class TaskInstanceVisibility
             ->values();
     }
 
-    /** Whether this person gets to see this one task, by the same rule as the list. */
-    public function canSee(ServiceOrderTaskInstance $instance, User $user): bool
-    {
-        $instance->loadMissing(['serviceOrder.events', 'userRoles']);
-
-        return ($this->sees($instance->serviceOrder, $user))($instance);
-    }
-
     /**
      * Beide vragen zijn dezelfde vraag, één keer bevestigend en één keer ontkennend
-     * gesteld. Ze delen daarom dit oordeel, en de rollen worden er één keer per vraag
-     * bij gezocht in plaats van één keer per taak: dat kost een query per afspraak.
+     * gesteld. Ze delen daarom dit oordeel, en de database wordt er één keer per vraag
+     * naar gevraagd in plaats van één keer per taak.
      *
      * @return \Closure(ServiceOrderTaskInstance): bool
      */
     private function sees(ServiceOrder $service_order, User $user): \Closure
     {
-        if ($user->isAdmin() || $user->hasPermission('serviceorder.see_all_task_instances')) {
+        if (ServiceOrderTaskInstance::seesEveryTask($user)) {
             return fn () => true;
         }
 
-        $role_ids = $service_order->events
-            ->flatMap(fn ($event) => $event->executingUserRoleIds($user->id))
-            ->unique()
-            ->all();
+        $seen = $service_order->taskInstances()->seenBy($user)->pluck('id')->flip();
 
-        return fn (ServiceOrderTaskInstance $instance) => $instance->userRoles->isEmpty()
-            || $instance->userRoles->pluck('id')->intersect($role_ids)->isNotEmpty();
+        return fn (ServiceOrderTaskInstance $instance) => $seen->has($instance->getKey());
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Requests\ProjectReadRequest;
 use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectTimelineRequest;
 use App\Http\Requests\ProjectUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Project;
@@ -44,6 +45,7 @@ class ProjectController extends Controller
                     ->whereDate('projected_date', '<', Clock::today()),
             ])
             ->tap(fn (Builder $query) => $this->filter($query, $list))
+            ->tap(AssistantFilter::from($request))
             ->tap(fn (Builder $query) => $this->sort($query, $list['sort'], $list['direction']))
             ->paginate(20)
             ->withQueryString();

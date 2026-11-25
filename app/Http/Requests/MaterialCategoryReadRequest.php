@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MaterialCategory;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 /**
  * MaterialCategory index & show authorization.
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -21,8 +23,7 @@ class MaterialCategoryReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('materialcategory.read'));
+        return (bool) $this->user()?->can('viewAny', MaterialCategory::class);
     }
 
     public function rules(): array

@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\CustomField;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class CustomFieldReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('customfield.read'));
+        return (bool) $this->user()?->can('viewAny', CustomField::class);
     }
 
     public function rules(): array

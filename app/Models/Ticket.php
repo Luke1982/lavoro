@@ -72,7 +72,9 @@ class Ticket extends Model
     ];
 
     /**
-     * A storing is visible when the werkbon or the machine it hangs off is.
+     * A storing is visible when the werkbon or the machine it hangs off is;
+     * every one is to whoever may read storingen or see them all on the
+     * overview, which lists them all.
      *
      * Storingen have no readership of their own: someone is put on a werkbon or
      * given a machine, and the storingen on it come with that. Inventing a
@@ -91,13 +93,13 @@ class Ticket extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin() || $user->hasPermission('ticket.read')) {
+        if ($user->isAdmin() || $user->hasAnyPermission(['ticket.read', 'ticket.see_all'])) {
             return $query;
         }
 
         return $query->where(fn ($q) => $q
-            ->whereIn('service_order_id', ServiceOrder::visibleTo($user)->select('service_orders.id'))
-            ->orWhereIn('asset_id', Asset::visibleTo($user)->select('assets.id')));
+            ->whereIn($query->qualifyColumn('service_order_id'), ServiceOrder::visibleTo($user)->select('service_orders.id'))
+            ->orWhereIn($query->qualifyColumn('asset_id'), Asset::visibleTo($user)->select('assets.id')));
     }
 
     /**

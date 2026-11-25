@@ -123,12 +123,12 @@ class Product extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->isAdmin() || $user->hasPermission('product.read')) {
+        if ($user->can('list', self::class)) {
             return $query;
         }
 
         if ($user->hasPermission('product.read.relevant.serviceorder')) {
-            return $query->whereIn('id', $user->relevantProductIds());
+            return $query->whereKey($user->relevantProductIds());
         }
 
         return $query->whereRaw('1 = 0');
@@ -155,6 +155,15 @@ class Product extends Model
         'active',
         'warranty',
         'ledger_account_id',
+    ];
+
+    /**
+     * Hidden because a product travels along on many pages. The product pages
+     * make them visible for whoever may see them, like $activity_permissions.
+     */
+    protected $hidden = [
+        'retail_price',
+        'purchase_price',
     ];
 
     protected $casts = [

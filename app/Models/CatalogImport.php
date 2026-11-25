@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CatalogImportKind;
 use App\Enums\CatalogImportStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -51,6 +52,22 @@ class CatalogImport extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** One's own imports, of the kinds one may still import: CatalogImportPolicy::view. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        $kinds = array_values(array_filter(
+            CatalogImportKind::cases(),
+            fn (CatalogImportKind $kind) => $user?->can('import', $kind->modelClass()) === true
+        ));
+
+        if (!$user || $kinds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where($query->qualifyColumn('user_id'), $user->id)
+            ->whereIn($query->qualifyColumn('kind'), array_map(fn (CatalogImportKind $kind) => $kind->value, $kinds));
     }
 
     public function supplier(): BelongsTo

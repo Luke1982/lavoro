@@ -14,6 +14,16 @@ class NotificationMutePolicy
 {
     public function __construct(private NotificationSubscriptionPolicy $subscriptions) {}
 
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, NotificationMute $mute): bool
+    {
+        return $mute->user_id === $user->id || $this->subscriptions->manageOthers($user);
+    }
+
     public function create(User $user, ?User $subscriber): bool
     {
         return $this->subscriptions->create($user, $subscriber);

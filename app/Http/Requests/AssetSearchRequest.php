@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Asset;
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AssetSearchRequest extends FormRequest
@@ -14,17 +16,7 @@ class AssetSearchRequest extends FormRequest
     {
         $user = $this->user();
 
-        if (!$user || $user->isAdmin()) {
-            return (bool) $user;
-        }
-
-        foreach (['asset.read', 'ticket.create'] as $permission) {
-            if ($user->hasPermission($permission)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $user !== null && ($user->can('list', Asset::class) || $user->can('create', Ticket::class));
     }
 
     public function rules(): array

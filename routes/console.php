@@ -10,6 +10,7 @@ use App\Jobs\Integrations\RenewIntegrationWebhooksJob;
 use App\Jobs\Integrations\SyncIntegrationsJob;
 use App\Jobs\NotifyMissingExecutionTimesJob;
 use App\Jobs\NotifyOverdueMilestonesJob;
+use App\Jobs\PruneAssistantFiltersJob;
 use App\Jobs\PruneAssistantQuestionsJob;
 use App\Jobs\PruneLocationPingsJob;
 use App\Jobs\ReconcileStorageUsageJob;
@@ -67,6 +68,10 @@ Schedule::call(fn () => $forEachTenant(fn () => RenewIntegrationWebhooksJob::dis
 
 Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantQuestionsJob::dispatch()))
     ->dailyAt('03:20')->name('assistant-prune-questions')->withoutOverlapping();
+
+/** The assistant's one-time filters on overview pages, kept as long as its conversations. */
+Schedule::call(fn () => $forEachTenant(fn () => PruneAssistantFiltersJob::dispatch()))
+    ->dailyAt('03:22')->name('assistant-prune-filters')->withoutOverlapping();
 
 /**
  * A deletion already clears its photos. This catches the ones deleted without a

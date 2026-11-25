@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\TourProgress;
 use App\Models\User;
 
 /**
@@ -14,9 +15,15 @@ use App\Models\User;
  */
 class TourProgressPolicy
 {
-    public function view(User $user): bool
+    public function viewAny(User $user): bool
     {
         return true;
+    }
+
+    /** Asked of the class by the screen, which reads one's own; of a record, it must be one's own. */
+    public function view(User $user, ?TourProgress $progress = null): bool
+    {
+        return $progress === null || $progress->user_id === $user->id;
     }
 
     public function record(User $user): bool

@@ -11,10 +11,10 @@ class ServiceOrderPolicy
 {
     /**
      * Whether the user may see werkbonnen at all, including the narrower case of
-     * only their own. Which ones those are is decided by ServiceOrder::scopeVisibleTo,
-     * which follows the same two permissions.
+     * only their own. Which ones those are is decided by ServiceOrder::scopeVisibleTo.
+     * The werkbonnen overview asks this too: it shows exactly that scope.
      */
-    public function list(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('serviceorder.read')
             || $user->hasPermission('serviceorder.read_own');
@@ -119,7 +119,7 @@ class ServiceOrderPolicy
 
     public function emailPdfWithChecks(User $user, ServiceOrder $serviceOrder): bool
     {
-        return $user->hasPermission('serviceorder.email_pdf_with_checks') && $this->view($user, $serviceOrder);
+        return $user->hasPermission('serviceorder.email_pdf_with_jobs') && $this->view($user, $serviceOrder);
     }
 
     public function sendToAdministration(User $user, ServiceOrder $serviceOrder): bool

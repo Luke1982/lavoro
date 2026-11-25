@@ -6,6 +6,7 @@ use App\Http\Requests\SupplierDestroyRequest;
 use App\Http\Requests\SupplierReadRequest;
 use App\Http\Requests\SupplierStoreRequest;
 use App\Http\Requests\SupplierUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Supplier;
 
 class SupplierController extends Controller
@@ -22,9 +23,11 @@ class SupplierController extends Controller
                 ->orWhere('contact_person', 'like', "%{$search}%")
                 ->orWhere('kvk_number', 'like', "%{$search}%")
                 ->orWhere('vat_number', 'like', "%{$search}%")))
+            ->tap(AssistantFilter::from($request))
             ->orderBy('name')
             ->paginate(25)
-            ->appends(['search' => $search]);
+            ->appends(['search' => $search])
+            ->withQueryString();
 
         return inertia('Suppliers/IndexPage', [
             'suppliers' => $suppliers,

@@ -2,25 +2,24 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class TicketListRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && $user->hasPermission('ticket.see_all');
+        return (bool) $this->user()?->can('list', Ticket::class);
     }
 
     public function rules(): array
     {
         return [
-            'search'             => ['sometimes', 'nullable', 'string', 'max:255'],
-            'statuses'           => ['sometimes', 'nullable', 'string'],
-            'priorities'         => ['sometimes', 'nullable', 'string'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'statuses' => ['sometimes', 'nullable', 'string'],
+            'priorities' => ['sometimes', 'nullable', 'string'],
             'status_code_search' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'closed_by_ids'      => ['sometimes', 'nullable', 'string'],
+            'closed_by_ids' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }

@@ -91,7 +91,7 @@ class AssetsOntoServiceOrder implements UndoablePasteHandler
         }
 
         $assets->each(function (Asset $asset) use ($order) {
-            if (AssetKind::customerId($asset) !== (int) $order->customer_id) {
+            if (!$order->isForTheCustomerOf($asset)) {
                 throw new Refusal(AssetKind::named($asset) . ' hoort bij een andere klant dan werkbon '
                     . $order->number . '.');
             }

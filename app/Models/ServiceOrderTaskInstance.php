@@ -6,8 +6,10 @@ use App\Models\Traits\HasMaterials;
 use App\Models\Traits\RecordsHistory;
 use App\Services\MateriableService;
 use App\Services\TaskInstanceSerialSlotService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ServiceOrderTaskInstance extends Model
@@ -111,6 +113,59 @@ class ServiceOrderTaskInstance extends Model
     public function serviceOrder()
     {
         return $this->belongsTo(ServiceOrder::class);
+    }
+
+    /** The tasks this person may see: on a werkbon they may see, and meant for them there. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->whereIn($query->qualifyColumn('service_order_id'), ServiceOrder::visibleTo($user)->select('service_orders.id'))
+            ->seenBy($user);
+    }
+
+    /**
+     * Wie welke werkbontaak te zien krijgt, los van of hij de werkbon mag zien.
+     *
+     * Een taak zonder rollen is van iedereen. Een taak met rollen is van de mensen die
+     * de werkbon in een van die rollen uitvoeren, en die rollen staan bij de afspraak,
+     * niet bij de gebruiker: dezelfde monteur kan de ene bon als elektricien draaien en
+     * de andere als installateur. Een afspraak telt mee zolang hij niet verwijderd is,
+     * ook als hij geannuleerd is.
+     *
+     * TaskInstanceVisibility vraagt dit voor het scherm en voor het weigeren van het
+     * sluiten, zodat er één regel is.
+     */
+    public function scopeSeenBy(Builder $query, User $user): Builder
+    {
+        if (self::seesEveryTask($user)) {
+            return $query;
+        }
+
+        $their_roles_here = DB::table('user_role_userable')
+            ->join('userables', 'userables.id', '=', 'user_role_userable.userable_id')
+            ->where('userables.type', 'executing')
+            ->where('userables.user_id', $user->id)
+            ->where('userables.userable_type', (new Event)->getMorphClass())
+            ->whereIn('userables.userable_id', Event::query()
+                ->join('eventables', 'eventables.event_id', '=', 'events.id')
+                ->where('eventables.eventable_type', (new ServiceOrder)->getMorphClass())
+                ->whereColumn('eventables.eventable_id', $this->qualifyColumn('service_order_id'))
+                ->select('events.id'))
+            ->select('user_role_userable.user_role_id');
+
+        return $query->where(fn (Builder $tasks) => $tasks
+            ->whereDoesntHave('userRoles')
+            ->orWhereHas('userRoles', fn (Builder $roles) => $roles->whereIn('user_roles.id', $their_roles_here)));
+    }
+
+    /** Whoever sees every task on a werkbon, whatever role it asks for. */
+    public static function seesEveryTask(User $user): bool
+    {
+        return $user->isAdmin() || $user->hasPermission('serviceorder.see_all_task_instances');
     }
 
     public function serviceOrderTask()

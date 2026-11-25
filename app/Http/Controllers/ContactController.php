@@ -9,6 +9,7 @@ use App\Http\Requests\ContactDestroyRequest;
 use App\Http\Requests\ContactReadRequest;
 use App\Http\Requests\ContactStoreRequest;
 use App\Http\Requests\ContactUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Contact;
 use App\Models\Customer;
 
@@ -24,10 +25,12 @@ class ContactController extends Controller
                 ->orWhere('email', 'like', "%{$search}%")
             )
             )
+            ->tap(AssistantFilter::from($request))
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(25)
-            ->appends(['search' => $search]);
+            ->appends(['search' => $search])
+            ->withQueryString();
 
         $customer_count = Customer::count();
 

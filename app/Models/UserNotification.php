@@ -55,6 +55,12 @@ class UserNotification extends Model
         return $query->whereNull('read_at');
     }
 
+    /** One's own and nobody else's, admins included: UserNotificationPolicy. */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        return $user ? $query->where($query->qualifyColumn('user_id'), $user->id) : $query->whereRaw('1 = 0');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

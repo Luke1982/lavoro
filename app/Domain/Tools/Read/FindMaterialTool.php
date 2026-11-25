@@ -54,7 +54,7 @@ class FindMaterialTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('view', Material::class);
+        return $user->can('viewAny', Material::class);
     }
 
     /** Een materiaalnaam uit een zin halen. */

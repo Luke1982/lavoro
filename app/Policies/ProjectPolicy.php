@@ -7,14 +7,15 @@ use App\Models\User;
 
 class ProjectPolicy
 {
-    public function list(User $user): bool
+    /** Whoever may read projects reads all of them; Project::scopeVisibleTo says the same. */
+    public function viewAny(User $user): bool
     {
         return $user->isAdmin() || $user->hasPermission('project.read');
     }
 
     public function view(User $user, Project $project): bool
     {
-        return $user->isAdmin() || $user->hasPermission('project.read');
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

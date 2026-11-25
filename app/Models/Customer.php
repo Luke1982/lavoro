@@ -7,6 +7,7 @@ use App\Models\Traits\HasCustomFields;
 use App\Models\Traits\HasIntegrations;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -96,6 +97,19 @@ class Customer extends Model
     protected $hidden = self::SENSITIVE_ATTRIBUTES;
 
     public ?int $upcoming_asset_days = null;
+
+    /**
+     * Customers are read all or nothing: whoever may read customers reads every
+     * one of them, mirroring CustomerPolicy.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user?->can('viewAny', self::class)) {
+            return $query;
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
 
     /**
      * Root machines only. Children carry no customer_id, so they fall outside this

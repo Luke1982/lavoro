@@ -164,7 +164,7 @@ class Asset extends Model
         }
 
         if ($user->hasPermission('asset.read.relevant.serviceorder')) {
-            return $query->whereIn('id', $user->relevantAssetIds());
+            return $query->whereKey($user->relevantAssetIds());
         }
 
         return $query->whereRaw('1 = 0');

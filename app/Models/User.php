@@ -11,6 +11,7 @@ use App\Models\Traits\HasActivities;
 use App\Models\Traits\RecordsHistory;
 use App\Support\AddressFormatter;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -44,6 +45,12 @@ class User extends Authenticatable
 
     /** @var array<int, string>|null */
     private ?array $permission_names = null;
+
+    /** @var array<int, int>|null */
+    private ?array $relevant_asset_ids = null;
+
+    /** @var array<int, int>|null */
+    private ?array $relevant_product_ids = null;
 
     /** Depth of User::withoutHistory(); above zero nothing about a user is recorded. */
     private static int $unrecorded = 0;
@@ -255,6 +262,8 @@ class User extends Authenticatable
         $this->is_admin = null;
         $this->is_super_admin = null;
         $this->permission_names = null;
+        $this->relevant_asset_ids = null;
+        $this->relevant_product_ids = null;
 
         return $this;
     }
@@ -296,6 +305,25 @@ class User extends Authenticatable
     public function scopeWithoutSuperAdmins($query)
     {
         return $query->whereDoesntHave('roles', fn ($role) => $role->where('name', Role::SUPERADMIN));
+    }
+
+    /**
+     * The users this person may read, mirroring UserPolicy: everyone but
+     * MajorLabel's accounts for whoever may read users, and a super admin
+     * everyone, as Gate::before lets them past the policy. Asked of the person
+     * given, not of whoever is logged in, which the global scope goes by.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user?->isSuperAdmin()) {
+            return $query->withoutGlobalScope(HidesSuperAdmins::class);
+        }
+
+        if ($user?->can('viewAny', self::class)) {
+            return $query->withoutSuperAdmins();
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     /**
@@ -446,10 +474,19 @@ class User extends Authenticatable
 
     /**
      * Get asset IDs relevant for open serviceorders where user is executing.
+     * Kept on this instance, like the permissions: every machine and product
+     * scope asks it, and the read layer asks those inside whereHas after
+     * whereHas. forgetPermissions() forgets it along with them.
      *
      * @return array<int>
      */
     public function relevantAssetIds(): array
+    {
+        return $this->relevant_asset_ids ??= $this->findRelevantAssetIds();
+    }
+
+    /** @return array<int> */
+    private function findRelevantAssetIds(): array
     {
         $serviceorders = $this->serviceOrdersExecuting()
             ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder())
@@ -473,9 +510,8 @@ class User extends Authenticatable
      */
     public function relevantProductIds(): array
     {
-        $asset_ids = $this->relevantAssetIds();
-
-        return Asset::whereIn('id', $asset_ids)->pluck('product_id')->unique()->values()->all();
+        return $this->relevant_product_ids ??= Asset::whereKey($this->relevantAssetIds())
+            ->pluck('product_id')->unique()->values()->all();
     }
 
     /**

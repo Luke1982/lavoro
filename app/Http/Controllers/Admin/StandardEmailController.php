@@ -6,6 +6,7 @@ use App\Enums\EventTrigger;
 use App\Enums\StandardEmailTriggerType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StandardEmailDestroyRequest;
+use App\Http\Requests\StandardEmailReadRequest;
 use App\Http\Requests\StandardEmailStoreRequest;
 use App\Http\Requests\StandardEmailUpdateRequest;
 use App\Models\StandardAttachment;
@@ -17,7 +18,7 @@ use Inertia\Response;
 
 class StandardEmailController extends Controller
 {
-    public function index(): Response
+    public function index(StandardEmailReadRequest $request): Response
     {
         return Inertia::render('Admin/StandardEmails/IndexPage', [
             'standardEmails' => StandardEmail::with('triggers', 'standardAttachments')->orderBy('name')->get(),

@@ -46,7 +46,7 @@ class DayRoute extends Model
     /** Everyone's routes for whoever sees the whole planning, otherwise only their own. */
     public function scopeVisibleTo(Builder $query, User $viewer): Builder
     {
-        return $viewer->can('seeEveryone', self::class) ? $query : $query->where('user_id', $viewer->id);
+        return $viewer->can('seeEveryone', self::class) ? $query : $query->where($query->qualifyColumn('user_id'), $viewer->id);
     }
 
     /** "7 adressen, terug om 16:45" */

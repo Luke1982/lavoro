@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\ServiceOrderTaskCheck;
 use App\Models\User;
 
 /**
@@ -10,9 +11,14 @@ use App\Models\User;
  */
 class ServiceOrderTaskCheckPolicy
 {
-    public function read(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('serviceordertask.read');
+    }
+
+    public function view(User $user, ServiceOrderTaskCheck $check): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function manage(User $user): bool

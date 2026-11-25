@@ -70,8 +70,13 @@ class ToolSchemaBudgetTest extends TestCase
      * appointment, finding and changing contracts, booking material and hours,
      * quotes, and the planner's backlog. Eight tools, none over 925 bytes as the
      * registry sends them.
+     *
+     * 50100 on 2026-11-25 for read_records: counts, totals and groupings over
+     * any readable kind, and a link to the overview with exactly those records,
+     * so a question about forty werkbonnen is no longer answered with forty rows.
+     * 1176 bytes, its kind list given as examples rather than an enum.
      */
-    private const ROOM_FOR = 49000;
+    private const ROOM_FOR = 50100;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

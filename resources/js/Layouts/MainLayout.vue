@@ -88,6 +88,7 @@
                     <button type="button" class="text-lg leading-none" @click="dismissGoogleBanner">&times;</button>
                 </span>
             </div>
+            <AssistantFilterBanner />
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
@@ -133,6 +134,7 @@ import LogoutOverlay from '@/Components/UI/LogoutOverlay.vue'
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
 import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
+import AssistantFilterBanner from '@/Components/Assistant/AssistantFilterBanner.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
 import TrayDock from '@/Components/Tray/TrayDock.vue'
 import TourLayer from '@/Components/Tour/TourLayer.vue'

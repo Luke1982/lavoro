@@ -17,7 +17,7 @@ class LocationSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        if (!$user->isAdmin() && !$user->hasPermission('location.read')) {
+        if ($user->cannot('viewAny', Location::class)) {
             return [];
         }
 

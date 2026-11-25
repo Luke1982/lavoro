@@ -13,6 +13,7 @@ use App\Http\Requests\ProductIndexRequest;
 use App\Http\Requests\ProductReadRequest;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Brand;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
@@ -37,6 +38,14 @@ class ProductController extends Controller
 {
     use ReadsPerPage;
 
+    /**
+     * Hidden on the model. The price fields on the product page sit behind
+     * product.view_prices, but its header shows the retail price to everyone
+     * who may open the product, and copying a product on the overview takes
+     * both prices into the form of whoever may create one.
+     */
+    private const PRICE_ATTRIBUTES = ['retail_price', 'purchase_price'];
+
     public function index(ProductIndexRequest $request)
     {
         $search = trim((string) $request->validated('search'));
@@ -56,6 +65,10 @@ class ProductController extends Controller
             $products->withAttributeBetween($attribute_id, $min, $max);
         }
 
+        $copied_prices = $request->user()->can('viewPrices', Product::class) || $request->user()->can('create', Product::class)
+            ? self::PRICE_ATTRIBUTES
+            : [];
+
         return inertia(
             'Products/IndexPage',
             [
@@ -67,9 +80,12 @@ class ProductController extends Controller
                         'productAttributeValueables.productAttribute',
                         'productAttributeValueables.value',
                     ])
+                    ->tap(AssistantFilter::from($request))
                     ->orderBy('model')
                     ->paginate($this->perPage($request))
-                    ->through(function ($p) {
+                    ->withQueryString()
+                    ->through(function ($p) use ($copied_prices) {
+                        $p->makeVisible($copied_prices);
                         $p->setAttribute('attribute_value_map', $p->attributeValueMap());
 
                         return $p;
@@ -143,6 +159,8 @@ class ProductController extends Controller
                 ->with(['user:id,name', 'fieldChanges'])
                 ->orderByDesc('activityables.created_at'),
         ]);
+
+        $product->makeVisible($request->user()->can('viewPrices', Product::class) ? self::PRICE_ATTRIBUTES : ['retail_price']);
 
         $typePaths = ProductType::pathMap();
 

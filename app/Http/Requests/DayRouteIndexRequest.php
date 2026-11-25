@@ -2,14 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Event;
+use App\Models\DayRoute;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DayRouteIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('viewAny', Event::class);
+        return (bool) $this->user()?->can('viewAny', DayRoute::class);
     }
 
     public function rules(): array

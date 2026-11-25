@@ -23,6 +23,7 @@ use App\Http\Requests\QuoteReadRequest;
 use App\Http\Requests\QuoteStatusUpdateRequest;
 use App\Http\Requests\QuoteStoreRequest;
 use App\Http\Requests\QuoteUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\MaterialUsageUnit;
 use App\Models\Quote;
 use App\Models\QuoteLine;
@@ -53,6 +54,7 @@ class QuoteController extends Controller
         $quotes = Quote::query()
             ->with(['customer:id,name', 'lines', 'lostReason:id,name'])
             ->tap(fn (Builder $query) => $this->filter($query, $list))
+            ->tap(AssistantFilter::from($request))
             ->orderByDesc('quote_date')
             ->orderByDesc('id')
             ->paginate(20)

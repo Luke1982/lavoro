@@ -36,10 +36,7 @@ class MoveImageAction
             return null;
         }
 
-        $was_shared = Share::canShareFrom($from) && $image->shares()
-            ->where('source_type', $from->getMorphClass())
-            ->where('source_id', $from->getKey())
-            ->exists();
+        $was_shared = $image->isSharedFrom($from);
 
         if ($was_shared) {
             $this->share->execute($image, $from, false);

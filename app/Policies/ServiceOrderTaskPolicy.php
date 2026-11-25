@@ -7,9 +7,14 @@ use App\Models\User;
 
 class ServiceOrderTaskPolicy
 {
-    public function read(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('serviceordertask.read');
+    }
+
+    public function view(User $user, ServiceOrderTask $task): bool
+    {
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

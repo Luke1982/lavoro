@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Traits\RemarkableTrait;
 use Database\Factories\ServiceCheckInstanceFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -45,6 +46,12 @@ class ServiceCheckInstance extends Model
     public function serviceJob()
     {
         return $this->belongsTo(ServiceJob::class);
+    }
+
+    /** The keurpunten of the keuringen this person may read, which follow their werkbon. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return $query->whereIn($query->qualifyColumn('service_job_id'), ServiceJob::visibleTo($user)->select('service_jobs.id'));
     }
 
     /**

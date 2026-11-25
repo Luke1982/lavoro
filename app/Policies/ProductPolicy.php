@@ -7,15 +7,21 @@ use App\Models\User;
 
 class ProductPolicy
 {
-    /** The product list: everyone it is in the menu for. */
+    /**
+     * Reading products at all: the whole catalogue, or only the products on
+     * one's own open werkbonnen. Which ones is Product::visibleTo's business.
+     */
     public function viewAny(User $user): bool
+    {
+        return $user->hasAnyPermission(['product.read', 'product.read.relevant.serviceorder']);
+    }
+
+    /** The product list: everyone it is in the menu for. */
+    public function list(User $user): bool
     {
         return $user->hasPermission('product.read');
     }
 
-    /**
-     * Determine if the user can view the product.
-     */
     public function create(User $user): bool
     {
         return $user->isAdmin() || $user->hasPermission('product.create');
@@ -38,14 +44,7 @@ class ProductPolicy
 
     public function view(User $user, Product $product): bool
     {
-        if ($user->hasPermission('product.read')) {
-            return true;
-        }
-        if ($user->hasPermission('product.read.relevant.serviceorder')) {
-            return in_array($product->id, $user->relevantProductIds());
-        }
-
-        return false;
+        return Product::visibleTo($user)->whereKey($product->getKey())->exists();
     }
 
     /** Asked of the class: the right is the same for every product. */

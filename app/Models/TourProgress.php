@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -38,6 +39,12 @@ class TourProgress extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** One's own progress, and nobody else's. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return $user ? $query->where($query->qualifyColumn('user_id'), $user->id) : $query->whereRaw('1 = 0');
     }
 
     /**

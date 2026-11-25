@@ -7,14 +7,14 @@ use App\Models\User;
 
 class CustomerPolicy
 {
-    public function list(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('customer.read');
     }
 
     public function view(User $user, Customer $customer): bool
     {
-        return $user->hasPermission('customer.read');
+        return $this->viewAny($user);
     }
 
     public function create(User $user): bool

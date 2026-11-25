@@ -2,20 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ServiceOrder;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class ServiceOrderIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-
-        return $user && (
-            $user->isAdmin() ||
-            $user->hasPermission('serviceorder.read') ||
-            $user->hasPermission('serviceorder.read_own')
-        );
+        return (bool) $this->user()?->can('viewAny', ServiceOrder::class);
     }
 
     public function rules(): array

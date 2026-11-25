@@ -3,12 +3,17 @@
 namespace App\Http\Requests;
 
 use App\Enums\ProjectStatuses;
+use App\Models\AssistantFilter;
 use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProjectReadRequest extends FormRequest
 {
-    /** The list opens on the projects still running; 'all' is said out loud to see every one. */
+    /**
+     * The list opens on the projects still running; 'all' is said out loud to see
+     * every one. A list opened with the assistant's filter opens on every status:
+     * the filter was counted over all of them.
+     */
     public const RUNNING = 'running';
 
     public const EVERY_STATUS = 'all';
@@ -22,7 +27,7 @@ class ProjectReadRequest extends FormRequest
             return $this->user()->can('view', $project);
         }
 
-        return $this->user()->can('list', Project::class);
+        return $this->user()->can('viewAny', Project::class);
     }
 
     public function rules(): array
@@ -46,7 +51,7 @@ class ProjectReadRequest extends FormRequest
     {
         return [
             'search' => trim((string) $this->validated('search', '')),
-            'status' => $this->validated('status') ?? self::RUNNING,
+            'status' => $this->validated('status') ?? (AssistantFilter::isAsked($this) ? self::EVERY_STATUS : self::RUNNING),
             'manager' => $this->validated('manager') ? (int) $this->validated('manager') : null,
             'customer' => $this->validated('customer') ? (int) $this->validated('customer') : null,
             'sort' => $this->validated('sort'),

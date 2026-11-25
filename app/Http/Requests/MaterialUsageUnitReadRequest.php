@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MaterialUsageUnit;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 /**
  * MaterialUsageUnit index & show authorization.
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -21,8 +23,7 @@ class MaterialUsageUnitReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('materialusageunit.read'));
+        return (bool) $this->user()?->can('viewAny', MaterialUsageUnit::class);
     }
 
     public function rules(): array

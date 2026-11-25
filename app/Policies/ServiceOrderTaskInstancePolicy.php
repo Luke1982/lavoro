@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\ServiceOrder;
 use App\Models\ServiceOrderTaskInstance;
 use App\Models\User;
-use App\Services\TaskInstanceVisibility;
 use Illuminate\Auth\Access\Response;
 
 /**
@@ -14,7 +14,17 @@ use Illuminate\Auth\Access\Response;
  */
 class ServiceOrderTaskInstancePolicy
 {
-    public function __construct(private readonly TaskInstanceVisibility $visibility) {}
+    /** Tasks are read on their werkbon, so whoever may read werkbonnen may read tasks. */
+    public function viewAny(User $user): bool
+    {
+        return $user->can('viewAny', ServiceOrder::class);
+    }
+
+    /** This one task: on a werkbon this person may see, and meant for them there. */
+    public function view(User $user, ServiceOrderTaskInstance $task): bool
+    {
+        return ServiceOrderTaskInstance::visibleTo($user)->whereKey($task->id)->exists();
+    }
 
     public function toggle(User $user, ServiceOrderTaskInstance $task): Response
     {
@@ -54,7 +64,7 @@ class ServiceOrderTaskInstancePolicy
     /** Whether this person may see the werkbon the task is on, and the task itself. */
     public function reach(User $user, ServiceOrderTaskInstance $task): bool
     {
-        return $user->can('view', $task->serviceOrder) && $this->visibility->canSee($task, $user);
+        return $this->view($user, $task);
     }
 
     private function worksOnTasks(User $user): bool

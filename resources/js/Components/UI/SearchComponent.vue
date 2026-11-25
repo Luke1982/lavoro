@@ -21,6 +21,7 @@ import { router } from '@inertiajs/vue3'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { Search, LoaderCircle, SquareChevronUpIcon } from '@lucide/vue'
 import debounce from 'lodash/debounce'
+import { withAssistantFilter } from '@/Utilities/assistantFilter'
 
 const props = defineProps({
     url: { type: String, required: true },
@@ -51,7 +52,7 @@ function isSameAsCurrent(params) {
 }
 
 const doSearch = debounce((term) => {
-    const params = { ...props.otherParams, [props.param]: term }
+    const params = withAssistantFilter({ ...props.otherParams, [props.param]: term })
     if (isSameAsCurrent(params)) {
         return
     }

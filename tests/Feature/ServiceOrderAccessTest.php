@@ -98,4 +98,13 @@ class ServiceOrderAccessTest extends TestCase
 
         $this->assertNotSame(403, $response->status());
     }
+
+    /** The policy asks for the permission the roles are given, not a name no role has. */
+    public function test_mailing_the_pdf_with_its_keuringen_takes_the_permission_the_roles_have(): void
+    {
+        $order = $this->order();
+
+        $this->assertTrue($this->userWithPermissions('serviceorder.read', 'serviceorder.email_pdf_with_jobs')->can('emailPdfWithChecks', $order));
+        $this->assertFalse($this->userWithPermissions('serviceorder.read', 'serviceorder.email_pdf')->can('emailPdfWithChecks', $order));
+    }
 }

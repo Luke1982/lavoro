@@ -245,6 +245,7 @@ import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 import { EyeIcon, RotateCcwIcon, TrashIcon } from '@lucide/vue'
 import { nlDate, nlTime, initials, hasPermission, serviceOrderPillText, serviceOrderSentState } from '@/Utilities/Utilities'
 import { patchServiceOrderStage } from '@/Utilities/serviceOrders'
+import { opensWithAssistantFilter } from '@/Utilities/assistantFilter'
 import { useTour } from '@/Composables/useTour'
 
 const { serviceOrders, stages, perPage } = defineProps({
@@ -277,6 +278,8 @@ watch(needsClosingFilter, val => {
 })
 
 onMounted(() => {
+    if (opensWithAssistantFilter()) return
+
     const ls_stage = (localStorage.getItem('serviceOrderFilter_stage') || '').split(',').map(Number).filter(Boolean)
     const ls_needs_closing = localStorage.getItem('serviceOrderFilter_needsClosing') === '1'
 

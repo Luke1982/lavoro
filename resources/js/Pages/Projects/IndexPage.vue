@@ -114,7 +114,7 @@
 </template>
 
 <script setup>
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
@@ -130,6 +130,7 @@ import { hasPermission, nlDate, projectStatusClass } from '@/Utilities/Utilities
 import { useComboSearch } from '@/Composables/useComboSearch'
 import { useQueryParams } from '@/Composables/useQueryParams'
 import { useTour } from '@/Composables/useTour'
+import { defaultStatusWith } from '@/Utilities/assistantFilter'
 
 const props = defineProps({
     projects: { type: Object, required: true },
@@ -175,12 +176,17 @@ const filters = computed(() => [
     },
 ])
 
+const page = usePage()
+
+/** With the assistant's filter the list opens on every status, so 'Lopende projecten' has to be asked for out loud. */
+const defaultStatus = computed(() => defaultStatusWith(RUNNING, new URL(page.url, window.location.origin).search))
+
 const hasActiveFilters = computed(() =>
-    props.list.status !== RUNNING || props.list.manager !== null || props.list.customer !== null
+    props.list.status !== defaultStatus.value || props.list.manager !== null || props.list.customer !== null
 )
 
 const otherParams = computed(() => ({
-    status: props.list.status === RUNNING ? undefined : props.list.status,
+    status: props.list.status === defaultStatus.value ? undefined : props.list.status,
     manager: props.list.manager ?? undefined,
     customer: props.list.customer ?? undefined,
     sort: props.list.sort ?? undefined,

@@ -2,10 +2,22 @@
 
 namespace App\Policies;
 
+use App\Models\ServiceOrderMacro;
 use App\Models\User;
 
 class ServiceOrderMacroPolicy
 {
+    /** Macros are only shown on the page that manages them. */
+    public function viewAny(User $user): bool
+    {
+        return $this->manage($user);
+    }
+
+    public function view(User $user, ServiceOrderMacro $macro): bool
+    {
+        return $this->viewAny($user);
+    }
+
     public function manage(User $user): bool
     {
         return $user->hasPermission('serviceordermacro.manage');

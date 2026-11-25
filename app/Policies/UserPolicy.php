@@ -19,7 +19,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        return !$model->isSuperAdmin() && $user->hasPermission('user.read');
+        return !$model->isSuperAdmin() && $this->viewAny($user);
     }
 
     /**

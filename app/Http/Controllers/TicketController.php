@@ -14,6 +14,7 @@ use App\Http\Requests\TicketListRequest;
 use App\Http\Requests\TicketReadRequest;
 use App\Http\Requests\TicketUpdateRequest;
 use App\Models\Asset;
+use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\GeneralSetting;
@@ -75,7 +76,8 @@ class TicketController extends Controller
             $appends['closed_by_ids'] = $closed_by_ids_param;
         }
 
-        $tickets = $query->orderByDesc('created_at')->paginate(20)->appends($appends);
+        $tickets = $query->tap(AssistantFilter::from($request))
+            ->orderByDesc('created_at')->paginate(20)->appends($appends)->withQueryString();
 
         $contracts_of = $request->user()->can('viewAny', MaintenanceContract::class)
             ? Asset::activeContractsCovering($tickets->getCollection()->pluck('asset_id')->filter()->all())

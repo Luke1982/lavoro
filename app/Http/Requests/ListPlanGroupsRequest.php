@@ -9,7 +9,7 @@ class ListPlanGroupsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('manage', UserPlanGroup::class) ?? false;
+        return $this->user()?->can('viewAny', UserPlanGroup::class) ?? false;
     }
 
     public function rules(): array

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StandardAttachmentDestroyRequest;
+use App\Http\Requests\StandardAttachmentReadRequest;
 use App\Http\Requests\StandardAttachmentStoreRequest;
 use App\Http\Requests\StandardAttachmentUpdateRequest;
 use App\Models\StandardAttachment;
@@ -13,7 +14,7 @@ use Inertia\Response;
 
 class StandardAttachmentController extends Controller
 {
-    public function index(): Response
+    public function index(StandardAttachmentReadRequest $request): Response
     {
         return Inertia::render('Admin/StandardAttachments/IndexPage', [
             'standardAttachments' => StandardAttachment::orderBy('name')->get(),

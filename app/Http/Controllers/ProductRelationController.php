@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProductRelation;
-use App\Http\Requests\ProductRelationStoreUpdateRequest;
-use Illuminate\Http\Request;
 use App\Http\Requests\ProductRelationDestroyRequest;
+use App\Http\Requests\ProductRelationReadRequest;
+use App\Http\Requests\ProductRelationStoreUpdateRequest;
+use App\Models\ProductRelation;
 
 class ProductRelationController extends Controller
 {
-    public function index(Request $request)
+    public function index(ProductRelationReadRequest $request)
     {
         $search = trim((string) $request->input('search', ''));
-        $query  = ProductRelation::query();
+        $query = ProductRelation::query();
 
         if ($search !== '') {
             $query->where('name', 'like', '%' . $search . '%');
@@ -20,7 +20,7 @@ class ProductRelationController extends Controller
 
         return inertia('ProductRelations/IndexPage', [
             'relations' => $query->orderBy('name')->paginate(20),
-            'search'    => $search,
+            'search' => $search,
         ]);
     }
 

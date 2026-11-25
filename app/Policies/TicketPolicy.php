@@ -3,11 +3,46 @@
 namespace App\Policies;
 
 use App\Http\Requests\TicketUpdateRequest;
+use App\Models\Asset;
+use App\Models\ServiceOrder;
 use App\Models\Ticket;
 use App\Models\User;
 
 class TicketPolicy
 {
+    /**
+     * Whether storingen can be in sight at all: every one with the right to read
+     * storingen or to see them all on the overview, otherwise those on a werkbon
+     * or machine this person may read. Which ones is Ticket::scopeVisibleTo's
+     * business.
+     */
+    public function viewAny(User $user): bool
+    {
+        return $user->hasPermission('ticket.read')
+            || $user->hasPermission('ticket.see_all')
+            || $user->can('viewAny', ServiceOrder::class)
+            || $user->can('viewAny', Asset::class);
+    }
+
+    /**
+     * The storingen overview and its map: a right of their own, and stricter than
+     * reading. They list every storing, not only the ones in sight.
+     */
+    public function list(User $user): bool
+    {
+        return $user->hasPermission('ticket.see_all');
+    }
+
+    /**
+     * The page of one storing: only with the right to read storingen, which puts
+     * every storing in sight. A storing in sight through a werkbon or machine
+     * (view) does not open its own page.
+     */
+    public function viewPage(User $user): bool
+    {
+        return $user->hasPermission('ticket.read');
+    }
+
     /**
      * A storing is in sight with the right to read storingen, or through a
      * werkbon or machine this person has in sight.

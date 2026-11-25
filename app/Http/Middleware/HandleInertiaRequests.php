@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\TicketStatusses;
 use App\Models\Assistant;
+use App\Models\AssistantFilter;
 use App\Models\Central\Package;
 use App\Models\GeneralSetting;
 use App\Models\InternalAnnouncement;
@@ -131,6 +132,12 @@ class HandleInertiaRequests extends Middleware
                 ? InternalAnnouncement::openFor($request->user())
                     ?->only(['id', 'title', 'body'])
                 : null,
+            /**
+             * The sentence above an overview the assistant linked to with
+             * ?filter=, and null everywhere else. AssistantFilter decides: only
+             * on that kind's own overview, for somebody who may open it.
+             */
+            'assistantFilter' => fn () => AssistantFilter::bannerFor($request),
             /**
              * The parts of Lavoro that only exist once something is set up,
              * for a menu entry's "feature": ledger accounts while a connection

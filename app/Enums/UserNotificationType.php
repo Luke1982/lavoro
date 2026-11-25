@@ -302,7 +302,7 @@ enum UserNotificationType: string
                     $signal->milestone->assigned_user_id,
                     $signal->project->project_manager_id,
                 ]))->get()
-                    ->filter(fn (User $user) => $user->can('list', Project::class))
+                    ->filter(fn (User $user) => $user->can('viewAny', Project::class))
                     ->map(fn (User $user) => (int) $user->id)
                     ->values()
                 : collect(),

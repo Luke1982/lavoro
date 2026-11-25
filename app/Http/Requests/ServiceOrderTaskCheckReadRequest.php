@@ -9,7 +9,7 @@ class ServiceOrderTaskCheckReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('read', ServiceOrderTaskCheck::class);
+        return (bool) $this->user()?->can('viewAny', ServiceOrderTaskCheck::class);
     }
 
     public function rules(): array

@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3'
+import { Link, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { FilePenIcon } from '@lucide/vue'
 import IndexHeaderComponent from '@/Components/UI/IndexHeaderComponent.vue'
@@ -75,6 +75,7 @@ import TourButton from '@/Components/Tour/TourButton.vue'
 import { temporarily, useTour } from '@/Composables/useTour'
 import { hasPermission, nlCurrency, nlDate, quoteStatusClass } from '@/Utilities/Utilities'
 import { useComboSearch } from '@/Composables/useComboSearch'
+import { defaultStatusWith } from '@/Utilities/assistantFilter'
 
 const props = defineProps({
     quotes: { type: Object, required: true },
@@ -123,10 +124,17 @@ const filters = computed(() => [
     },
 ])
 
-const hasActiveFilters = computed(() => props.list.status !== OPEN || props.list.customer !== null || props.list.reason !== null)
+const page = usePage()
+
+/** With the assistant's filter the list opens on every status, so 'Lopende offertes' has to be asked for out loud. */
+const defaultStatus = computed(() => defaultStatusWith(OPEN, new URL(page.url, window.location.origin).search))
+
+const hasActiveFilters = computed(() =>
+    props.list.status !== defaultStatus.value || props.list.customer !== null || props.list.reason !== null
+)
 
 const otherParams = computed(() => ({
-    status: props.list.status === OPEN ? undefined : props.list.status,
+    status: props.list.status === defaultStatus.value ? undefined : props.list.status,
     customer: props.list.customer ?? undefined,
     reason: props.list.reason ?? undefined,
 }))

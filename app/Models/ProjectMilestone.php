@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -41,6 +42,12 @@ class ProjectMilestone extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /** The milestones of the projects this person may read. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return $query->whereIn($query->qualifyColumn('project_id'), Project::visibleTo($user)->select('projects.id'));
     }
 
     public function assignedUser()

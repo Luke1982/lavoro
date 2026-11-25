@@ -17,7 +17,7 @@ class SupplierSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        if (!$user->isAdmin() && !$user->hasPermission('supplier.read')) {
+        if ($user->cannot('viewAny', Supplier::class)) {
             return [];
         }
 

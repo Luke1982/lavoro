@@ -19,6 +19,11 @@ class TrayItemPolicy
         return true;
     }
 
+    public function view(User $user, TrayItem $tray_item): bool
+    {
+        return $tray_item->user_id === $user->id;
+    }
+
     public function create(User $user): bool
     {
         return true;

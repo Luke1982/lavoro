@@ -9,7 +9,6 @@ use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
-use App\Models\Customer;
 use App\Models\Image;
 use App\Models\Product;
 use App\Models\ServiceOrder;
@@ -37,7 +36,6 @@ class ViewImagesTool implements Tool
         'werkbon' => ServiceOrder::class,
         'machine' => Asset::class,
         'storing' => Ticket::class,
-        'klant' => Customer::class,
         'product' => Product::class,
     ];
 
@@ -61,7 +59,7 @@ class ViewImagesTool implements Tool
             'properties' => [
                 'subject_type' => [
                     'type' => 'string',
-                    'description' => 'Soort record: werkbon, machine, storing, klant of product.',
+                    'description' => 'Soort record: werkbon, machine, storing of product.',
                 ],
                 'subject_id' => [
                     'type' => 'integer',

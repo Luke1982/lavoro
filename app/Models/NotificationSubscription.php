@@ -37,6 +37,16 @@ class NotificationSubscription extends Model
         return $this->morphTo();
     }
 
+    /** One's own, and everybody's for whoever may set other people's bell: NotificationSubscriptionPolicy::view. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return match (true) {
+            $user === null => $query->whereRaw('1 = 0'),
+            $user->can('manageOthers', self::class) => $query,
+            default => $query->where($query->qualifyColumn('user_id'), $user->id),
+        };
+    }
+
     /** Abonnementen op dit ene record, ongeacht op welk soort nieuws. */
     public function scopeForRecord(Builder $query, Model $record): Builder
     {

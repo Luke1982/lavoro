@@ -166,7 +166,7 @@ class ServiceJobAssetSerialTest extends TestCase
 
     public function test_the_keuring_page_says_whether_the_serial_may_be_filled_in(): void
     {
-        $user = $this->userWith('asset.set_serial.relevant.serviceorder');
+        $user = $this->userWithPermissions('serviceorder.read', 'servicejob.read', 'asset.set_serial.relevant.serviceorder');
         $mine = $this->job($user);
         $theirs = $this->job();
 

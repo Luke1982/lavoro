@@ -19,6 +19,7 @@ use App\Http\Requests\MaintenanceContractStoreRequest;
 use App\Http\Requests\MaintenanceContractUpdateAssetableRequest;
 use App\Http\Requests\MaintenanceContractUpdateRequest;
 use App\Models\Asset;
+use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
@@ -66,7 +67,8 @@ class MaintenanceContractController extends Controller
             };
         }
 
-        $maintenancecontracts = $query->orderByDesc('start_date')->paginate(20)->withQueryString();
+        $maintenancecontracts = $query->tap(AssistantFilter::from($request))
+            ->orderByDesc('start_date')->paginate(20)->withQueryString();
 
         if ($request->user()->can('seeFinancials', MaintenanceContract::class)) {
             $maintenancecontracts->getCollection()->makeVisible(MaintenanceContract::FINANCIAL_ATTRIBUTES);

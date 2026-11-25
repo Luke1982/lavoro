@@ -8,6 +8,7 @@ use App\Http\Requests\UserDeleteRequest;
 use App\Http\Requests\UserRestoreRequest;
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Central\Package;
 use App\Models\Role;
 use App\Models\User;
@@ -22,8 +23,10 @@ class UserController extends Controller
     public function index()
     {
         abort_unless(auth()->user()->can('viewAny', User::class), 403);
-        $users = User::all();
-        $deleted_users = auth()->user()->can('viewTrashed', User::class)
+        $users = User::query()->tap(AssistantFilter::from(request()))->get();
+
+        /** The assistant counts the active users only, so its filter shows those and no deleted ones. */
+        $deleted_users = auth()->user()->can('viewTrashed', User::class) && !AssistantFilter::isAsked(request())
             ? User::onlyTrashed()->get()
             : collect();
 

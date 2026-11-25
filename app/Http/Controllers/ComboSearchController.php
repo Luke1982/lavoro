@@ -163,7 +163,6 @@ class ComboSearchController extends Controller
         $customer_id = (int) $request->validated('customer_id');
         $include_id = $request->validated('include_id');
         $term = trim((string) $request->validated('q'));
-        $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
 
         $results = ServiceOrder::query()
             ->where('customer_id', $customer_id)
@@ -183,10 +182,7 @@ class ComboSearchController extends Controller
                     $match->orWhere('id', 'like', SearchTerm::like((string) $id));
                 }
             }))
-            ->when(!$can_read_all, fn ($query) => $query->whereHas(
-                'executingUsers',
-                fn ($uq) => $uq->where('users.id', $user->id)
-            ))
+            ->plannableFor($user)
             ->orderByDesc('order_date')
             ->orderByDesc('id')
             ->limit(50)

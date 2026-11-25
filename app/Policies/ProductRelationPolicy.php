@@ -7,6 +7,16 @@ use App\Models\User;
 
 class ProductRelationPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasPermission('productrelation.read');
+    }
+
+    public function view(User $user, ProductRelation $product_relation): bool
+    {
+        return $this->viewAny($user);
+    }
+
     public function create(User $user): bool
     {
         return $user->hasPermission('productrelation.create');

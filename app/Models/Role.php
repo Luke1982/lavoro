@@ -8,6 +8,7 @@ use App\Domain\Signals\Users\RoleMembersChanged;
 use App\Domain\Signals\Users\RolePermissionsChanged;
 use App\Models\Traits\HasActivities;
 use App\Models\Traits\RecordsHistory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -40,7 +41,21 @@ class Role extends Model
     /** Roles a customer may see and use: everything except ours. */
     public function scopeAssignable($query)
     {
-        return $query->where('name', '!=', self::SUPERADMIN);
+        return $query->where($query->qualifyColumn('name'), '!=', self::SUPERADMIN);
+    }
+
+    /** The roles this person may read, mirroring RolePolicy. */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if ($user?->isSuperAdmin()) {
+            return $query;
+        }
+
+        if ($user?->can('viewAny', self::class)) {
+            return $query->assignable();
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     /**

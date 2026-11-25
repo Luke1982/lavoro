@@ -259,6 +259,7 @@ import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour, addressStartingTour } from '@/Composables/useTour'
 import { EyeIcon, AlertCircleIcon, MapIcon } from '@lucide/vue'
 import { formatAddress, hasPermission, mapsLinkFromCustomer, ticketStatusClasses, ticketPriorityClasses } from '@/Utilities/Utilities'
+import { opensWithAssistantFilter } from '@/Utilities/assistantFilter'
 
 const props = defineProps({
     tickets: { type: Object, required: true },
@@ -304,6 +305,7 @@ const hasActiveFilters = computed(() =>
 )
 
 onMounted(() => {
+    if (opensWithAssistantFilter()) return
     if (props.activeStatuses.length || props.activePriorities.length || props.activeStatusCodeSearch || props.activeClosedByIds.length) return
     const lsStatuses = (localStorage.getItem('ticketFilter_statuses') || '').split(',').filter(Boolean)
     const lsPriorities = (localStorage.getItem('ticketFilter_priorities') || '').split(',').filter(Boolean)

@@ -62,7 +62,7 @@ class SummarizeProjectTool implements Tool
     {
         $project = Project::find((int) ($arguments['project_id'] ?? 0));
 
-        return $project ? $user->can('view', $project) : $user->can('list', Project::class);
+        return $project ? $user->can('view', $project) : $user->can('viewAny', Project::class);
     }
 
     /** Eén argument, maar het vraagt wel te zien dat een overzicht gevraagd wordt in plaats van een losse zoekopdracht. */

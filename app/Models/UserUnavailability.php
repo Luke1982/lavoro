@@ -51,8 +51,8 @@ class UserUnavailability extends Model
     protected function casts(): array
     {
         return [
-            'date'           => 'date',
-            'end_date'       => 'date',
+            'date' => 'date',
+            'end_date' => 'date',
             'reference_date' => 'date',
         ];
     }
@@ -60,6 +60,21 @@ class UserUnavailability extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * What the two screens that show them show: a colleague's page has anyone's
+     * for whoever may read colleagues, the planner those of the people it plans
+     * for whoever may read appointments. The user query leaves out MajorLabel's
+     * own accounts and colleagues who are gone, as both screens do.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        return match (true) {
+            $user?->can('viewAny', User::class) === true => $query->whereHas('user'),
+            $user?->can('viewAny', Event::class) === true => $query->whereHas('user', fn ($users) => $users->where('plannable', true)),
+            default => $query->whereRaw('1 = 0'),
+        };
     }
 
     /** @return array<int, User|null> */
@@ -94,28 +109,28 @@ class UserUnavailability extends Model
         return $query->where(function ($q) use ($weekStart, $weekEnd) {
             // Holiday overlaps the week when it starts before weekEnd AND ends after weekStart.
             $q->where('type', 'holiday')
-              ->where('date', '<=', $weekEnd->toDateString())
-              ->where(function ($q2) use ($weekStart) {
-                  $q2->whereNull('end_date')
-                     ->orWhere('end_date', '>=', $weekStart->toDateString());
-              });
+                ->where('date', '<=', $weekEnd->toDateString())
+                ->where(function ($q2) use ($weekStart) {
+                    $q2->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $weekStart->toDateString());
+                });
         })->orWhere('type', 'recurring');
     }
 
     public function expandForWeek(Carbon $weekStart, Carbon $weekEnd): array
     {
         if ($this->type === 'holiday') {
-            $end     = $this->end_date ?? $this->date;
+            $end = $this->end_date ?? $this->date;
             $current = $this->date->copy()->max($weekStart);
-            $blocks  = [];
+            $blocks = [];
 
             while ($current->lte($end) && $current->lte($weekEnd)) {
                 $blocks[] = [
-                    'user_id'    => $this->user_id,
-                    'date'       => $current->toDateString(),
+                    'user_id' => $this->user_id,
+                    'date' => $current->toDateString(),
                     'start_time' => null,
-                    'end_time'   => null,
-                    'label'      => $this->label,
+                    'end_time' => null,
+                    'label' => $this->label,
                 ];
                 $current->addDay();
             }
@@ -123,7 +138,7 @@ class UserUnavailability extends Model
             return $blocks;
         }
 
-        $blocks  = [];
+        $blocks = [];
         $current = $weekStart->copy()->startOfDay();
 
         while ($current->lte($weekEnd)) {
@@ -138,16 +153,16 @@ class UserUnavailability extends Model
                 } elseif ($this->repeat === 'biweekly' && $this->reference_date !== null) {
                     // Week 0 (the reference week itself) is the first occurrence.
                     $weeksDiff = (int) $this->reference_date->diffInWeeks($current);
-                    $include   = $weeksDiff % 2 === 0;
+                    $include = $weeksDiff % 2 === 0;
                 }
 
                 if ($include) {
                     $blocks[] = [
-                        'user_id'    => $this->user_id,
-                        'date'       => $current->toDateString(),
+                        'user_id' => $this->user_id,
+                        'date' => $current->toDateString(),
                         'start_time' => $this->start_time,
-                        'end_time'   => $this->end_time,
-                        'label'      => $this->label,
+                        'end_time' => $this->end_time,
+                        'label' => $this->label,
                     ];
                 }
             }

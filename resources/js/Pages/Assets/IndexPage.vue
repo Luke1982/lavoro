@@ -161,6 +161,7 @@ import { hasPermission, nlDate } from '@/Utilities/Utilities';
 import PageRecordCountComponent from '@/Components/UI/PageRecordCountComponent.vue';
 import PaginationComponent from '@/Components/UI/PaginationComponent.vue';
 import { imageFileUrl } from '@/Utilities/imageFiles.js';
+import { opensWithAssistantFilter } from '@/Utilities/assistantFilter';
 import TourButton from '@/Components/Tour/TourButton.vue';
 import { useTour } from '@/Composables/useTour';
 
@@ -250,7 +251,7 @@ function recall(key) {
 watch(chosen, () => Object.entries(chosen).forEach(([key, value]) => remember(key, value)));
 
 onMounted(() => {
-    if (Object.keys(props.filters).length) return;
+    if (opensWithAssistantFilter() || Object.keys(props.filters).length) return;
     Object.assign(chosen, perFilter(recall));
 });
 

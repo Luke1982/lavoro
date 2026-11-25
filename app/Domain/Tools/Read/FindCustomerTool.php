@@ -59,7 +59,7 @@ class FindCustomerTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('list', Customer::class);
+        return $user->can('viewAny', Customer::class);
     }
 
     /** Eén zoekterm uit de vraag halen. Nauwelijks iets af te wegen. */

@@ -22,13 +22,6 @@ class PlannerController extends Controller
     public function index(EventReadRequest $request, TechnicianAvailability $availability)
     {
         $user = Auth::user();
-        $can_read_all = $user->isAdmin() || $user->hasPermission('serviceorder.read');
-
-        $so_scope = function ($q) use ($user, $can_read_all) {
-            if (!$can_read_all) {
-                $q->whereHas('executingUsers', fn ($uq) => $uq->where('users.id', $user->id));
-            }
-        };
 
         $customer_count = Customer::count();
 
@@ -63,7 +56,7 @@ class PlannerController extends Controller
             ])
                 ->withCount('events')
                 ->awaitingPlanning()
-                ->tap($so_scope)
+                ->plannableFor($user)
                 ->orderByDesc('order_date')
                 ->orderByDesc('id')
                 ->get()

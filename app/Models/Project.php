@@ -163,7 +163,7 @@ class Project extends Model
      */
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        return $user && $user->can('list', self::class)
+        return $user && $user->can('viewAny', self::class)
             ? $query
             : $query->whereRaw('0 = 1');
     }

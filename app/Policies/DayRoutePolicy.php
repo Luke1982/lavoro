@@ -8,6 +8,17 @@ use App\Models\User;
 
 class DayRoutePolicy
 {
+    /** Routes are read in the planner, so by the planner's rule. Whose: DayRoute::scopeVisibleTo. */
+    public function viewAny(User $user): bool
+    {
+        return $user->can('viewAny', Event::class);
+    }
+
+    public function view(User $user, DayRoute $route): bool
+    {
+        return DayRoute::visibleTo($user)->whereKey($route->id)->exists();
+    }
+
     /** Like appointments: whoever sees the whole planning sees every route in it. */
     public function seeEveryone(User $user): bool
     {

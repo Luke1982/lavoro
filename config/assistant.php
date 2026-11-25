@@ -24,6 +24,7 @@ use App\Domain\Tools\Read\ReadDocumentationTool;
 use App\Domain\Tools\Read\ReadFileTool;
 use App\Domain\Tools\Read\ReadManualTool;
 use App\Domain\Tools\Read\ReadPriceFormulasTool;
+use App\Domain\Tools\Read\ReadRecordsTool;
 use App\Domain\Tools\Read\ReportFindingsTool;
 use App\Domain\Tools\Read\ResearchTicketTool;
 use App\Domain\Tools\Read\SearchActivityTool;
@@ -115,6 +116,7 @@ return [
         RegisterHoursTool::class,
         FindQuoteTool::class,
         DraftQuoteTool::class,
+        ReadRecordsTool::class,
     ],
 
     /*
@@ -439,6 +441,13 @@ return [
     'max_documents' => env('ASSISTANT_MAX_DOCUMENTS', 2),
 
     'max_document_kb' => env('ASSISTANT_MAX_DOCUMENT_KB', 4000),
+
+    /**
+    | Hoeveel maanden gesprekken met de assistent bewaard blijven (assistant:prune),
+    | en daarmee ook de filterlinks die hij in die gesprekken uitdeelde: een link
+    | uit een gesprek dat er nog is, werkt nog.
+     */
+    'keep_months' => env('ASSISTANT_KEEP_MONTHS', 6),
 
     /** Hoeveel dagen geparkeerde foto's en bestanden wachten op een keuze voordat ze weggaan. */
     'photo_days' => env('ASSISTANT_PHOTO_DAYS', 7),

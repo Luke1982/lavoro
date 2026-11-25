@@ -15,6 +15,17 @@ use App\Models\User;
  */
 class NotificationSubscriptionPolicy
 {
+    /** Everyone has a bell of their own to read. Whose else: NotificationSubscription::scopeVisibleTo. */
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, NotificationSubscription $notification_subscription): bool
+    {
+        return $notification_subscription->user_id === $user->id || $this->manageOthers($user);
+    }
+
     /**
      * A subscriber that could not be resolved is left to validation, which
      * reports an unknown user far more usefully than a refusal would.

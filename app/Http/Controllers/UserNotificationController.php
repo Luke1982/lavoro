@@ -78,8 +78,9 @@ class UserNotificationController extends Controller
 
     private function query(UserNotificationListRequest $request)
     {
-        return $request->user()
-            ->userNotifications()
+        return UserNotification::visibleTo($request->user())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
 
             /**
              * De afspraak wordt meegeladen omdat de link ernaartoe hem nodig heeft,
@@ -113,7 +114,7 @@ class UserNotificationController extends Controller
 
     private function unreadCount(Request $request): int
     {
-        return $request->user()->userNotifications()->unread()->count();
+        return UserNotification::visibleTo($request->user())->unread()->count();
     }
 
     /** @return array<string, mixed> */

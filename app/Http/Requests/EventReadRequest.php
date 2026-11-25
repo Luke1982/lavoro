@@ -6,7 +6,6 @@ use App\Models\Event;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Event index & show authorization.
@@ -25,9 +24,7 @@ class EventReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('event.read'));
+        return (bool) $this->user()?->can('viewAny', Event::class);
     }
 
     protected function prepareForValidation(): void
@@ -38,7 +35,7 @@ class EventReadRequest extends FormRequest
 
         $max_end = Carbon::now()->startOfDay()->addDays(7)->endOfDay();
 
-        if (! $this->filled('end') || Carbon::parse($this->input('end'))->gt($max_end)) {
+        if (!$this->filled('end') || Carbon::parse($this->input('end'))->gt($max_end)) {
             $this->merge(['end' => $max_end->toIso8601ZuluString()]);
         }
     }

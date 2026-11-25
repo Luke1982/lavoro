@@ -32,7 +32,7 @@ class Tray
      */
     public function items(User $user): array
     {
-        $items = $user->trayItems()->orderBy('position')->orderBy('id')->get();
+        $items = TrayItem::visibleTo($user)->orderBy('position')->orderBy('id')->get();
         $described = [];
 
         foreach ($items->groupBy('trayable_type') as $type => $group) {

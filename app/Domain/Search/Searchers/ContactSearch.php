@@ -17,7 +17,7 @@ class ContactSearch implements Searchable
 
     public function search(User $user, string $term, int $limit): array
     {
-        if (!$user->isAdmin() && !$user->hasPermission('contact.read')) {
+        if ($user->cannot('viewAny', Contact::class)) {
             return [];
         }
 

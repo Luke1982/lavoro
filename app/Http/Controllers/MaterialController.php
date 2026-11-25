@@ -9,6 +9,7 @@ use App\Http\Requests\MaterialDestroyRequest;
 use App\Http\Requests\MaterialReadRequest;
 use App\Http\Requests\MaterialStoreRequest;
 use App\Http\Requests\MaterialUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\IntegrationConnection;
 use App\Models\LedgerAccount;
 use App\Models\Material;
@@ -42,7 +43,8 @@ class MaterialController extends Controller
         }
 
         return inertia('Materials/IndexPage', [
-            'materials' => $query->orderBy('name')->paginate(20)->appends(['search' => $search]),
+            'materials' => $query->tap(AssistantFilter::from($request))
+                ->orderBy('name')->paginate(20)->appends(['search' => $search])->withQueryString(),
             'categories' => MaterialCategory::orderBy('name')->get(),
             'usageUnits' => MaterialUsageUnit::orderBy('name')->get(),
             'search' => $search,

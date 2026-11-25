@@ -8,13 +8,14 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Keuringen for many machines of the werkbon's customer at once: all of them, or
- * those at one of the customer's locations.
+ * those at one of the customer's locations. Only on a werkbon this person may open.
  */
 class ServiceOrderServiceJobStoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('create', ServiceJob::class);
+        return (bool) $this->user()?->can('create', ServiceJob::class)
+            && $this->user()->can('view', $this->route('serviceorder'));
     }
 
     public function rules(): array

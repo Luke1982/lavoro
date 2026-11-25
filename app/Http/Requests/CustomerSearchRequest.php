@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Customer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CustomerSearchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('customer.read'));
+        return (bool) $this->user()?->can('viewAny', Customer::class);
     }
 
     public function rules(): array

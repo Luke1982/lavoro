@@ -7,6 +7,7 @@ use App\Models\Traits\HasExecutingUsers;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RecordsHistory;
 use Database\Factories\ServiceJobFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -148,6 +149,19 @@ class ServiceJob extends Model
     public function serviceOrder()
     {
         return $this->belongsTo(ServiceOrder::class);
+    }
+
+    /**
+     * The keuringen this person may read: with the right to read keuringen, on a
+     * werkbon they may see. A keuring without a werkbon is nobody's to read here.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if (!$user?->can('viewAny', self::class)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn($query->qualifyColumn('service_order_id'), ServiceOrder::visibleTo($user)->select('service_orders.id'));
     }
 
     /**

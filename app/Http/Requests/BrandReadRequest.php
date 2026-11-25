@@ -2,14 +2,17 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Brand;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 /**
  * Brand index & show authorization + optional search.
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @property-read string|null $search
+ *
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -22,8 +25,7 @@ class BrandReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('brand.read'));
+        return (bool) $this->user()?->can('viewAny', Brand::class);
     }
 
     public function rules(): array

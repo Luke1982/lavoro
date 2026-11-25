@@ -23,4 +23,13 @@ trait Shareable
     {
         return $this->morphMany(Share::class, 'shareable');
     }
+
+    /** Whether it is shared from this record onwards: a project photo onto the project's werkbonnen. */
+    public function isSharedFrom(?Model $source): bool
+    {
+        return Share::canShareFrom($source) && $this->shares()
+            ->where('source_type', $source->getMorphClass())
+            ->where('source_id', $source->getKey())
+            ->exists();
+    }
 }

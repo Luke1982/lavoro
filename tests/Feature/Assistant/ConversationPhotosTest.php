@@ -39,9 +39,10 @@ class ConversationPhotosTest extends TestCase
         ]);
     }
 
+    /** Someone who may put photos on machines and werkbonnen by hand, as keeping them does. */
     private function owner(): User
     {
-        $user = $this->userWith('assistant.use');
+        $user = $this->userWithPermissions('assistant.use', 'image.upload', 'asset.read', 'serviceorder.read');
 
         AssistantQuestion::create([
             'user_id' => $user->id,

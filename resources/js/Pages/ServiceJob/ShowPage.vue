@@ -101,7 +101,7 @@
                         class="text-gray-500 dark:text-slate-400 ml-1 text-xs">({{ mc.type }})</span></li>
             </ul>
         </div>
-        <div class="flex items-start md:items-center gap-2 md:ml-4">
+        <div v-if="can_update" class="flex items-start md:items-center gap-2 md:ml-4">
             <button @click="addMissing" :disabled="addingMissing"
                 class="px-3 py-1.5 rounded bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 disabled:bg-gray-400 self-start md:self-auto">
                 <span v-if="!addingMissing">Ontbrekende toevoegen</span>
@@ -117,7 +117,7 @@
         <span class="text-xs text-gray-400 ml-2">{{ parent_job.outcome }}</span>
     </div>
 
-    <div v-if="child_jobs.length"
+    <div v-if="child_jobs.length && can_update"
         class="mb-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-md">
         <p class="text-sm font-semibold text-indigo-800 dark:text-indigo-200 mb-3">
             Gecombineerde keuring — sla alle assets tegelijk op met dezelfde uitkomst
@@ -167,7 +167,7 @@
                 <div class="flex flex-wrap -mx-2">
                     <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
                         :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
-                        class="w-full md:w-1/2 xle:w-1/3 px-2 mb-4" :readonly="servicejob.completed_on !== null" />
+                        class="w-full md:w-1/2 xle:w-1/3 px-2 mb-4" :readonly="servicejob.completed_on !== null || !can_update" />
                 </div>
             </div>
         </div>
@@ -178,24 +178,25 @@
             <div class="flex flex-col sm:flex-row gap-4 items-end flex-wrap" v-auto-animate>
                 <div class="flex-1 min-w-44">
                     <ComboBox :label="'Uitkomst van de keuring'" :options="possibleOutcomes" v-model="currentOutcomeId"
-                        :disabled="servicejob.completed_on !== null" />
+                        :disabled="servicejob.completed_on !== null || !can_update" />
                 </div>
                 <TextInput v-model="form.days_temporary_approval" :label="'Aantal dagen tijdelijk goedgekeurd'"
                     class="w-40" type="number"
+                    :disabled="servicejob.completed_on !== null || !can_update"
                     v-if="currentOutcomeId === 'tijdelijk_goedkeur'" />
                 <div class="flex flex-col">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op:</label>
                     <input type="date" v-model="form.completed_on" lang="nl"
                         class="border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-1 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                        :disabled="servicejob.completed_on !== null" />
+                        :disabled="servicejob.completed_on !== null || !can_update" />
                 </div>
                 <button @click="updating = true; updateJob()" :disabled="updating"
-                    v-if="servicejob.completed_on === null"
+                    v-if="can_update && servicejob.completed_on === null"
                     class="inline-flex items-center gap-2 bg-lavoro-blue text-white px-4 py-2 rounded-md hover:opacity-90 disabled:bg-gray-500 transition-opacity cursor-pointer self-end">
                     <span>Opslaan</span>
                     <Cog6ToothIcon v-if="updating" class="size-4 animate-spin" />
                 </button>
-                <div v-else class="flex items-center gap-1.5 self-end pb-0.5">
+                <div v-else-if="can_update" class="flex items-center gap-1.5 self-end pb-0.5">
                     <InformationCircleIcon class="size-5 text-gray-400 dark:text-slate-500 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
                         v-tooltip="{ html: true, content: `<span class='block w-100'>Deze keuring is afgerond op <strong>${nlDate(servicejob.completed_on)}</strong>. Klik op het slot om opnieuw te kunnen opslaan.</span>` }" />
                     <LockClosedIcon class="size-5 text-gray-400 dark:text-slate-500 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300"
@@ -207,7 +208,7 @@
                 <textarea v-model="form.description" rows="3"
                     class="w-full border border-gray-300 dark:border-slate-600 rounded-md p-2 disabled:bg-gray-100 dark:disabled:bg-slate-800/40 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     placeholder="Eventuele opmerkingen over de keuring..."
-                    :disabled="servicejob.completed_on !== null"></textarea>
+                    :disabled="servicejob.completed_on !== null || !can_update"></textarea>
             </div>
         </BoxComponent>
     </div>
@@ -226,7 +227,7 @@
                 <div class="flex flex-wrap -mx-2">
                     <ServiceCheckInstanceComponent v-for="check in group.items" :key="check.id"
                         :service-check-instance="check" :check-types-with-options="checkTypesWithOptions"
-                        class="w-full md:w-1/2 xle:w-1/3 px-2 mb-4" :readonly="cj.completed_on !== null" />
+                        class="w-full md:w-1/2 xle:w-1/3 px-2 mb-4" :readonly="cj.completed_on !== null || !can_update" />
                 </div>
             </div>
         </div>
@@ -234,30 +235,30 @@
             <div class="flex flex-wrap gap-3 items-end">
                 <div class="flex-1 min-w-40">
                     <ComboBox label="Uitkomst" :options="possibleOutcomes" v-model="childForms[cj.id].outcomeId"
-                        :disabled="cj.completed_on !== null" />
+                        :disabled="cj.completed_on !== null || !can_update" />
                 </div>
                 <div v-if="childForms[cj.id].outcomeId === 'tijdelijk_goedkeur'" class="w-32">
                     <TextInput v-model="childForms[cj.id].days_temporary_approval" label="Dagen tijdelijk" type="number"
-                        :disabled="cj.completed_on !== null" />
+                        :disabled="cj.completed_on !== null || !can_update" />
                 </div>
                 <div class="flex flex-col">
                     <label class="block text-sm font-medium leading-6 text-gray-900 dark:text-slate-200">Afgerond op</label>
                     <input type="date" v-model="childForms[cj.id].completed_on" lang="nl"
                         class="border border-gray-300 dark:border-slate-600 rounded-md text-sm p-1.5 mt-1 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 disabled:bg-gray-100 dark:disabled:bg-slate-900"
-                        :disabled="cj.completed_on !== null" />
+                        :disabled="cj.completed_on !== null || !can_update" />
                 </div>
-                <button v-if="cj.completed_on === null" @click="saveChildJob(cj.id)" :disabled="childSaving[cj.id]"
+                <button v-if="can_update && cj.completed_on === null" @click="saveChildJob(cj.id)" :disabled="childSaving[cj.id]"
                     class="px-4 py-2 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:bg-gray-400 self-end">
                     <span v-if="!childSaving[cj.id]">Opslaan</span>
                     <span v-else>Bezig...</span>
                 </button>
-                <span v-else class="text-xs text-gray-400 self-end pb-1">Afgerond op {{ nlDate(cj.completed_on) }}</span>
+                <span v-else-if="cj.completed_on !== null" class="text-xs text-gray-400 self-end pb-1">Afgerond op {{ nlDate(cj.completed_on) }}</span>
             </div>
             <div class="mt-3">
                 <label class="block text-xs font-medium text-gray-600 dark:text-slate-300 mb-1">Opmerkingen</label>
                 <textarea v-model="childForms[cj.id].description" rows="2"
                     class="w-full border border-gray-300 dark:border-slate-600 rounded p-1.5 text-sm disabled:bg-gray-100 dark:disabled:bg-slate-900 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100"
-                    :disabled="cj.completed_on !== null"></textarea>
+                    :disabled="cj.completed_on !== null || !can_update"></textarea>
             </div>
         </BoxComponent>
     </div>
@@ -303,7 +304,7 @@ import {
 } from '@heroicons/vue/24/outline';
 
 const {
-    servicejob, possibleOutcomes, missing_checks_count, missing_checks, parent_job, child_jobs, can_set_serial,
+    servicejob, possibleOutcomes, missing_checks_count, missing_checks, parent_job, child_jobs, can_set_serial, can_update,
 } = defineProps({
     servicejob: {
         type: Object,
@@ -334,6 +335,10 @@ const {
         default: () => []
     },
     can_set_serial: {
+        type: Boolean,
+        default: false
+    },
+    can_update: {
         type: Boolean,
         default: false
     },

@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Material;
 use Illuminate\Foundation\Http\FormRequest;
 
 class MaterialSearchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('material.read'));
+        return (bool) $this->user()?->can('viewAny', Material::class);
     }
 
     public function rules(): array

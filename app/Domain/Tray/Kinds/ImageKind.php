@@ -64,41 +64,24 @@ final class ImageKind extends TrayKind
         ];
     }
 
-    /** The photos this person may look at, hanging off a record they may open. */
+    /**
+     * The photos this person may look at: Image::visibleTo, the same rule as opening
+     * one. Whoever may not read projects also gets the werkbon a project photo is
+     * shared on, which it is shown on instead (shownOn).
+     */
     public static function visibleTo(User $user): Builder
     {
-        $query = Image::query()->select('images.*')->addSelect([
+        $query = Image::visibleTo($user)->select('images.*')->addSelect([
             'tray_record_type' => self::firstLink('imageable_type'),
             'tray_record_id' => self::firstLink('imageable_id'),
             'tray_internal' => self::firstLink('internal'),
         ]);
 
-        if ($user->cannot('viewAny', Image::class)) {
-            return $query->whereRaw('1 = 0');
+        if ($user->cannot('viewAny', Project::class)) {
+            $query->addSelect(['tray_order_id' => self::werkbonSharedOn($user)]);
         }
 
-        return $query->where(function (Builder $query) use ($user) {
-            foreach (Image::ATTACHABLE_TO as $class) {
-                $query->orWhereExists(fn (QueryBuilder $links) => self::linksTo($links, $class, $user));
-            }
-        });
-    }
-
-    /**
-     * The records of this class whose photos this person may reach: the ones its
-     * own rule lets them see, a keurpunt through its werkbon, and every one of a
-     * record without such a rule, such as a material, as on its own screen.
-     *
-     * @param  class-string<Model>  $class
-     */
-    public static function recordsVisibleTo(string $class, User $user): Builder
-    {
-        return match (true) {
-            $class === ServiceCheckInstance::class => ServiceCheckInstance::whereHas('serviceJob', fn (Builder $jobs) => $jobs
-                ->whereIn('service_order_id', ServiceOrder::visibleTo($user)->select('service_orders.id'))),
-            method_exists($class, 'scopeVisibleTo') => $class::visibleTo($user),
-            default => $class::query(),
-        };
+        return $query;
     }
 
     /** @param  Image  $image */
@@ -114,7 +97,7 @@ final class ImageKind extends TrayKind
      */
     public static function subtitle(Model $image): ?string
     {
-        $record = self::source($image);
+        $record = self::shownOn($image);
 
         if ($record === null) {
             return null;
@@ -132,7 +115,7 @@ final class ImageKind extends TrayKind
     /** @param  Image  $image */
     public static function customerId(Model $image): ?int
     {
-        $record = self::source($image);
+        $record = self::shownOn($image);
 
         return match (true) {
             $record instanceof Asset => $record->resolvedCustomerId(),
@@ -151,7 +134,7 @@ final class ImageKind extends TrayKind
     protected static function card(Model $image): array
     {
         $file = '/files/images/' . $image->id;
-        $record = self::source($image);
+        $record = self::shownOn($image);
 
         $page = match (true) {
             $record instanceof ServiceCheckInstance => '/serviceorders/' . $record->serviceJob?->service_order_id,
@@ -177,18 +160,39 @@ final class ImageKind extends TrayKind
     }
 
     /**
-     * The links from a photo to records of this class that this person may reach.
-     *
-     * @param  class-string<Model>  $class
+     * Where the photo is shown to whoever listed it: what it hangs off, or for a
+     * project photo reached through a werkbon by someone who may not read projects,
+     * that werkbon, so neither the page it opens nor its name is the project's.
+     * Nothing when there is no such werkbon.
      */
-    private static function linksTo(QueryBuilder $links, string $class, User $user): QueryBuilder
+    public static function shownOn(Image $image): ?Model
     {
-        $model = new $class;
+        if (!$image->relationLoaded('trayShownOn')) {
+            $record = self::source($image);
+            $through_werkbon = $record instanceof Project && array_key_exists('tray_order_id', $image->getAttributes());
 
-        return $links->from('imageables')
-            ->whereColumn('imageables.image_id', 'images.id')
-            ->where('imageables.imageable_type', $model->getMorphClass())
-            ->whereIn('imageables.imageable_id', self::recordsVisibleTo($class, $user)->select($model->getQualifiedKeyName()));
+            $image->setRelation('trayShownOn', match (true) {
+                !$through_werkbon => $record,
+                $image->tray_order_id === null => null,
+                default => ServiceOrder::find($image->tray_order_id),
+            });
+        }
+
+        return $image->getRelation('trayShownOn');
+    }
+
+    /** The first werkbon this person may open that the photo is shared on from its project. */
+    private static function werkbonSharedOn(User $user): Builder
+    {
+        return ServiceOrder::visibleTo($user)
+            ->select('service_orders.id')
+            ->whereIn('service_orders.project_id', fn (QueryBuilder $shares) => $shares->from('shares')
+                ->select('shares.source_id')
+                ->whereColumn('shares.shareable_id', 'images.id')
+                ->where('shares.shareable_type', (new Image)->getMorphClass())
+                ->where('shares.source_type', (new Project)->getMorphClass()))
+            ->orderBy('service_orders.id')
+            ->limit(1);
     }
 
     /** One column of the first link a photo has: older photos could hang off more than one record. */

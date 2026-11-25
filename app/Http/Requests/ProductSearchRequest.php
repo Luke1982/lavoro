@@ -2,15 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductSearchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('product.read'));
+        return (bool) $this->user()?->can('list', Product::class);
     }
 
     public function rules(): array

@@ -2,15 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Event;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ServiceOrderSearchRequest extends FormRequest
 {
+    /** The planner's picker, so the planner's rule: whoever may read appointments. */
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user && ($user->isAdmin() || $user->hasPermission('event.read'));
+        return (bool) $this->user()?->can('viewAny', Event::class);
     }
 
     public function rules(): array

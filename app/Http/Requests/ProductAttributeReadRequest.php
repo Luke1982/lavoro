@@ -9,7 +9,11 @@ class ProductAttributeReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('read', ProductAttribute::class);
+        $attribute = $this->route('productattribute');
+
+        return $attribute instanceof ProductAttribute
+            ? $this->user()->can('view', $attribute)
+            : $this->user()->can('viewAny', ProductAttribute::class);
     }
 
     public function rules(): array

@@ -12,6 +12,17 @@ use App\Models\User;
  */
 class ImportMappingPolicy
 {
+    /** Whoever may import any kind may read the mappings of the kinds they import. */
+    public function viewAny(User $user): bool
+    {
+        return ImportMapping::importableKinds($user) !== [];
+    }
+
+    public function view(User $user, ImportMapping $import_mapping): bool
+    {
+        return $user->can('import', $import_mapping->kind->modelClass());
+    }
+
     public function create(User $user, CatalogImportKind $kind): bool
     {
         return $user->can('import', $kind->modelClass());

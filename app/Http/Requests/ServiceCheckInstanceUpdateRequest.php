@@ -2,15 +2,21 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Contracts\Validation\Validator;
 use App\Models\ServiceCheckInstance;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * @method \App\Models\User user($guard = null)
+ */
 class ServiceCheckInstanceUpdateRequest extends FormRequest
 {
+    /** Filling in a keurpunt is changing its keuring. */
     public function authorize(): bool
     {
-        return true;
+        $service_job = $this->route('servicecheckinstance')?->serviceJob;
+
+        return $service_job !== null && $this->user()->can('update', $service_job);
     }
 
     public function rules(): array

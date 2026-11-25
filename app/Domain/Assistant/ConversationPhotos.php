@@ -68,7 +68,8 @@ class ConversationPhotos
     }
 
     /**
-     * Into their storage, attached to the record the conversation settled.
+     * Into their storage, attached to the record the conversation settled, as
+     * long as they may add photos to it on its own screen.
      *
      * @return array{count: int, home: string}|null Null when there is nothing to keep.
      */
@@ -167,7 +168,12 @@ class ConversationPhotos
         return $pruned;
     }
 
-    /** @return array{0: Model, 1: string}|null */
+    /**
+     * The best home this person may add photos to by hand (Image::mayUploadOn);
+     * one they may not is passed over, as if the conversation had not settled it.
+     *
+     * @return array{0: Model, 1: string}|null
+     */
     private function homeFor(string $conversation, User $user): ?array
     {
         $facts = app(ConversationFacts::class)->for($conversation, $user);
@@ -181,7 +187,7 @@ class ConversationPhotos
 
             $record = $model::find($id);
 
-            if ($record !== null) {
+            if ($record !== null && Image::mayUploadOn($user, $record)) {
                 return [$record, $noun];
             }
         }

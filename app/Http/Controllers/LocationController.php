@@ -10,6 +10,7 @@ use App\Http\Requests\LocationReadRequest;
 use App\Http\Requests\LocationStoreRequest;
 use App\Http\Requests\LocationUpdateCoordsRequest;
 use App\Http\Requests\LocationUpdateRequest;
+use App\Models\AssistantFilter;
 use App\Models\Location;
 use App\Support\NewMachineForm;
 
@@ -27,9 +28,11 @@ class LocationController extends Controller
             ->when($like, fn ($query) => $query->where(fn ($q) => $q
                 ->matchesText($like)
                 ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', $like))))
+            ->tap(AssistantFilter::from($request))
             ->orderBy('title')
             ->paginate(25)
-            ->appends(['search' => $search, 'customer_id' => $customer_id]);
+            ->appends(['search' => $search, 'customer_id' => $customer_id])
+            ->withQueryString();
 
         return inertia('Locations/IndexPage', [
             'locations' => $locations,

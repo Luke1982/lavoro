@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Models\AssistantConversationFact;
+use App\Models\AssistantFilter;
 use App\Models\AssistantQuestion;
 use Carbon\CarbonInterface;
 use Illuminate\Console\Command;
@@ -23,13 +24,22 @@ use Illuminate\Support\Facades\Storage;
  */
 class PruneAssistantQuestionsCommand extends Command
 {
-    protected $signature = 'assistant:prune {--months=6 : Keep this many months} {--dry-run}';
+    protected $signature = 'assistant:prune {--months= : Keep this many months (default: assistant.keep_months)} {--dry-run}';
 
-    protected $description = 'Verwijdert opgeslagen assistentvragen en gespreksnotities ouder dan het bewaartermijn';
+    protected $description = 'Verwijdert opgeslagen assistentvragen, gespreksnotities en filterlinks ouder dan het bewaartermijn';
 
     public function handle(): int
     {
-        $months = max(1, (int) $this->option('months'));
+        $months = $this->option('months') === null
+            ? AssistantFilter::keepMonths()
+            : AssistantFilter::monthsFrom($this->option('months'));
+
+        if ($months === null) {
+            $this->error('Geef --months als een heel aantal maanden van 1 of meer.');
+
+            return self::FAILURE;
+        }
+
         $cutoff = now()->subMonths($months);
 
         $questions = AssistantQuestion::query()->where('created_at', '<', $cutoff);
@@ -50,7 +60,10 @@ class PruneAssistantQuestionsCommand extends Command
          */
         $reports = $this->reportsOlderThan($cutoff);
 
-        $counts = [$questions->count(), $facts->count(), count($reports)];
+        /** The filter links handed out in those conversations go on the same period. */
+        $filters = AssistantFilter::olderThan($months);
+
+        $counts = [$questions->count(), $facts->count(), count($reports), $filters->count()];
 
         if ($this->option('dry-run')) {
             $this->info($this->lineFor($counts, $cutoff, 'zouden verdwijnen'));
@@ -60,6 +73,7 @@ class PruneAssistantQuestionsCommand extends Command
 
         $questions->delete();
         $facts->delete();
+        AssistantFilter::prune($months);
 
         /**
          * Parked photos get days, not months: nobody chose to keep them, and
@@ -76,11 +90,11 @@ class PruneAssistantQuestionsCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @param array{0: int, 1: int, 2: int} $counts */
+    /** @param array{0: int, 1: int, 2: int, 3: int} $counts */
     private function lineFor(array $counts, CarbonInterface $cutoff, string $verb): string
     {
-        return $counts[0] . ' vragen, ' . $counts[1] . ' gespreksnotities en ' . $counts[2]
-            . ' gemelde gesprekken ' . $verb . ' (ouder dan ' . $cutoff->toDateString() . ').';
+        return $counts[0] . ' vragen, ' . $counts[1] . ' gespreksnotities, ' . $counts[2]
+            . ' gemelde gesprekken en ' . $counts[3] . ' filterlinks ' . $verb . ' (ouder dan ' . $cutoff->toDateString() . ').';
     }
 
     /**

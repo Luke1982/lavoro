@@ -93,9 +93,14 @@ class Event extends Model
         return $this->status === EventStatusses::cancelled->value;
     }
 
+    /** Everybody's with the right to see them all, otherwise the ones this person executes or owns; nobody's without a person. */
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        if (!$user || $user->hasPermission('event.see_all')) {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasPermission('event.see_all')) {
             return $query;
         }
 

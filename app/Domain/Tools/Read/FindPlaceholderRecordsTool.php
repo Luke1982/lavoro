@@ -62,7 +62,7 @@ class FindPlaceholderRecordsTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('listRelevant', Asset::class);
+        return $user->can('viewAny', Asset::class);
     }
 
     /** Knowing what counts as a placeholder is judgement; finding them is not. */

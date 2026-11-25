@@ -20,8 +20,8 @@ use Illuminate\Support\Facades\Gate;
  * Copying the internal photos of a werkbon to the ones the customer sees is a
  * paste onto the same werkbon. A photo already lying on that side is left alone.
  *
- * Whoever may also take the photos away where they are now is asked whether to
- * copy them or to move them. A copy gets files of its own; a move takes the
+ * Whoever may also read the photos where they are now and take them away there
+ * is asked whether to copy them or to move them. A copy gets files of its own; a move takes the
  * photo itself along and leaves nothing behind. Anyone else gets copies, at once.
  * Either can be undone by whoever may remove them here by hand.
  */
@@ -44,6 +44,9 @@ class ImagesOntoPhotos implements UndoablePasteHandler
         $sources = $new->map(fn (Image $image) => Image::placeOf(ImageKind::source($image), ImageKind::internal($image)))
             ->unique();
         $there = $sources->count() === 1 ? 'bij ' . $sources->first() : 'waar ze nu staan';
+        $shared = $new->contains(fn (Image $image) => $image->isSharedFrom(ImageKind::source($image)))
+            ? ($one ? ' Hij staat dan ook' : ' Ze staan dan ook') . ' niet meer op de werkbonnen van het project.'
+            : '';
 
         return new Question(
             title: ImageKind::heading($new->count()) . ' kopiëren of verplaatsen?',
@@ -59,7 +62,7 @@ class ImagesOntoPhotos implements UndoablePasteHandler
                 new Choice(
                     value: self::MOVE,
                     label: 'Verplaatsen',
-                    description: 'Weg ' . $there . ($one ? '. De foto zelf blijft bestaan.' : ". De foto's zelf blijven bestaan."),
+                    description: 'Weg ' . $there . '.' . $shared . ($one ? ' De foto zelf blijft bestaan.' : " De foto's zelf blijven bestaan."),
                     confirm: 'Verplaatsen',
                 ),
             ],
@@ -157,15 +160,12 @@ class ImagesOntoPhotos implements UndoablePasteHandler
         return $this->placeable($paste->user, $paste->target['record'], $paste->target['id']);
     }
 
-    /** A record this person may add photos to by hand. */
+    /** A record this person may add photos to by hand, as its own screen lets them (Image::mayUploadOn). */
     private function placeable(User $user, string $type, int $id): Model
     {
         $record = $this->record($user, $type, $id);
-        $allowed = $record instanceof Event
-            ? Gate::forUser($user)->allows('provideFeedback', $record)
-            : Gate::forUser($user)->allows('create', Image::class);
 
-        if (!$allowed) {
+        if (!Image::mayUploadOn($user, $record)) {
             throw new Refusal("Je mag hier geen foto's toevoegen.");
         }
 
@@ -173,18 +173,16 @@ class ImagesOntoPhotos implements UndoablePasteHandler
     }
 
     /**
-     * The record, as long as photos can hang off it and this person may reach it:
-     * among the records whose photos they may see, and allowed by its policy when
-     * that says who may view it.
+     * The record, as long as photos can hang off it and this person may open it
+     * by its policy, as its own screen does: also when they reach it only by being
+     * on it, which is all its upload asks (mayPlaceOn holds view in every case).
      */
     private function record(User $user, string $type, int $id): Model
     {
         $class = Image::attachableType($type) ?? throw new Refusal("Hier kunnen geen foto's bij.");
-        $record = ImageKind::recordsVisibleTo($class, $user)->find($id);
-        $policy = $record === null ? null : Gate::getPolicyFor($record);
-        $denied = $policy !== null && method_exists($policy, 'view') && Gate::forUser($user)->denies('view', $record);
+        $record = $class::find($id);
 
-        if ($record === null || $denied) {
+        if ($record === null || Gate::forUser($user)->denies('view', $record)) {
             throw new Refusal('Dit kun je niet openen.');
         }
 
@@ -215,19 +213,26 @@ class ImagesOntoPhotos implements UndoablePasteHandler
         return $new;
     }
 
-    /** Moving a photo takes it away where it is now, which takes the right to remove it there. */
+    /**
+     * Moving a photo takes it away where it is now, which takes a record this
+     * person may read the photos of (Image::readableRecordsOf) and the right to
+     * remove it there. A photo reached only through a werkbon it is shared on is
+     * copied: moving it would take it off the project, and every werkbon with it.
+     */
     private function mayMove(User $user, Image $image): bool
     {
         $source = ImageKind::source($image);
 
-        return $source !== null && $this->mayRemove($user, $source, $image);
+        return $source !== null
+            && Image::readableRecordsOf($source::class, $user)->whereKey($source->getKey())->exists()
+            && $this->mayRemove($user, $source, $image);
     }
 
-    /** Photos with an appointment are feedback on it, and follow its rights rather than the photo rights. */
+    /** Photos with an appointment are feedback on it, and follow its rule (mayPlaceOn) rather than the photo rights. */
     private function mayRemove(User $user, Model $record, Image $image): bool
     {
         return $record instanceof Event
-            ? Gate::forUser($user)->allows('provideFeedback', $record)
+            ? Image::mayPlaceOn($user, $record)
             : Gate::forUser($user)->allows('delete', $image);
     }
 }

@@ -64,7 +64,7 @@ class FindProjectTool implements Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        return $user->can('list', Project::class);
+        return $user->can('viewAny', Project::class);
     }
 
     /** Eén zoekterm uit de vraag halen, hooguit met een status of klant erbij. */

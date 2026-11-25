@@ -2,16 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 /**
  * Ticket read authorization & (optional) filter parameters.
  *
- * @mixin \Illuminate\Http\Request
+ * @mixin Request
+ *
  * @property-read string|null $search
  * @property-read string|null $statuses CSV statuses
  * @property-read string|null $priorities CSV priorities
+ *
  * @method array validated()
  * @method mixed input(string $key = null, $default = null)
  * @method bool has(string $key)
@@ -24,15 +27,14 @@ class TicketReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = Auth::user();
-        return $user && ($user->isAdmin() || $user->hasPermission('ticket.read'));
+        return (bool) $this->user()?->can('viewPage', Ticket::class);
     }
 
     public function rules(): array
     {
         return [
-            'search'     => ['sometimes', 'nullable', 'string', 'max:255'],
-            'statuses'   => ['sometimes', 'nullable', 'string'], // CSV of enum names
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'statuses' => ['sometimes', 'nullable', 'string'], // CSV of enum names
             'priorities' => ['sometimes', 'nullable', 'string'], // CSV of enum names
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\QuoteStatuses;
+use App\Models\AssistantFilter;
 use App\Models\Quote;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -31,12 +32,17 @@ class QuoteReadRequest extends FormRequest
         ];
     }
 
-    /** @return array{search: string, status: string, customer: ?int, reason: ?int} */
+    /**
+     * The list opens on the open quotes, but with the assistant's filter on every
+     * status: the filter was counted over all of them.
+     *
+     * @return array{search: string, status: string, customer: ?int, reason: ?int}
+     */
     public function listQuery(): array
     {
         return [
             'search' => trim((string) $this->validated('search', '')),
-            'status' => $this->validated('status') ?? Quote::LIST_OPEN,
+            'status' => $this->validated('status') ?? (AssistantFilter::isAsked($this) ? Quote::LIST_EVERY_STATUS : Quote::LIST_OPEN),
             'customer' => $this->validated('customer') ? (int) $this->validated('customer') : null,
             'reason' => $this->validated('reason') ? (int) $this->validated('reason') : null,
         ];

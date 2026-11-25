@@ -229,6 +229,15 @@ class ServiceOrder extends Model
     }
 
     /**
+     * Whether a keuring for this machine belongs on this werkbon: the machine is
+     * the werkbon customer's, a part by the machine it hangs under.
+     */
+    public function isForTheCustomerOf(Asset $machine): bool
+    {
+        return $this->customer_id !== null && $machine->resolvedCustomerId() === (int) $this->customer_id;
+    }
+
+    /**
      * Limits a query to the orders this person is allowed to see: everything if
      * they may read orders at large, otherwise only the ones that are theirs.
      *
@@ -270,6 +279,25 @@ class ServiceOrder extends Model
         return $query->where(fn ($q) => $q
             ->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
             ->orWhereHas('events.executingUsers', fn ($sq) => $sq->where('users.id', $user->id)));
+    }
+
+    /**
+     * The werkbonnen the planner offers this person to plan: every one with
+     * serviceorder.read, otherwise only those they are on as uitvoerder of the
+     * werkbon itself.
+     *
+     * Narrower than visibleTo() on purpose or by history: being on one of the
+     * werkbon's appointments, which visibleTo() also counts, does not put a
+     * werkbon in the planner's list or its picker. The planner's unplanned list
+     * and its werkbon picker both ask this, so the two cannot drift apart.
+     */
+    public function scopePlannableFor($query, User $user)
+    {
+        if ($user->isAdmin() || $user->hasPermission('serviceorder.read')) {
+            return $query;
+        }
+
+        return $query->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id));
     }
 
     /**

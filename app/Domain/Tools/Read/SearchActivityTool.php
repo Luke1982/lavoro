@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Assistant\Reading\RecordKinds;
 use App\Domain\Planning\Clock;
 use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
@@ -37,6 +38,8 @@ use App\Models\User;
 use App\Models\UserPlanGroup;
 use App\Models\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -59,41 +62,55 @@ class SearchActivityTool implements Tool
     use ReportsTheWholeCount;
 
     /**
-     * The vocabulary the model uses, and the records it maps onto.
+     * The records whose history can be searched; the model names them by their
+     * noun in RecordKinds.
      *
      * These are the things an entry is *attached* to. History is linked through
      * the activityables pivot, exactly as the timeline on a page reads it — the
      * subject_type and subject_id columns on the row itself are filled in for
      * almost nothing and are not what any screen in this application goes by.
      */
-    private const SUBJECT_TYPES = [
-        'werkbon' => ServiceOrder::class,
-        'storing' => Ticket::class,
-        'machine' => Asset::class,
-        'afspraak' => Event::class,
-        'klant' => Customer::class,
-        'onderhoudscontract' => MaintenanceContract::class,
-        'project' => Project::class,
-        'prijsformule' => PriceFormula::class,
-        'offerte' => Quote::class,
-        'product' => Product::class,
-        'kenmerk' => ProductAttribute::class,
-        'materiaal' => Material::class,
-        'grootboekrekening' => LedgerAccount::class,
-        'koppeling' => IntegrationConnection::class,
-        'leverancier' => Supplier::class,
-        'contractsjabloon' => MaintenanceContractTemplate::class,
-        'fase' => ServiceOrderStage::class,
-        'medewerker' => User::class,
-        'rol' => Role::class,
-        'standaardmail' => StandardEmail::class,
-        'standaardbijlage' => StandardAttachment::class,
-        'plangroep' => UserPlanGroup::class,
-        'planrol' => UserRole::class,
-        'afspraaktype' => EventType::class,
-        'bedrijf' => Company::class,
-        'instelling' => GeneralSetting::class,
+    private const SUBJECTS = [
+        ServiceOrder::class,
+        Ticket::class,
+        Asset::class,
+        Event::class,
+        Customer::class,
+        MaintenanceContract::class,
+        Project::class,
+        PriceFormula::class,
+        Quote::class,
+        Product::class,
+        ProductAttribute::class,
+        Material::class,
+        LedgerAccount::class,
+        IntegrationConnection::class,
+        Supplier::class,
+        MaintenanceContractTemplate::class,
+        ServiceOrderStage::class,
+        User::class,
+        Role::class,
+        StandardEmail::class,
+        StandardAttachment::class,
+        UserPlanGroup::class,
+        UserRole::class,
+        EventType::class,
+        Company::class,
+        GeneralSetting::class,
     ];
+
+    /** @var array<string, class-string>|null */
+    private static ?array $subject_types = null;
+
+    /**
+     * The same records by the noun the model calls them, from RecordKinds.
+     *
+     * @return array<string, class-string>
+     */
+    private static function subjectTypes(): array
+    {
+        return self::$subject_types ??= array_combine(array_map(RecordKinds::noun(...), self::SUBJECTS), self::SUBJECTS);
+    }
 
     public static function name(): string
     {
@@ -116,7 +133,7 @@ class SearchActivityTool implements Tool
             'properties' => [
                 'subject_type' => [
                     'type' => 'string',
-                    'enum' => array_keys(self::SUBJECT_TYPES),
+                    'enum' => array_keys(self::subjectTypes()),
                     'description' => 'Het soort record waarover je de geschiedenis wilt.',
                 ],
                 'subject_id' => [
@@ -182,13 +199,13 @@ class SearchActivityTool implements Tool
         $this->constrainToVisibleSubjects($query, $call->user);
 
         if ($subject_type = $call->stringArgument('subject_type')) {
-            if (!isset(self::SUBJECT_TYPES[$subject_type])) {
+            if (!isset(self::subjectTypes()[$subject_type])) {
                 return ToolResult::failed(
-                    'Onbekend soort record. Kies uit: ' . implode(', ', array_keys(self::SUBJECT_TYPES)) . '.'
+                    'Onbekend soort record. Kies uit: ' . implode(', ', array_keys(self::subjectTypes())) . '.'
                 );
             }
 
-            $this->attachedTo($query, self::SUBJECT_TYPES[$subject_type], $call->integerArgument('subject_id'));
+            $this->attachedTo($query, self::subjectTypes()[$subject_type], $call->integerArgument('subject_id'));
         }
 
         /**
@@ -247,7 +264,7 @@ class SearchActivityTool implements Tool
             'about' => $activity->metadata['subject_label'] ?? null,
             'subject' => $this->subjectLabels($activity),
             'attached_to' => collect($activity->attachments)
-                ->map(fn ($row) => (array_search($row->activityable_type, self::SUBJECT_TYPES, true)
+                ->map(fn ($row) => (array_search($row->activityable_type, self::subjectTypes(), true)
                     ?: class_basename($row->activityable_type)) . ' #' . $row->activityable_id)
                 ->all(),
             /**
@@ -278,13 +295,6 @@ class SearchActivityTool implements Tool
     }
 
     /**
-     * Narrows the query to entries whose subject this user may see.
-     *
-     * Each supported subject contributes its own branch, built from the same
-     * scope the rest of the application reads that subject with, so history can
-     * never become a way around a restriction that holds everywhere else.
-     */
-    /**
      * Narrows to entries hanging off one kind of record, optionally one in
      * particular, through the same pivot a page's timeline reads.
      */
@@ -307,11 +317,17 @@ class SearchActivityTool implements Tool
      *
      * An entry qualifies when it is attached to at least one record they may
      * open, which is the same answer they would get by opening those records one
-     * by one and reading the timeline on each. Types with no visibility rule of
-     * their own — a material line — grant nothing here; they travel attached to
-     * the werkbon they happened on, and are reached through that. A user's history
-     * is reached through the users this person can see, so MajorLabel's own
-     * accounts stay as hidden here as on every other screen.
+     * by one and reading the timeline on each. The rule is the read layer's, not
+     * one of this tool's own (RecordKinds::mayRead and the model's visibility
+     * scope). Whoever the scope keeps nothing from has every record's history,
+     * also of a record deleted for good — "wie heeft klant X verwijderd?". Whoever
+     * it narrows for has the history of the records it lets through, soft-deleted
+     * ones included; a record no longer in the table is past any scope, so its
+     * history is only for whoever has the right to every record of the kind. The
+     * two subjects the assistant never reads as rows (a koppeling, an instelling)
+     * keep their history behind their policy's viewAny. Kinds that are not a
+     * subject here — a material line — grant nothing; they travel attached to the
+     * werkbon they happened on, and are reached through that.
      */
     private function constrainToVisibleSubjects(Builder $query, User $user): void
     {
@@ -320,105 +336,42 @@ class SearchActivityTool implements Tool
                 ->from('activityables')
                 ->whereColumn('activityables.activity_id', 'activities.id')
                 ->where(function ($outer) use ($user) {
-                    $outer
-                        ->where(fn ($q) => $q
-                            ->where('activityables.activityable_type', ServiceOrder::class)
-                            ->whereIn('activityables.activityable_id', ServiceOrder::visibleTo($user)->select('service_orders.id')))
-                        ->orWhere(fn ($q) => $q
-                            ->where('activityables.activityable_type', Asset::class)
-                            ->whereIn('activityables.activityable_id', Asset::visibleTo($user)->select('assets.id')))
-                        ->orWhere(fn ($q) => $q
-                            ->where('activityables.activityable_type', Event::class)
-                            ->whereIn('activityables.activityable_id', Event::visibleTo($user)->select('events.id')))
-                        ->orWhere(fn ($q) => $q
-                            ->where('activityables.activityable_type', Ticket::class)
-                            ->whereIn('activityables.activityable_id', Ticket::visibleTo($user)->select('tickets.id')));
+                    $outer->whereRaw('1 = 0');
 
-                    if ($user->can('list', Customer::class)) {
-                        $outer->orWhere('activityables.activityable_type', Customer::class);
-                    }
-
-                    if ($user->can('list', Project::class)) {
-                        $outer->orWhere('activityables.activityable_type', Project::class);
-                    }
-
-                    if ($user->can('viewAny', PriceFormula::class)) {
-                        $outer->orWhere('activityables.activityable_type', PriceFormula::class);
-                    }
-
-                    if ($user->can('viewAny', Quote::class)) {
-                        $outer->orWhere('activityables.activityable_type', Quote::class);
-                    }
-
-                    if ($user->can('viewAny', Product::class)) {
-                        $outer->orWhere('activityables.activityable_type', Product::class);
-                    }
-
-                    if ($user->can('read', ProductAttribute::class)) {
-                        $outer->orWhere('activityables.activityable_type', ProductAttribute::class);
-                    }
-
-                    if ($user->can('viewAny', MaintenanceContract::class)) {
-                        $outer->orWhere('activityables.activityable_type', MaintenanceContract::class);
-                    }
-
-                    if ($user->hasPermission('material.read')) {
-                        $outer->orWhere('activityables.activityable_type', Material::class);
-                    }
-
-                    if ($user->can('viewAny', Supplier::class)) {
-                        $outer->orWhere('activityables.activityable_type', Supplier::class);
-                    }
-
-                    if ($user->can('viewAny', MaintenanceContractTemplate::class)) {
-                        $outer->orWhere('activityables.activityable_type', MaintenanceContractTemplate::class);
-                    }
-
-                    if ($user->hasPermission('serviceorderstage.read')) {
-                        $outer->orWhere('activityables.activityable_type', ServiceOrderStage::class);
-                    }
-
-                    if ($user->can('viewAny', User::class)) {
-                        $outer->orWhere(fn ($q) => $q
-                            ->where('activityables.activityable_type', User::class)
-                            ->whereIn('activityables.activityable_id', User::withTrashed()->select('users.id')));
-                    }
-
-                    if ($user->can('assignRoles', User::class)) {
-                        $outer->orWhere('activityables.activityable_type', Role::class);
-                    }
-
-                    if ($user->can('manage', StandardEmail::class)) {
-                        $outer->orWhere('activityables.activityable_type', StandardEmail::class);
-                    }
-
-                    if ($user->can('manage', StandardAttachment::class)) {
-                        $outer->orWhere('activityables.activityable_type', StandardAttachment::class);
-                    }
-
-                    if ($user->can('manage', UserPlanGroup::class)) {
-                        $outer->orWhere('activityables.activityable_type', UserPlanGroup::class);
-                    }
-
-                    if ($user->can('viewAny', UserRole::class)) {
-                        $outer->orWhere('activityables.activityable_type', UserRole::class);
-                    }
-
-                    if ($user->hasPermission('eventtype.read')) {
-                        $outer->orWhere('activityables.activityable_type', EventType::class);
-                    }
-
-                    if ($user->isAdmin()) {
-                        $outer->orWhere('activityables.activityable_type', Company::class)
-                            ->orWhere('activityables.activityable_type', GeneralSetting::class);
-                    }
-
-                    if ($user->hasPermission('integration.manage')) {
-                        $outer->orWhere('activityables.activityable_type', LedgerAccount::class)
-                            ->orWhere('activityables.activityable_type', IntegrationConnection::class);
+                    foreach (self::SUBJECTS as $class) {
+                        $this->orVisibleSubject($outer, $class, $user);
                     }
                 });
         });
+    }
+
+    /** @param  class-string<Model>  $class */
+    private function orVisibleSubject($outer, string $class, User $user): void
+    {
+        if (!RecordKinds::isReadable($class)) {
+            if ($user->can('viewAny', $class)) {
+                $outer->orWhere('activityables.activityable_type', $class);
+            }
+
+            return;
+        }
+
+        if (!RecordKinds::mayRead($class, $user)) {
+            return;
+        }
+
+        if (!RecordKinds::narrowsFor($class, $user)) {
+            $outer->orWhere('activityables.activityable_type', $class);
+
+            return;
+        }
+
+        $model = new $class;
+        $records = in_array(SoftDeletes::class, class_uses_recursive($class), true) ? $class::withTrashed() : $class::query();
+
+        $outer->orWhere(fn ($q) => $q
+            ->where('activityables.activityable_type', $class)
+            ->whereIn('activityables.activityable_id', RecordKinds::constrain($records, $user)->select($model->getQualifiedKeyName())));
     }
 
     /**
@@ -429,7 +382,7 @@ class SearchActivityTool implements Tool
     private function subjectLabels(Activity $activity): array
     {
         return collect($activity->attachments)
-            ->map(fn ($row) => array_search($row->activityable_type, self::SUBJECT_TYPES, true)
+            ->map(fn ($row) => array_search($row->activityable_type, self::subjectTypes(), true)
                 ?: class_basename($row->activityable_type))
             ->unique()
             ->values()

@@ -10,7 +10,6 @@ use Tests\TestCase;
 
 class EventFeedbackApiTest extends TestCase
 {
-
     private function feedback_user(): User
     {
         $user = User::factory()->create();
@@ -28,6 +27,7 @@ class EventFeedbackApiTest extends TestCase
     {
         $user = $this->feedback_user();
         $event = Event::factory()->create();
+        $event->syncExecutingUsers([$user->id]);
 
         $response = $this->actingAs($user)->postJson('/api/remarks', [
             'content' => 'Ziet er goed uit',

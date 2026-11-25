@@ -7,32 +7,9 @@ use App\Models\User;
 
 class AssetPolicy
 {
-    /**
-     * Determine if the user can view the asset.
-     */
     public function create(User $user): bool
     {
         return $user->isAdmin() || $user->hasPermission('asset.create');
-    }
-
-    public function view(User $user, Asset $asset): bool
-    {
-        if ($user->hasPermission('asset.read')) {
-            return true;
-        }
-        if ($user->hasPermission('asset.read.relevant.serviceorder')) {
-            return in_array($asset->id, $user->relevantAssetIds());
-        }
-
-        return false;
-    }
-
-    /**
-     * Determine if the user can view any assets.
-     */
-    public function list(User $user): bool
-    {
-        return $user->hasPermission('asset.read');
     }
 
     /**
@@ -40,10 +17,25 @@ class AssetPolicy
      * only those on their own werkbonnen. Which machines those are is decided by
      * Asset::scopeVisibleTo, which follows the same two permissions.
      */
-    public function listRelevant(User $user): bool
+    public function viewAny(User $user): bool
     {
         return $user->hasPermission('asset.read')
             || $user->hasPermission('asset.read.relevant.serviceorder');
+    }
+
+    /**
+     * The machine overview: stricter than reading. A monteur may open the
+     * machines on his own werkbonnen, not browse all of them.
+     */
+    public function list(User $user): bool
+    {
+        return $user->hasPermission('asset.read');
+    }
+
+    /** This one machine, by the same rule as the scope. */
+    public function view(User $user, Asset $asset): bool
+    {
+        return Asset::visibleTo($user)->whereKey($asset->id)->exists();
     }
 
     public function update(User $user, Asset $asset): bool

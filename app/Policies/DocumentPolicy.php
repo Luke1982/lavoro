@@ -16,6 +16,15 @@ class DocumentPolicy
     }
 
     /**
+     * This one document: with the right to see documents, on a record this person
+     * may read (Document::scopeVisibleTo). Downloading and previewing ask this.
+     */
+    public function view(User $user, Document $document): bool
+    {
+        return Document::visibleTo($user)->whereKey($document->id)->exists();
+    }
+
+    /**
      * Determine whether the user can upload documents.
      */
     public function create(User $user): bool

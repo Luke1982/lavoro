@@ -9,6 +9,7 @@ use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Providers\OpenAiCompatibleModel;
+use App\Domain\Assistant\Reading\TableColumns;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Signals\ActivityBuffer;
 use App\Domain\Signals\Signals;
@@ -97,6 +98,9 @@ class AppServiceProvider extends ServiceProvider
          */
         $this->app->scoped(TechnicianAvailability::class);
 
+        /** The assistant's reading checks a table's columns per field; read once per request. */
+        $this->app->scoped(TableColumns::class);
+
         $this->app->extend(CacheRateLimiter::class, fn ($limiter, $app) => new TenantRateLimiter(
             $app['cache'],
             $app['config']->get('cache.limiter'),
@@ -108,6 +112,7 @@ class AppServiceProvider extends ServiceProvider
             AssistantContext::class,
             TrayContext::class,
             TechnicianAvailability::class,
+            TableColumns::class,
             MailerState::class,
             CacheRateLimiter::class,
         ], ForgetsTenantState::class);

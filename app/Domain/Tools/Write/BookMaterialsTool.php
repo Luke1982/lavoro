@@ -266,7 +266,7 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
             ->get()
             ->keyBy('id');
 
-        $sees_materials = $call->user->can('view', Material::class);
+        $sees_materials = $call->user->can('viewAny', Material::class);
         $lines = [];
 
         foreach ($given as $line) {

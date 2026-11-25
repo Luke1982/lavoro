@@ -31,7 +31,7 @@ class AssistantPrompt extends Model
      */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $query->where(fn (Builder $q) => $q->whereNull('user_id')->orWhere('user_id', $user->id));
+        return $query->where(fn (Builder $q) => $q->whereNull($query->qualifyColumn('user_id'))->orWhere($query->qualifyColumn('user_id'), $user->id));
     }
 
     /**
