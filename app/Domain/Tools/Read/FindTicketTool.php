@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
@@ -67,6 +68,14 @@ class FindTicketTool implements Tool
                     'type' => 'integer',
                     'description' => 'Beperk tot storingen op machines van dit product. '
                         . 'Handig om te zien wie ervaring heeft met een bepaald type machine.',
+                ],
+                'created_from' => [
+                    'type' => 'string',
+                    'description' => 'Binnengekomen vanaf deze dag, JJJJ-MM-DD.',
+                ],
+                'created_before' => [
+                    'type' => 'string',
+                    'description' => 'Binnengekomen voor deze dag, JJJJ-MM-DD.',
                 ],
             ],
             'required' => [],
@@ -160,6 +169,18 @@ class FindTicketTool implements Tool
             $query->whereHas('asset', fn ($q) => $q->where('product_id', $product_id));
         }
 
+        if ($complaint = $call->invalidDateAmong('created_from', 'created_before')) {
+            return ToolResult::failed($complaint);
+        }
+
+        $from = $call->dateArgument('created_from');
+        $before = $call->dateArgument('created_before');
+
+        /** From midnight here, not midnight UTC, or Monday's first storing counts as last week's. */
+        $query
+            ->when($from, fn ($q) => $q->where('created_at', '>=', Clock::startOfLocalDay($from)))
+            ->when($before, fn ($q) => $q->where('created_at', '<', Clock::startOfLocalDay($before)));
+
         $matching = clone $query;
         $tickets = $query->orderByDesc('id')->limit($limit)->get();
 
@@ -170,6 +191,7 @@ class FindTicketTool implements Tool
             'status' => $ticket->status,
             'priority' => $ticket->priority,
             'status_code' => $ticket->status_code,
+            'created_at' => $ticket->created_at ? Clock::toLocal($ticket->created_at)->toDateString() : null,
             'asset_id' => $ticket->asset_id,
             'machine' => $ticket->asset?->product?->display_name,
             'serial_number' => $ticket->asset?->serial_number,

@@ -136,12 +136,12 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
             $head = 'Nieuwe prijsformule "' . trim((string) $call->stringArgument('name')) . '" aanmaken';
         } else {
             $impact = app(SavePriceFormulaGraphAction::class)
-                ->impact($formula, $graph, with_prices: (bool) $call->argument('move_contracts'));
+                ->impact($formula, $graph, with_prices: $call->booleanArgument('move_contracts'));
             $head = 'Prijsformule "' . $formula->name . '" opslaan';
 
             if (!$impact['new_version']) {
                 $behind = $formula->contractsBehind()->notEnded()->count();
-            } elseif (!$call->argument('move_contracts')) {
+            } elseif (!$call->booleanArgument('move_contracts')) {
                 $behind = $impact['running'];
             } elseif ($impact['running'] > 0) {
                 $moving = ' ' . Counted::of($impact['running'], 'lopend contract gaat', 'lopende contracten gaan')
@@ -190,7 +190,7 @@ class SavePriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
                     $graph,
                     $call->user,
                     version_name: $call->stringArgument('version_name'),
-                    move_contracts: (bool) $call->argument('move_contracts'),
+                    move_contracts: $call->booleanArgument('move_contracts'),
                 );
             $message = 'Prijsformule "' . $formula->name . '" opgeslagen als ' . $version->label() . '.';
 

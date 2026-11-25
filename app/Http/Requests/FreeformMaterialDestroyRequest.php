@@ -15,7 +15,8 @@ class FreeformMaterialDestroyRequest extends FormRequest
 
         return $freeform !== null
             && $this->ownerMatches($freeform->freeformmateriable_type, $freeform->freeformmateriable_id)
-            && $this->user()->can('delete', $freeform);
+            && $this->user()->can('delete', $freeform)
+            && $this->authorizeMateriable('view');
     }
 
     public function rules(): array

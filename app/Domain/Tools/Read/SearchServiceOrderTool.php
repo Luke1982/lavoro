@@ -56,6 +56,23 @@ class SearchServiceOrderTool implements Tool
                     'type' => 'boolean',
                     'description' => 'Alleen werkbonnen die nog niet afgesloten zijn.',
                 ],
+                'planning' => [
+                    'type' => 'string',
+                    'enum' => ['ongepland', 'gepland'],
+                    'description' => 'ongepland: zoals de lijst van de planner. gepland: ingepland, nog niet uitgevoerd.',
+                ],
+                'with_contract' => [
+                    'type' => 'boolean',
+                    'description' => 'Bij ongepland ook contractwerkbonnen, die de planner standaard verbergt.',
+                ],
+                'ordered_from' => [
+                    'type' => 'string',
+                    'description' => 'Datum opdracht vanaf deze dag, JJJJ-MM-DD.',
+                ],
+                'ordered_before' => [
+                    'type' => 'string',
+                    'description' => 'Datum opdracht voor deze dag, JJJJ-MM-DD.',
+                ],
             ],
             'required' => [],
             'additionalProperties' => false,
@@ -67,7 +84,7 @@ class SearchServiceOrderTool implements Tool
         return $user->can('list', ServiceOrder::class);
     }
 
-    /** Vier filters, waarvan hooguit twee tegelijk uit een zin komen. */
+    /** Acht filters, waarvan hooguit twee of drie tegelijk uit een zin komen. */
     public static function difficulty(): int
     {
         return 3;
@@ -115,9 +132,42 @@ class SearchServiceOrderTool implements Tool
          * An order that never got a stage is open by ServiceOrder::is_closed, and
          * asking for a stage that says so would silently drop every one of them.
          */
-        if ($call->argument('only_open') === true) {
+        if ($call->booleanArgument('only_open')) {
             $query->whereDoesntHave('serviceOrderStage', fn ($sq) => $sq->closesOrder());
         }
+
+        /**
+         * Ongepland is the planner's own list, with contract werkbonnen hidden as
+         * its switch hides them by default. Gepland is read off the stage as well:
+         * the stage moves on once the work is done, an appointment in the past
+         * does not.
+         */
+        $planning = $call->stringArgument('planning');
+
+        if ($planning === 'ongepland') {
+            $query->awaitingPlanning();
+
+            if (!$call->booleanArgument('with_contract')) {
+                $query->whereNull('maintenance_contract_id');
+            }
+        } elseif ($planning === 'gepland') {
+            $query->whereHas('serviceOrderStage', fn ($sq) => $sq
+                ->where('is_planned_state', true)
+                ->whereNot(fn ($closing) => $closing->closesOrder()));
+        } elseif (filled($planning)) {
+            return ToolResult::failed('planning is ongepland of gepland.');
+        }
+
+        if ($complaint = $call->invalidDateAmong('ordered_from', 'ordered_before')) {
+            return ToolResult::failed($complaint);
+        }
+
+        $from = $call->dateArgument('ordered_from');
+        $before = $call->dateArgument('ordered_before');
+
+        $query
+            ->when($from, fn ($q) => $q->where('order_date', '>=', $from->toDateString()))
+            ->when($before, fn ($q) => $q->where('order_date', '<', $before->toDateString()));
 
         $matching = clone $query;
         $orders = $query->orderByDesc('id')->limit($limit)->get();
@@ -128,6 +178,7 @@ class SearchServiceOrderTool implements Tool
             'customer' => $order->customer?->name,
             'where' => $order->linkedLocation?->addressLine(),
             'customer_id' => $order->customer_id,
+            'order_date' => $order->order_date?->toDateString(),
             'stage' => $order->serviceOrderStage?->name,
             'is_closed' => $order->is_closed,
             'closed_on' => $order->closed_on,

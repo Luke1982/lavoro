@@ -15,7 +15,8 @@ class FreeformMaterialUpdateRequest extends FormRequest
 
         return $freeform !== null
             && $this->ownerMatches($freeform->freeformmateriable_type, $freeform->freeformmateriable_id)
-            && $this->user()->can('update', $freeform);
+            && $this->user()->can('update', $freeform)
+            && $this->authorizeMateriable('view');
     }
 
     public function rules(): array

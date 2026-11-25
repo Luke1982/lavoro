@@ -44,7 +44,7 @@ class UpdateAppointmentAction
         $eventable_id = $changes->create_service_order ? null : $changes->eventable_id;
         $linking = $changes->create_service_order || ($eventable_type && $eventable_id);
 
-        if ($event->no_service_order && !$linking) {
+        if ($event->no_service_order && !$linking && $changes->customer_provided) {
             $event->syncCustomers([$changes->customer_id]);
         }
 

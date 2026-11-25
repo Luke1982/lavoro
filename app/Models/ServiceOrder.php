@@ -292,6 +292,25 @@ class ServiceOrder extends Model
     }
 
     /**
+     * The werkbonnen the planner lists as ongepland: in a stage that is plannable
+     * and not yet planned, and not under a running project, whose bar in the
+     * planner is where those are found and planned instead.
+     *
+     * One definition for the planner's list and for the assistant, so "welke
+     * werkbonnen staan er nog ongepland" gets the answer the planner shows.
+     * Contract werkbonnen are in it; the planner hides them behind a switch, and
+     * whoever reads this decides the same.
+     */
+    public function scopeAwaitingPlanning($query)
+    {
+        return $query
+            ->whereDoesntHave('project', fn ($q) => $q->openForPlanning())
+            ->whereHas('serviceOrderStage', fn ($q) => $q
+                ->where('is_plannable_state', true)
+                ->where('is_planned_state', false));
+    }
+
+    /**
      * Werkbonnen waar de zoekterm ergens in past.
      *
      * Het ene rijtje velden voor elke plek die werkbonnen op tekst zoekt: de
@@ -625,7 +644,7 @@ class ServiceOrder extends Model
 
     public function revertToPlanningCancelledStage(): void
     {
-        $cancelled = ServiceOrderStage::where('is_planning_cancelled_state', true)->first();
+        $cancelled = ServiceOrderStage::planningCancelled();
         if (!$cancelled) {
             return;
         }

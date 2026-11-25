@@ -8,11 +8,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class QuoteReadRequest extends FormRequest
 {
-    /** The list opens on the quotes still waiting for an answer; 'all' is said out loud. */
-    public const OPEN = 'open';
-
-    public const EVERY_STATUS = 'all';
-
     public function authorize(): bool
     {
         $quote = $this->route('quote');
@@ -27,8 +22,8 @@ class QuoteReadRequest extends FormRequest
         return [
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', 'in:' . implode(',', [
-                self::OPEN,
-                self::EVERY_STATUS,
+                Quote::LIST_OPEN,
+                Quote::LIST_EVERY_STATUS,
                 ...array_column(QuoteStatuses::cases(), 'value'),
             ])],
             'customer' => ['sometimes', 'nullable', 'integer'],
@@ -41,7 +36,7 @@ class QuoteReadRequest extends FormRequest
     {
         return [
             'search' => trim((string) $this->validated('search', '')),
-            'status' => $this->validated('status') ?? self::OPEN,
+            'status' => $this->validated('status') ?? Quote::LIST_OPEN,
             'customer' => $this->validated('customer') ? (int) $this->validated('customer') : null,
             'reason' => $this->validated('reason') ? (int) $this->validated('reason') : null,
         ];

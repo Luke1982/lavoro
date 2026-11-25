@@ -2,12 +2,14 @@
 
 namespace App\Domain\Tools\Read;
 
+use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Models\Asset;
 use App\Models\Customer;
+use App\Models\MaintenanceContract;
 use App\Models\ServiceOrder;
 use App\Models\User;
 
@@ -21,6 +23,8 @@ use App\Models\User;
  */
 class SummarizeCustomerTool implements Tool
 {
+    use ReportsTheWholeCount;
+
     public static function name(): string
     {
         return 'summarize_customer';
@@ -29,7 +33,7 @@ class SummarizeCustomerTool implements Tool
     public function description(): string
     {
         return 'Geeft een overzicht van één klant: contactgegevens, openstaande werkbonnen, '
-            . 'machines en het onderhoud dat eraan komt. Gebruik dit als iemand vraagt hoe een klant ervoor staat, '
+            . 'machines, onderhoudscontracten en het onderhoud dat eraan komt. Gebruik dit als iemand vraagt hoe een klant ervoor staat, '
             . 'in plaats van losse zoekopdrachten te combineren.';
     }
 
@@ -115,6 +119,52 @@ class SummarizeCustomerTool implements Tool
                 'product' => $asset->product?->display_name,
                 'next_service_date' => $asset->next_service_date,
             ])->all(),
+            ...($call->user->can('viewAny', MaintenanceContract::class) ? $this->contractsOf($call, $customer) : []),
         ], 'Overzicht van ' . $customer->name . '.');
+    }
+
+    /**
+     * The contracts by number, so "zet de formule op alle contracten van deze
+     * klant" can be done: asked for exactly that, the assistant searched five
+     * tools for contract numbers and then asked the person to type them.
+     *
+     * Only asked of somebody who may see contracts; for anybody else the keys
+     * are left out altogether, because an empty list reads as "this customer
+     * has none".
+     *
+     * @return array<string, mixed>
+     */
+    private function contractsOf(ToolCall $call, Customer $customer): array
+    {
+        $limit = (int) config('assistant.max_results', 25);
+        $financials = $call->user->can('seeFinancials', MaintenanceContract::class);
+        $query = MaintenanceContract::query()->where('customer_id', $customer->id);
+
+        $contracts = (clone $query)
+            ->when($financials, fn ($query) => $query->with([
+                'priceFormulaVersion:id,price_formula_id,number,name',
+                'priceFormulaVersion.formula:id,name',
+            ]))
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->each(fn (MaintenanceContract $contract) => $contract->setRelation('customer', $customer));
+
+        $total = $this->howManyInAll($query, $contracts->count(), $limit);
+
+        return [
+            'maintenance_contracts' => $contracts->map(fn (MaintenanceContract $contract) => [
+                'maintenance_contract_id' => $contract->id,
+                'title' => $contract->display_title,
+                'status' => $contract->status,
+                'end_date' => $contract->end_date?->toDateString(),
+                'price' => $financials ? (float) $contract->price : null,
+                'price_formula' => $financials ? $contract->priceFormulaVersion?->displayName() : null,
+            ])->all(),
+            'maintenance_contract_total' => $total,
+            ...($contracts->count() < $total ? ['note' => 'Dit zijn ' . $contracts->count() . ' van de '
+                . $total . ' onderhoudscontracten van deze klant; noem het totaal en zoek de rest met '
+                . 'find_maintenance_contracts.'] : []),
+        ];
     }
 }

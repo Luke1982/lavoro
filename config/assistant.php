@@ -10,9 +10,12 @@ use App\Domain\Tools\Read\FindAppointmentTool;
 use App\Domain\Tools\Read\FindAssetTool;
 use App\Domain\Tools\Read\FindAvailableTechnicianTool;
 use App\Domain\Tools\Read\FindCustomerTool;
+use App\Domain\Tools\Read\FindMaintenanceContractsTool;
+use App\Domain\Tools\Read\FindMaterialTool;
 use App\Domain\Tools\Read\FindPlaceholderRecordsTool;
 use App\Domain\Tools\Read\FindProductTool;
 use App\Domain\Tools\Read\FindProjectTool;
+use App\Domain\Tools\Read\FindQuoteTool;
 use App\Domain\Tools\Read\FindTicketTool;
 use App\Domain\Tools\Read\ListMacrosTool;
 use App\Domain\Tools\Read\NoteFileTool;
@@ -31,6 +34,9 @@ use App\Domain\Tools\Read\TryPriceFormulaTool;
 use App\Domain\Tools\Read\ViewImagesTool;
 use App\Domain\Tools\Write\AddServiceOrderTaskTool;
 use App\Domain\Tools\Write\ApplyPriceFormulaTool;
+use App\Domain\Tools\Write\BookMaterialsTool;
+use App\Domain\Tools\Write\ChangeEventTool;
+use App\Domain\Tools\Write\ChangeMaintenanceContractsTool;
 use App\Domain\Tools\Write\CreateAssetTool;
 use App\Domain\Tools\Write\CreateCustomerTool;
 use App\Domain\Tools\Write\CreateEventTool;
@@ -39,6 +45,8 @@ use App\Domain\Tools\Write\CreateMaintenanceContractTool;
 use App\Domain\Tools\Write\CreateProductTool;
 use App\Domain\Tools\Write\CreateServiceOrderTool;
 use App\Domain\Tools\Write\CreateTicketTool;
+use App\Domain\Tools\Write\DraftQuoteTool;
+use App\Domain\Tools\Write\RegisterHoursTool;
 use App\Domain\Tools\Write\RunMacroTool;
 use App\Domain\Tools\Write\SaveDocumentTool;
 use App\Domain\Tools\Write\SavePriceFormulaTool;
@@ -99,6 +107,14 @@ return [
         TryPriceFormulaTool::class,
         SavePriceFormulaTool::class,
         ApplyPriceFormulaTool::class,
+        FindMaintenanceContractsTool::class,
+        ChangeMaintenanceContractsTool::class,
+        ChangeEventTool::class,
+        FindMaterialTool::class,
+        BookMaterialsTool::class,
+        RegisterHoursTool::class,
+        FindQuoteTool::class,
+        DraftQuoteTool::class,
     ],
 
     /*
@@ -243,6 +259,29 @@ return [
             'api_key' => env('ANTHROPIC_API_KEY'),
             'capability' => 1,
             'max_tokens' => 16,
+            'reserved' => true,
+        ],
+
+        /*
+        | The eval's own models (php artisan assistant:eval): one plays the person
+        | at the keyboard, the other reads the finished conversation and grades
+        | it. Reserved, so neither is ever chosen to answer a real question.
+        */
+        'eval_user' => [
+            'driver' => AnthropicModel::class,
+            'model' => env('ASSISTANT_EVAL_USER_MODEL', 'claude-haiku-5-5'),
+            'api_key' => env('ANTHROPIC_API_KEY'),
+            'capability' => 1,
+            'max_tokens' => 4000,
+            'reserved' => true,
+        ],
+
+        'eval_judge' => [
+            'driver' => AnthropicModel::class,
+            'model' => env('ASSISTANT_EVAL_JUDGE_MODEL', 'claude-opus-5-5'),
+            'api_key' => env('ANTHROPIC_API_KEY'),
+            'capability' => 1,
+            'max_tokens' => 16000,
             'reserved' => true,
         ],
 
@@ -409,6 +448,7 @@ return [
     'pricing' => [
         'claude-sonnet-5-5' => ['input' => 2.00, 'output' => 10.00, 'cache_write' => 2.50, 'cache_read' => 0.10],
         'claude-sonnet-5' => ['input' => 2.00, 'output' => 10.00, 'cache_write' => 2.50, 'cache_read' => 0.20],
+        'claude-opus-5-5' => ['input' => 4.00, 'output' => 20.00, 'cache_write' => 5.00, 'cache_read' => 0.20],
         'claude-opus-5' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
         'claude-opus-4-8' => ['input' => 5.00, 'output' => 25.00, 'cache_write' => 6.25, 'cache_read' => 0.50],
         /*
@@ -484,6 +524,23 @@ return [
                 'usd_per_minute' => 0,
             ],
         ],
+    ],
+
+    /*
+    |---------------------------------------------------------------------------
+    | Eval en probe
+    |---------------------------------------------------------------------------
+    |
+    | php artisan assistant:eval and assistant:probe run against a customer's
+    | real data and spend real money. They refuse production, and besides that
+    | every customer not on this list: ids or names, separated by commas, set in
+    | the .env of the machine that may run them. Empty by default, so a command
+    | copied onto another installation finds nothing it may touch.
+    |
+    */
+
+    'evals' => [
+        'tenants' => array_values(array_filter(array_map('trim', explode(',', (string) env('ASSISTANT_EVAL_TENANTS', ''))))),
     ],
 
 ];

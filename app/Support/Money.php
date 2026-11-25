@@ -19,6 +19,16 @@ namespace App\Support;
  */
 final class Money
 {
+    /**
+     * An amount in euros as whole cents, rounded once, so 245,50 stored as a
+     * decimal is never compared as 245,49999. Nothing for a missing amount or
+     * for anything that is not a number.
+     */
+    public static function cents(mixed $amount): ?int
+    {
+        return is_numeric($amount) ? (int) round(((float) $amount) * 100) : null;
+    }
+
     /** As it belongs on screen and on the invoice. */
     public static function human(int $cents): string
     {

@@ -337,7 +337,7 @@
                         </p>
                     </div>
 
-                    <div v-if="editingExisting && form.id" class="pb-2" data-tour="planner.appointment.email">
+                    <div v-if="canSendStandardEmail" class="pb-2" data-tour="planner.appointment.email">
                         <div class="flex items-center gap-2 mb-3">
                             <div class="w-6 h-6 bg-lavoro-lightblue dark:bg-blue-900/40 rounded-md flex items-center justify-center">
                                 <EnvelopeIcon class="h-3.5 w-3.5 text-lavoro-blue dark:text-blue-400" />
@@ -481,7 +481,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved', 'deleted'])
 const page = usePage()
-const authUserId = computed(() => page.props.auth?.user?.id ?? null)
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock()
 
 const visible = ref(false)
@@ -970,16 +969,18 @@ function standardEmailList(response, key) {
 
 const canCreateServiceOrder = computed(() => hasPermission('serviceorder.create'))
 
+const canSendStandardEmail = computed(() =>
+    props.editingExisting && !!form.id && props.initial.can_send_standard_email === true
+)
+
 /**
- * Deletion is judged on the appointment as it is stored: an unsaved edit to the
- * executing users says nothing about who may throw the appointment away.
+ * Deletion is the server's answer for the appointment as it is stored: an
+ * unsaved edit to the executing users says nothing about who may throw the
+ * appointment away.
  */
-const canDelete = computed(() => {
-    if (!props.allowDelete || !props.editingExisting || !form.id) return false
-    if (hasPermission('event.delete_others')) return true
-    return hasPermission('event.delete')
-        && (props.initial.executing_user_ids || []).includes(authUserId.value)
-})
+const canDelete = computed(() =>
+    props.allowDelete && props.editingExisting && !!form.id && props.initial.can_delete === true
+)
 
 async function deleteEvent() {
     if (deleting.value || saving.value) return
@@ -1044,9 +1045,6 @@ async function save() {
         let savedEventId = null
         let successMessage = ''
         if (props.editingExisting && form.id) {
-            const canUpdate = hasPermission('event.update_others') ||
-                (hasPermission('event.update') && form.executing_user_ids.includes(authUserId.value))
-            if (!canUpdate) return
             const r = await axios.put(`/api/events/${form.id}`, payload)
             if (r.status !== 200) throw new Error('bad')
             successMessage = 'Afspraak succesvol bijgewerkt'
@@ -1088,7 +1086,7 @@ onMounted(() => {
     if (!form.eventable_id && internalServiceOrders.value.length > 0) {
         form.eventable_id = internalServiceOrders.value[0].id
     }
-    if (props.editingExisting && form.id) {
+    if (canSendStandardEmail.value) {
         loadStandardEmails()
         loadEmailHistory()
     }

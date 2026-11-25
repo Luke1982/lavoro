@@ -205,7 +205,7 @@ class MacroToolsTest extends TestCase
     {
         $this->conversation = (string) Str::uuid();
         app(ConversationFiles::class)->stash($this->conversation, [new Attachment(
-            name: 'Offerte 55420.pdf',
+            name: 'Offerte 10001.pdf',
             media_type: 'application/pdf',
             base64: base64_encode("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF"),
         )]);
@@ -216,12 +216,12 @@ class MacroToolsTest extends TestCase
         $result = $this->carryOut([
             'service_order_id' => $this->order->id,
             'macro_id' => $macro->id,
-            'answers' => [['step_id' => 'offerte', 'field' => 'file', 'value' => 'Offerte 55420.pdf']],
+            'answers' => [['step_id' => 'offerte', 'field' => 'file', 'value' => 'Offerte 10001.pdf']],
         ]);
 
         $this->assertFalse($result->is_error, (string) $result->summary);
         $document = $this->order->documents()->sole();
-        $this->assertSame('Offerte 55420.pdf', $document->name);
+        $this->assertSame('Offerte 10001.pdf', $document->name);
         Storage::disk('public')->assertExists($document->path);
     }
 

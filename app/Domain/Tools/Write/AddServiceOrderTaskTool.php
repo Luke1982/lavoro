@@ -102,7 +102,7 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
 
     public function authorize(User $user, array $arguments): bool
     {
-        $registers_machines = filter_var($arguments['register_machines'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $registers_machines = ToolCall::booleanFrom($arguments['register_machines'] ?? false);
 
         return $user->can('addTask', ServiceOrder::class)
             && (!$registers_machines || $user->can('create', Asset::class));
@@ -301,7 +301,7 @@ class AddServiceOrderTaskTool implements Confirmable, Tool
 
     private function registersMachines(ToolCall $call): bool
     {
-        return filter_var($call->argument('register_machines', false), FILTER_VALIDATE_BOOLEAN);
+        return $call->booleanArgument('register_machines');
     }
 
     /**

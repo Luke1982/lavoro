@@ -40,6 +40,11 @@ class User extends Authenticatable
 
     private ?bool $is_super_admin = null;
 
+    private ?bool $is_admin = null;
+
+    /** @var array<int, string>|null */
+    private ?array $permission_names = null;
+
     /** Depth of User::withoutHistory(); above zero nothing about a user is recorded. */
     private static int $unrecorded = 0;
 
@@ -215,15 +220,19 @@ class User extends Authenticatable
      * Get a flat list of unique permission names for this user
      * combining permissions via roles.
      *
+     * Remembered per instance, like isSuperAdmin(): a policy asks this for
+     * every appointment in the planner's week. Changing the roles through
+     * syncRoles(), or refresh(), forgets it.
+     *
      * @return array<int,string>
      */
     public function permissionNames(): array
     {
-        $via_roles = $this->roles()->with('permissions:id,name')->get()
-            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
-            ->all();
-
-        return array_values(array_unique($via_roles));
+        return $this->permission_names ??= array_values(array_unique(
+            $this->roles()->with('permissions:id,name')->get()
+                ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+                ->all()
+        ));
     }
 
     /**
@@ -234,7 +243,27 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->roles()->whereIn('name', ['admin', Role::SUPERADMIN])->exists();
+        return $this->is_admin ??= $this->roles()->whereIn('name', ['admin', Role::SUPERADMIN])->exists();
+    }
+
+    /**
+     * Forgets the remembered answers about roles and permissions, for code that
+     * gives or takes a role and asks again on the same instance.
+     */
+    public function forgetPermissions(): static
+    {
+        $this->is_admin = null;
+        $this->is_super_admin = null;
+        $this->permission_names = null;
+
+        return $this;
+    }
+
+    public function refresh()
+    {
+        $this->forgetPermissions();
+
+        return parent::refresh();
     }
 
     /**
@@ -340,6 +369,7 @@ class User extends Authenticatable
         $before = $names();
 
         $this->roles()->sync($role_ids);
+        $this->forgetPermissions();
 
         $roles = new NameListChange($before, $names());
 

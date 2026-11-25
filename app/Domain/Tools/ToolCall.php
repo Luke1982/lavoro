@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tools;
 
+use App\Domain\Planning\Clock;
 use App\Domain\Search\SearchTerm;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -79,6 +80,24 @@ final class ToolCall
         return $value === null || $value === '' ? null : (int) $value;
     }
 
+    /**
+     * A yes or no, however the model wrote it.
+     *
+     * The schema says boolean and models send true, "true", 1 and "1" alike;
+     * ArgumentCheck lets exactly those through. Read here and nowhere else, so a
+     * "true" is never yes to one tool and no to the next.
+     */
+    public function booleanArgument(string $key): bool
+    {
+        return self::booleanFrom($this->arguments[$key] ?? false);
+    }
+
+    /** One value read the way booleanArgument reads it, for an authorize() that has only the arguments. */
+    public static function booleanFrom(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
     public function stringArgument(string $key): ?string
     {
         $value = $this->arguments[$key] ?? null;
@@ -112,7 +131,40 @@ final class ToolCall
      */
     public function dateArgument(string $key): ?CarbonImmutable
     {
-        $value = $this->stringArgument($key);
+        return self::parseDate($this->stringArgument($key));
+    }
+
+    /**
+     * The refusal for the first of these that was given but is not a date, or
+     * nothing when every one given reads as one.
+     *
+     * A filter handed a date it cannot read must say so rather than leave the
+     * filter off: "since Monday" answered with everything is a wrong answer
+     * that looks like a right one.
+     */
+    public function invalidDateAmong(string ...$keys): ?string
+    {
+        foreach ($keys as $key) {
+            if ($this->wasGiven($key) && $this->dateArgument($key) === null) {
+                return 'Geef ' . $key . ' als een echte datum in de vorm JJJJ-MM-DD, niet "'
+                    . $this->stringArgument($key) . '".';
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * One JJJJ-MM-DD string read the way dateArgument reads it, for dates that
+     * come in a list.
+     *
+     * Read back and compared rather than trusted, because the parser rolls over
+     * rather than refuses: month thirteen becomes next January and 30 February
+     * becomes 2 March, a real day that nobody asked for.
+     */
+    public static function parseDate(?string $value): ?CarbonImmutable
+    {
+        $value = $value === null ? null : trim($value);
 
         if ($value === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
             return null;
@@ -124,8 +176,51 @@ final class ToolCall
             return null;
         }
 
-        /** Rolled over rather than rejected: month thirteen becomes next January. */
         return $date !== false && $date->format('Y-m-d') === $value ? $date : null;
+    }
+
+    /**
+     * A wall-clock time somebody said, JJJJ-MM-DD UU:MM with optional seconds,
+     * as the moment to store, or nothing when it is not a time that exists on
+     * the local clock.
+     *
+     * Only the captured parts are read, never the whole string: handed to the
+     * parser, a trailing "Z", "+05:00" or "+2 days" is taken at its word and
+     * moves the time. The parser also rolls over rather than refuses, so
+     * 2026-02-30 08:00 becomes the second of March and 02:30 on the night the
+     * clocks go forward becomes 03:30. Read back and compared with what was
+     * said, either is refused instead of put on a day or an hour nobody named.
+     */
+    public static function parseMoment(?string $value): ?CarbonImmutable
+    {
+        $value = $value === null ? null : trim($value);
+
+        if ($value === null || !preg_match('/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/', $value, $parts)) {
+            return null;
+        }
+
+        if (isset($parts[4]) && (int) $parts[4] > 59) {
+            return null;
+        }
+
+        $wall = $parts[1] . ' ' . $parts[2] . ':' . $parts[3];
+
+        try {
+            $moment = CarbonImmutable::createFromFormat('!Y-m-d H:i', $wall, Clock::zone());
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if ($moment === false || $moment->format('Y-m-d H:i') !== $wall) {
+            return null;
+        }
+
+        return $moment->addSeconds((int) ($parts[4] ?? 0))->utc();
+    }
+
+    public function momentArgument(string $key): ?CarbonImmutable
+    {
+        return self::parseMoment($this->stringArgument($key));
     }
 
     /**

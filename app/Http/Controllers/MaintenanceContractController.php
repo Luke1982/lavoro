@@ -5,15 +5,9 @@ namespace App\Http\Controllers;
 use App\Actions\Contracts\AttachContractAssetAction;
 use App\Actions\Contracts\CreateMaintenanceContractAction;
 use App\Actions\Contracts\DetachContractAssetAction;
-use App\Domain\Contracts\ContractLabels;
+use App\Actions\Contracts\UpdateMaintenanceContractAction;
 use App\Domain\Pricing\ContractPricing;
 use App\Domain\Signals\Contracts\ContractAssetFrequencyChanged;
-use App\Domain\Signals\Contracts\ContractAutoGenerationDisabled;
-use App\Domain\Signals\Contracts\ContractAutoGenerationEnabled;
-use App\Domain\Signals\Contracts\ContractCancelled;
-use App\Domain\Signals\Contracts\ContractCustomerChanged;
-use App\Domain\Signals\Contracts\ContractFrequencyModeChanged;
-use App\Domain\Signals\Contracts\ContractReactivated;
 use App\Domain\Signals\Signals;
 use App\Enums\ContractInterval;
 use App\Http\Requests\MaintenanceContractAttachAssetRequest;
@@ -30,7 +24,6 @@ use App\Models\DocumentCategory;
 use App\Models\MaintenanceContract;
 use App\Models\PriceFormula;
 use App\Models\ServiceOrderStage;
-use App\Services\AssetTransferService;
 use App\Services\MaintenanceContractServiceOrderGenerator;
 use App\Support\Money;
 use App\Traits\OffersContractTemplates;
@@ -196,104 +189,9 @@ class MaintenanceContractController extends Controller
 
     public function update(MaintenanceContractUpdateRequest $request, MaintenanceContract $maintenancecontract)
     {
-        $validated = $request->validated();
-        $was_contract_wide = !$maintenancecontract->manage_frequency_per_asset;
-        $original = $maintenancecontract->getAttributes();
-
-        $asset_strategy = $validated['asset_strategy'] ?? null;
-        $location_map = $validated['location_map'] ?? [];
-        unset($validated['asset_strategy'], $validated['location_map']);
-
-        $transfer_roots = $asset_strategy === 'transfer'
-            ? $maintenancecontract->assets->map->rootAsset()->unique('id')->values()
-            : collect();
-
-        if (array_key_exists('cancelled', $validated)) {
-            $was_cancelled_at = $maintenancecontract->cancelled_at;
-            $is_already_cancelled = $was_cancelled_at !== null;
-
-            if ($validated['cancelled'] && !$is_already_cancelled) {
-                $maintenancecontract->cancelled_at = now();
-                $maintenancecontract->save();
-                Signals::dispatch(new ContractCancelled($maintenancecontract));
-            } elseif (!$validated['cancelled'] && $is_already_cancelled) {
-                $maintenancecontract->cancelled_at = null;
-                $maintenancecontract->save();
-                Signals::dispatch(new ContractReactivated($maintenancecontract, $was_cancelled_at));
-            }
-        }
-
-        DB::transaction(function () use ($maintenancecontract, $validated, $asset_strategy) {
-            if ($asset_strategy === 'detach') {
-                foreach ($maintenancecontract->assets as $asset) {
-                    app(DetachContractAssetAction::class)->execute($maintenancecontract, $asset->pivot->id);
-                }
-            }
-
-            $maintenancecontract->update($validated);
-        });
-
-        /**
-         * Ordered deliberately: the contract already belongs to the new customer by the
-         * time the machines move, so the transfer sees it as a contract of the new owner
-         * and leaves its attachments alone. Only the old customer's other contracts lose
-         * the machines.
-         */
-        if ($transfer_roots->isNotEmpty()) {
-            app(AssetTransferService::class)->transfer(
-                $transfer_roots,
-                $maintenancecontract->customer_id,
-                $location_map
-            );
-        }
-
-        $switched_to_individual = array_key_exists('manage_frequency_per_asset', $validated)
-            && $validated['manage_frequency_per_asset']
-            && $was_contract_wide;
-
-        if ($switched_to_individual) {
-            $maintenancecontract->assets()
-                ->newPivotQuery()
-                ->whereNull('frequency')
-                ->update([
-                    'frequency' => $validated['frequency'] ?? $maintenancecontract->getRawOriginal('frequency'),
-                    'frequency_days' => $validated['frequency_days'] ?? $maintenancecontract->frequency_days,
-                ]);
-            Signals::dispatch(new ContractFrequencyModeChanged($maintenancecontract, per_asset: true));
-        } elseif (array_key_exists('manage_frequency_per_asset', $validated) && !$validated['manage_frequency_per_asset']) {
-            Signals::dispatch(new ContractFrequencyModeChanged($maintenancecontract, per_asset: false));
-        }
-
-        if (array_key_exists('auto_generate', $validated)) {
-            $was_auto = (bool) ($original['auto_generate'] ?? false);
-            $will_be_auto = (bool) $validated['auto_generate'];
-
-            if ($will_be_auto && !$was_auto) {
-                Signals::dispatch(new ContractAutoGenerationEnabled(
-                    $maintenancecontract,
-                    ContractLabels::autoGeneration($maintenancecontract)
-                ));
-            } elseif (!$will_be_auto && $was_auto) {
-                Signals::dispatch(new ContractAutoGenerationDisabled($maintenancecontract));
-            }
-        }
-
-        $this->announceCustomerChange($maintenancecontract, $validated, $original);
+        app(UpdateMaintenanceContractAction::class)->execute($maintenancecontract, $request->validated());
 
         return redirect()->back()->with('success', 'Onderhoudscontract bijgewerkt.');
-    }
-
-    /**
-     * Only the customer is told here: every other field is written by the
-     * contract's own trail, with its label and its permission.
-     */
-    private function announceCustomerChange(MaintenanceContract $maintenancecontract, array $validated, array $original): void
-    {
-        if (array_key_exists('customer_id', $validated) && (string) $validated['customer_id'] !== (string) ($original['customer_id'] ?? '')) {
-            $old_customer = Customer::find($original['customer_id'] ?? null)?->name ?? 'onbekend';
-            $new_customer = Customer::find($validated['customer_id'])?->name ?? 'onbekend';
-            Signals::dispatch(new ContractCustomerChanged($maintenancecontract, $old_customer, $new_customer));
-        }
     }
 
     /**

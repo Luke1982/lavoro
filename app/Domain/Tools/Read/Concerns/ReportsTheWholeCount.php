@@ -45,8 +45,18 @@ trait ReportsTheWholeCount
         int $limit,
         string $plural,
     ): ToolResult {
-        $total = $this->howManyInAll($matching, $shown, $limit);
+        return $this->answerWithTotal($content, $shown, $this->howManyInAll($matching, $shown, $limit), $plural);
+    }
 
+    /**
+     * The same, for a search that already holds every match and so knows the
+     * total without asking the database again.
+     *
+     * @param  array<string, mixed>  $content  Everything the tool already built.
+     * @param  string  $plural  What these are called, in Dutch: "storingen".
+     */
+    private function answerWithTotal(array $content, int $shown, int $total, string $plural): ToolResult
+    {
         $content['total'] = $total;
 
         if ($shown < $total) {

@@ -231,7 +231,7 @@ class FindAvailableTechnicianTool implements Tool
          */
         $product_ids = $call->integerListArgument('product_ids');
         $asset_id = $call->integerArgument('asset_id');
-        $widened = filter_var($call->argument('include_other_groups', false), FILTER_VALIDATE_BOOLEAN);
+        $widened = $call->booleanArgument('include_other_groups');
 
         if (($product_ids !== [] || $asset_id !== null) && $wanted_group === null && !$widened && $known->isNotEmpty()) {
             return ToolResult::failed(

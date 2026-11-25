@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class MaintenanceContract extends Model
 {
@@ -240,6 +241,69 @@ class MaintenanceContract extends Model
 
         return $query->whereNull($query->qualifyColumn('cancelled_at'))
             ->where(fn ($q) => $q->whereNull($end_date)->orWhere($end_date, '>=', now()->toDateString()));
+    }
+
+    /**
+     * Still to start: not cancelled, with a start date after today. The
+     * 'toekomstig' branch of the status attribute in query form.
+     */
+    public function scopeUpcoming(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('cancelled_at'))
+            ->where($query->qualifyColumn('start_date'), '>', now()->toDateString());
+    }
+
+    /**
+     * Run out: not cancelled, started, and past its end date. The 'verlopen'
+     * branch of the status attribute in query form.
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        $today = now()->toDateString();
+
+        return $query->whereNull($query->qualifyColumn('cancelled_at'))
+            ->where($query->qualifyColumn('start_date'), '<=', $today)
+            ->where($query->qualifyColumn('end_date'), '<', $today);
+    }
+
+    /** Cancelled, whatever its dates: the 'geannuleerd' branch of the status attribute. */
+    public function scopeCancelled(Builder $query): Builder
+    {
+        return $query->whereNotNull($query->qualifyColumn('cancelled_at'));
+    }
+
+    /**
+     * Contracts with this status attribute, by query rather than by loading
+     * every contract and reading it off each one.
+     */
+    public function scopeWithStatus(Builder $query, string $status): Builder
+    {
+        return match ($status) {
+            'actief' => $query->active(),
+            'toekomstig' => $query->upcoming(),
+            'verlopen' => $query->expired(),
+            'geannuleerd' => $query->cancelled(),
+            default => throw new InvalidArgumentException('Onbekende contractstatus "' . $status . '": kies actief, toekomstig, verlopen of geannuleerd.'),
+        };
+    }
+
+    /**
+     * What the contract comes to a year: its price, or the price given, times
+     * the periods its price interval has in a year, rounded to the cent once.
+     */
+    public function annualPrice(?float $price = null): float
+    {
+        return self::annualAmount($price ?? (float) $this->price, $this->price_interval?->value, $this->price_interval_days);
+    }
+
+    /**
+     * The rule annualPrice() applies, for a price and interval read without a
+     * model: a sum over many contracts grouped in the query comes to what
+     * adding up each contract's annualPrice() would.
+     */
+    public static function annualAmount(float $price, ?string $price_interval, ?int $price_interval_days): float
+    {
+        return round($price * ContractInterval::timesPerYear($price_interval, $price_interval_days), 2);
     }
 
     public function hasEnded(): bool

@@ -284,19 +284,10 @@ class QuoteController extends Controller
     /** @param array{search: string, status: string, customer: ?int, reason: ?int} $list */
     private function filter(Builder $query, array $list): void
     {
-        $like = '%' . $list['search'] . '%';
-
         $query
-            ->when($list['search'] !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
-                ->where('number', 'like', $like)
-                ->orWhere('title', 'like', $like)
-                ->orWhereHas('customer', fn (Builder $customer) => $customer->where('name', 'like', $like))))
+            ->searchedFor($list['search'])
+            ->inListStatus($list['status'])
             ->when($list['customer'], fn (Builder $query, int $id) => $query->where('customer_id', $id))
-            ->when($list['reason'], fn (Builder $query, int $id) => $query->where('lost_reason_id', $id))
-            ->when(match ($list['status']) {
-                QuoteReadRequest::OPEN => QuoteStatuses::openValues(),
-                QuoteReadRequest::EVERY_STATUS => null,
-                default => [$list['status']],
-            }, fn (Builder $query, array $statuses) => $query->whereIn('status', $statuses));
+            ->when($list['reason'], fn (Builder $query, int $id) => $query->where('lost_reason_id', $id));
     }
 }

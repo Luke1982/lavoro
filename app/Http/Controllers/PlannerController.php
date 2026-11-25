@@ -62,11 +62,7 @@ class PlannerController extends Controller
                 'taskInstances.product.brand:id,name',
             ])
                 ->withCount('events')
-                ->whereDoesntHave('project', fn ($q) => $q->openForPlanning())
-                ->whereHas('serviceOrderStage', function ($q) {
-                    $q->where('is_plannable_state', true)
-                        ->where('is_planned_state', false);
-                })
+                ->awaitingPlanning()
                 ->tap($so_scope)
                 ->orderByDesc('order_date')
                 ->orderByDesc('id')

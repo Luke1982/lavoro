@@ -2,6 +2,7 @@
 
 namespace App\Services\Google;
 
+use App\Actions\Appointments\MoveAppointmentAction;
 use App\Domain\Signals\Appointments\AppointmentImportedFromGoogle;
 use App\Domain\Signals\Appointments\GoogleChangeReverted;
 use App\Domain\Signals\Signals;
@@ -12,6 +13,7 @@ use App\Models\GoogleSyncedCalendar;
 use App\Models\GoogleSyncedEvent;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Google\Service\Calendar\EventDateTime;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +23,7 @@ class IncomingChangeHandler
     public function __construct(
         private GoogleCalendarApi $api,
         private EventPayloadBuilder $payload_builder,
+        private MoveAppointmentAction $move,
     ) {}
 
     public function apply(GoogleEvent $g_event, GoogleSyncedCalendar $cal): void
@@ -107,10 +110,11 @@ class IncomingChangeHandler
             return;
         }
         if ($actor->can('update', $event)) {
-            $event->update([
-                'start' => $changed['new_start'],
-                'end' => $changed['new_end'],
-            ]);
+            $this->move->execute(
+                $event,
+                CarbonImmutable::instance($changed['new_start']),
+                CarbonImmutable::instance($changed['new_end']),
+            );
 
             return;
         }

@@ -23,6 +23,14 @@ class EventExecutionUpdateRequest extends FormRequest
         ];
     }
 
+    public function attributes(): array
+    {
+        return [
+            'actual_start' => 'de starttijd',
+            'actual_end' => 'de eindtijd',
+        ];
+    }
+
     public function after(): array
     {
         return [

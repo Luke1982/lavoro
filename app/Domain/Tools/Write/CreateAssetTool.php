@@ -188,7 +188,7 @@ class CreateAssetTool implements Confirmable, Tool
      */
     private function wantsPlaceholder(ToolCall $call): bool
     {
-        return filter_var($call->argument('placeholder_serial', false), FILTER_VALIDATE_BOOLEAN)
+        return $call->booleanArgument('placeholder_serial')
             || Placeholder::isOne($call->stringArgument('serial_number'));
     }
 }

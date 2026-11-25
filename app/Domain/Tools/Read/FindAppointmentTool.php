@@ -3,6 +3,7 @@
 namespace App\Domain\Tools\Read;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Tools\Read\Concerns\OffersAChoice;
 use App\Domain\Tools\Read\Concerns\ReportsTheWholeCount;
 use App\Domain\Tools\Tool;
 use App\Domain\Tools\ToolCall;
@@ -28,6 +29,7 @@ use Carbon\CarbonImmutable;
  */
 class FindAppointmentTool implements Tool
 {
+    use OffersAChoice;
     use ReportsTheWholeCount;
 
     public static function name(): string
@@ -59,6 +61,10 @@ class FindAppointmentTool implements Tool
                     'type' => 'array',
                     'items' => ['type' => 'integer'],
                     'description' => 'Alleen afspraken waar deze monteurs op staan.',
+                ],
+                'mechanic' => [
+                    'type' => 'string',
+                    'description' => 'Naam van de monteur, als je zijn nummer niet hebt.',
                 ],
                 'from' => [
                     'type' => 'string',
@@ -118,7 +124,8 @@ class FindAppointmentTool implements Tool
             ->with([
                 'eventType:id,name',
                 'executingUsers:id,name',
-                'serviceOrders:id,description',
+                'serviceOrders:id,description,customer_id',
+                'serviceOrders.customer:id,name',
                 'customers:id,name',
                 'linkedLocation:id,title,address,postal_code,city',
             ]);
@@ -146,9 +153,39 @@ class FindAppointmentTool implements Tool
          * people, and no sign anything had gone wrong.
          */
         if ($call->wasGiven('user_ids') && $user_ids === []) {
-            return ToolResult::failed('Geef user_ids als nummers. Zoek de monteurs eerst op als je alleen namen hebt.');
+            return ToolResult::failed('Geef user_ids als nummers, of geef de naam in mechanic.');
         }
 
+        /**
+         * By name, so a question about Bas Visser's appointment does not depend on
+         * the model knowing where to look his number up: it searched the
+         * customers, found no Bas Visser, and told a planner his own technician
+         * did not exist. Only people who can be planned, since nobody else has
+         * appointments to find, and for whoever sees only their own row in the
+         * planner only themselves: a name search must not list the colleagues.
+         */
+        $mechanic_like = $call->likeArgument('mechanic');
+        $mechanics = collect();
+
+        if ($mechanic_like !== null) {
+            $mechanics = User::query()
+                ->where('plannable', true)
+                ->unless($call->user->can('seeAll', Event::class), fn ($q) => $q->whereKey($call->user->id))
+                ->where('name', 'like', $mechanic_like)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            if ($mechanics->isEmpty()) {
+                return ToolResult::notFound('Monteur "' . $call->stringArgument('mechanic') . '"');
+            }
+
+            $query->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $mechanics->pluck('id')->all()));
+        }
+
+        /**
+         * Given both, both apply, like every other filter here: an appointment
+         * of one of these numbers that one of the named people is on too.
+         */
         if ($user_ids !== []) {
             $query->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $user_ids));
         }
@@ -157,7 +194,7 @@ class FindAppointmentTool implements Tool
          * Ahead only unless asked otherwise. "Wanneer gaan we dit doen" is about
          * what is coming; a diary answered from the beginning of time buries it.
          */
-        if (!$call->argument('include_past') && $from === null) {
+        if (!$call->booleanArgument('include_past') && $from === null) {
             $query->where('end', '>=', Clock::startOfLocalDay(CarbonImmutable::now()));
         }
 
@@ -188,19 +225,37 @@ class FindAppointmentTool implements Tool
             'status' => $event->status,
             'mechanics' => $event->executingUsers->pluck('name')->all(),
             'service_order_id' => $event->serviceOrders->first()?->id,
-            'customer' => $event->serviceOrders->first()?->customer?->name ?? $event->customers->first()?->name,
+            'customer' => $event->customerName(),
             /** Where somebody has to be, which is not always the customer's own address. */
             'where' => $event->linkedLocation?->addressLine() ?: $event->location,
         ])->all();
 
+        $matched = $mechanics->isEmpty() ? [] : ['mechanics_matched' => $mechanics
+            ->map(fn (User $user) => ['user_id' => $user->id, 'name' => $user->name])
+            ->all()];
+
         if ($rows === []) {
             return ToolResult::ok(
-                ['appointments' => [], 'note' => 'Geen afspraken gevonden. Dat kan betekenen dat er niets '
+                ['appointments' => [], ...$matched, 'note' => 'Geen afspraken gevonden. Dat kan betekenen dat er niets '
                     . 'gepland staat, of dat het al geweest is — gebruik include_past om ook terug te kijken.'],
                 'Geen afspraken gevonden.',
             );
         }
 
-        return $this->answerWithCount(['appointments' => $rows], count($rows), $matching, $limit, 'afspraken');
+        $content = ['appointments' => $rows, ...$matched];
+
+        /**
+         * A name more than one person answers to. The appointments of all of them
+         * are here, said as such, with buttons to narrow it to the one meant.
+         */
+        $choice = $this->choiceOfValues($mechanics->pluck('name'), 'Welke monteur bedoel je?', 'monteur');
+
+        if ($choice !== null) {
+            $content['choice'] = $choice;
+            $content['note'] = 'Meer monteurs passen bij "' . $call->stringArgument('mechanic') . '"; dit zijn de '
+                . 'afspraken van allemaal. De gebruiker krijgt knoppen om er één te kiezen; som ze niet nog eens op.';
+        }
+
+        return $this->answerWithCount($content, count($rows), $matching, $limit, 'afspraken');
     }
 }

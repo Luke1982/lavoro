@@ -649,14 +649,11 @@ const { state: trayState } = useTray()
 
 const authUserId = computed(() => page.props.auth?.user?.id ?? null)
 
-function canEditEvent(ev) {
-    if (hasPermission('event.update_others')) return true
-    return hasPermission('event.update') && ev.executing_user_ids.includes(authUserId.value)
-}
-
-function canDeleteEvent(ev) {
-    if (hasPermission('event.delete_others')) return true
-    return hasPermission('event.delete') && ev.executing_user_ids.includes(authUserId.value)
+/** Who may change or remove an appointment is the server's answer, carried on each one. */
+function takeAbilities(ev, saved) {
+    if (typeof saved?.can_update === 'boolean') ev.can_update = saved.can_update
+    if (typeof saved?.can_delete === 'boolean') ev.can_delete = saved.can_delete
+    if (typeof saved?.can_send_standard_email === 'boolean') ev.can_send_standard_email = saved.can_send_standard_email
 }
 
 const visibleUsers = computed(() => {
@@ -1470,7 +1467,7 @@ function onCellPointerDown(e, user, day) {
 
 function onEventPointerDown(e, ev, user) {
     if (e.button !== 0) return
-    if (!canEditEvent(ev)) return
+    if (!ev.can_update) return
     const info = cellInfoFromPoint(e.clientX, e.clientY)
     if (!info) return
     const startMin = minutesFromDayStart(ev.start)
@@ -1496,7 +1493,7 @@ function onEventPointerDown(e, ev, user) {
 
 function onResizePointerDown(e, ev, user, edge) {
     if (e.button !== 0) return
-    if (!canEditEvent(ev)) return
+    if (!ev.can_update) return
     drag.value = {
         mode: 'resize',
         edge,
@@ -1690,7 +1687,7 @@ function onOverlapPicked(ev) {
 function handleEventClick(ev) {
     if (Date.now() < suppressClickUntil) return
     if (!hasPermission('event.create')) return
-    if (!canEditEvent(ev)) return
+    if (!ev.can_update) return
     openEdit(ev)
 }
 
@@ -1699,7 +1696,7 @@ function onEventContextMenu(e, ev) {
     dragGhost.value = null
     injectTypeColorStyles()
     const items = []
-    if (canEditEvent(ev)) {
+    if (ev.can_update) {
         items.push({
             label: 'Wijzig type',
             children: props.eventTypes.map(t => ({
@@ -1726,17 +1723,17 @@ function onEventContextMenu(e, ev) {
             divided: true,
             onClick: () => togglePreliminary(ev),
         })
-        if (hasPermission('event.create')) {
-            items.push({
-                label: 'Kopiëren',
-                children: [
-                    { label: 'Naar morgen', onClick: () => copyEvent(ev, [1]) },
-                    { label: 'Rest van de week', onClick: () => copyEvent(ev, restOfWeekOffsets(ev)) },
-                    { label: 'Naar volgende week', onClick: () => copyEvent(ev, [7]) },
-                    { label: 'Naar datum…', onClick: () => openCopyToDate(ev) },
-                ],
-            })
-        }
+    }
+    if (hasPermission('event.create')) {
+        items.push({
+            label: 'Kopiëren',
+            children: [
+                { label: 'Naar morgen', onClick: () => copyEvent(ev, [1]) },
+                { label: 'Rest van de week', onClick: () => copyEvent(ev, restOfWeekOffsets(ev)) },
+                { label: 'Naar volgende week', onClick: () => copyEvent(ev, [7]) },
+                { label: 'Naar datum…', onClick: () => openCopyToDate(ev) },
+            ],
+        })
     }
     if (ev.eventable_id) {
         items.push({
@@ -1744,10 +1741,12 @@ function onEventContextMenu(e, ev) {
             divided: items.length > 0,
             onClick: () => router.visit(`/serviceorders/${ev.eventable_id}`),
         })
-        items.push({
-            label: 'Stuur afspraakbevestiging',
-            onClick: () => sendAppointmentConfirmation(ev),
-        })
+        if (ev.can_send_standard_email) {
+            items.push({
+                label: 'Stuur afspraakbevestiging',
+                onClick: () => sendAppointmentConfirmation(ev),
+            })
+        }
     }
     if (ev.customer_id && hasPermission('customer.read')) {
         items.push({
@@ -1755,7 +1754,7 @@ function onEventContextMenu(e, ev) {
             onClick: () => router.visit(`/customers/${ev.customer_id}`),
         })
     }
-    if (canDeleteEvent(ev)) {
+    if (ev.can_delete) {
         items.push({ label: 'Verwijderen', divided: items.length > 0, onClick: () => deleteEvent(ev) })
     }
     showContextMenu({
@@ -1810,6 +1809,7 @@ async function applyToggleExecutingUser(ev, user) {
         await axios.get('/sanctum/csrf-cookie')
         const r = await axios.put(`/api/events/${ev.id}`, { executing_user_ids: next_ids })
         if (r.status !== 200) throw new Error('bad response')
+        takeAbilities(ev, r.data)
         page.props.flash.success = wasAssigned
             ? `${user.name} verwijderd van afspraak`
             : `${user.name} toegevoegd aan afspraak`
@@ -1938,31 +1938,58 @@ function onEventsCopied(copies) {
     page.props.flash.success = `${n} afspraak${n !== 1 ? 'en' : ''} gekopieerd`
 }
 
-function shiftTimeString(hhmm, deltaMin) {
+const LAST_MINUTE_OF_DAY = 1439
+
+function minutesOfTimeString(hhmm) {
     const [h, m] = hhmm.slice(0, 5).split(':').map(Number)
-    const total = ((h * 60 + m + Math.round(deltaMin)) % 1440 + 1440) % 1440
-    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+    return h * 60 + m
 }
 
+function timeStringOf(minutes) {
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+/**
+ * Shifts a diverging window as MoveAppointmentAction does: past midnight it
+ * stops at the edge of the day with its length intact, so the end never comes
+ * before the start.
+ */
+function shiftTimeWindow(startHhmm, endHhmm, deltaMin) {
+    const startMin = minutesOfTimeString(startHhmm)
+    const endMin = minutesOfTimeString(endHhmm)
+    const delta = Math.max(-startMin, Math.min(deltaMin, LAST_MINUTE_OF_DAY - endMin))
+    return [timeStringOf(startMin + delta), timeStringOf(endMin + delta)]
+}
+
+/**
+ * A change of times alone is a move the server makes whole: whoever has
+ * diverging times shifts along there, and the answer says where they ended
+ * up. Until it comes they are shifted here by the same wall-clock amount, so
+ * a move across a clock change keeps 10:00 at 10:00 as the server does.
+ */
 async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
-    const startDeltaMs = newStart.getTime() - ev.start.getTime()
-    const isMove = !replaceWithUserId && startDeltaMs !== 0 && startDeltaMs === newEnd.getTime() - ev.end.getTime()
-    const hasDivergingUsers = isMove && ev.executing_users.some(u => u.has_diverging_times)
-
-    const originalDivergingTimes = hasDivergingUsers
-        ? ev.executing_users.map(u => ({ id: u.id, diverging_start: u.diverging_start, diverging_end: u.diverging_end }))
-        : null
-
-    const original = { start: ev.start, end: ev.end, executing_user_ids: [...ev.executing_user_ids] }
+    const isMove = !replaceWithUserId
+        && newStart.getTime() !== ev.start.getTime()
+        && newStart.getTime() - ev.start.getTime() === newEnd.getTime() - ev.end.getTime()
+    const wallClockDelta = isMove
+        ? (newStart.getHours() * 60 + newStart.getMinutes()) - (ev.start.getHours() * 60 + ev.start.getMinutes())
+        : 0
+    const original = {
+        start: ev.start,
+        end: ev.end,
+        executing_user_ids: [...ev.executing_user_ids],
+        executing_users: [...ev.executing_users],
+        diverging: ev.executing_users.map(u => ({ id: u.id, diverging_start: u.diverging_start, diverging_end: u.diverging_end })),
+    }
     ev.start = newStart
     ev.end = newEnd
 
-    if (hasDivergingUsers) {
-        const deltaMin = startDeltaMs / 60000
+    if (wallClockDelta !== 0) {
         ev.executing_users.forEach(u => {
             if (!u.has_diverging_times || !u.diverging_start || !u.diverging_end) return
-            u.diverging_start = shiftTimeString(u.diverging_start, deltaMin)
-            u.diverging_end = shiftTimeString(u.diverging_end, deltaMin)
+            const [shiftedStart, shiftedEnd] = shiftTimeWindow(u.diverging_start, u.diverging_end, wallClockDelta)
+            u.diverging_start = shiftedStart
+            u.diverging_end = shiftedEnd
         })
     }
 
@@ -1980,25 +2007,17 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
         if (replaceWithUserId) {
             payload.executing_user_ids = ev.executing_user_ids
         }
-        if (hasDivergingUsers) {
-            payload.executing_user_ids = ev.executing_user_ids
-            payload.executing_user_breaktimes = Object.fromEntries(
-                ev.executing_users.map(u => [u.id, u.breaktime ?? 0])
-            )
-            payload.executing_user_roles = Object.fromEntries(
-                ev.executing_users.map(u => [u.id, u.user_role_ids ?? []])
-            )
-            payload.executing_user_diverging_times = Object.fromEntries(
-                ev.executing_users.map(u => [u.id, {
-                    has_diverging_times: u.has_diverging_times ?? false,
-                    diverging_start: u.diverging_start ?? null,
-                    diverging_end: u.diverging_end ?? null,
-                }])
-            )
-        }
         await axios.get('/sanctum/csrf-cookie')
         const response = await axios.put(`/api/events/${ev.id}`, payload)
         if (response.status !== 200) throw new Error('bad response')
+        for (const saved of response.data.executing_users || []) {
+            const u = ev.executing_users.find(u => u.id === saved.id)
+            if (!u) continue
+            u.has_diverging_times = saved.pivot?.has_diverging_times ?? false
+            u.diverging_start = saved.pivot?.diverging_start ?? null
+            u.diverging_end = saved.pivot?.diverging_end ?? null
+        }
+        takeAbilities(ev, response.data)
         page.props.flash.success = replaceWithUserId
             ? 'Afspraak verplaatst naar andere monteur'
             : 'Afspraak bijgewerkt'
@@ -2007,12 +2026,11 @@ async function persistEventChange(ev, newStart, newEnd, replaceWithUserId) {
         ev.start = original.start
         ev.end = original.end
         ev.executing_user_ids = original.executing_user_ids
-        if (originalDivergingTimes) {
-            originalDivergingTimes.forEach(({ id, diverging_start, diverging_end }) => {
-                const u = ev.executing_users.find(u => u.id === id)
-                if (u) { u.diverging_start = diverging_start; u.diverging_end = diverging_end }
-            })
-        }
+        ev.executing_users = original.executing_users
+        original.diverging.forEach(({ id, diverging_start, diverging_end }) => {
+            const u = ev.executing_users.find(u => u.id === id)
+            if (u) { u.diverging_start = diverging_start; u.diverging_end = diverging_end }
+        })
         page.props.flash.error = e.response?.data?.message || 'Kon afspraak niet bijwerken'
         fetchEvents()
     }
@@ -2370,6 +2388,8 @@ function openEdit(ev) {
         has_deviating_location: ev.has_deviating_location || false,
         executing_user_ids: [...ev.executing_user_ids],
         executing_users: [...(ev.executing_users || [])],
+        can_delete: ev.can_delete === true,
+        can_send_standard_email: ev.can_send_standard_email === true,
         is_preliminary: ev.is_preliminary || false,
         no_service_order: ev.no_service_order || false,
     }
@@ -2518,7 +2538,7 @@ useTour('planner', {
     openExistingAppointment: () => {
         if (modalOpen.value || !hasPermission('event.create')) return null
         const today = formatLocalDateAsISO(new Date())
-        const editable = events.value.filter(canEditEvent)
+        const editable = events.value.filter(ev => ev.can_update)
         const event = editable.find((ev) => formatLocalDateAsISO(ev.start) === today) ?? editable[0]
         if (!event) return null
         openEdit(event)

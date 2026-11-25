@@ -2,9 +2,9 @@
 
 namespace App\Domain\Tools\Write;
 
+use App\Actions\Contracts\RecalculateContractPriceAction;
 use App\Actions\Pricing\LinkContractPriceFormulaAction;
 use App\Actions\Pricing\UpgradeContractsToLatestVersionAction;
-use App\Domain\Pricing\ContractPricing;
 use App\Domain\Pricing\PricedMachines;
 use App\Domain\Tools\ChecksBeforeConfirming;
 use App\Domain\Tools\Concerns\BuildsPriceFormulas;
@@ -77,7 +77,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         $contracts = MaintenanceContract::whereKey($arguments['contract_ids'] ?? [])->get();
         $templates = MaintenanceContractTemplate::whereKey($arguments['template_ids'] ?? [])->get();
         $formula = PriceFormula::find($arguments['formula_id'] ?? null);
-        $upgrades = (bool) ($arguments['upgrade_outdated'] ?? false);
+        $upgrades = ToolCall::booleanFrom($arguments['upgrade_outdated'] ?? false);
 
         return $contracts->every(fn (MaintenanceContract $contract) => $user->can('update', $contract))
             && $templates->every(fn (MaintenanceContractTemplate $template) => $user->can('update', $template))
@@ -133,21 +133,33 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         };
     }
 
-    /** Every contract with its price now and with the formula's newest version: nobody agrees to a number unseen. */
+    /**
+     * Every contract with its price now and with the formula's newest version:
+     * nobody agrees to a number unseen. The new price is asked of the rule that
+     * stores it, so a formula coming out below nothing shows the €0,00 the
+     * contract will carry, and one that cannot be read shows the price staying.
+     */
     public function previewOf(ToolCall $call): string
     {
         $formula = $this->formulaOf($call);
-        $pricing = app(ContractPricing::class);
+        $recalculate = app(RecalculateContractPriceAction::class);
         $affected = $this->affected($call, $formula);
         $lines = [];
 
         PricedMachines::preload($affected);
 
         foreach ($affected as $contract) {
-            $new = $pricing->evaluate($contract, $formula->latestVersion);
-            $lines[] = $contract->display_title . ': ' . $this->euro((float) $contract->getRawOriginal('price'))
-                . ' → ' . $this->euro($new['periodic'] ?? 0.0) . ' per periode'
-                . ($new['one_time'] !== null ? ', eenmalig ' . $this->euro($new['one_time']) : '');
+            $old = $contract->getRawOriginal('price') === null ? null : (float) $contract->getRawOriginal('price');
+            $old_one_time = $contract->getRawOriginal('one_time_price');
+            $new = $recalculate->pricesFor($contract, even_if_ended: true, version: $formula->latestVersion);
+
+            $lines[] = $contract->display_title . ': ' . ($new === null
+                ? 'prijs blijft ' . $this->euro($old) . ' per periode: versie ' . $formula->latestVersion->number
+                    . ' bevat een blok dat niet gelezen kan worden, dus er wordt geen prijs berekend'
+                : $this->euro($old) . ' → ' . $this->euro($new['price'] / 100) . ' per periode'
+                    . ($new['one_time'] === null && $old_one_time === null ? '' : ', eenmalig '
+                        . $this->euro($old_one_time === null ? null : (float) $old_one_time) . ' → '
+                        . $this->euro($new['one_time'] === null ? null : $new['one_time'] / 100)));
         }
 
         foreach ($this->templatesOf($call) as $template) {
@@ -172,7 +184,7 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
         $upgraded = DB::transaction(function () use ($call, $formula, $contracts, $templates) {
             app(LinkContractPriceFormulaAction::class)->executeMany($contracts, $formula->latestVersion);
 
-            $upgraded = $call->argument('upgrade_outdated')
+            $upgraded = $call->booleanArgument('upgrade_outdated')
                 ? app(UpgradeContractsToLatestVersionAction::class)->execute($formula)->count
                 : 0;
 
@@ -209,13 +221,13 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
     /** @return Collection<int, MaintenanceContract> */
     private function contractsOf(ToolCall $call): Collection
     {
-        return MaintenanceContract::with('customer')->whereKey($call->integerListArgument('contract_ids'))->get();
+        return MaintenanceContract::with('customer')->whereKey($call->integerListArgument('contract_ids'))->orderBy('id')->get();
     }
 
     /** @return Collection<int, MaintenanceContractTemplate> */
     private function templatesOf(ToolCall $call): Collection
     {
-        return MaintenanceContractTemplate::whereKey($call->integerListArgument('template_ids'))->get();
+        return MaintenanceContractTemplate::whereKey($call->integerListArgument('template_ids'))->orderBy('id')->get();
     }
 
     /**
@@ -229,12 +241,12 @@ class ApplyPriceFormulaTool implements ChecksBeforeConfirming, Confirmable, Tool
     {
         $contracts = $this->contractsOf($call);
 
-        if (!$call->argument('upgrade_outdated')) {
+        if (!$call->booleanArgument('upgrade_outdated')) {
             return $contracts;
         }
 
-        $outdated = $formula->contractsBehind()->with('customer')->notEnded()->get();
+        $outdated = $formula->contractsBehind()->with('customer')->notEnded()->orderBy('maintenance_contracts.id')->get();
 
-        return $contracts->concat($outdated)->unique('id')->values();
+        return $contracts->concat($outdated)->unique('id')->sortBy('id')->values();
     }
 }

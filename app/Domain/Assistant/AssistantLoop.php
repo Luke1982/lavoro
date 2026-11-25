@@ -162,7 +162,7 @@ class AssistantLoop
                  * single newline is markdown for "the same paragraph continues",
                  * which runs "Ik zoek het even op" into the answer itself.
                  */
-                return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched);
+                return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched, $wanted);
             }
 
             if (++$rounds > $max_rounds) {
@@ -181,7 +181,7 @@ class AssistantLoop
                         . 'Wat hierboven staat klopt, maar het is nog geen antwoord op de hele vraag. '
                         . 'Stel hem eventueel smaller.';
 
-                    return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched);
+                    return new AssistantAnswer(implode("\n\n", $spoken), $rounds, $reply, $spent, $searched, $wanted);
                 }
 
                 throw new RuntimeException('Gestopt na ' . $max_rounds . ' tool-rondes zonder antwoord.');

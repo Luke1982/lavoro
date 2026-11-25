@@ -8,8 +8,8 @@
 #
 # Runs on the MySQL account the tests use, in databases of its own; when that
 # account is missing it runs sudo scripts/tenancy/setup-test-db.sh first. The
-# settings are in .env.local, which this script writes the first time; .env is
-# left alone.
+# settings are in .env.local, which this script writes the first time and
+# keeps the AI keys of .env in step with on every run; .env is left alone.
 #
 # The environment is "local" and nothing else: the service worker stays off
 # there, and artisan serve gets the upload limits of .php.d.
@@ -106,6 +106,20 @@ MAIL_MAILER=log
 ENV
     echo "  wrote ${ENV_FILE}"
 fi
+
+# The AI keys live in .env, and this file is all the app reads. Without them the
+# assistant has no model that can see a photo or open a file, and says so on the
+# first question. Copied on every run, so a key changed in .env reaches the app,
+# and one taken out of .env is taken out here too.
+for KEY in ANTHROPIC_API_KEY DEEPSEEK_API_KEY ELEVENLABS_API_KEY ELEVENLABS_VOICE_ID; do
+    LINE="$(grep -E "^${KEY}=" .env 2>/dev/null | tail -n 1 || true)"
+    grep -vE "^${KEY}=" "$ENV_FILE" > "${ENV_FILE}.tmp" || true
+    if [ -n "$LINE" ]; then
+        [ -z "$(tail -c 1 "${ENV_FILE}.tmp")" ] || echo >> "${ENV_FILE}.tmp"
+        echo "$LINE" >> "${ENV_FILE}.tmp"
+    fi
+    mv "${ENV_FILE}.tmp" "$ENV_FILE"
+done
 
 # The MySQL account and the procedure that grants customer logins, once per
 # machine. Making them takes root, so this is the one step that asks for a

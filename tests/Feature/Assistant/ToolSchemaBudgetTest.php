@@ -65,8 +65,13 @@ class ToolSchemaBudgetTest extends TestCase
      * 41500 for named formula versions: saving a new version asks whether the
      * running contracts come along and what the version is called, instead of
      * leaving every contract behind without a word.
+     *
+     * 49000 for what the gap probe found missing on 2026-11-23: changing an
+     * appointment, finding and changing contracts, booking material and hours,
+     * quotes, and the planner's backlog. Eight tools, none over 925 bytes as the
+     * registry sends them.
      */
-    private const ROOM_FOR = 41500;
+    private const ROOM_FOR = 49000;
 
     public function test_the_tool_definitions_do_not_quietly_balloon(): void
     {

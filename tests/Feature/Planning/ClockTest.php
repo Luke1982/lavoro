@@ -2,12 +2,12 @@
 
 namespace Tests\Feature\Planning;
 
+use App\Domain\Assistant\SystemPrompt;
 use App\Domain\Planning\Clock;
 use App\Domain\Planning\TechnicianAvailability;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
-use App\Http\Controllers\AssistantController;
 use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Event;
@@ -199,8 +199,7 @@ class ClockTest extends TestCase
 
         $user = $this->userWith('event.read');
 
-        $context = (new \ReflectionMethod(AssistantController::class, 'context'))
-            ->invoke(app(AssistantController::class), $user, '');
+        $context = SystemPrompt::context($user, '');
 
         $this->assertStringContainsString('Vandaag is 2026-07-31', $context);
 

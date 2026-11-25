@@ -625,15 +625,8 @@ final class FormulaEvaluator
     /** @return array<int, int> the type itself first, then each parent up to the root */
     private function typeChain(?int $type_id): array
     {
-        $this->type_parents ??= ProductType::query()->pluck('parent_id', 'id')->all();
-        $chain = [];
+        $this->type_parents ??= ProductType::parentIds();
 
-        while ($type_id !== null && array_key_exists($type_id, $this->type_parents)
-            && !in_array($type_id, $chain, true)) {
-            $chain[] = $type_id;
-            $type_id = $this->type_parents[$type_id];
-        }
-
-        return $chain;
+        return ProductType::chainUpFrom($type_id, $this->type_parents);
     }
 }

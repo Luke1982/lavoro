@@ -117,7 +117,7 @@ class ConversationPhotos
     /** Whether this conversation has photos parked — which also means it HAD photos. */
     public function has(string $conversation): bool
     {
-        return Storage::disk('local')->files($this->folder($conversation)) !== [];
+        return $conversation !== '' && Storage::disk('local')->files($this->folder($conversation)) !== [];
     }
 
     /**

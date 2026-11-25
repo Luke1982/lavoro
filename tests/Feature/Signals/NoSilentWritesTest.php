@@ -47,6 +47,7 @@ class NoSilentWritesTest extends TestCase
         'app/Domain/Integrations/OAuth/OAuthTokens.php::accessToken' => 'stores refreshed OAuth tokens on the connection: credentials, which the trail must never show',
         'app/Domain/Integrations/Sync/Webhooks.php::remove' => 'webhook lookup row in the central database, not tenant data',
         'app/Domain/Quotes/QuoteAlternatives.php::choose' => 'every caller raises the signal: UpdateQuoteLineAction (QuoteLineChanged), AcceptQuoteAction (QuoteAccepted), tidy() via QuoteLineRemoved / QuoteAlternativeChanged',
+        'app/Domain/Tools/Write/BookMaterialsTool.php::execute' => 'calls MateriableService::attach (a service, not a relation), which raises MaterialAttachedToOrder',
         'app/Domain/Tools/Write/CreateProductTool.php::execute' => 'calls SyncProductAttributeTypesAction::attach (an action, not a relation), which raises ProductAttributeProductTypesChanged',
         'app/Domain/Tray/Tray.php::items' => 'drops items from a person\'s own bakje whose record is gone or out of sight: a personal clipboard',
         'app/Http/Controllers/Api/DeviceTokenController.php::destroy' => 'push device tokens: technical table',

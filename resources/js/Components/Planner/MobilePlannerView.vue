@@ -679,9 +679,7 @@ const editingExistingEvent = ref(false)
 const modalInitial = ref(null)
 
 function canEdit(ev) {
-    if (hasPermission('event.update_others')) return true
-    if (hasPermission('event.update') && ev.executing_user_ids.includes(authUserId.value)) return true
-    return false
+    return ev.can_update === true
 }
 
 function handleEventTap(ev) {
@@ -704,6 +702,9 @@ function handleEventTap(ev) {
         has_deviating_location: ev.has_deviating_location || false,
         executing_user_ids: [...ev.executing_user_ids],
         executing_users: [...(ev.executing_users || [])],
+        can_delete: ev.can_delete === true,
+        can_send_standard_email: ev.can_send_standard_email === true,
+        is_preliminary: ev.is_preliminary || false,
         no_service_order: ev.no_service_order || false,
     }
     editingExistingEvent.value = true

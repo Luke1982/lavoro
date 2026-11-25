@@ -8,11 +8,11 @@ use App\Domain\Assistant\Contracts\TalksToModel;
 use App\Domain\Assistant\Contracts\TokenUsage;
 use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\ModelPicker;
+use App\Domain\Assistant\SystemPrompt;
 use App\Domain\Tools\ConfirmationToken;
 use App\Domain\Tools\ToolCall;
 use App\Domain\Tools\ToolExecutor;
 use App\Domain\Tools\ToolResult;
-use App\Http\Controllers\AssistantController;
 use App\Models\AssistantConversationFact;
 use App\Models\Customer;
 use App\Models\ServiceOrder;
@@ -170,15 +170,13 @@ class ConversationFactsTest extends TestCase
             ],
         ]);
 
-        $context = (new \ReflectionMethod(AssistantController::class, 'context'))
-            ->invoke(
-                app(AssistantController::class),
-                $user,
-                '',
-                app(ConversationFacts::class)->sentence(
-                    app(ConversationFacts::class)->for(self::THREAD, $user)
-                ),
-            );
+        $context = SystemPrompt::context(
+            $user,
+            '',
+            app(ConversationFacts::class)->sentence(
+                app(ConversationFacts::class)->for(self::THREAD, $user)
+            ),
+        );
 
         $this->assertStringContainsString('klant #' . $customer->id . ' (Majorlabel)', $context);
         $this->assertStringContainsString('werkbon #4', $context);
@@ -235,12 +233,10 @@ class ConversationFactsTest extends TestCase
             'create_service_order',
             ['customer_id' => $customer->id, 'description' => 'Airco plaatsen'],
             $user,
+            self::THREAD,
         )->encoded();
 
-        $this->actingAs($user)->postJson('/assistant/confirm', [
-            'token' => $token,
-            'conversation' => self::THREAD,
-        ])->assertOk();
+        $this->actingAs($user)->postJson('/assistant/confirm', ['token' => $token])->assertOk();
 
         $settled = app(ConversationFacts::class)->for(self::THREAD, $user);
         $order = ServiceOrder::where('customer_id', $customer->id)->sole();
@@ -254,10 +250,7 @@ class ConversationFactsTest extends TestCase
     {
         $user = $this->userWith('assistant.use');
 
-        $this->actingAs($user)->postJson('/assistant/confirm', [
-            'token' => 'ja hoor',
-            'conversation' => self::THREAD,
-        ])->assertStatus(422);
+        $this->actingAs($user)->postJson('/assistant/confirm', ['token' => 'ja hoor'])->assertStatus(422);
 
         $this->assertSame([], app(ConversationFacts::class)->for(self::THREAD, $user));
     }

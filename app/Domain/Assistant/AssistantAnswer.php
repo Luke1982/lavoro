@@ -17,6 +17,8 @@ final class AssistantAnswer
         public readonly int $cost_micros = 0,
         /** What the supplier's web search read along the way, as "title (url)" lines. */
         public readonly array $searched = [],
+        /** The difficulty the question was routed at, from 1 to 10. */
+        public readonly ?int $difficulty = null,
     ) {}
 
     public function costEuros(): float

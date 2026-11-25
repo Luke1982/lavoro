@@ -49,18 +49,9 @@ class MaintenanceContractServiceOrderGenerator
         $due_assets = [];
 
         foreach ($contract->assets as $asset) {
-            $pivot = $asset->pivot;
-            [$frequency, $frequency_days] = $contract->effectiveFrequency($pivot);
+            $next_due = $this->nextDueFor($contract, $asset->pivot);
 
-            if (!$frequency) {
-                continue;
-            }
-
-            $next_due = $pivot->last_generated_at
-                ? $this->nextDueDate(Carbon::parse($pivot->last_generated_at), $frequency, $frequency_days)
-                : Carbon::parse($contract->start_date);
-
-            if ($next_due->gt(Carbon::today())) {
+            if ($next_due === null || $next_due->gt(Carbon::today())) {
                 continue;
             }
 
@@ -151,6 +142,25 @@ class MaintenanceContractServiceOrderGenerator
         Signals::dispatch(new ContractServiceOrderGenerated($contract, $service_order, $activity_verb, $labels));
 
         return $service_order;
+    }
+
+    /**
+     * When one machine on a contract is next due a werkbon: its effective
+     * frequency on from the last werkbon generated for it, or the contract's
+     * start when none was. Null when it has no frequency. The assistant reads
+     * the same date, so "wanneer is de volgende beurt" agrees with what gets made.
+     */
+    public function nextDueFor(MaintenanceContract $contract, object $pivot): ?Carbon
+    {
+        [$frequency, $frequency_days] = $contract->effectiveFrequency($pivot);
+
+        if (!$frequency) {
+            return null;
+        }
+
+        return $pivot->last_generated_at
+            ? $this->nextDueDate(Carbon::parse($pivot->last_generated_at), $frequency, $frequency_days)
+            : Carbon::parse($contract->start_date);
     }
 
     private function nextDueDate(Carbon $anchor, string $frequency, ?int $frequency_days): Carbon

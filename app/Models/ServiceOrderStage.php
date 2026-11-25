@@ -70,4 +70,13 @@ class ServiceOrderStage extends Model
             ->where('is_closed_state', true)
             ->orWhere('is_invoiced_state', true));
     }
+
+    /**
+     * De fase waar een werkbon naartoe gaat als zijn afspraak vervalt, of null
+     * als er geen is ingesteld: dan blijft de werkbon staan waar hij stond.
+     */
+    public static function planningCancelled(): ?self
+    {
+        return self::where('is_planning_cancelled_state', true)->first();
+    }
 }

@@ -11,7 +11,6 @@ use Tests\TestCase;
 
 class EventNoServiceOrderTest extends TestCase
 {
-
     private function admin_user(): User
     {
         $user = User::factory()->create();
@@ -96,5 +95,43 @@ class EventNoServiceOrderTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors('eventable_id');
+    }
+
+    public function test_the_edit_modal_changes_and_clears_the_customer_of_an_appointment_without_werkbon(): void
+    {
+        $admin = $this->admin_user();
+        $first = Customer::factory()->create(['name' => 'Eerste Klant']);
+        $second = Customer::factory()->create(['name' => 'Tweede Klant']);
+
+        $event_id = $this->actingAs($admin)->postJson('/api/events', [
+            'event_type_id' => EventType::factory()->create()->id,
+            'status' => 'Gepland',
+            'start' => now()->format('Y-m-d H:i'),
+            'end' => now()->addHour()->format('Y-m-d H:i'),
+            'no_service_order' => true,
+            'customer_id' => $first->id,
+            'executing_user_ids' => [$admin->id],
+        ])->assertCreated()->json('id');
+
+        $edit = fn (?int $customer_id) => $this->actingAs($admin)->putJson("/api/events/{$event_id}", [
+            'name' => 'Bijgewerkt',
+            'eventable_type' => '\\App\\Models\\ServiceOrder',
+            'eventable_id' => null,
+            'customer_id' => $customer_id,
+            'executing_user_ids' => [$admin->id],
+        ])->assertOk();
+
+        $event = Event::findOrFail($event_id);
+        $customer_entries = fn () => $event->activities()->where('event_key', 'appointment.customer_changed');
+
+        $edit($second->id);
+
+        $this->assertSame([$second->id], $event->customers()->pluck('customers.id')->all());
+        $this->assertTrue($customer_entries()->where('description', 'like', '%Tweede Klant%')->exists());
+
+        $edit(null);
+
+        $this->assertSame([], $event->customers()->pluck('customers.id')->all());
+        $this->assertTrue($customer_entries()->where('description', 'like', '%: Tweede Klant losgekoppeld')->exists());
     }
 }

@@ -52,18 +52,20 @@ class ModelPicker
 
         $provider = $this->providerFor($difficulty, $needs_vision, $needs_documents);
 
-        return $this->resolved[$provider] ??= $this->build($provider);
+        return $this->forProvider($provider);
     }
 
     /**
-     * The cheapest usable provider that claims to be up to it.
-     *
-     * A provider with no key is skipped: it may be the perfect fit on paper, but
-     * an answer nobody can obtain is not an answer. If nothing clears the bar the
-     * most capable one is used anyway and the shortfall is logged — better an
-     * expensive answer than none, and better still a line in the log saying the
-     * ratings need revisiting.
+     * The model configured under one entry, built once. Also for the reserved
+     * entries nothing routes to — the eval's simulated user and judge — which is
+     * why this ignores a fixed model: those must stay who they are while the
+     * answering model is pinned.
      */
+    public function forProvider(string $provider): TalksToModel
+    {
+        return $this->resolved[$provider] ??= $this->build($provider);
+    }
+
     /** Whether any usable provider can actually look at a photo. */
     public function canSee(): bool
     {
@@ -76,28 +78,21 @@ class ModelPicker
         return $this->anyProviderWith('reads_documents');
     }
 
-    private function anyProviderWith(string $capability): bool
-    {
-        foreach (config('assistant.providers', []) as $settings) {
-            if (filled($settings['api_key'] ?? null) && ($settings[$capability] ?? false)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
+    /**
+     * The cheapest usable provider that claims to be up to it.
+     *
+     * A provider with no key is skipped: it may be the perfect fit on paper, but
+     * an answer nobody can obtain is not an answer. If nothing clears the bar the
+     * most capable one is used anyway and the shortfall is logged — better an
+     * expensive answer than none, and better still a line in the log saying the
+     * ratings need revisiting.
+     */
     public function providerFor(int $difficulty, bool $needs_vision = false, bool $needs_documents = false): string
     {
         $usable = [];
 
         foreach (config('assistant.providers', []) as $name => $settings) {
-            if (blank($settings['api_key'] ?? null)) {
-                continue;
-            }
-
-            /** Entries kept for a particular job are never picked by capability. */
-            if ($settings['reserved'] ?? false) {
+            if (!self::answers($settings)) {
                 continue;
             }
 
@@ -152,6 +147,37 @@ class ModelPicker
         uasort($capable, fn (array $a, array $b) => $a['cost'] <=> $b['cost']);
 
         return array_key_first($capable);
+    }
+
+    /**
+     * The providers that could be given a question to answer, before what it
+     * needs narrows them down. Empty means nothing can answer at all.
+     *
+     * @return array<int, string>
+     */
+    public static function answering(): array
+    {
+        return array_keys(array_filter(config('assistant.providers', []), self::answers(...)));
+    }
+
+    /**
+     * A provider with no key is never used to answer, and neither is an entry
+     * kept for a particular job, such as the sorter or the eval's models.
+     */
+    private static function answers(array $settings): bool
+    {
+        return filled($settings['api_key'] ?? null) && !($settings['reserved'] ?? false);
+    }
+
+    private function anyProviderWith(string $capability): bool
+    {
+        foreach (config('assistant.providers', []) as $settings) {
+            if (filled($settings['api_key'] ?? null) && ($settings[$capability] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

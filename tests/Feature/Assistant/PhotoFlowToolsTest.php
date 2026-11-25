@@ -48,6 +48,7 @@ class PhotoFlowToolsTest extends TestCase
         $made = $this->carryOut('create_product', [
             'brand' => 'Mitsubishi Heavy',
             'product_type' => 'Airco binnendeel multisplit',
+            'new_product_type' => true,
             'model' => 'SRK 25 ZS-WF',
             'description' => 'Met ingebouwde wifi-module',
             'attributes' => ['Koelvermogen' => '2,5 kW'],
@@ -126,6 +127,7 @@ class PhotoFlowToolsTest extends TestCase
         $proposal = app(ToolExecutor::class)->run(new ToolCall('create_product', [
             'brand' => 'Mitsubishi Heavy',
             'product_type' => 'Warmtepomp',
+            'new_product_type' => true,
             'model' => 'SRK 50',
         ], $user));
 
@@ -134,6 +136,53 @@ class PhotoFlowToolsTest extends TestCase
         $this->assertStringContainsString('merk Mitsubishi Heavy bestaat al', $preview);
         $this->assertStringContainsString('maakt soort "Warmtepomp" NIEUW aan', $preview);
         $this->assertSame(0, Product::count(), 'the preview created something');
+    }
+
+    /**
+     * A new soort given as a path goes under the soort the path names, never in
+     * as a root soort whose name is the whole path.
+     */
+    public function test_a_new_soort_given_as_a_path_goes_under_its_parent(): void
+    {
+        $aircon = ProductType::create(['name' => 'Airconditioning']);
+        $split = ProductType::create(['name' => 'Single split', 'parent_id' => $aircon->id]);
+        $user = $this->maker();
+        $arguments = [
+            'brand' => 'Daikin',
+            'product_type' => 'Airconditioning -> Single split → Vloermodel',
+            'new_product_type' => true,
+            'model' => 'FVXM25A',
+        ];
+
+        $proposal = app(ToolExecutor::class)->run(new ToolCall('create_product', $arguments, $user));
+
+        $this->assertStringContainsString(
+            'maakt soort "Vloermodel" NIEUW aan, onder Airconditioning → Single split',
+            $proposal->content['preview'],
+        );
+
+        $made = $this->carryOut('create_product', $arguments, $user);
+
+        $this->assertFalse($made->is_error, (string) $made->summary);
+        $type = ProductType::findOrFail($made->content['product_type_id']);
+        $this->assertSame('Vloermodel', $type->name);
+        $this->assertSame($split->id, $type->parent_id);
+    }
+
+    public function test_a_new_soort_under_a_parent_that_is_not_there_is_refused(): void
+    {
+        ProductType::create(['name' => 'Airconditioning']);
+
+        $result = app(ToolExecutor::class)->run(new ToolCall('create_product', [
+            'brand' => 'Daikin',
+            'product_type' => 'Airconditioning → Multi split → Vloermodel',
+            'new_product_type' => true,
+            'model' => 'FVXM25A',
+        ], $this->maker()));
+
+        $this->assertTrue($result->is_error);
+        $this->assertStringContainsString('"Airconditioning → Multi split"', (string) $result->summary);
+        $this->assertSame(1, ProductType::count(), 'a soort was made under a parent that does not exist');
     }
 
     public function test_creating_products_needs_the_permission(): void

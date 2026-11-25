@@ -49,6 +49,7 @@ class ReferenceCheck
         'products',
         'locations',
         'maintenancecontracts',
+        'priceformulas',
     ];
 
     /**

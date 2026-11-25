@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Planning\Clock;
 use App\Enums\EventCompletionStatus;
 use App\Enums\UserNotificationPriority;
 use App\Enums\UserNotificationType;
@@ -158,23 +159,13 @@ class NotifyMissingExecutionTimes extends Command
         $order = $event->serviceOrders->first();
 
         $what = $order?->number ?: ($event->name ?: 'De afspraak');
-        $when = $event->start ? ' van ' . $event->start->format('d-m-Y') : '';
-        $who = $this->customerName($event);
+        $when = $event->start ? ' van ' . Clock::toLocal($event->start)->format('d-m-Y') : '';
+        $who = $event->customerName();
         $where = $event->display_location;
 
         return $what . $when
             . ($who ? ' voor ' . $who : '')
             . ($where ? ', ' . $where : '')
             . ': nog geen begin- of eindtijd.';
-    }
-
-    /**
-     * Van de werkbon als die er is, en anders van de afspraak zelf: een afspraak
-     * zonder werkbon draagt de klant rechtstreeks.
-     */
-    private function customerName(Event $event): ?string
-    {
-        return $event->serviceOrders->first()?->customer?->name
-            ?? $event->customers->first()?->name;
     }
 }

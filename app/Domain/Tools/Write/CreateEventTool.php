@@ -500,38 +500,10 @@ class CreateEventTool implements ChecksBeforeConfirming, Confirmable, Tool
      */
     private function clashes($mechanics, CarbonImmutable $starts_at, CarbonImmutable $ends_at): array
     {
-        $availability = app(TechnicianAvailability::class);
-
-        /**
-         * Compared on the clock the diary is read on. The moment is stored in UTC
-         * and the free stretches are minutes into a local day, so measuring the one
-         * against the other reported a mechanic busy at eight in the morning when
-         * his diary was empty until six in the evening.
-         */
-        $local_start = Clock::toLocal($starts_at);
-        $day = $local_start->startOfDay();
-        $wanted_start = $local_start->hour * 60 + $local_start->minute;
-        $wanted_end = $wanted_start + (int) $starts_at->diffInMinutes($ends_at);
-
-        $clashes = [];
-
-        foreach ($mechanics as $mechanic) {
-            $fits = false;
-
-            foreach ($availability->freeSegments($mechanic->load('unavailabilities'), $day) as $segment) {
-                if ($segment['start_min'] <= $wanted_start && $segment['end_min'] >= $wanted_end) {
-                    $fits = true;
-
-                    break;
-                }
-            }
-
-            if (!$fits) {
-                $clashes[] = $mechanic->name . ' is dan niet vrij';
-            }
-        }
-
-        return $clashes;
+        return array_values(array_map(
+            fn (array $clash) => $clash['user']->name . ' is dan niet vrij',
+            app(TechnicianAvailability::class)->clashes($mechanics, $starts_at, $ends_at),
+        ));
     }
 
     /**
@@ -543,6 +515,6 @@ class CreateEventTool implements ChecksBeforeConfirming, Confirmable, Tool
      */
     private function moment(?string $value): ?CarbonImmutable
     {
-        return Clock::fromLocal($value);
+        return ToolCall::parseMoment($value);
     }
 }

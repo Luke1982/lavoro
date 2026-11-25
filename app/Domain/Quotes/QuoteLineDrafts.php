@@ -2,9 +2,11 @@
 
 namespace App\Domain\Quotes;
 
+use App\Enums\DefaultMaterialPrompts;
 use App\Enums\QuoteLineKinds;
 use App\Models\Material;
 use App\Models\Product;
+use App\Models\ProductMaterialDefault;
 use App\Models\Quote;
 
 /**
@@ -32,6 +34,31 @@ final class QuoteLineDrafts
             'cost_price' => $product->purchase_price !== null ? (float) $product->purchase_price : null,
             'vat_percent' => $quote->default_vat_percent,
         ];
+    }
+
+    /**
+     * The materials a product always brings onto a quote, for this many of it:
+     * the standard quantity for every unit offered. One rule for the quote
+     * itself and for a proposal showing what the quote will hold. Read from
+     * the product's loaded defaults when it has them.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function standardMaterialsFor(Quote $quote, Product $product, float $quantity): array
+    {
+        $defaults = $product->relationLoaded('materialDefaults')
+            ? $product->materialDefaults
+            : $product->materialDefaults()->where('prompt', DefaultMaterialPrompts::always->value)->with('material.usageUnit')->get();
+
+        return $defaults
+            ->filter(fn (ProductMaterialDefault $default) => $default->prompt === DefaultMaterialPrompts::always)
+            ->map(fn (ProductMaterialDefault $default) => self::forMaterial(
+                $quote,
+                $default->material,
+                round($default->quantity * $quantity, 2),
+            ))
+            ->values()
+            ->all();
     }
 
     /** @return array<string, mixed> */

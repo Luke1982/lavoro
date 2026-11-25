@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Assistant\AssistantSession;
 use App\Models\Assistant;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,7 +16,7 @@ class AssistantAskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'question' => ['required', 'string', 'min:2', 'max:2000'],
+            'question' => ['required', 'string', 'min:2', 'max:' . AssistantSession::QUESTION_CHARS],
             /**
              * Generous on purpose. A path this does not recognise is ignored, so
              * a long one should cost the question nothing — refusing it would
@@ -24,9 +25,9 @@ class AssistantAskRequest extends FormRequest
             'page' => ['nullable', 'string', 'max:2048'],
             /** Which thread this belongs to, so the turns can be read back together. */
             'conversation' => ['nullable', 'uuid'],
-            'history' => ['nullable', 'array', 'max:12'],
-            'history.*.question' => ['required', 'string', 'max:2000'],
-            'history.*.answer' => ['required', 'string', 'max:8000'],
+            'history' => ['nullable', 'array', 'max:' . AssistantSession::REMEMBERED_EXCHANGES],
+            'history.*.question' => ['required', 'string', 'max:' . AssistantSession::QUESTION_CHARS],
+            'history.*.answer' => ['required', 'string', 'max:' . AssistantSession::REMEMBERED_ANSWER_CHARS],
             /**
              * Foto's, als data-URLs. Het aantal en de maat zitten in config met
              * voorzichtige standaardwaarden — de limieten van de dev-machine

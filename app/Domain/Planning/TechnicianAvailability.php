@@ -7,6 +7,7 @@ use App\Models\GeneralSetting;
 use App\Models\User;
 use App\Support\ForgetsTenantState;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -187,6 +188,89 @@ class TechnicianAvailability implements ForgetsTenantState
     }
 
     /**
+     * Who of these people has no room for this stretch, and what is in the way.
+     *
+     * The one clash check: creating an appointment refuses on it, and moving or
+     * copying one warns with it. Room is what the free segments say, so time
+     * off, the working day and diverging times on other appointments all count,
+     * exactly as on the planner's own grid. The appointment being moved or
+     * copied is left out, or it would always clash with itself.
+     *
+     * What is in the way is handed back as records rather than words, because
+     * who may read which appointment is the caller's business.
+     *
+     * Somebody with diverging times on the appointment works only those, so
+     * they are asked about their own window rather than the whole stretch:
+     * wall-clock times on the day the stretch starts, by user id.
+     *
+     * @param  Collection<int, User>  $users
+     * @param  array<int, array{diverging_start: string, diverging_end: string}>  $diverging_times
+     * @return array<int, array{user: User, appointments: array<int, Event>, time_off: array<int, string>}>
+     */
+    public function clashes(
+        Collection $users,
+        CarbonImmutable $starts_at,
+        CarbonImmutable $ends_at,
+        ?int $ignoring_event_id = null,
+        array $diverging_times = [],
+    ): array {
+        /**
+         * Compared on the clock the diary is read on. The moment is stored in UTC
+         * and the free stretches are minutes into a local day, so measuring the one
+         * against the other reported a mechanic busy at eight in the morning when
+         * his diary was empty until six in the evening. The day itself is the
+         * calendar date, midnight UTC, as every other caller hands it in: given
+         * as local midnight it is the evening before in UTC, and a day off on
+         * that date was never found. The end is read on the wall clock too, so a
+         * stretch across a clock change is as long as its hands say.
+         */
+        $local_start = Clock::toLocal($starts_at);
+        $day = CarbonImmutable::createFromFormat('!Y-m-d', $local_start->toDateString(), 'UTC');
+        $end_min = Clock::minutesIntoLocalDay($ends_at)
+            + (Clock::toLocal($ends_at)->isSameDay($local_start) ? 0 : self::MINUTES_PER_DAY);
+        $whole = [
+            'start_min' => Clock::minutesIntoLocalDay($starts_at),
+            'end_min' => $end_min,
+        ];
+
+        (new EloquentCollection($users->all()))->loadMissing('unavailabilities');
+        $this->loadDiary($users, $day, 1);
+
+        $clashes = [];
+
+        foreach ($users as $user) {
+            $own = $diverging_times[$user->id] ?? null;
+            $wanted = $own === null ? $whole : [
+                'start_min' => $this->minutesFromTime($own['diverging_start']),
+                'end_min' => $this->minutesFromTime($own['diverging_end']),
+            ];
+
+            $fits = collect($this->segmentsFrom($user, $day, false, $ignoring_event_id))
+                ->contains(fn (array $segment) => $segment['start_min'] <= $wanted['start_min']
+                    && $segment['end_min'] >= $wanted['end_min']);
+
+            if ($fits) {
+                continue;
+            }
+
+            $clashes[$user->id] = [
+                'user' => $user,
+                'appointments' => $this->eventsOn($user, $day, $ignoring_event_id)
+                    ->filter(fn (Event $event) => $this->overlaps($this->bandOf($event, $user, $day), $wanted))
+                    ->sortBy('start')
+                    ->values()
+                    ->all(),
+                'time_off' => array_values(array_unique(array_map(
+                    fn (array $band) => $band['label'] ?: 'vrije dag',
+                    array_filter($this->blockedBands($user, $day), fn (array $band) => $this->overlaps($band, $wanted)),
+                ))),
+            ];
+        }
+
+        return $clashes;
+    }
+
+    /**
      * @return array<int, array{kind: string, start_min: int, end_min: int, label: ?string}>
      */
     public function freeSegments(User $user, CarbonImmutable $day): array
@@ -205,12 +289,16 @@ class TechnicianAvailability implements ForgetsTenantState
      *
      * @return array<int, array{kind: string, start_min: int, end_min: int, label: ?string}>
      */
-    private function segmentsFrom(User $user, CarbonImmutable $day, bool $ignore_time_off = false): array
-    {
+    private function segmentsFrom(
+        User $user,
+        CarbonImmutable $day,
+        bool $ignore_time_off = false,
+        ?int $ignoring_event_id = null,
+    ): array {
         $segments = DaySegments::for(
             work_start_hour: $this->workStartHour(),
             work_end_hour: $this->workEndHour(),
-            busy: $this->busyBands($user, $day),
+            busy: $this->busyBands($user, $day, $ignoring_event_id),
             /**
              * Appointments stay put even here: a day off is something a person
              * can be asked to give up, an appointment with a customer is not.
@@ -238,6 +326,7 @@ class TechnicianAvailability implements ForgetsTenantState
         }
 
         $events = Event::query()
+            ->notCancelled()
             ->whereHas('executingUsers', fn ($q) => $q->whereIn('users.id', $ids))
             ->where('start', '<', Clock::startOfLocalDay($from->addDays($days)))
             ->where('end', '>', Clock::startOfLocalDay($from))
@@ -263,54 +352,82 @@ class TechnicianAvailability implements ForgetsTenantState
      *
      * @return array<int, array{start_min: int, end_min: int}>
      */
-    private function busyBands(User $user, CarbonImmutable $day): array
+    private function busyBands(User $user, CarbonImmutable $day, ?int $ignoring_event_id = null): array
+    {
+        return $this->eventsOn($user, $day, $ignoring_event_id)
+            ->map(fn (Event $event) => $this->bandOf($event, $user, $day))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * This person's appointments touching this local day, from the diary in hand.
+     *
+     * @return Collection<int, Event>
+     */
+    private function eventsOn(User $user, CarbonImmutable $day, ?int $ignoring_event_id = null): Collection
     {
         $start = $day->setTimezone(Clock::zone())->startOfDay();
         $end = $start->addDay();
 
         return ($this->diary[$user->id] ?? collect())
-            ->filter(function (Event $event) use ($start, $end) {
-                return Clock::toLocal($event->start) < $end
-                    && Clock::toLocal($event->end) > $start;
-            })
-            ->map(function (Event $event) use ($user, $start) {
-                /**
-                 * Read on the clock somebody plans by. Stored moments are UTC and
-                 * the hours around them — the working day, a papadag — are wall
-                 * clock, so comparing the two directly puts every gap two hours out
-                 * while looking entirely reasonable.
-                 */
-                $event_start = Clock::toLocal($event->start);
-                $event_end = Clock::toLocal($event->end);
+            ->filter(fn (Event $event) => $event->id !== $ignoring_event_id
+                && Clock::toLocal($event->start) < $end
+                && Clock::toLocal($event->end) > $start);
+    }
 
-                /**
-                 * Diverging times are clock times on one day, so they cannot
-                 * describe a span. An appointment crossing midnight is clamped to
-                 * the day instead, which is what the planner does with it too.
-                 */
-                if (!$event_start->isSameDay($event_end)) {
-                    return [
-                        'start_min' => max(0, (int) $start->diffInMinutes($event_start, false)),
-                        'end_min' => min(self::MINUTES_PER_DAY, (int) $start->diffInMinutes($event_end, false)),
-                    ];
-                }
+    /**
+     * The minutes of this day one appointment takes from this person.
+     *
+     * @return array{start_min: int, end_min: int}
+     */
+    private function bandOf(Event $event, User $user, CarbonImmutable $day): array
+    {
+        $start = $day->setTimezone(Clock::zone())->startOfDay();
 
-                $pivot = $event->executingUsers->firstWhere('id', $user->id)?->pivot;
+        /**
+         * Read on the clock somebody plans by. Stored moments are UTC and
+         * the hours around them — the working day, a papadag — are wall
+         * clock, so comparing the two directly puts every gap two hours out
+         * while looking entirely reasonable.
+         */
+        $event_start = Clock::toLocal($event->start);
+        $event_end = Clock::toLocal($event->end);
 
-                if ($pivot && $pivot->has_diverging_times && $pivot->diverging_start && $pivot->diverging_end) {
-                    return [
-                        'start_min' => $this->minutesFromTime($pivot->diverging_start),
-                        'end_min' => $this->minutesFromTime($pivot->diverging_end),
-                    ];
-                }
+        /**
+         * Diverging times are clock times on one day, so they cannot
+         * describe a span. An appointment crossing midnight is clamped to
+         * the day instead, which is what the planner does with it too.
+         */
+        if (!$event_start->isSameDay($event_end)) {
+            return [
+                'start_min' => max(0, (int) $start->diffInMinutes($event_start, false)),
+                'end_min' => min(self::MINUTES_PER_DAY, (int) $start->diffInMinutes($event_end, false)),
+            ];
+        }
 
-                return [
-                    'start_min' => $event_start->hour * 60 + $event_start->minute,
-                    'end_min' => $event_end->hour * 60 + $event_end->minute,
-                ];
-            })
-            ->values()
-            ->all();
+        $pivot = $event->executingUsers->firstWhere('id', $user->id)?->pivot;
+
+        if ($pivot && $pivot->has_diverging_times && $pivot->diverging_start && $pivot->diverging_end) {
+            return [
+                'start_min' => $this->minutesFromTime($pivot->diverging_start),
+                'end_min' => $this->minutesFromTime($pivot->diverging_end),
+            ];
+        }
+
+        return [
+            'start_min' => $event_start->hour * 60 + $event_start->minute,
+            'end_min' => $event_end->hour * 60 + $event_end->minute,
+        ];
+    }
+
+    /**
+     * @param  array{start_min: int, end_min: int}  $band
+     * @param  array{start_min: int, end_min: int}  $other
+     */
+    private function overlaps(array $band, array $other): bool
+    {
+        return $band['start_min'] < $other['end_min'] && $band['end_min'] > $other['start_min'];
     }
 
     /**

@@ -6,6 +6,8 @@ use App\Domain\Pricing\ContractPricing;
 use App\Domain\Signals\Contracts\ContractPriceRecalculated;
 use App\Domain\Signals\Signals;
 use App\Models\MaintenanceContract;
+use App\Models\PriceFormulaVersion;
+use App\Support\Money;
 
 /**
  * Puts the price its formula version gives on a contract, and says so on its
@@ -28,38 +30,79 @@ class RecalculateContractPriceAction
 
     public function execute(MaintenanceContract $contract, bool $even_if_ended = false): void
     {
-        if (!$even_if_ended && $contract->hasEnded()) {
+        $prices = $this->changedPricesFor($contract, $even_if_ended);
+
+        if ($prices === null) {
             return;
         }
 
-        $result = $this->pricing->evaluate($contract);
-
-        if ($result === null || !$result['readable']) {
-            return;
-        }
-
-        $previous_price = $this->cents($contract->getRawOriginal('price'));
-        $previous_one_time = $this->cents($contract->getRawOriginal('one_time_price'));
-
-        $new_price = $this->storable($result['periodic'] ?? 0);
-        $new_one_time = $result['one_time'] === null ? null : $this->storable($result['one_time']);
-
-        if ($new_price === $previous_price && $new_one_time === $previous_one_time) {
-            return;
-        }
+        $previous_price = Money::cents($contract->getRawOriginal('price'));
+        $previous_one_time = Money::cents($contract->getRawOriginal('one_time_price'));
 
         $contract->forceFill([
-            'price' => $new_price / 100,
-            'one_time_price' => $new_one_time === null ? null : $new_one_time / 100,
+            'price' => $prices['price'] / 100,
+            'one_time_price' => $prices['one_time'] === null ? null : $prices['one_time'] / 100,
         ])->saveQuietly();
 
         Signals::dispatch(new ContractPriceRecalculated(
             $contract,
             $previous_price,
-            $new_price,
+            $prices['price'],
             $previous_one_time,
-            $new_one_time,
+            $prices['one_time'],
         ));
+    }
+
+    /**
+     * What the contract would be priced at, in cents, without saving anything;
+     * null when it would not be repriced at all. Pure, so a proposal can ask it
+     * of a contract changed only in memory and show exactly the price that
+     * saving the change would store. Given a version, it answers for the
+     * contract put on that version instead of the one it is on, as moving it
+     * there would store.
+     *
+     * @return ?array{price: int, one_time: ?int}
+     */
+    public function pricesFor(
+        MaintenanceContract $contract,
+        bool $even_if_ended = false,
+        ?PriceFormulaVersion $version = null,
+    ): ?array {
+        if (!$even_if_ended && $contract->hasEnded()) {
+            return null;
+        }
+
+        $result = $this->pricing->evaluate($contract, $version);
+
+        if ($result === null || !$result['readable']) {
+            return null;
+        }
+
+        return [
+            'price' => $this->storable($result['periodic'] ?? 0),
+            'one_time' => $result['one_time'] === null ? null : $this->storable($result['one_time']),
+        ];
+    }
+
+    /**
+     * pricesFor(), but only when saving would change what the contract carries
+     * now; null when it keeps its price. The one rule for "this reprices", so a
+     * proposal says a price changes exactly when the save would store one.
+     *
+     * @return ?array{price: int, one_time: ?int}
+     */
+    public function changedPricesFor(MaintenanceContract $contract, bool $even_if_ended = false): ?array
+    {
+        $prices = $this->pricesFor($contract, $even_if_ended);
+
+        if ($prices === null) {
+            return null;
+        }
+
+        $unchanged = $prices['price'] === Money::cents($contract->getRawOriginal('price'))
+            && $prices['one_time'] === Money::cents($contract->getRawOriginal('one_time_price'));
+
+        return $unchanged ? null : $prices;
     }
 
     /**
@@ -74,10 +117,5 @@ class RecalculateContractPriceAction
         }
 
         return (int) max(0.0, min((float) self::MAX_CENTS, round($amount * 100)));
-    }
-
-    private function cents(mixed $amount): ?int
-    {
-        return $amount === null ? null : (int) round(((float) $amount) * 100);
     }
 }

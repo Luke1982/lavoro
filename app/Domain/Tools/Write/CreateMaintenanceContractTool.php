@@ -128,7 +128,7 @@ class CreateMaintenanceContractTool implements ChecksBeforeConfirming, Confirmab
         }
 
         if (
-            filter_var($arguments['auto_generate'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            ToolCall::booleanFrom($arguments['auto_generate'] ?? false)
             && !$user->can('autoGenerate', MaintenanceContract::class)
         ) {
             return false;
@@ -312,7 +312,7 @@ class CreateMaintenanceContractTool implements ChecksBeforeConfirming, Confirmab
             'manage_frequency_per_asset' => false,
             'frequency' => $frequency,
             'frequency_days' => $frequency === $custom ? $call->integerArgument('frequency_days') : null,
-            'auto_generate' => filter_var($call->argument('auto_generate', false), FILTER_VALIDATE_BOOLEAN),
+            'auto_generate' => $call->booleanArgument('auto_generate'),
         ];
 
         return array_filter($data, fn ($value) => $value !== null);

@@ -177,6 +177,47 @@ class Event extends Model
         return $this->serviceOrders->first()?->customer ?? $this->customers->first();
     }
 
+    /**
+     * Whose work it is: the customer of the werkbon, and for an appointment
+     * without one the customer it hangs off directly.
+     */
+    public function customerName(): ?string
+    {
+        return $this->primaryCustomer()?->name;
+    }
+
+    /**
+     * The appointment as somebody recognises it: "afspraak #12 (Onderhoud) van
+     * 01-12-2026 08:00–10:00, werkbon WB-0005, Klant BV". Number, sort, both ends and
+     * whose work it is, which is what tells two appointments on one day apart.
+     */
+    public function label(): string
+    {
+        $this->loadMissing(['eventType:id,name', 'serviceOrders.customer:id,name', 'customers:id,name']);
+        $order = $this->serviceOrders->first();
+        $customer = $this->customerName();
+
+        return 'afspraak #' . $this->id
+            . ($this->eventType ? ' (' . $this->eventType->name . ')' : '')
+            . ' van ' . self::window($this->start, $this->end)
+            . ($order ? ', werkbon ' . $order->number : '')
+            . ($customer ? ', ' . $customer : '');
+    }
+
+    /**
+     * Both ends of an appointment, on the clock it is read on: a start alone
+     * hides the half most easily got wrong. The second date only when it ends
+     * on another day.
+     */
+    public static function window(mixed $start, mixed $end): string
+    {
+        $from = Clock::toLocal($start);
+        $until = Clock::toLocal($end);
+
+        return $from->format('d-m-Y H:i') . '–'
+            . ($from->isSameDay($until) ? $until->format('H:i') : $until->format('d-m-Y H:i'));
+    }
+
     /** "Afspraak "Onderhoud" van 01-12-2026 08:00": a werkbon can have several, so the moment names it. */
     public function historyLabel(): ?string
     {

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
-use App\Domain\Planning\Clock;
+use App\Actions\Appointments\CopyAppointmentAction;
+use App\Models\Event;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -11,23 +13,28 @@ class EventCopyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
+        $event = $this->route('event');
 
-        return $user && ($user->isAdmin() || $user->hasPermission('event.create'));
+        return $event instanceof Event && (bool) $this->user()?->can('copy', $event);
     }
 
     public function rules(): array
     {
-        $event_day = $this->eventDay();
-
         return [
-            'offsets' => 'required_without:date|array|min:1',
-            'offsets.*' => 'required|integer|min:1|max:365',
+            'offsets' => 'required_without:date|array|min:1|max:' . CopyAppointmentAction::MOST_COPIES,
+            'offsets.*' => 'required|integer|distinct|min:1|max:' . CopyAppointmentAction::MOST_DAYS_AWAY,
             'date' => [
+                'bail',
                 'required_without:offsets',
                 'prohibits:offsets',
-                Rule::date()->format('Y-m-d')->betweenOrEqual($event_day->subDays(365), $event_day->addDays(365)),
-                Rule::notIn([$event_day->toDateString()]),
+                Rule::date()->format('Y-m-d'),
+                function (string $attribute, mixed $value, Closure $fail) {
+                    $refusal = CopyAppointmentAction::refusalFor($this->route('event'), CarbonImmutable::parse($value));
+
+                    if ($refusal !== null) {
+                        $fail($refusal);
+                    }
+                },
             ],
         ];
     }
@@ -37,9 +44,6 @@ class EventCopyRequest extends FormRequest
         return [
             'date.required_without' => 'Kies een datum.',
             'date.date_format' => 'Kies een geldige datum.',
-            'date.after_or_equal' => 'Kies een datum binnen een jaar van de afspraak.',
-            'date.before_or_equal' => 'Kies een datum binnen een jaar van de afspraak.',
-            'date.not_in' => 'De afspraak staat al op deze dag; kies een andere datum.',
         ];
     }
 
@@ -55,15 +59,6 @@ class EventCopyRequest extends FormRequest
 
         return $date === null
             ? $this->validated('offsets')
-            : [(int) $this->eventDay()->diffInDays($date)];
-    }
-
-    /**
-     * The calendar day the appointment is on where the work happens, as a plain
-     * date, so counting days to another date never meets a clock change.
-     */
-    private function eventDay(): CarbonImmutable
-    {
-        return CarbonImmutable::parse(Clock::toLocal($this->route('event')->start)->toDateString(), 'UTC');
+            : [CopyAppointmentAction::offsetTo($this->route('event'), CarbonImmutable::parse($date))];
     }
 }

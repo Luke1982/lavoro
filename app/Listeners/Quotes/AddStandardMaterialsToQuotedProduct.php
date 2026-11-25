@@ -6,8 +6,6 @@ use App\Domain\Quotes\QuoteLineDrafts;
 use App\Domain\Signals\Quotes\QuoteProductAdded;
 use App\Domain\Signals\Quotes\StandardMaterialsAdded;
 use App\Domain\Signals\Signals;
-use App\Enums\DefaultMaterialPrompts;
-use App\Models\ProductMaterialDefault;
 
 /**
  * A product set to always bring certain materials brings them: they go onto the
@@ -22,16 +20,10 @@ class AddStandardMaterialsToQuotedProduct
 {
     public function handle(QuoteProductAdded $signal): void
     {
-        $materials = $signal->product->materialDefaults()
-            ->where('prompt', DefaultMaterialPrompts::always->value)
-            ->with('material.usageUnit')
-            ->get()
-            ->map(fn (ProductMaterialDefault $default) => $signal->line->addChild(QuoteLineDrafts::forMaterial(
-                $signal->quote,
-                $default->material,
-                round($default->quantity * $signal->line->quantity, 2),
-            )))
-            ->all();
+        $materials = array_map(
+            fn (array $draft) => $signal->line->addChild($draft),
+            QuoteLineDrafts::standardMaterialsFor($signal->quote, $signal->product, (float) $signal->line->quantity),
+        );
 
         if ($materials !== []) {
             Signals::dispatch(new StandardMaterialsAdded($signal->quote, $signal->line, $materials));

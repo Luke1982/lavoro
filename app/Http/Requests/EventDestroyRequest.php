@@ -9,16 +9,8 @@ class EventDestroyRequest extends FormRequest
     public function authorize(): bool
     {
         $event = $this->route('event');
-        $user = $this->user();
 
-        if (! $user || ! $event) {
-            return false;
-        }
-        if ($user->isAdmin() || $user->hasPermission('event.delete_others')) {
-            return true;
-        }
-
-        return $user->hasPermission('event.delete') && $event->hasExecutingUser($user->id);
+        return $event !== null && (bool) $this->user()?->can('delete', $event);
     }
 
     public function rules(): array

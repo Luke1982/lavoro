@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Appointments\AppointmentChanges;
 use App\Actions\Appointments\CancelAppointmentAction;
+use App\Actions\Appointments\CopyAppointmentAction;
 use App\Actions\Appointments\CreateAppointmentAction;
+use App\Actions\Appointments\MoveAppointmentAction;
 use App\Actions\Appointments\NewAppointment;
 use App\Actions\Appointments\UpdateAppointmentAction;
-use App\Domain\Planning\Clock;
 use App\Domain\Signals\ServiceOrders\AppointmentConfirmationEmailed;
-use App\Domain\Signals\ServiceOrders\ServiceOrderScheduled;
 use App\Domain\Signals\Signals;
 use App\Enums\EventTrigger;
 use App\Enums\StandardEmailTriggerType;
@@ -18,6 +18,7 @@ use App\Http\Requests\EventDestroyRequest;
 use App\Http\Requests\EventFeedbackRequest;
 use App\Http\Requests\EventReadRequest;
 use App\Http\Requests\EventSearchRequest;
+use App\Http\Requests\EventSendConfirmationRequest;
 use App\Http\Requests\EventStoreRequest;
 use App\Http\Requests\EventUpdateRequest;
 use App\Mail\AppointmentConfirmationMail;
@@ -27,6 +28,7 @@ use App\Services\EventLocationResolver;
 use App\Services\StandardEmailTriggerResolver;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -207,7 +209,7 @@ class EventApiController extends Controller
             'is_preliminary' => $event->is_preliminary,
             'event_type_name' => $event->eventType?->name,
             'color' => $event->eventType?->color ?? '#3b82f6',
-            'customer_name' => $event->serviceOrders->first()?->customer?->name ?? $event->customers->first()?->name,
+            'customer_name' => $event->customerName(),
             'project_name' => $event->serviceOrders->first()?->project?->title,
             'service_order_id' => $event->serviceOrders->first()?->id,
             'executing_users' => $event->executingUsers->map(fn ($u) => ['id' => $u->id, 'name' => $u->name]),
@@ -232,7 +234,7 @@ class EventApiController extends Controller
         ]);
 
         return response()->json(array_merge(
-            $this->withUserRoles($event)->toArray(),
+            $this->oneWithUserRoles($event),
             [
                 'pending_standard_emails' => $this->pendingStandardEmails($event, EventTrigger::event_created),
                 'queued_standard_emails' => $this->queuedStandardEmailNames($event, EventTrigger::event_created),
@@ -242,14 +244,18 @@ class EventApiController extends Controller
 
     public function update(EventUpdateRequest $request, Event $event)
     {
-        app(UpdateAppointmentAction::class)->execute(
-            $event,
-            AppointmentChanges::fromPayload($request->validated(), [
-                ...$request->all(),
-                'create_service_order' => $request->boolean('create_service_order'),
-                'eventable_provided' => $request->has('eventable_id'),
-            ])
-        );
+        if ($request->changesOnlyTheTimes()) {
+            app(MoveAppointmentAction::class)->execute($event, ...$request->times($event));
+        } else {
+            app(UpdateAppointmentAction::class)->execute(
+                $event,
+                AppointmentChanges::fromPayload($request->validated(), [
+                    ...$request->all(),
+                    'create_service_order' => $request->boolean('create_service_order'),
+                    'eventable_provided' => $request->has('eventable_id'),
+                ])
+            );
+        }
 
         $event->load([
             'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
@@ -257,7 +263,7 @@ class EventApiController extends Controller
         ]);
 
         return response()->json(array_merge(
-            $this->withUserRoles($event)->toArray(),
+            $this->oneWithUserRoles($event),
             [
                 'pending_standard_emails' => $this->pendingStandardEmails($event, EventTrigger::event_updated),
                 'queued_standard_emails' => $this->queuedStandardEmailNames($event, EventTrigger::event_updated),
@@ -275,67 +281,19 @@ class EventApiController extends Controller
         return response()->json(['pending_standard_emails' => $pending]);
     }
 
-    /**
-     * Each copy is made in one transaction, so what reacts to it after the
-     * commit -- the push to Google above all -- sees it complete, crew and
-     * werkbonnen included, instead of the bare appointment.
-     */
     public function copy(EventCopyRequest $request, Event $event)
     {
-        $offsets = $request->offsets();
+        $new_events = new EloquentCollection(app(CopyAppointmentAction::class)->execute($event, $request->offsets()));
 
-        $service_orders = $event->serviceOrders()->get();
-        $customer_ids = $event->no_service_order ? $event->customers()->pluck('customers.id')->all() : [];
-        $executing_user_ids = $event->executingUsers()->pluck('users.id')->all();
-        $executing_user_roles = $this->executingUserRoleMap($event);
+        $new_events->load([
+            'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
+            'executingUsers', 'executions',
+        ]);
 
-        $new_events = [];
-
-        foreach ($offsets as $days) {
-            $new_event = DB::transaction(function () use (
-                $event, $days, $service_orders, $customer_ids, $executing_user_ids, $executing_user_roles
-            ) {
-                $new_event = Event::create([
-                    'name' => $event->name,
-                    'description' => $event->description,
-                    'event_type_id' => $event->event_type_id,
-                    'status' => $event->status,
-                    'start' => Clock::toLocal($event->start)->addDays($days)->utc(),
-                    'end' => Clock::toLocal($event->end)->addDays($days)->utc(),
-                    'location' => $event->location,
-                    'location_id' => $event->location_id,
-                    'is_preliminary' => $event->is_preliminary,
-                    'no_service_order' => $event->no_service_order,
-                ]);
-
-                foreach ($service_orders as $order) {
-                    $order->events()->attach($new_event->id);
-
-                    Signals::dispatch(new ServiceOrderScheduled($order, $new_event));
-                }
-
-                if ($customer_ids !== []) {
-                    $new_event->syncCustomers($customer_ids);
-                }
-
-                if (count($executing_user_ids) > 0) {
-                    $new_event->syncExecutingUsers($executing_user_ids, [], $executing_user_roles);
-                }
-
-                return $new_event;
-            });
-
-            $new_event->load([
-                'eventType', 'serviceOrders.customer', ...Project::relationsForAddress('serviceOrders.project'),
-                'executingUsers', 'executions',
-            ]);
-            $new_events[] = $this->withUserRoles($new_event);
-        }
-
-        return response()->json($new_events, 201);
+        return response()->json($this->withUserRoles($new_events), 201);
     }
 
-    public function sendConfirmation(Event $event)
+    public function sendConfirmation(EventSendConfirmationRequest $request, Event $event)
     {
         $service_order = $event->serviceOrders()
             ->with(['customer', 'taskInstances.serviceOrderTask'])
@@ -373,8 +331,17 @@ class EventApiController extends Controller
         ]);
     }
 
+    /**
+     * The standard e-mails the planner offers to send after this change, only
+     * to whoever may read and send them; anybody else would open a preview
+     * that refuses them.
+     */
     private function pendingStandardEmails(Event $event, EventTrigger $trigger): array
     {
+        if (!Auth::user()?->can('sendStandardEmail', $event)) {
+            return [];
+        }
+
         return StandardEmailTriggerResolver::matching(
             $event,
             $trigger,
@@ -396,11 +363,21 @@ class EventApiController extends Controller
         )->map(fn ($match) => $match->standardEmail->name)->values()->all();
     }
 
-    private function withUserRoles($events)
+    /**
+     * The appointment as the planner and its edit dialog receive it: each crew
+     * member with their plan roles and execution, and whether the person
+     * looking may change it, remove it or mail the customer about it, answered
+     * by EventPolicy so the screen never works out a rule of its own.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function withUserRoles(Collection $events): array
     {
-        $collection = $events instanceof Collection ? $events : collect([$events]);
+        $viewer = Auth::user();
 
-        $pivot_ids = $collection
+        (new EloquentCollection($events->all()))->loadMissing('owners');
+
+        $pivot_ids = $events
             ->flatMap(fn ($event) => $event->executingUsers->pluck('pivot.id'))
             ->filter()
             ->all();
@@ -412,38 +389,37 @@ class EventApiController extends Controller
             ->groupBy('userable_id')
             ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all());
 
-        foreach ($collection as $event) {
+        return $events->map(function (Event $event) use ($viewer, $roles_by_userable) {
             $executions_by_user = $event->executions->keyBy('user_id');
-            foreach ($event->executingUsers as $user) {
-                $user->pivot->setAttribute(
-                    'user_role_ids',
-                    $roles_by_userable->get($user->pivot->id, [])
-                );
-                $user->pivot->setAttribute('has_diverging_times', (bool) ($user->pivot->has_diverging_times ?? false));
-                $user->pivot->setAttribute('diverging_start', $user->pivot->diverging_start);
-                $user->pivot->setAttribute('diverging_end', $user->pivot->diverging_end);
-                $execution = $executions_by_user->get($user->id);
-                $user->pivot->setAttribute('completion_status', $execution->completion_status ?? 'Gepland');
-                $user->pivot->setAttribute('actual_start', $execution?->actual_start);
-                $user->pivot->setAttribute('actual_end', $execution?->actual_end);
-                $user->pivot->setAttribute('travel_time_minutes', (int) ($execution?->travel_time_minutes ?? 0));
-                $user->pivot->setAttribute('has_signature', filled($execution?->signature_base64));
-            }
-        }
 
-        return $events;
+            foreach ($event->executingUsers as $crew_member) {
+                $crew_member->pivot->setAttribute(
+                    'user_role_ids',
+                    $roles_by_userable->get($crew_member->pivot->id, [])
+                );
+                $crew_member->pivot->setAttribute('has_diverging_times', (bool) ($crew_member->pivot->has_diverging_times ?? false));
+                $crew_member->pivot->setAttribute('diverging_start', $crew_member->pivot->diverging_start);
+                $crew_member->pivot->setAttribute('diverging_end', $crew_member->pivot->diverging_end);
+                $execution = $executions_by_user->get($crew_member->id);
+                $crew_member->pivot->setAttribute('completion_status', $execution->completion_status ?? 'Gepland');
+                $crew_member->pivot->setAttribute('actual_start', $execution?->actual_start);
+                $crew_member->pivot->setAttribute('actual_end', $execution?->actual_end);
+                $crew_member->pivot->setAttribute('travel_time_minutes', (int) ($execution?->travel_time_minutes ?? 0));
+                $crew_member->pivot->setAttribute('has_signature', filled($execution?->signature_base64));
+            }
+
+            return [
+                ...$event->makeHidden('owners')->toArray(),
+                'can_update' => (bool) $viewer?->can('update', $event),
+                'can_delete' => (bool) $viewer?->can('delete', $event),
+                'can_send_standard_email' => (bool) $viewer?->can('sendStandardEmail', $event),
+            ];
+        })->values()->all();
     }
 
-    private function executingUserRoleMap(Event $event): array
+    /** @return array<string, mixed> */
+    private function oneWithUserRoles(Event $event): array
     {
-        return DB::table('userables')
-            ->join('user_role_userable', 'userables.id', '=', 'user_role_userable.userable_id')
-            ->where('userables.userable_type', $event->getMorphClass())
-            ->where('userables.userable_id', $event->getKey())
-            ->where('userables.type', 'executing')
-            ->get(['userables.user_id', 'user_role_userable.user_role_id'])
-            ->groupBy('user_id')
-            ->map(fn ($rows) => $rows->pluck('user_role_id')->map(fn ($id) => (int) $id)->all())
-            ->toArray();
+        return $this->withUserRoles(collect([$event]))[0];
     }
 }

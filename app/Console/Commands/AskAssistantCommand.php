@@ -2,16 +2,15 @@
 
 namespace App\Console\Commands;
 
-use App\Domain\Assistant\AssistantLoop;
+use App\Console\Commands\Concerns\EntersATenant;
+use App\Domain\Assistant\AssistantSession;
 use App\Domain\Assistant\Contracts\ModelFailure;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
 use App\Domain\Assistant\ModelPicker;
-use App\Domain\Assistant\NeedsEyes;
-use App\Domain\Assistant\QuestionSorter;
 use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolRegistry;
+use App\Domain\Tools\ToolResult;
 use App\Models\AssistantUsage;
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Console\Command;
 use RuntimeException;
@@ -26,18 +25,31 @@ use RuntimeException;
  */
 class AskAssistantCommand extends Command
 {
+    use EntersATenant;
+
     protected $signature = 'assistant:ask
         {question : The question, in Dutch}
         {--tenant= : Id or name of the customer to ask it in}
         {--user= : Id of the user to act as}
         {--steps=6 : How many tool rounds to allow before giving up}
         {--show-results : Print what each tool returned, not just what was asked}
-        {--difficulty= : Force a difficulty from 1 to 10 instead of letting the tools decide}';
+        {--difficulty= : Force a difficulty from 1 to 10; empty or 0 lets the sorter decide, as in the box}';
 
     protected $description = 'Stelt de assistent één vraag vanaf de commandline.';
 
-    public function handle(AssistantLoop $loop, ToolRegistry $registry): int
+    public function handle(AssistantSession $session, ToolRegistry $registry): int
     {
+        /**
+         * Said before anything else, in so many words. Without it the question
+         * goes to a model that cannot be reached, and comes back as whatever
+         * that supplier's library says about a missing key.
+         */
+        if (ModelPicker::answering() === []) {
+            $this->error('Er is geen API-sleutel ingesteld voor een aanbieder die vragen kan beantwoorden (bijvoorbeeld ANTHROPIC_API_KEY; zie config/assistant.php).');
+
+            return self::FAILURE;
+        }
+
         if (!$this->inACustomer()) {
             return self::FAILURE;
         }
@@ -48,48 +60,36 @@ class AskAssistantCommand extends Command
             return self::FAILURE;
         }
 
-        /**
-         * Routed the way a question asked in the box is routed. Sorting used to be
-         * skipped here, so the one tool anybody would reach for to find out why
-         * everything lands on the dear model reported a route production does not
-         * take — and reported it confidently.
-         */
-        $difficulty = (int) ($this->option('difficulty')
-            ?: app(QuestionSorter::class)->difficultyFor($this->argument('question'), $user, $registry));
-        /** With the same vision flag the ask uses, or the header names a model that never ran. */
-        $provider = app(ModelPicker::class)->providerFor(
-            $difficulty,
-            needs_vision: NeedsEyes::inQuestion($this->argument('question')),
-        );
+        $difficulty = $this->difficulty();
 
-        if (blank(config('assistant.providers.' . $provider . '.api_key'))) {
-            $this->error('Er is geen API-sleutel ingesteld voor aanbieder "' . $provider . '".');
+        if ($difficulty === false) {
+            $this->error('--difficulty is een getal van 1 tot 10, of 0 om de sortering te laten kiezen.');
 
             return self::FAILURE;
         }
 
         $this->line('<comment>Als:</comment> ' . $user->name . ' (' . ToolProfile::forUser($user)->value
-            . ', ' . count($registry->definitionsFor($user)) . ' tools)'
-            . ' <comment>moeilijkheid</comment> ' . $difficulty . '/10 -> ' . $provider
-            . ' / ' . config('assistant.providers.' . $provider . '.model'));
+            . ', ' . count($registry->definitionsFor($user)) . ' tools)');
         $this->newLine();
 
+        $watcher = $session->watcher($user, null)->listen(function (string $name, array $arguments, bool $failed, ?ToolResult $result) {
+            $this->line('  <comment>→ ' . $name . '</comment> '
+                . json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                . ($failed ? ' <fg=red>mislukt</>' : ''));
+
+            if ($this->option('show-results') && $result !== null) {
+                $this->line('    ' . mb_substr($result->toModelContent(), 0, 2000));
+            }
+        });
+
         try {
-            $answer = $loop->ask(
+            $answer = $session->ask(
                 user: $user,
                 question: (string) $this->argument('question'),
-                system: $this->systemPrompt(),
-                context: $this->userContext($user),
+                watcher: $watcher,
                 difficulty: $difficulty,
-                /** Same call the box makes, or the command answers on a different model. */
-                needs_vision: NeedsEyes::inQuestion($this->argument('question')),
                 max_rounds: (int) $this->option('steps'),
-                onText: fn (string $text) => $this->line($text),
-                onTool: fn (string $name, array $arguments, bool $failed) => $this->line(
-                    '  <comment>→ ' . $name . '</comment> '
-                    . json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                    . ($failed ? ' <fg=red>mislukt</>' : '')
-                ),
+                on_text: fn (string $text) => $this->line($text),
             );
         } catch (ModelUnavailable $e) {
             return $this->reportModelFailure($e);
@@ -100,7 +100,8 @@ class AskAssistantCommand extends Command
         }
 
         $this->newLine();
-        $this->line('<comment>' . $answer->tool_rounds . ' tool-ronde(s), '
+        $this->line('<comment>moeilijkheid ' . ($answer->difficulty ?? '?') . '/10' . ($difficulty === null ? ' (gesorteerd)' : ' (opgegeven)')
+            . ' -> ' . $answer->final->billableModel() . ', ' . $answer->tool_rounds . ' tool-ronde(s), '
             . $answer->inputTokens() . ' in / ' . $answer->outputTokens() . ' uit, '
             . '€' . number_format($answer->costEuros(), 4, ',', '') . '</comment>');
 
@@ -109,6 +110,23 @@ class AskAssistantCommand extends Command
             . ' over ' . AssistantUsage::inMonth(now())->count() . ' aanroepen</comment>');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The difficulty asked for, null to let the sorter decide as it does in the
+     * box, or false when the option is not a difficulty at all.
+     */
+    private function difficulty(): int|false|null
+    {
+        $given = trim((string) $this->option('difficulty'));
+
+        if ($given === '' || $given === '0') {
+            return null;
+        }
+
+        $difficulty = filter_var($given, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 10]]);
+
+        return $difficulty === false ? false : $difficulty;
     }
 
     /**
@@ -125,31 +143,6 @@ class AskAssistantCommand extends Command
         });
 
         return self::FAILURE;
-    }
-
-    /**
-     * Identical for everybody, every day, on purpose. This sits behind the cache
-     * marker together with the tool definitions, and a cached prefix only pays
-     * off while it stays byte-for-byte the same — so the name and the date live
-     * in the message instead, where they cost nothing to vary.
-     */
-    private function systemPrompt(): string
-    {
-        return implode("\n", [
-            'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
-            'Je schrijft altijd Nederlands, ook de zinnetjes tussendoor waarin je zegt wat je gaat opzoeken.',
-            'Je antwoordt kort en concreet.',
-            '',
-            'Gebruik de tools om echte gegevens op te halen. Verzin nooit een werkbonnummer,',
-            'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',
-            'Een tool geeft alleen terug wat deze gebruiker mag zien, dus een leeg resultaat',
-            'betekent "niets gevonden of niets zichtbaar", niet "het bestaat niet".',
-        ]);
-    }
-
-    private function userContext(User $user): string
-    {
-        return 'Je praat met ' . $user->name . '. Vandaag is ' . now()->toDateString() . '.';
     }
 
     /**
@@ -171,18 +164,7 @@ class AskAssistantCommand extends Command
             return false;
         }
 
-        $tenant = Tenant::on('central')->find($wanted)
-            ?? Tenant::on('central')->where('name', $wanted)->first();
-
-        if (!$tenant) {
-            $this->error('Geen klant gevonden voor "' . $wanted . '".');
-
-            return false;
-        }
-
-        tenancy()->initialize($tenant);
-
-        return true;
+        return $this->enterTenant($wanted) !== null;
     }
 
     private function resolveUser(): ?User

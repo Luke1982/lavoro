@@ -9,6 +9,7 @@ use App\Domain\Quotes\QuoteLayout;
 use App\Domain\Quotes\QuoteSettings;
 use App\Domain\Quotes\QuoteTotals;
 use App\Domain\Quotes\VatRates;
+use App\Domain\Search\SearchTerm;
 use App\Enums\QuoteAcceptedVia;
 use App\Enums\QuotePricingMethods;
 use App\Enums\QuoteStatuses;
@@ -16,6 +17,7 @@ use App\Models\Traits\HasActivities;
 use App\Models\Traits\HasOwner;
 use App\Models\Traits\RecordsHistory;
 use App\Support\QuoteNumbers;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,6 +36,11 @@ class Quote extends Model
     use HasActivities;
     use HasOwner;
     use RecordsHistory;
+
+    /** The offertelijst opens on the quotes still waiting for an answer; 'all' is said out loud. */
+    public const LIST_OPEN = 'open';
+
+    public const LIST_EVERY_STATUS = 'all';
 
     /** How long a private customer may still change their mind, counted from the day they said yes. */
     public const COOLING_OFF_DAYS = 14;
@@ -218,6 +225,40 @@ class Quote extends Model
     public function historyLabel(): ?string
     {
         return 'Offerte ' . $this->number;
+    }
+
+    /**
+     * The offertelijst's search: a piece of the number, the title or the
+     * customer's name. The list and the assistant both search through here,
+     * so a quote found on the screen is found when asked for too.
+     */
+    public function scopeSearchedFor(Builder $query, string $term): Builder
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        $like = SearchTerm::like($term);
+
+        return $query->where(fn (Builder $inner) => $inner
+            ->where('number', 'like', $like)
+            ->orWhere('title', 'like', $like)
+            ->orWhereHas('customer', fn (Builder $customer) => $customer->where('name', 'like', $like)));
+    }
+
+    /**
+     * The offertelijst's status filter: open for every quote still waiting
+     * for an answer, all for every one, otherwise that one status.
+     */
+    public function scopeInListStatus(Builder $query, string $status): Builder
+    {
+        return match ($status) {
+            self::LIST_OPEN => $query->whereIn('status', QuoteStatuses::openValues()),
+            self::LIST_EVERY_STATUS => $query,
+            default => $query->where('status', $status),
+        };
     }
 
     public function customer(): BelongsTo

@@ -2,25 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Assistant\AssistantLoop;
+use App\Domain\Assistant\AssistantAnswer;
+use App\Domain\Assistant\AssistantSession;
 use App\Domain\Assistant\Contracts\Attachment;
 use App\Domain\Assistant\Contracts\ModelUnavailable;
-use App\Domain\Assistant\ConversationFacts;
 use App\Domain\Assistant\ConversationFiles;
 use App\Domain\Assistant\ConversationPhotos;
 use App\Domain\Assistant\ConversationReport;
-use App\Domain\Assistant\ModelPicker;
-use App\Domain\Assistant\NeedsEyes;
-use App\Domain\Assistant\NeedsTheFile;
-use App\Domain\Assistant\PageContext;
-use App\Domain\Assistant\QuestionSorter;
-use App\Domain\Assistant\ReferenceCheck;
+use App\Domain\Assistant\TurnWatcher;
 use App\Domain\Planning\Clock;
-use App\Domain\Tools\ConfirmationToken;
-use App\Domain\Tools\ToolCall;
-use App\Domain\Tools\ToolExecutor;
-use App\Domain\Tools\ToolRegistry;
-use App\Domain\Tools\ToolResult;
+use App\Exceptions\AttachmentsUnreadable;
 use App\Http\Requests\AssistantAskRequest;
 use App\Http\Requests\AssistantConfirmRequest;
 use App\Http\Requests\AssistantContinueRequest;
@@ -42,11 +33,16 @@ use RuntimeException;
 use Throwable;
 
 /**
- * A conversation that lives only as long as the box is open.
+ * The chat box's side of a conversation with the assistant.
  *
- * The thread on screen is the thread that gets sent, so nothing is stored here
- * and there is no transcript to decide retention rules for. It is capped at a
- * handful of exchanges: a follow-up needs what was just said, not everything.
+ * Every turn put to the model, asked or carried on after a click, is written
+ * to assistant_questions: the question, the answer or why there was none, the
+ * page, which tools ran, the choices offered and what it cost. That is what history() and
+ * conversation() read back, and each person only ever sees their own.
+ *
+ * What goes to the model as the story so far is not read from there but sent
+ * by the box with every turn, capped at AssistantSession::REMEMBERED_EXCHANGES:
+ * a follow-up needs what was just said, not everything.
  *
  * That the history arrives from the browser costs nothing in safety. Every tool
  * authorises against the person asking on each call, so a doctored history can
@@ -55,412 +51,91 @@ use Throwable;
  */
 class AssistantController extends Controller
 {
-    /** Stands in for a question on the turns that follow a confirmation. */
-    private const CARRIED_ON = '(verder na bevestiging)';
-
     private const HISTORY_LENGTH = 30;
 
     private const PREVIEW_CHARS = 400;
 
-    public function ask(
-        AssistantAskRequest $request,
-        AssistantLoop $loop,
-        ToolRegistry $registry,
-        PageContext $pages,
-        QuestionSorter $sorter,
-        ConversationFacts $facts,
-    ): JsonResponse {
-        $user = $request->user();
-        $tools = [];
-        $pending = [];
-        $choices = [];
-        $seen = [];
-        $findings = [];
-        $unreadable = [];
-        $photos = [];
-        $tours = [];
-
-        $conversation = (string) $request->validated('conversation');
-        $question = (string) $request->validated('question');
-
-        if ($this->isSomebodyElses($user, $conversation)) {
-            return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
-        }
-
-        $uploaded_pictures = $this->imagesAsAttachments($request->validated('images') ?? []);
-        $uploaded_files = $this->documentsAsAttachments($request->validated('documents') ?? []);
-        $pictures = $uploaded_pictures;
-        $files = $uploaded_files;
-
-        /**
-         * A photo stays with the conversation, not with the one message it came
-         * on. "Kijk nog eens" arrived with no image at all and was answered
-         * truthfully — "ik heb geen foto ontvangen" — one turn after the photo
-         * had been described, which reads as the assistant losing its mind.
-         *
-         * Re-sent from the parked copy, so it costs tokens on every follow-up of
-         * a photo conversation. That is the price of the box behaving the way
-         * anybody would expect it to.
-         *
-         * Only when the question is about them, though. Sent on every follow-up,
-         * six photographs went up again to be asked something that had nothing
-         * to do with looking — eight thousand tokens to answer "kun je die
-         * modellen opzoeken", which is tens of times what the question is worth.
-         */
-        if ($pictures === [] && filled($conversation) && NeedsEyes::inQuestion($question)) {
-            $pictures = app(ConversationPhotos::class)->parked($conversation);
-        }
-
-        /**
-         * And a datasheet is the same story, told about a file instead of a
-         * photo — until something was noted from it. From then on the note goes
-         * up instead, and the model opens the file itself when the note falls
-         * short, rather than "offerte" in a button's text sending it every time.
-         */
-        if ($files === [] && filled($conversation) && NeedsTheFile::inQuestion($question)) {
-            $files = app(ConversationFiles::class)->unnoted($conversation);
-        }
-
-        /**
-         * Refused up front rather than silently dropped. An attachment handed to
-         * a provider that cannot open it gets answered in the same confident
-         * voice as one that was read, which is fabrication with extra steps.
-         */
-        if ($pictures !== [] && !app(ModelPicker::class)->canSee()) {
-            return response()->json([
-                'message' => 'Er is geen model ingesteld dat foto\'s kan bekijken.',
-            ], 422);
-        }
-
-        if ($files !== [] && !app(ModelPicker::class)->canRead()) {
-            return response()->json([
-                'message' => 'Er is geen model ingesteld dat bestanden kan lezen.',
-            ], 422);
-        }
-
-        /**
-         * Parked, not kept. The photos wait in a temporary corner so the person
-         * can decide at the end of the conversation whether they go into their
-         * storage — that space is theirs and counts against their limits, so
-         * nothing lands there without them saying so.
-         *
-         * Files wait too, so the rest of the conversation can keep reading
-         * them. One only ever leaves that corner on a click, filed on a werkbon
-         * in a category somebody chose; a document filed by itself is a
-         * document nobody will find again.
-         *
-         * What arrived with this question, never what was fetched back for it:
-         * parked a second time, a file was there twice, and asked "which one"
-         * the conversation could no longer tell its own copies apart.
-         */
-        if (filled($conversation)) {
-            app(ConversationPhotos::class)->stash($conversation, $uploaded_pictures);
-            app(ConversationFiles::class)->stash($conversation, $uploaded_files);
-        }
-
-        $attachments = array_merge($pictures, $files);
-
-        try {
-            $answer = $loop->ask(
-                user: $user,
-                question: $request->validated('question'),
-                system: $this->systemPrompt(),
-                context: $this->context(
-                    $user,
-                    $pages->describe($request->validated('page')),
-                    $facts->sentence($facts->for($request->validated('conversation'), $user)),
-                    app(ConversationFiles::class)->reminder($conversation),
-                ),
-                history: $request->validated('history') ?? [],
-                onTool: $this->toolWatcher(
-                    $tools,
-                    $pending,
-                    $choices,
-                    $seen,
-                    fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
-                    $findings,
-                    $unreadable,
-                    $photos,
-                    $tours,
-                ),
-                difficulty: $sorter->difficultyFor($request->validated('question'), $user, $registry),
-                attachments: $attachments,
-                /**
-                 * A conversation that had photos stays with the provider that can
-                 * see. Rated on its own, "kan je niet op internet zoeken?" is an
-                 * easy question, went to the cheap blind model, and was answered
-                 * truthfully for that model — which reads as the assistant lying
-                 * about what it can do.
-                 */
-                needs_vision: $this->willLookAtPictures($request),
-                /** And a conversation that had a file stays with a provider that can open one. */
-                needs_documents: filled($conversation) && app(ConversationFiles::class)->has($conversation),
-                conversation: filled($conversation) ? $conversation : null,
-            );
-        } catch (ModelUnavailable $e) {
-            $this->remember($request, $user, $tools, failure: $this->explain($e));
-
-            return response()->json(['message' => $this->explain($e)], 503);
-        } catch (RuntimeException $e) {
-            $this->remember($request, $user, $tools, failure: $e->getMessage());
-
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
-
-        $this->remember($request, $user, $tools, answer: $answer->text, rounds: $answer->tool_rounds, cost: $answer->cost_micros);
-
-        return response()->json([
-            'answer' => $answer->text,
-            'tools' => $tools,
-            'pending' => $pending,
-            'choices' => $choices,
-            'findings' => $findings,
-            'unreadable' => array_values(array_unique($unreadable)),
-            'photos' => $photos,
-            'tours' => $tours,
-            /**
-             * Records the answer named that no tool returned. A prompt forbids
-             * inventing them and a prompt is not a guarantee, so this is checked
-             * and shown rather than trusted.
-             */
-            /**
-             * The web search's reading list counts as seen: a model number the
-             * model just read on a spec sheet is not an invention, and warning
-             * over it teaches people to scroll past the warning that matters.
-             */
-            'unverified' => app(ReferenceCheck::class)->report($answer->text, array_merge($seen, $answer->searched), $user->id),
-        ]);
+    public function ask(AssistantAskRequest $request, AssistantSession $session): JsonResponse
+    {
+        return $this->answer($request, $session, fn (TurnWatcher $watcher, string $conversation) => $session->ask(
+            user: $request->user(),
+            question: (string) $request->validated('question'),
+            watcher: $watcher,
+            conversation: $conversation,
+            page: $request->validated('page'),
+            history: $request->validated('history') ?? [],
+            uploaded_pictures: $this->imagesAsAttachments($request->validated('images') ?? []),
+            uploaded_files: $this->documentsAsAttachments($request->validated('documents') ?? []),
+        ));
     }
-
-    /**
-     * How hard to treat this question as being.
-     *
-     * The question decides, capped by what this person's tools could support:
-     * asking something that sounds like diagnosis is no reason to buy a clever
-     * model for somebody who can only reach a customer lookup.
-     *
-     * If the question cannot be read, the old behaviour stands — the hardest tool
-     * available. That errs expensive, which is the right direction for a fallback:
-     * a dear answer beats a poor one.
-     */
 
     /**
      * Picks the conversation back up after something was confirmed.
      *
      * Clicking the button is an answer, and until now nothing said so: the model
      * only found out on the next thing somebody typed, so a conversation that had
-     * just promised to add the task and plan a mechanic simply stopped. It knew
-     * what came next and had no way to be asked.
+     * just promised to add the task and plan a mechanic simply stopped.
      *
-     * The prompt is written here rather than sent by the browser. What was carried
-     * out is already in the history the box keeps, marked as done; this only says
-     * "carry on", so a client cannot use it to put words in the model's mouth.
+     * The prompt is written on the server rather than sent by the browser. What was
+     * carried out is already in the history the box keeps, marked as done; this
+     * only says "carry on", so a client cannot use it to put words in the model's
+     * mouth.
      */
-    public function proceed(
-        AssistantContinueRequest $request,
-        AssistantLoop $loop,
-        ToolRegistry $registry,
-        PageContext $pages,
-        ConversationFacts $facts,
-    ): JsonResponse {
-        /**
-         * Carrying on is not a fresh question, and what comes next is usually the
-         * step the assistant already named, so this keeps the capable model rather
-         * than pricing a sentence nobody wrote.
-         */
+    public function proceed(AssistantContinueRequest $request, AssistantSession $session): JsonResponse
+    {
+        return $this->answer($request, $session, fn (TurnWatcher $watcher, string $conversation) => $session->proceed(
+            user: $request->user(),
+            watcher: $watcher,
+            conversation: $conversation,
+            history: $request->validated('history'),
+            page: $request->validated('page'),
+        ));
+    }
+
+    /**
+     * One turn, asked or carried on, written down either way and answered with
+     * everything the box draws under it.
+     *
+     * @param  Closure(TurnWatcher, string): AssistantAnswer  $asking
+     */
+    private function answer(AssistantAskRequest|AssistantContinueRequest $request, AssistantSession $session, Closure $asking): JsonResponse
+    {
         $user = $request->user();
-        $tools = [];
-        $pending = [];
-        $choices = [];
-        $ignored = [];
-        $findings = [];
-        $unreadable = [];
-        $photos = [];
-        $tours = [];
         $conversation = (string) $request->validated('conversation');
-        $files = app(ConversationFiles::class);
 
         if ($this->isSomebodyElses($user, $conversation)) {
             return response()->json(['message' => 'Dat gesprek bestaat niet, of het is niet van jou.'], 404);
         }
 
-        try {
-            $answer = $loop->ask(
-                user: $user,
-                question: 'De actie hierboven is nu daadwerkelijk uitgevoerd. Ga verder met wat er nog '
-                    . 'open staat uit dit gesprek: is dat een volgende stap, zet die dan klaar. Is alles '
-                    . 'gedaan, zeg dan kort wat er nu staat en vraag of er nog iets moet gebeuren. '
-                    . 'Doe niets opnieuw wat al is uitgevoerd.',
-                system: $this->systemPrompt(),
-                context: $this->context(
-                    $user,
-                    $pages->describe($request->validated('page')),
-                    $facts->sentence($facts->for($request->validated('conversation'), $user)),
-                    $files->reminder($conversation),
-                ),
-                onTool: $this->toolWatcher(
-                    $tools,
-                    $pending,
-                    $choices,
-                    $ignored,
-                    fn (ToolResult $result) => $facts->learn($request->validated('conversation'), $user, $result),
-                    $findings,
-                    $unreadable,
-                    $photos,
-                    $tours,
-                ),
-                history: $request->validated('history'),
-                /**
-                 * A file goes back up after a click only until something was noted
-                 * from it. A signed offerte is worked through one click at a time,
-                 * and the steps near the end need lines from it that have long
-                 * scrolled out of the history — the lines, not the pages they
-                 * were printed on.
-                 */
-                attachments: $files->unnoted($conversation),
-                needs_vision: $this->willLookAtPictures($request),
-                needs_documents: $files->has($conversation),
-                conversation: filled($conversation) ? $conversation : null,
-            );
-        } catch (ModelUnavailable $e) {
-            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $this->explain($e), continuation: true);
+        $watcher = $session->watcher($user, $conversation);
 
-            return response()->json(['message' => $this->explain($e)], 503);
+        try {
+            $answer = $asking($watcher, $conversation);
+        } catch (AttachmentsUnreadable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (ModelUnavailable $e) {
+            $explained = $this->explain($e);
+            $this->remember($request, $watcher, failure: $explained);
+
+            return response()->json(['message' => $explained], 503);
         } catch (RuntimeException $e) {
-            $this->write($user, self::CARRIED_ON, $request->validated('page'), $tools, $request->validated('conversation'), failure: $e->getMessage(), continuation: true);
+            $this->remember($request, $watcher, failure: $e->getMessage());
 
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        $this->write(
-            $user,
-            self::CARRIED_ON,
-            $request->validated('page'),
-            $tools,
-            $request->validated('conversation'),
-            answer: $answer->text,
-            rounds: $answer->tool_rounds,
-            cost: $answer->cost_micros,
-            continuation: true,
-        );
+        $this->remember($request, $watcher, $answer);
 
         return response()->json([
             'answer' => $answer->text,
-            'tools' => $tools,
-            'pending' => $pending,
-            'choices' => $choices,
-            'tours' => $tours,
+            ...$watcher->toArray(),
+            /**
+             * Records the answer named that no tool returned. A prompt forbids
+             * inventing them and a prompt is not a guarantee, so this is checked
+             * and shown rather than trusted.
+             */
+            'unverified' => $session->unverified($answer, $watcher, $user),
         ]);
-    }
-
-    /**
-     * Watches the tool calls of one turn, and picks out anything the box has to
-     * put in front of somebody: an action waiting to be agreed to, or a choice
-     * waiting to be made.
-     *
-     * @param  array<int, array<string, mixed>>  $tools
-     * @param  array<int, array<string, mixed>>  $pending
-     * @param  array<int, array<string, mixed>>  $choices
-     * @param  array<int, array<string, mixed>>  $tours
-     */
-    private function toolWatcher(
-        array &$tools,
-        array &$pending,
-        array &$choices,
-        array &$seen = [],
-        ?Closure $learn = null,
-        array &$findings = [],
-        array &$unreadable = [],
-        array &$photos = [],
-        array &$tours = [],
-    ): Closure {
-        return function (
-            string $name,
-            array $arguments,
-            bool $failed,
-            ?ToolResult $result = null,
-        ) use (
-            &$tools,
-            &$pending,
-            &$choices,
-            &$seen,
-            $learn,
-            &$findings,
-            &$unreadable,
-            &$photos,
-            &$tours,
-        ) {
-            $tools[] = ['name' => $name, 'arguments' => $arguments, 'failed' => $failed];
-
-            if ($learn !== null && $result !== null) {
-                $learn($result);
-            }
-            $seen[] = $result?->toModelContent() ?? '';
-            $status = is_array($result?->content) ? ($result->content['status'] ?? null) : null;
-
-            if ($status === 'bevestiging_nodig') {
-                $pending[] = [
-                    'tool' => $name,
-                    'preview' => $result->content['preview'] ?? null,
-                    'arguments' => $result->content['proposed'] ?? [],
-                    'token' => $result->content['confirmation_token'],
-                ];
-            }
-
-            /**
-             * What was read off a photo, with how sure each part is. Collected
-             * like a choice: the box draws bars from the data rather than from
-             * the model remembering to phrase percentages in prose.
-             */
-            /**
-             * Merged across calls rather than kept per call. Grouped by call, six
-             * photos read in two batches drew two boxes holding an outdoor unit
-             * with one indoor unit, then a second indoor unit with an unrelated
-             * Tosot — a grouping that describes when the model spoke, not what it
-             * was looking at. The box groups these by machine instead.
-             */
-            /**
-             * Where the photos live, so a finding can be shown beside the picture
-             * it was read off. The box never sees a tool result, so the addresses
-             * have to travel with the answer.
-             */
-            foreach ($result?->content['images'] ?? [] as $photo) {
-                if (filled($photo['url'] ?? null)) {
-                    $photos[(int) $photo['image_id']] = $photo['url'];
-                }
-            }
-
-            if (is_array($result?->content) && isset($result->content['findings'])) {
-                $findings = array_merge($findings, $result->content['findings']);
-                $unreadable = array_merge($unreadable, $result->content['unreadable'] ?? []);
-            }
-
-            /**
-             * A rondleiding to start, as a button under the answer. Taken from the
-             * result, so the button starts exactly what the tool checked.
-             */
-            if (is_array($result?->content) && isset($result->content['tour_offer']) && !$failed) {
-                $tours[] = $result->content['tour_offer'];
-            }
-
-            if ($status === 'keuze_nodig') {
-                $choices[] = [
-                    'question' => $result->content['question'],
-                    'options' => $result->content['options'],
-                ];
-            }
-
-            /**
-             * A lookup can offer a choice of its own, without the model deciding to
-             * ask. Taken from the result rather than from what it says about it.
-             */
-            if (is_array($result?->content) && isset($result->content['choice']['options'])) {
-                $choices[] = [
-                    'question' => $result->content['choice']['question'] ?? 'Welke bedoel je?',
-                    'options' => $result->content['choice']['options'],
-                ];
-            }
-        };
     }
 
     /**
@@ -533,9 +208,9 @@ class AssistantController extends Controller
      * Continuations come too. Without them the thread reads oddly — an answer with
      * no question above it — and they are half of what was said.
      *
-     * Proposals and choices are deliberately not restored. Their approvals have
-     * expired and their moment has passed; offering a button that cannot work is
-     * worse than not offering one.
+     * Choices come back, so an answer that ends in "kies hieronder" still has
+     * something below it. Confirmations do not: their approvals have expired, and
+     * a button that cannot work is worse than none.
      */
     public function conversation(AssistantHistoryRequest $request, string $conversation): JsonResponse
     {
@@ -556,50 +231,23 @@ class AssistantController extends Controller
                 'answer' => $turn->answer,
                 'failure' => $turn->failure,
                 'tools' => $turn->tools ?? [],
+                'choices' => $turn->choices ?? [],
             ])->all(),
         ]);
     }
 
-    /**
-     * Carries out something already agreed to.
-     *
-     * No model runs here. The token holds the tool and its arguments, so what the
-     * person read is what happens — sending it back through the assistant would
-     * put a language model between the words on screen and the act they approved.
-     */
-    public function confirm(
-        AssistantConfirmRequest $request,
-        ToolExecutor $executor,
-        ConversationFacts $facts,
-    ): JsonResponse {
-        $user = $request->user();
-        $approval = ConfirmationToken::decode($request->validated('token'), $user);
+    public function confirm(AssistantConfirmRequest $request, AssistantSession $session): JsonResponse
+    {
+        $confirmed = $session->confirm($request->user(), $request->validated('token'));
 
-        if ($approval === null) {
-            return response()->json([
-                'message' => 'Deze bevestiging is verlopen of hoort niet bij jou. Stel de vraag opnieuw.',
-            ], 422);
+        if ($confirmed->result === null) {
+            return response()->json(['message' => $confirmed->message], 422);
         }
 
-        $result = $executor->run(new ToolCall(
-            name: $approval->tool,
-            arguments: $approval->arguments,
-            user: $user,
-            confirmation_token: $request->validated('token'),
-            conversation: $approval->conversation,
-        ));
-
-        /**
-         * The firmest fact there is. A person read it and agreed to it and the
-         * code carried it out, so the werkbon it just made is the werkbon this
-         * conversation is about — no lookup could establish that better.
-         */
-        $facts->learn($request->validated('conversation'), $user, $result);
-
         return response()->json([
-            'ok' => !$result->is_error,
-            'message' => $result->summary ?? ($result->is_error ? 'Het is niet gelukt.' : 'Gelukt.'),
-        ], $result->is_error ? 422 : 200);
+            'ok' => $confirmed->succeeded(),
+            'message' => $confirmed->message,
+        ], $confirmed->succeeded() ? 200 : 422);
     }
 
     /**
@@ -799,27 +447,6 @@ class AssistantController extends Controller
     }
 
     /**
-     * Whether this turn is going to end up looking at pictures.
-     *
-     * Decided before the first round because it cannot be decided later: an
-     * assistant turn carries the supplier's own raw content, so a conversation
-     * cannot change providers halfway. Parked photos are certain; the words are
-     * a guess, and a cheap one to get wrong — the cost of guessing yes is a
-     * dearer model, the cost of guessing no is a tool that has to refuse.
-     *
-     * Carrying on after a click asks it too, with no question of its own:
-     * typed for questions only, every step after a click died on the call.
-     */
-    private function willLookAtPictures(AssistantAskRequest|AssistantContinueRequest $request): bool
-    {
-        if (app(ConversationPhotos::class)->has((string) $request->validated('conversation'))) {
-            return true;
-        }
-
-        return NeedsEyes::inQuestion($request->validated('question'));
-    }
-
-    /**
      * Data-URLs into attachments, dropping anything that does not decode.
      *
      * The shape is already validated; this is the base64 itself. A corrupt image
@@ -910,53 +537,22 @@ class AssistantController extends Controller
      *
      * Never allowed to be the thing that breaks a question. Somebody who got
      * their answer should not see an error because writing it down failed.
-     *
-     * @param  array<int, array<string, mixed>>  $tools
      */
     private function remember(
-        AssistantAskRequest $request,
-        User $user,
-        array $tools,
-        ?string $answer = null,
+        AssistantAskRequest|AssistantContinueRequest $request,
+        TurnWatcher $watcher,
+        ?AssistantAnswer $answer = null,
         ?string $failure = null,
-        int $rounds = 0,
-        int $cost = 0,
     ): void {
-        $this->write(
-            $user,
-            $request->validated('question'),
-            $request->validated('page'),
-            $tools,
-            $request->validated('conversation'),
-            $answer,
-            $failure,
-            $rounds,
-            $cost,
-        );
-    }
+        $continuation = $request instanceof AssistantContinueRequest;
 
-    /**
-     * @param  array<int, array<string, mixed>>  $tools
-     */
-    private function write(
-        User $user,
-        string $question,
-        ?string $page,
-        array $tools,
-        ?string $conversation = null,
-        ?string $answer = null,
-        ?string $failure = null,
-        int $rounds = 0,
-        int $cost = 0,
-        bool $continuation = false,
-    ): void {
         try {
             AssistantQuestion::create([
-                'user_id' => $user->id,
-                'conversation_id' => $conversation,
-                'question' => $question,
+                'user_id' => $request->user()->id,
+                'conversation_id' => $request->validated('conversation'),
+                'question' => $continuation ? AssistantSession::CARRIED_ON : $request->validated('question'),
                 'is_continuation' => $continuation,
-                'answer' => $answer,
+                'answer' => $answer?->text,
                 'failure' => $failure === null ? null : mb_substr($failure, 0, 255),
                 /**
                  * The column holds 255 and the request accepts far more, so this
@@ -964,10 +560,15 @@ class AssistantController extends Controller
                  * swallows it and the question is not written down at all — lost
                  * over a detail that is only there for context.
                  */
-                'page' => mb_substr((string) $page, 0, 255) ?: null,
-                'tools' => array_column($tools, 'name'),
-                'rounds' => $rounds,
-                'cost_micros' => $cost,
+                'page' => mb_substr((string) $request->validated('page'), 0, 255) ?: null,
+                'tools' => array_column($watcher->tools, 'name'),
+                /**
+                 * Only with an answer: a turn that failed never showed its
+                 * pickers, and reopened later it must not offer them as live.
+                 */
+                'choices' => $answer === null || $watcher->choices === [] ? null : $watcher->choices,
+                'rounds' => $answer?->tool_rounds ?? 0,
+                'cost_micros' => $answer?->cost_micros ?? 0,
             ]);
         } catch (Throwable $e) {
             Log::error('Kon de vraag niet vastleggen', ['exception' => $e]);
@@ -982,224 +583,5 @@ class AssistantController extends Controller
             'unreachable' => 'De AI-dienst is niet bereikbaar. Probeer het zo nog eens.',
             default => 'De AI-dienst gaf een fout terug.',
         };
-    }
-
-    /**
-     * Frozen for everybody, every day: this sits behind the cache marker with the
-     * tool definitions, and a cached prefix only earns its keep while it stays
-     * byte-for-byte identical.
-     */
-    private function systemPrompt(): string
-    {
-        return implode("\n", [
-            'Je bent de assistent van Lavoro, een systeem voor installatie- en servicebedrijven.',
-            'Je schrijft altijd Nederlands.',
-            'Schrijf kort. Een antwoord is hooguit een paar regels tekst; alles wat opsombaar is',
-            'zet je in een opsomming of een tabel in plaats van in zinnen. Meerdere records met',
-            'dezelfde velden — machines met model en serienummer, producten met een nummer — horen',
-            'in een markdown-tabel, niet in lopende tekst.',
-            '',
-            'Vertel niet wat je gaat doen of aan het doen bent. Geen "ik ga even kijken", geen "laat',
-            'me dat opzoeken", geen "ik heb nu alle foto\'s gezien", geen samenvatting achteraf van',
-            'je eigen stappen. De gebruiker ziet zelf welke tools je aanroept. Begin met wat je',
-            'gevonden hebt.',
-            '',
-            'Zeg iets één keer. Staat het in een keuzeknop, een balkje met percentages of een',
-            'bevestigingsknop, dan hoort het niet nog eens in je tekst — noem hooguit de conclusie.',
-            'Herhaal aan het eind niet wat je hierboven al zei, en kondig geen knoppen aan die de',
-            'gebruiker al ziet staan.',
-            '',
-            'Zit je ernaast, dan corrigeer je het in één zin en ga je verder. Geen excuses, geen',
-            'uitleg over hoe het misging, geen herhaling van wat je eerder verkeerd zei. "Klopt,',
-            'het is X" is genoeg; de rest is ruis.',
-            '',
-            'Vraag aan het eind hooguit één ding, en alleen als je zonder dat antwoord niet verder',
-            'kunt. Geen rijtjes vervolgvragen.',
-            '',
-            'Gebruik de tools om echte gegevens op te halen. Verzin nooit een werkbonnummer,',
-            'klantnaam of datum: als je het niet uit een tool hebt, zeg je dat je het niet weet.',
-            '',
-            'Dat geldt net zo hard voor techniek. Wat een apparaat kan — capaciteit, bereik,',
-            'functies, en wat het verschil is tussen twee uitvoeringen — zeg je alleen op gezag',
-            'van wat er in het systeem staat: de omschrijving en kenmerken van het product, of',
-            'de documentatie die erbij hangt. Staat het daar niet, zeg dan dat het systeem het',
-            'niet vastlegt en dat het in de documentatie of bij de leverancier na te vragen is.',
-            'Vul het nooit aan uit algemene kennis: dat leest als een feit en er is al eens een',
-            'verzonnen "koudeuitvoering" op een werkbon afgestevend terwijl de letters alleen',
-            'een wifi-module bleken te betekenen. Gok in het bijzonder nooit wat letters of',
-            'cijfers in een typenummer betekenen.',
-            'Een tool geeft alleen terug wat deze gebruiker mag zien, dus een leeg resultaat',
-            'betekent "niets gevonden of niets zichtbaar", niet "het bestaat niet".',
-            '',
-            'Je kunt alleen bij wat je tools je geven, en je kunt niets wijzigen: je leest mee,',
-            'je voert niets uit. Word je iets gevraagd waar geen tool voor is, zeg dan in één zin',
-            'wat je wél kunt op dat vlak en wat niet, in plaats van te gokken of om meer uitleg',
-            'te vragen. Bijvoorbeeld: "Ik kan de tijdlijn van een werkbon doorzoeken, maar ik kan',
-            'geen offertes opstellen." Noem daarbij geen toolnamen; beschrijf het in gewone woorden.',
-            'Vraag alleen om verduidelijking als de vraag zelf onduidelijk is, niet als hij',
-            'duidelijk maar onmogelijk is.',
-            '',
-            'Verwijs je naar een record, maak er dan een link van in markdown, zodat de',
-            'gebruiker er meteen heen kan. Gebruik precies deze paden:',
-            '- werkbon: [#296](/serviceorders/296)',
-            '- storing: [#327](/tickets/327)',
-            '- machine: [#173](/assets/173)',
-            '- klant: [Bouwbedrijf Kreeft](/customers/4)',
-            '- project: [#12](/projects/12)',
-            '- onderhoudscontract: [#117](/maintenancecontracts/117)',
-            'Alleen voor records waarvan je het nummer echt uit een tool hebt. Verzin nooit',
-            'een link, en gebruik geen andere paden dan deze.',
-            '',
-            'Vul niet in wat iemand niet gezegd heeft. "Ik moet morgen een airco installeren bij die',
-            'klant" kan betekenen: laat zien wat er al staat, of maak iets nieuws aan. Ga dan niet',
-            'zes dingen opzoeken om te raden wat bedoeld wordt — vraag het, met ask_which_one, en',
-            'zoek daarna één keer het goede op. Datum, duur, monteur en product zijn ook geen dingen',
-            'om aan te nemen: die vraag je.',
-            '',
-            'Je mag internet raadplegen, maar alleen voor technische kennis die het systeem niet',
-            'heeft: specificaties, documentatie, wat een typecode betekent. Het systeem blijft',
-            'leidend — wat daar staat zoek je niet nog eens op. Zeg er bij alles wat van internet',
-            'komt bij dát het van internet komt en waarvandaan, en zoek nooit naar klanten of',
-            'personen.',
-            '',
-            'Kun je het merk en de bouwvorm zien maar het typeplaatje niet lezen, zoek dan op',
-            'internet welke modellen van dat merk die bouwvorm hebben en meld die als kandidaten,',
-            'met een percentage en de bron erbij. Dat is geen gokken: gokken is een typenummer',
-            'opschrijven dat je nergens vandaan hebt, kandidaten voorleggen is de gebruiker laten',
-            'kiezen uit wat er bestaat. Een monteur die het apparaat voor zich heeft, herkent zijn',
-            'model in twee tellen uit een rijtje van drie — hij kan niets met "ik kan het niet',
-            'lezen". Zeg dus nooit alleen dat het onleesbaar is: zoek en kom met opties.',
-            '',
-            'Je kunt geen foto op internet opzoeken, alleen tekst — maar dat hoeft ook niet: het',
-            'merk en de bouwvorm die je van de foto afleest zijn genoeg om op te zoeken. Zeg niet',
-            'dat je geen beeldherkenning hebt, want dat is niet wat er gevraagd wordt.',
-            '',
-            'Bekijk je een foto, meld dan altijd met report_findings wat je eruit haalt, per',
-            'onderdeel met een percentage — en meld ze in één keer, niet in rondes. Zwijgen omdat je '
-            . 'niet zeker bent is geen voorzichtigheid',
-            'maar nutteloosheid: een merk dat je op 70 procent herkent kan de gebruiker in één',
-            'seconde bevestigen, een weigering kan hij niets mee. Niets verzinnen en wél een',
-            'onzekere gok mélden met het percentage erbij zijn niet hetzelfde; het eerste blijft',
-            'verboden, het tweede is juist de bedoeling. Zeg er daarna in één zin bij wat je',
-            'conclusie is en welke foto het onzekerste deel zou oplossen.',
-            '',
-            'Krijg je foto\'s bij een vraag — meestal een typeplaatje — lees dan merk, type, model',
-            'en serienummer letterlijk af. Zoek eerst met find_products of het product al bestaat',
-            '(op merk); pas als het er echt niet staat maak je het aan met create_product, en',
-            'alleen met wat je van het plaatje of uit meegegeven documentatie hebt — verzin geen',
-            'kenmerken en gok niet wat lettercodes betekenen. Hoort de machine bij een klant,',
-            'registreer hem daarna met create_asset en het serienummer van het plaatje. Is iets',
-            'op de foto onleesbaar, zeg dan welk deel, in plaats van het in te vullen.',
-            '',
-            'Stel één vraag tegelijk. Moet je meerdere dingen weten, vraag dan eerst het meest',
-            'bepalende en bewaar de rest voor de volgende beurt — drie vragen in één bericht',
-            'krijgen halve antwoorden. Is het antwoord één van een handvol mogelijkheden (ook',
-            'bij een keuze tussen twee concrete dingen, zoals "op de bestaande werkbon" of "een',
-            'nieuwe"), leg die dan voor met ask_which_one in plaats van ze in tekst op te sommen:',
-            'de gebruiker krijgt dan knoppen. Kwam er bij een toolresultaat al een keuze met',
-            'knoppen mee, stel die vraag dan niet nog eens in tekst.',
-            '',
-            'Passen er meerdere records op wat iemand zoekt, som ze dan niet op maar leg de keuze',
-            'voor met ask_which_one. Een link alleen is niet genoeg: die gaat naar het record en',
-            'haalt de gebruiker daarmee uit het gesprek, en een antwoord als "de eerste" is niet',
-            'betrouwbaar te plaatsen. Geef bij elke keuze wel het pad mee in link, zodat iemand het',
-            'record kan bekijken voordat hij kiest.',
-            '',
-            'Wil je iets vastleggen of wijzigen, roep dan de bijbehorende tool aan zodra je de',
-            'gegevens hebt. Die tools wijzigen uit zichzelf nog niets: ze geven terug dat er',
-            'bevestiging nodig is, en het systeem legt de gebruiker een knop voor. Vraag nooit',
-            'zelf in tekst om toestemming zonder de tool aan te roepen — dan is er niets om te',
-            'bevestigen en gebeurt er ook niets. Vat na het aanroepen kort samen wat er zou',
-            'gebeuren, zodat de gebruiker weet waar hij ja op zegt.',
-            '',
-            'Staat er eerder in het gesprek "[al uitgevoerd]", dan is dat gebeurd en bestaat het.',
-            'Bied het niet opnieuw aan en roep de tool er niet nog eens voor aan: dat maakt een',
-            'tweede exemplaar. Verwijs naar het nummer dat je terugkreeg en ga verder met wat',
-            'er nog open staat.',
-            '',
-            'Roep een tool nooit twee keer voor dezelfde handeling in één antwoord.',
-            '',
-            'Hoort een afspraak bij een werkbon die nog niet bestaat, plan hem dan in één keer in',
-            'met create_service_order_for_customer_id. Twee losse acties worden namelijk twee losse',
-            'records: een werkbon zonder afspraak en een afspraak die bij niets hoort.',
-            '',
-            'Een werkbon zonder taken zegt niet wat er gedaan moet worden. Gaat het om plaatsen,',
-            'vervangen of leveren van apparatuur, vraag dan welk product het is en hoeveel, zoek',
-            'het product op zodat je het echte nummer hebt, en zet het als taak op de werkbon.',
-            'Vraag dat vóórdat je iets voorstelt: "installatie airco" is geen opdracht waar een',
-            'monteur mee op pad kan.',
-            '',
-            'Krijg je een getekende offerte of opdrachtbevestiging, dan zet je de klus daaruit op,',
-            'in deze volgorde. Elke stap die iets aanmaakt is één voorstel met één knop; stel de',
-            'volgende stap pas voor als de vorige is uitgevoerd, want die heeft het nummer nodig.',
-            'Een stap die al "[al uitgevoerd]" is sla je over.',
-            '1. Leg met note_file vast wat de stappen hierna uit de offerte nodig hebben: het',
-            '   offertenummer, de klant met adres, telefoon en e-mail, de regels met aantal, merk,',
-            '   soort, model en prijs, de levertijd ("installatie 2 - 3 weken na opdracht"), wat er',
-            '   over onderhoud staat (startjaar, frequentie, prijs) en de voorwaarden die de monteur',
-            '   moet weten. Na de eerste knop zie je de offerte zelf niet meer, alleen die',
-            '   aantekening. Een regel met aantal 0 is een optie die niet gekozen is: laat die weg.',
-            '   Begin je antwoord met een korte tabel: de klant met adres, de regels met aantal, en',
-            '   eronder de levertijd.',
-            '2. Klant: zoek met find_customer op de achternaam of bedrijfsnaam, met de plaats. Past',
-            '   er één, gebruik die. Past er niets, leg dan met ask_which_one de keuze voor: een',
-            '   nieuwe klant aanmaken met de gegevens van de offerte, of zoeken op een andere naam',
-            '   (stel er een of twee voor). Nieuw: create_customer.',
-            '3. Locatie: vraag met ask_which_one of het werk op het adres van de klant gebeurt of op',
-            '   een ander adres. Ander adres: create_location.',
-            '4. Producten: zoek elk apparaat van de offerte met find_products. Staat het er niet,',
-            '   maak het aan met create_product, met merk, soort en model zoals op de offerte.',
-            '   Montagemateriaal dat in de prijs zit, voorrijkosten en voorwaarden zijn geen product.',
-            '5. Werkbon: create_service_order met type installation als er apparatuur geleverd of',
-            '   geplaatst wordt, service bij onderhoud of storingen, mixed als het allebei is. Zet',
-            '   het offertenummer in de omschrijving, met de regels en voorwaarden die de monteur',
-            '   moet weten (meegeleverde meters leiding, meerprijzen, kleur).',
-            '6. Taken en machines: add_service_order_task met tasks, per product één taak',
-            '   "Leveren en monteren" met het aantal van de offerte, en register_machines. De',
-            '   machines komen dan op de taak met een tijdelijk serienummer dat de monteur bij het',
-            '   plaatsen invult; maak ze niet nog eens los aan met create_asset.',
-            '7. Planning: vraag hoeveel uur werk het is; dat staat niet op de offerte. Kies zelf de',
-            '   plangroep die bij het product past en zoek met find_available_technician, met',
-            '   plan_group, product_ids, job_type gelijk aan het type van de werkbon, en',
-            '   total_work_minutes. Noemt de offerte een levertijd, geef dan from_date mee:',
-            '   vandaag plus de kortste termijn (bij 2 - 3 weken: over 2 weken).',
-            '   Plan de gekozen optie in met create_event op de werkbon, één afspraak per dag.',
-            '8. Onderhoudscontract: staat dat op de offerte, vraag dan met ask_which_one of het',
-            '   aangemaakt moet worden. Ja: create_maintenance_contract met de machines uit stap 6',
-            '   en wat de offerte zegt over startjaar, frequentie en prijs.',
-            '9. Vraag met ask_which_one of de offerte zelf bij de werkbon bewaard moet worden.',
-            '   Ja: save_document.',
-            'Staat er "[niet gelukt]" bij een stap, dan is die stap niet uitgevoerd: zeg dat en',
-            'los het op voordat je verder gaat.',
-        ]);
-    }
-
-    /**
-     * Everything that changes per person, per day and per page, kept out of the
-     * system prompt so the cached prefix stays byte-for-byte identical.
-     */
-    private function context(User $user, string $page, string $settled = '', string $noted = ''): string
-    {
-        $lines = ['Je praat met ' . $user->name . '. Vandaag is ' . Clock::today() . '.'];
-
-        if ($page !== '') {
-            $lines[] = $page;
-        }
-
-        /**
-         * What earlier turns established, so the thread does not have to be held
-         * in prose. Prose came loose: a werkbon numbered #4 turned into customer
-         * #4 and the conversation carried on with the wrong company.
-         */
-        if ($settled !== '') {
-            $lines[] = $settled;
-        }
-
-        /** And what was taken from the files, so they need not go up again whole. */
-        if ($noted !== '') {
-            $lines[] = $noted;
-        }
-
-        return implode(' ', $lines);
     }
 }

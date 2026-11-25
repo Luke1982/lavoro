@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Appointments\ExecutionTimes;
+use App\Actions\Appointments\RegisterExecutionTimesAction;
 use App\Domain\Planning\Clock;
 use App\Domain\Signals\Appointments\ExecutionCancelled;
 use App\Domain\Signals\Appointments\ExecutionStarted;
@@ -115,18 +117,13 @@ class EventExecutionController extends Controller
 
     private function register(EventExecutionUpdateRequest $request, Event $event, User $executor): array
     {
-        $execution = $event->executionFor($executor->id);
-        $before = $execution->snapshot();
-
-        $execution->actual_start = $request->validated('actual_start');
-        $execution->actual_end = $request->validated('actual_end');
-        $execution->travel_time_minutes = (int) $request->validated('travel_time_minutes');
-        $execution->actual_breaktime_minutes = $request->validated('actual_breaktime_minutes');
-        $execution->signature_base64 = $request->validated('signature_base64');
-        $execution->completion_status = EventCompletionStatus::completed->value;
-        $execution->save();
-
-        Signals::dispatch(new ExecutionTimesRegistered($event, $executor, $before, $execution->snapshot()));
+        $execution = app(RegisterExecutionTimesAction::class)->execute(
+            $event,
+            $executor,
+            ExecutionTimes::fromValidated($request->validated()),
+            complete: true,
+            signature_base64: $request->validated('signature_base64'),
+        );
 
         return $this->payload($execution);
     }

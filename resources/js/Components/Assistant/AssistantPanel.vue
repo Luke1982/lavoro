@@ -470,6 +470,7 @@ import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import MarkdownText from '@/Components/UI/MarkdownText.vue'
 import { CHAT, HISTORY, PROMPTS, startOver, useAssistantThread } from '@/Composables/useAssistantThread.js'
 import { openImageLightbox } from '@/Utilities/lightbox.js'
+import { choiceAnswer, chosenOptions, historyFor } from '@/Utilities/assistantHistory.js'
 import { requestTour, isDesktop } from '@/Tours/engine'
 
 /**
@@ -779,20 +780,6 @@ const ASK_TIMEOUT_MS = 180000
 /** What this conversation is about: the first real question, skipping continuations. */
 const openingQuestion = computed(() => exchanges.value.find((exchange) => exchange.question)?.question ?? '')
 
-// What goes back to the model as history. The request rejects more, and a
-// follow-up needs what was just said rather than everything ever asked. Twelve,
-// because working through a signed offerte is a dozen steps of one thread.
-const REMEMBERED_EXCHANGES = 12
-
-// What stands in for the question on a step taken after a click; the server
-// records those turns under the same words.
-const CARRIED_ON = '(verder na bevestiging)'
-
-// The request refuses a longer answer than this, and a refusal would wedge the
-// conversation for good: every follow-up would fail on history it cannot change.
-// A long answer is worth less as context than the thread is worth alive.
-const REMEMBERED_ANSWER_CHARS = 8000
-
 const TOOL_LABELS = {
     find_customer: 'Klant opzoeken',
     search_service_orders: 'Werkbonnen zoeken',
@@ -928,14 +915,35 @@ async function loadHistory({ force = false } = {}) {
 }
 
 /**
+ * The choices of a reopened turn, in the state they were left in. Answered ones
+ * say what was picked, read back from the "Ik bedoel: …" the click sent; ones
+ * the conversation went past without answering are marked as such; and on the
+ * last turn an unanswered choice can still be clicked, because it still means
+ * what it meant.
+ */
+function reopenedChoices(choices, next) {
+    const offered = asChoices(choices)
+
+    if (!next) return offered
+
+    const answered = chosenOptions(offered, next.question)
+
+    return offered.map((choice, index) => answered[index]
+        ? { ...choice, chosen: answered[index].label, reference: answered[index].reference, sent: true }
+        : { ...choice, stale: true })
+}
+
+/**
  * Opens an old conversation and puts you back inside it.
  *
  * Filling the box with the first question was the wrong shape: it threw the thread
  * away and left somebody to type their way back to where they had been. The turns
  * come back so the next question is a follow-up, on the same conversation.
  *
- * Buttons from before are deliberately not restored. Their approvals expired with
- * them, and offering one that cannot work is worse than offering none.
+ * Confirmation buttons are deliberately not restored. Their approvals expired with
+ * them, and offering one that cannot work is worse than offering none. Choices
+ * are: they hold no approval, and an answer that ends in "kies hieronder" with
+ * nothing below it reads as broken. See reopenedChoices for how they come back.
  */
 async function reopen(thread) {
     loading_history.value = true
@@ -949,14 +957,14 @@ async function reopen(thread) {
         /** A reopened thread that once looked at photos still costs what it costs. */
         turns.forEach((turn) => notePhotoTools((turn.tools || []).map((name) => ({ name }))))
 
-        exchanges.value = turns.map((turn) => ({
+        exchanges.value = turns.map((turn, index) => ({
             question: turn.question,
             answer: turn.answer || '',
             error: turn.failure || '',
             tools: (turn.tools || []).map((name) => ({ name, failed: false })),
             pending: false,
             pendingActions: [],
-            choices: [],
+            choices: reopenedChoices(turn.choices, turns[index + 1]),
             unverified: [],
         }))
 
@@ -1110,7 +1118,7 @@ async function ask() {
     const asked = question.value.trim()
     if (asked.length < 2 || asking.value) return
 
-    const history = historyForModel()
+    const history = historyFor(exchanges.value)
 
     // A proposal nobody acted on before asking something else has been overtaken.
     // Left clickable it is a button that makes a second copy of something the
@@ -1181,16 +1189,7 @@ async function ask() {
          * never hears about the change and the warning stayed dark on exactly the
          * turns that cost the most.
          */
-        exchange.answer = data.answer
-        exchange.tools = data.tools || []
-        notePhotoTools(data.tools)
-        exchange.pendingActions = asActions(data.pending)
-        exchange.choices = asChoices(data.choices)
-        exchange.tours = data.tours || []
-        exchange.findings = data.findings || []
-        exchange.unreadable = data.unreadable || []
-        exchange.photos = data.photos || {}
-        exchange.unverified = data.unverified || []
+        takeResponse(exchange, data)
     } catch (e) {
         // A broad question can take a few rounds, so the wait is long on purpose.
         // Spinning for ever is not an option though: without this it never stops,
@@ -1240,7 +1239,7 @@ function choose(choice, option) {
     if ((owner?.choices || []).some((entry) => !entry.chosen && !entry.stale)) return
 
     answered.forEach((entry) => { entry.sent = true })
-    question.value = 'Ik bedoel: ' + answered.map((entry) => entry.chosen + ' (' + entry.reference + ')').join(' en ')
+    question.value = choiceAnswer(answered.map((entry) => ({ label: entry.chosen, reference: entry.reference })))
     ask()
 }
 
@@ -1272,27 +1271,18 @@ function startTourOffer(offer) {
     requestTour(offer.tour, offer.chapter)
 }
 
-/**
- * What the model is sent as the story so far, including what has been done.
- *
- * A step the assistant took by itself after a click counts as much as one
- * somebody asked for. Left out, a chain of confirmations forgets its own
- * middle: from the second click on, what the earlier clicks carried out is no
- * longer in the history, and "the action above" points at nothing.
- */
-function historyForModel() {
-    return exchanges.value
-        .filter((exchange) => exchange.answer || exchange.pendingActions.some((action) => action.done))
-        .slice(-REMEMBERED_EXCHANGES)
-        .map((exchange) => ({
-            question: exchange.question || CARRIED_ON,
-            answer: [
-                exchange.answer,
-                ...exchange.pendingActions
-                    .filter((action) => action.done)
-                    .map((action) => (action.failed ? '[niet gelukt] ' : '[al uitgevoerd] ') + action.done),
-            ].join('\n\n').slice(0, REMEMBERED_ANSWER_CHARS),
-        }))
+/** One turn's answer into its exchange: the same for a question as after a click. */
+function takeResponse(exchange, data) {
+    exchange.answer = data.answer
+    exchange.tools = data.tools || []
+    notePhotoTools(data.tools)
+    exchange.pendingActions = asActions(data.pending)
+    exchange.choices = asChoices(data.choices)
+    exchange.tours = data.tours || []
+    exchange.findings = data.findings || []
+    exchange.unreadable = data.unreadable || []
+    exchange.photos = data.photos || {}
+    exchange.unverified = data.unverified || []
 }
 
 /**
@@ -1307,7 +1297,7 @@ async function confirmAction(action) {
 
     try {
         await axios.get('/sanctum/csrf-cookie')
-        const { data } = await axios.post('/assistant/confirm', { token: action.token, conversation: conversation.value })
+        const { data } = await axios.post('/assistant/confirm', { token: action.token })
         action.done = data.message
         proceed()
     } catch (e) {
@@ -1331,7 +1321,7 @@ async function confirmAction(action) {
 async function proceed() {
     if (asking.value) return
 
-    const history = historyForModel()
+    const history = historyFor(exchanges.value)
 
     if (!history.length) return
 
@@ -1346,13 +1336,7 @@ async function proceed() {
             { page: window.location.pathname, history, conversation: conversation.value },
             { timeout: ASK_TIMEOUT_MS },
         )
-        exchange.answer = data.answer
-        exchange.tools = data.tools || []
-        notePhotoTools(data.tools)
-        exchange.pendingActions = asActions(data.pending)
-        exchange.choices = asChoices(data.choices)
-        exchange.tours = data.tours || []
-        exchange.unverified = data.unverified || []
+        takeResponse(exchange, data)
     } catch (e) {
         // Nothing was lost if this fails: the action itself already happened, and
         // the next thing typed picks the thread up anyway.

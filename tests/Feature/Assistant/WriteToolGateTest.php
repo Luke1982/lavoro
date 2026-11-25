@@ -120,7 +120,7 @@ class WriteToolGateTest extends TestCase
          * The records those arguments point at are made first, so the count below
          * is of what the tools wrote rather than of what this test set up.
          */
-        $plausible = $writers->mapWithKeys(fn ($tool) => [$tool::name() => $this->plausibleFor($tool::name())]);
+        $plausible = $writers->mapWithKeys(fn ($tool) => [$tool::name() => $this->plausibleFor($tool::name(), $user)]);
 
         $before = $this->tally();
         $gated = 0;
@@ -174,7 +174,7 @@ class WriteToolGateTest extends TestCase
 
             $result = app(ToolExecutor::class)->run(new ToolCall(
                 $tool::name(),
-                $this->plausibleFor($tool::name()),
+                $this->plausibleFor($tool::name(), $user),
                 $user,
                 conversation: $this->conversationWithAFile(),
             ));
@@ -201,7 +201,7 @@ class WriteToolGateTest extends TestCase
             $this->assertStringContainsString('nog niets gewijzigd', $result->content['note'] ?? '');
         }
 
-        $this->assertSame(13, $proposed, 'a write tool was added or lost without this test noticing');
+        $this->assertSame(18, $proposed, 'a write tool was added or lost without this test noticing');
     }
 
     /**
@@ -210,7 +210,7 @@ class WriteToolGateTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private function plausibleFor(string $tool): array
+    private function plausibleFor(string $tool, User $user): array
     {
         $customer = Customer::factory()->create();
 
@@ -233,6 +233,7 @@ class WriteToolGateTest extends TestCase
             'create_product' => [
                 'brand' => 'Mitsubishi Heavy',
                 'product_type' => 'Airco binnendeel',
+                'new_product_type' => true,
                 'model' => 'SRK 25 ZS-WF',
             ],
             'create_asset' => [
@@ -244,11 +245,11 @@ class WriteToolGateTest extends TestCase
                 'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
                 'description' => 'Filter vervangen',
             ],
-            'create_customer' => ['name' => 'Spee ' . Str::random(8)],
+            'create_customer' => ['name' => 'Klant ' . Str::random(8)],
             'create_location' => [
                 'customer_id' => $customer->id,
                 'title' => 'Woonhuis',
-                'address' => 'Greveslag 52',
+                'address' => 'Dorpsstraat 1',
             ],
             'create_maintenance_contract' => [
                 'customer_id' => $customer->id,
@@ -281,6 +282,41 @@ class WriteToolGateTest extends TestCase
                 'version' => 1,
                 'contract_ids' => [MaintenanceContract::factory()->create(['customer_id' => $customer->id])->id],
             ],
+            'change_event' => [
+                'event_id' => Event::factory()->create([
+                    'event_type_id' => EventType::firstOrCreate(['name' => 'Onderhoud'])->id,
+                    'start' => Clock::fromLocal(Clock::todayAsDate()->addDay()->toDateString() . ' 08:00'),
+                    'end' => Clock::fromLocal(Clock::todayAsDate()->addDay()->toDateString() . ' 10:00'),
+                ])->id,
+                'action' => 'verplaatsen',
+                'starts_at' => Clock::todayAsDate()->addDays(2)->toDateString() . ' 09:00',
+            ],
+            'change_maintenance_contracts' => [
+                'contract_ids' => [MaintenanceContract::factory()->create(['customer_id' => $customer->id, 'price' => 100])->id],
+                'increase_percent' => 4,
+            ],
+            'book_materials' => [
+                'service_order_id' => ServiceOrder::factory()->create(['customer_id' => $customer->id])->id,
+                'lines' => [['description' => 'Kitkoker wit', 'quantity' => 1]],
+            ],
+            'register_hours' => [
+                'event_id' => tap(Event::factory()->create([
+                    'event_type_id' => EventType::firstOrCreate(['name' => 'Onderhoud'])->id,
+                    'start' => Clock::fromLocal(Clock::todayAsDate()->toDateString() . ' 08:00'),
+                    'end' => Clock::fromLocal(Clock::todayAsDate()->toDateString() . ' 16:30'),
+                ]), fn (Event $event) => $event->executingUsers()->attach($user->id, ['type' => 'executing']))->id,
+                'start' => '08:00',
+                'end' => '16:30',
+                'break_minutes' => 30,
+            ],
+            'draft_quote' => [
+                'customer_id' => $customer->id,
+                'title' => 'Twee extra binnendelen',
+                'lines' => [
+                    ['product_id' => Product::factory()->create(['active' => true])->id, 'quantity' => 2],
+                    ['description' => 'Montage in de lobby'],
+                ],
+            ],
             default => [],
         };
     }
@@ -297,7 +333,7 @@ class WriteToolGateTest extends TestCase
             $this->conversation = (string) Str::uuid();
 
             app(ConversationFiles::class)->stash($this->conversation, [new Attachment(
-                name: 'Offerte 55420.pdf',
+                name: 'Offerte 10001.pdf',
                 media_type: 'application/pdf',
                 base64: base64_encode('%PDF-1.4 offerte'),
             )]);

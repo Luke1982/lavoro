@@ -10,7 +10,7 @@ class EventSendStandardEmailRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('update', $this->route('event'));
+        return (bool) $this->user()?->can('sendStandardEmail', $this->route('event'));
     }
 
     public function rules(): array

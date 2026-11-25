@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesServiceOrderAlongside;
 use App\Http\Requests\Concerns\ResolvesEventLocation;
+use App\Models\Event;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EventUpdateRequest extends FormRequest
@@ -16,15 +18,9 @@ class EventUpdateRequest extends FormRequest
         $event = $this->route('event');
         $user = $this->user();
 
-        if (!$user || !$event || !$this->mayCreateServiceOrderAlongside($user)) {
-            return false;
-        }
-
-        if ($user->isAdmin() || $user->hasPermission('event.update_others')) {
-            return true;
-        }
-
-        return $user->hasPermission('event.update') && $event->hasExecutingUser($user->id);
+        return $user && $event
+            && $this->mayCreateServiceOrderAlongside($user)
+            && $user->can('update', $event);
     }
 
     public function rules(): array
@@ -57,5 +53,32 @@ class EventUpdateRequest extends FormRequest
             'customer_id' => ['sometimes', 'required_if:create_service_order,true', 'nullable', 'exists:customers,id'],
             'service_order_customer_action' => ['sometimes', 'nullable', 'in:move'],
         ];
+    }
+
+    /**
+     * Whether this asks for new times and nothing else: what the planner sends
+     * when an appointment is dragged or stretched. That is a move, which
+     * MoveAppointmentAction makes, diverging times shifting along included.
+     */
+    public function changesOnlyTheTimes(): bool
+    {
+        $keys = array_keys($this->validated());
+
+        return $keys !== [] && array_diff($keys, ['start', 'end']) === [];
+    }
+
+    /**
+     * The new start and end, sent in UTC as the planner sends them, with the
+     * one not sent kept as it is.
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    public function times(Event $event): array
+    {
+        $at = fn (string $key) => $this->validated($key) === null
+            ? CarbonImmutable::parse($event->{$key})
+            : CarbonImmutable::createFromFormat('!Y-m-d H:i', $this->validated($key), 'UTC');
+
+        return [$at('start'), $at('end')];
     }
 }

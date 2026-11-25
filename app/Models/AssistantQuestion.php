@@ -22,12 +22,14 @@ class AssistantQuestion extends Model
         'failure',
         'page',
         'tools',
+        'choices',
         'rounds',
         'cost_micros',
     ];
 
     protected $casts = [
         'tools' => 'array',
+        'choices' => 'array',
         'is_continuation' => 'boolean',
     ];
 
