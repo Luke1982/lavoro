@@ -13,28 +13,28 @@
             "end": 6.616
         },
         {
-            "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment valt op een weekdag, \"elke week\" of \"om de week\". Het duurt een hele dag of een deel ervan.",
-            "hash": "1defcf3e5eb82bcfabbea47a2c2a93897373c5e7",
+            "text": "Die blokken komen uit het rooster van de monteur. Een vast vrij moment valt op een weekdag, \"elke week\" of \"om de week\", en duurt een hele dag of een deel ervan.",
+            "hash": "95c2f60909f61761c9d2334a381a53a24f0d66bf",
             "start": 7.616,
-            "end": 17.25
+            "end": 16.719
         },
         {
-            "text": "Daaronder staan de losse vrije dagen. Dat is één datum of een hele periode, zoals een vakantie.",
-            "hash": "fcf7757df120e93575e283cf1478828d06a4672c",
-            "start": 18.25,
-            "end": 23.782
+            "text": "Daaronder staan de losse vrije dagen: één datum, of een hele periode, zoals een vakantie.",
+            "hash": "7f468346f2dbb6bc9302ad92e68bccac7042fa78",
+            "start": 17.719,
+            "end": 22.997
         },
         {
-            "text": "Plannen over een blokkade heen kan alleen als de beheerder dat heeft toegestaan. Dan vraagt de planner eerst of je het zeker weet.",
-            "hash": "993da62da29570933fcdd4dc7d0d3f1d6e323399",
-            "start": 24.782,
-            "end": 31.661
+            "text": "Plannen over een blokkade heen? Dat kan alleen als de beheerder het heeft toegestaan, en dan vraagt de planner eerst of je het zeker weet.",
+            "hash": "d0d214abe42c44042d6efc2e02c6ec6f6b0ec18e",
+            "start": 23.997,
+            "end": 32.008
         },
         {
-            "text": "Wil je je eigen rooster invullen? Klik dan op \"naar mijn rooster\". Daar gaat de rondleiding verder.",
-            "hash": "7117465c4c30d734dd93987faf5a349991d1d36c",
-            "start": 32.661,
-            "end": 37.451
+            "text": "Wil je je eigen rooster invullen? Klik dan op \"naar mijn rooster\", want daar gaat de rondleiding verder.",
+            "hash": "739e039f53b802fe6c8f522ef1fe304ca7b73163",
+            "start": 33.008,
+            "end": 38.29
         }
     ]
 }

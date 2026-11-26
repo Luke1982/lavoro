@@ -7,28 +7,28 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Het bakje is een plek om iets even neer te leggen voor later. Op de storingenlijst en bij een machine staat de knop \"op het bakje\". Wat je erop legt ligt daarna rechtsonder klaar, op elke pagina.",
-            "hash": "3440085d32a06d89b889d0f2fd0333e6153bc379",
+            "text": "Het bakje is een plek om iets even neer te leggen, voor later. Op de storingenlijst en bij een machine staat de knop \"op het bakje\". Wat je erop legt, ligt daarna rechtsonder klaar, op elke pagina.",
+            "hash": "0c0a90b7d2b887a6598de9178675f459f12c71ad",
             "start": 0,
-            "end": 11.364
+            "end": 12.249
         },
         {
-            "text": "Sleep het van het bakje naar de rij van een monteur. Laat los op het tijdstip waarop het werk begint. Er komt dan een afspraak met de standaardduur.",
-            "hash": "091b09d77239b0fec12ea49d488c983857963d06",
-            "start": 12.364,
-            "end": 21.051
+            "text": "Sleep het van het bakje naar de rij van een monteur, en laat los op het tijdstip waarop het werk begint. Dan komt er een afspraak, met de standaardduur.",
+            "hash": "11e24eb344f29639b1eb42f2632885cd69050e04",
+            "start": 13.249,
+            "end": 21.63
         },
         {
-            "text": "Dan kies je op welke werkbon de storing komt. Dat kan een nieuwe werkbon zijn, of één die al open staat. Staat de storing al op een werkbon? Dan wordt die ingepland.",
-            "hash": "75d7fd80351f0c9c7e0aae573c94d69a4409ec5b",
-            "start": 22.051,
-            "end": 30.85
+            "text": "Daarna kies je op welke werkbon de storing komt: een nieuwe, of één die al open staat. Staat de storing al op een werkbon? Dan wordt die ingepland.",
+            "hash": "f43ee63ed6caa335d1c3d77470edd2b8be9b70b3",
+            "start": 22.63,
+            "end": 31.961
         },
         {
-            "text": "Moeten de storingen op een stapel niet allemaal naar dezelfde werkbon? Dan kies je per storing waar hij heen gaat. Kies je \"niet inplannen\", dan blijft die storing op het bakje liggen.",
-            "hash": "74efa6d6c491b143cd3ade72d7499264a0ac492c",
-            "start": 31.85,
-            "end": 42.196
+            "text": "Moeten de storingen op een stapel niet allemaal naar dezelfde werkbon? Dan kies je per storing waar hij heen gaat. En kies je \"niet inplannen\", dan blijft die storing gewoon op het bakje liggen.",
+            "hash": "f1d16e61112007cccf86259afa98dd7e16675c2e",
+            "start": 32.961,
+            "end": 43.582
         }
     ]
 }

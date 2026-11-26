@@ -7,22 +7,22 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Een afspraak kan op meer monteurs tegelijk staan. Je ziet hem dan in elke rij, met een stippellijn eromheen en een slotje. Schuif je hem naar een andere tijd? Dan gaat hij voor iedereen mee. Monteurs zet je erbij of haal je eraf met de rechtermuisknop.",
-            "hash": "94f490f8b0be6ed39dd57a34620bae9ae8c26e64",
+            "text": "Een afspraak kan op meer monteurs tegelijk staan. Je ziet hem dan in elke rij, met een stippellijn eromheen en een slotje. Schuif je hem naar een andere tijd? Dan gaat hij voor iedereen mee. Met de rechtermuisknop zet je monteurs erbij, of haal je ze eraf.",
+            "hash": "e2ac77fe8b2c63823de2379df5858f99c471dd64",
             "start": 0,
-            "end": 14.789
+            "end": 15.113
         },
         {
-            "text": "Overlappen twee afspraken van dezelfde monteur? Dan wordt het dubbele stuk rood gestreept. Erop staat hoe lang de overlap duurt.",
-            "hash": "22411c9e9245b372247489db8e66bf13b129f72e",
-            "start": 15.789,
-            "end": 23.229
+            "text": "Overlappen twee afspraken van dezelfde monteur? Dan wordt het dubbele stuk rood gestreept, met erop hoe lang de overlap duurt.",
+            "hash": "273f89960426ff20a9efd98f5a2c874640771d98",
+            "start": 16.113,
+            "end": 23.089
         },
         {
             "text": "Klik je op het gestreepte stuk? Dan vraagt de planner welke afspraak je wilt openen.",
             "hash": "4e2ef6ebad44ac161b9c21407011c0adee7d67fa",
-            "start": 24.229,
-            "end": 28.539
+            "start": 24.089,
+            "end": 28.399
         }
     ]
 }

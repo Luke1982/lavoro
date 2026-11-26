@@ -7,34 +7,34 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Moet een klus vaker gebeuren? Klik met de rechtermuisknop op de afspraak en kies \"kopiëren\".",
-            "hash": "090661efd71937202c6223627a7eb9a959e60270",
+            "text": "Moet een klus vaker gebeuren? Klik dan met de rechtermuisknop op de afspraak, en kies \"kopiëren\".",
+            "hash": "3f81773810ba54dedde181c41a545209745ea625",
             "start": 0,
-            "end": 5.266
+            "end": 5.476
         },
         {
             "text": "Met \"naar morgen\" zet je hem één dag later neer, op dezelfde tijd.",
             "hash": "e9776c83ace93cd4dbb95fb86afc4ed8290870fa",
-            "start": 6.266,
-            "end": 9.806
+            "start": 6.476,
+            "end": 10.016
         },
         {
-            "text": "Met \"rest van de week\" komt hij op elke werkdag die deze week nog over is.",
-            "hash": "056eaad0cda1e222d191edf4ad25abc64bf76baf",
-            "start": 10.806,
-            "end": 14.802
+            "text": "Met \"rest van de week\" komt hij op elke werkdag die er deze week nog over is.",
+            "hash": "89baed40e87067e05454a6094602928cff4caaba",
+            "start": 11.016,
+            "end": 15.911
         },
         {
-            "text": "Met \"naar volgende week\" zet je hem precies één week later.",
-            "hash": "39ccaa1e7f5821f860d7fab2285d8ef1bc8850e1",
-            "start": 15.802,
-            "end": 19.408
+            "text": "En met \"naar volgende week\" staat hij precies één week later.",
+            "hash": "bc0cafda3621770da190b9c938793284bf466d17",
+            "start": 16.911,
+            "end": 20.164
         },
         {
             "text": "Je kunt ook zelf een datum kiezen, tot één jaar voor of na de afspraak. De tijd blijft gelijk, ook als de zomertijd ertussen zit.",
             "hash": "1098ae21fdb07f10e6b330fc98ab383a878bac31",
-            "start": 20.408,
-            "end": 27.531
+            "start": 21.164,
+            "end": 28.287
         }
     ]
 }

@@ -13,34 +13,34 @@
             "end": 3.203
         },
         {
-            "text": "Bovenaan de lijst zoek je een werkbon op nummer of klant. Een plaats of omschrijving werkt ook.",
-            "hash": "b25d07b803685021fc72346368245629abefc768",
+            "text": "Bovenaan de lijst zoek je een werkbon op, op nummer of klant. Een plaats of omschrijving werkt ook.",
+            "hash": "4ae663ac7827f2bdd33ff166ee7fc45f7d398c79",
             "start": 4.203,
-            "end": 9.832
+            "end": 9.797
         },
         {
-            "text": "Sleep een werkbon naar de rij van een monteur. Laat hem los op het tijdstip waarop het werk begint. Er staat meteen een afspraak met de standaardduur.",
-            "hash": "a2f18215ec216755400bbce60710275f1685e618",
-            "start": 10.832,
-            "end": 18.795
+            "text": "Sleep een werkbon naar de rij van een monteur, en laat hem los op het tijdstip waarop het werk begint. Er staat meteen een afspraak, met de standaardduur.",
+            "hash": "0d240afdbbd908bc881839afb457f26ca7aef112",
+            "start": 10.797,
+            "end": 19.217
         },
         {
-            "text": "Met de rechtermuisknop open of verwijder je een werkbon. Bij verwijderen vraagt de planner eerst of je het zeker weet.",
-            "hash": "023feae397e6884822e796b89160e8d2c640de02",
-            "start": 19.795,
-            "end": 26.273
+            "text": "Met de rechtermuisknop open je een werkbon, of verwijder je hem. Verwijderen? Dan vraagt de planner eerst of je het zeker weet.",
+            "hash": "f4554d44ee07147671c54b0475905245dbb6ab82",
+            "start": 20.217,
+            "end": 27.358
         },
         {
-            "text": "Werkbonnen uit een onderhoudscontract staan standaard niet in de lijst, omdat het er vaak veel zijn. Met deze schakelaar zet je ze erbij.",
-            "hash": "b34f1fd282ff2c62a5e49d27a0d89e82aeb9995a",
-            "start": 27.273,
-            "end": 34.789
+            "text": "Werkbonnen uit een onderhoudscontract staan standaard niet in de lijst, want het zijn er vaak veel. Met deze schakelaar zet je ze erbij.",
+            "hash": "b20e66945918642e51a821ae57829874f06ade16",
+            "start": 28.358,
+            "end": 35.538
         },
         {
-            "text": "Hoort een werkbon bij een lopend project? Dan hangt hij onder de balk van dat project. Ook die sleep je zo naar een monteur.",
-            "hash": "1d9c70e5b3368d24562abbd87a3a34062e4817b2",
-            "start": 35.789,
-            "end": 42.301
+            "text": "Hoort een werkbon bij een lopend project? Dan hangt hij onder de balk van dat project, en ook die sleep je zo naar een monteur.",
+            "hash": "8e6e88e04cfd9e434e4bd58015943386f2bbc5fa",
+            "start": 36.538,
+            "end": 43.118
         }
     ]
 }

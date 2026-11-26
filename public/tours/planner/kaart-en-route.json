@@ -19,22 +19,22 @@
             "end": 8.389
         },
         {
-            "text": "In de rij van een monteur staat zijn laatste locatie op een kleine kaart. Met het pijltje maak je hem groter.",
-            "hash": "8292c8493a05936238f390e6673aecf50dedd4d2",
+            "text": "In de rij van een monteur staat zijn laatste locatie, op een kleine kaart. Met het pijltje maak je hem groter.",
+            "hash": "c35645c3fab494bef9cbdadb8fc8528a60414f4b",
             "start": 9.389,
-            "end": 15.508
+            "end": 15.309
         },
         {
-            "text": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\". Die opent de route in Google Maps.",
-            "hash": "7ea7c55360f86621c4797e9ccebbda49337d633e",
-            "start": 16.508,
-            "end": 22.528
+            "text": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\", en die opent de route in Google Maps.",
+            "hash": "2625f2e4bd503a6b1c80f9b6a14888570cb8a066",
+            "start": 16.309,
+            "end": 23.057
         },
         {
-            "text": "Een route maak je op de kaart van de keuringen of van de storingen. Zet je hem in de planning, dan verschijnt hij hier bij de monteur.",
-            "hash": "c20597b37610c53e62cc9da9ce53af5493bbc115",
-            "start": 23.528,
-            "end": 30.233
+            "text": "Een route maak je op de kaart van de keuringen, of van de storingen. Zet je hem in de planning? Dan verschijnt hij hier, bij de monteur.",
+            "hash": "d96753bd9f57027bf75a2065dfe78ee3b555de71",
+            "start": 24.057,
+            "end": 31.332
         }
     ]
 }

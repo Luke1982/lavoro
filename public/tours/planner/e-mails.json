@@ -7,46 +7,46 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Open je een afspraak die er al staat? Dan zie je onderaan het kopje \"E-mail\". Daar stuur je de klant een standaard e-mail. De datum, de tijd en de klant staan er al in.",
-            "hash": "45375c6d665af00acc56c82678e5f7661047bcd4",
+            "text": "Open je een afspraak die er al staat? Dan zie je onderaan het kopje \"E-mail\". Daar stuur je de klant een standaard e-mail, met de datum, de tijd en de klant er al in.",
+            "hash": "5dbeae9f6386981aaad913cde9c877f963f8a7c5",
             "start": 0,
-            "end": 9.356
+            "end": 9.579
         },
         {
-            "text": "Kies hier welke e-mail je wilt sturen. Bijvoorbeeld een bevestiging of een herinnering.",
-            "hash": "14d358b7da1c075de36e09a75f9c557e950a1ffc",
-            "start": 10.356,
-            "end": 14.694
+            "text": "Kies hier welke e-mail je wilt sturen, bijvoorbeeld een bevestiging of een herinnering.",
+            "hash": "6cb297083a793d3708ad1243c4b5cbba078a5fe7",
+            "start": 10.579,
+            "end": 14.48
         },
         {
-            "text": "Met het envelopje zie je de mail eerst, met alles al ingevuld. Pas aan wat nodig is. Klik dan op \"versturen\".",
-            "hash": "f241457d3e8d381039af27a6c62536496fba8cf6",
-            "start": 15.694,
-            "end": 22.36
+            "text": "Met het envelopje zie je de mail eerst, met alles al ingevuld. Pas aan wat nodig is, en klik dan op \"versturen\".",
+            "hash": "85e7eb7687c98aa2721cae2ef28dc724dc23d23f",
+            "start": 15.48,
+            "end": 21.804
         },
         {
-            "text": "Met het pijltje gaat de mail meteen naar de klant. Je ziet hem dan niet eerst.",
-            "hash": "e9d5905ef7e0116cd2003a391e75909b4fef9e16",
-            "start": 23.36,
-            "end": 26.843
+            "text": "Met het pijltje gaat de mail meteen naar de klant, zonder dat je hem eerst ziet.",
+            "hash": "de8b1705918c08c18b9afd0311ce2f68d0271de4",
+            "start": 22.804,
+            "end": 27.296
         },
         {
-            "text": "Hier zie je welke mails er al zijn verstuurd. Met \"opnieuw versturen\" stuur je er een nog een keer.",
-            "hash": "9f3a42e49eaa0da4792d7085d5e20ecea8d3b78c",
-            "start": 27.843,
-            "end": 33.837
+            "text": "Hier zie je welke mails er al zijn verstuurd. Met \"opnieuw versturen\" stuur je er nog een keer een.",
+            "hash": "1947d608a58da4dff8c5fae075fc45446a99d5c3",
+            "start": 28.296,
+            "end": 34.167
         },
         {
-            "text": "Een e-mail kan ook vanzelf gaan. Bijvoorbeeld als je een afspraak maakt of verzet. Moet je hem eerst zien? Dan laat de planner hem na het opslaan zien. Jij kiest dan of hij weggaat.",
-            "hash": "b6c6cbd10801ebe0e13dcf2ef7aa280cdad509cb",
-            "start": 34.837,
-            "end": 45.169
+            "text": "Een e-mail kan ook vanzelf gaan, bijvoorbeeld als je een afspraak maakt of verzet. Moet je hem eerst zien? Dan laat de planner hem na het opslaan zien, en kies jij of hij weggaat.",
+            "hash": "71afca9e758887af76ef76fce4806c72a86d87fc",
+            "start": 35.167,
+            "end": 44.899
         },
         {
-            "text": "De e-mails zelf schrijf je bij \"standaard e-mails\". Daar kies je ook wanneer ze vanzelf gaan. Die pagina heeft een eigen rondleiding.",
-            "hash": "04b13783049e00208f637ad024ced90fd4b4fd55",
-            "start": 46.169,
-            "end": 53.725
+            "text": "De e-mails zelf schrijf je bij \"standaard e-mails\", en daar kies je ook wanneer ze vanzelf gaan. Die pagina heeft een eigen rondleiding.",
+            "hash": "6acc71cd45504155f226ff96d2d2f1dbe6251c19",
+            "start": 45.899,
+            "end": 52.792
         }
     ]
 }

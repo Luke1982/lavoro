@@ -13,34 +13,34 @@
             "end": 4.592
         },
         {
-            "text": "Klik op \"toevoegen\". Geef de groep een naam en een kleur. Druk dan op enter.",
-            "hash": "5c6648f43516360cfc5eb65ee3384d7d2efa1e01",
+            "text": "Klik op \"toevoegen\", geef de groep een naam en een kleur, en druk op enter.",
+            "hash": "bf0321bc856bf563c088dfc48d2352f4b36f44be",
             "start": 5.592,
-            "end": 9.61
+            "end": 10.034
         },
         {
-            "text": "Klik op een naam om hem te wijzigen. Sleep een groep omhoog of omlaag om de volgorde te veranderen.",
-            "hash": "634a427c2c013bc023be9b1858cf893d66ddbf81",
-            "start": 10.61,
-            "end": 16.296
+            "text": "Klik op een naam om hem te wijzigen. Wil je de volgorde veranderen? Sleep een groep dan omhoog of omlaag.",
+            "hash": "085b1c07ebbb4256fbed88cc77328f8b667ba140",
+            "start": 11.034,
+            "end": 16.992
         },
         {
-            "text": "Bij elke monteur staat een gekleurd vakje per groep. Klik het aan of weer uit. Iemand kan in meer groepen zitten.",
-            "hash": "b2bc6abb9382342110abe48e2d762f96389000ef",
-            "start": 17.296,
-            "end": 23.34
+            "text": "Bij elke monteur staat een gekleurd vakje per groep. Klik het aan, of weer uit. Iemand kan ook in meer groepen zitten.",
+            "hash": "8585c90c0335219fb8e5798945fc0714bb8534c6",
+            "start": 17.992,
+            "end": 24.473
         },
         {
             "text": "Met het vinkje helemaal rechts bepaal je of iemand een rij in de planner krijgt.",
             "hash": "7ee40d5be3a0aa3f2804f9601fe253618dc1058d",
-            "start": 24.34,
-            "end": 28.601
+            "start": 25.473,
+            "end": 29.734
         },
         {
-            "text": "In de planner zelf klik je een groep aan om alleen die monteurs te zien. Klik nog een keer en iedereen staat er weer.",
-            "hash": "409be76d4d55c54849b09b84c7d84914a794bdda",
-            "start": 29.601,
-            "end": 35.626
+            "text": "In de planner zelf klik je een groep aan, om alleen die monteurs te zien. Klik nog een keer, en iedereen staat er weer.",
+            "hash": "1836c5f97ccb24453fed1d13b6ac1d637b5a7dde",
+            "start": 30.734,
+            "end": 36.402
         }
     ]
 }

@@ -7,28 +7,28 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Zoek je ruimte voor een klus? Zet dan deze schakelaar aan. Alle vrije tijd in de planning licht groen op.",
-            "hash": "3931b6b4eb3de14588c3aa379b203123890744bf",
+            "text": "Zoek je ruimte voor een klus? Zet dan deze schakelaar aan, en alle vrije tijd in de planning licht groen op.",
+            "hash": "bb40080d226d6a886f80caea81009728307bd9ec",
             "start": 0,
-            "end": 5.806
+            "end": 6.365
         },
         {
-            "text": "Elk groen vak is vrije tijd waar nog werk in past. Er staat bij hoe lang die tijd is.",
-            "hash": "2d33fb09d0444884700fadbfc0b5adf09fd9c3b9",
-            "start": 6.806,
-            "end": 11.679
+            "text": "Elk groen vak is vrije tijd waar nog werk in past, en er staat bij hoe lang die tijd is.",
+            "hash": "b340ed1e303fabf8308fbc41664b7f58e0be3ee8",
+            "start": 7.365,
+            "end": 12.595
         },
         {
-            "text": "Hier geef je aan hoe groot een open plek minstens moet zijn. Laat je het leeg, dan geldt de standaardduur van een afspraak.",
-            "hash": "5495af128f6cedc407a2dc95518e5af0150bbede",
-            "start": 12.679,
-            "end": 19.583
+            "text": "Hier geef je aan hoe groot een open plek minstens moet zijn. Laat je het leeg? Dan geldt de standaardduur van een afspraak.",
+            "hash": "e5b38c16cf36ebdda7b688073f9e633782ae756b",
+            "start": 13.595,
+            "end": 21.245
         },
         {
-            "text": "Op een werkbon die ingepland kan worden staat de knop \"inplannen\". Die brengt je hierheen. De werkbon licht op, en de open plekken waar hij in past ook.",
-            "hash": "593617236d27701c38ec4953d38384aea1d57aaf",
-            "start": 20.583,
-            "end": 29.441
+            "text": "Op een werkbon die ingepland kan worden, staat de knop \"inplannen\". Die brengt je hierheen. De werkbon licht op, en de open plekken waar hij in past ook.",
+            "hash": "4732084ba2e270b80e69d01999437b3f9ab7d22a",
+            "start": 22.245,
+            "end": 30.915
         }
     ]
 }

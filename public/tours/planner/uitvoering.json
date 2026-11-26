@@ -7,34 +7,34 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok is voor je tijden en de handtekening. Met het kruisje annuleer je je eigen deel.",
-            "hash": "bac7ca3bae3dffaa63301f7aa628736a073bed7d",
+            "text": "Op een afspraak in je eigen rij staan twee knopjes. De klok is voor je tijden en de handtekening, en met het kruisje annuleer je je eigen deel.",
+            "hash": "1c11eb71ffbf686e6639c6e6eb774bbadc8effd2",
             "start": 0,
-            "end": 8.499
+            "end": 8.287
         },
         {
-            "text": "Begin, eind en pauze staan al op wat er gepland was. Pas aan wat anders ging. Vul je reistijd in en laat de klant tekenen.",
-            "hash": "c78eea36ca403ac197daf5b61a20c0ec635fa407",
-            "start": 9.499,
-            "end": 16.892
+            "text": "Begin, eind en pauze staan al op wat er gepland was, dus pas alleen aan wat anders ging. Vul je reistijd in, en laat de klant tekenen.",
+            "hash": "08bdf5fd9799885b3b1e04d1ff48f35e5e043eae",
+            "start": 9.287,
+            "end": 17.021
         },
         {
-            "text": "Annuleren geldt alleen voor jou. De afspraak blijft staan, en je collega's ook.",
-            "hash": "5ff2ffe077e164531c7b7e8dd8b960c995bc53ab",
-            "start": 17.892,
-            "end": 22.293
+            "text": "Annuleren geldt alleen voor jou: de afspraak blijft staan, en je collega's ook.",
+            "hash": "a4d9adc153d32a2cb2e7589efb78980432166db6",
+            "start": 18.021,
+            "end": 22.546
         },
         {
             "text": "Mag je tijden voor een ander invullen? Dan staat er in de rij van je collega een knopje met een pennetje. Daarmee vul je zijn tijden en handtekening in, net als voor jezelf.",
             "hash": "b07805e287aa28019ae42bcbc99bae3610f16645",
-            "start": 23.293,
-            "end": 32.684
+            "start": 23.546,
+            "end": 32.937
         },
         {
-            "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij. Of je trekt er een annulering mee in. Dat geldt alleen voor de monteur in die rij.",
-            "hash": "425d3a40a24d20c53258479fed98f0b30d8959d8",
-            "start": 33.684,
-            "end": 41.268
+            "text": "Met het ronde pijltje geef je afgeronde tijden weer vrij, of trek je een annulering in. Dat geldt alleen voor de monteur in die rij.",
+            "hash": "cf066ec917a48637e7dbc1cbfa4e8d68ea93303a",
+            "start": 33.937,
+            "end": 40.891
         }
     ]
 }

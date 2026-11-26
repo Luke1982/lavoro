@@ -29,7 +29,7 @@ return [
             'elevenlabs' => [
                 'class' => ElevenLabsSpeech::class,
                 'key' => env('ELEVENLABS_API_KEY'),
-                'voice' => env('ELEVENLABS_VOICE_ID'),
+                'voice' => env('ELEVENLABS_VOICE_ID', 'AQfZOwSSAnLexc5cub9s'),
                 'model' => env('ELEVENLABS_MODEL', 'eleven_multilingual_v2'),
             ],
             'openai' => [
