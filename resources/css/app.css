@@ -339,6 +339,16 @@
     }
 }
 
+/*
+ * Volgt de balk bovenin op een telefoon (useHeaderReveal): meteen zolang de duim
+ * hem meeneemt, en met dezelfde korte overgang als hij op zijn plek valt.
+ */
+@utility follows-app-header {
+    transition-property: top, transform;
+    transition-duration: var(--app-header-transition, 0ms);
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @utility sidebar-item {
     animation: sidebarItemIn 0.35s ease-out both;
 }

@@ -3,9 +3,11 @@
     <div ref="scrollEl" class="h-full overflow-auto overscroll-x-contain" @touchstart.passive="onTouchStart"
         @touchmove.passive="onTouchMove" @touchend.passive="onTouchEnd" @touchcancel.passive="onTouchEnd">
         <div class="min-w-max">
+            <div aria-hidden="true" class="h-(--planner-inset)" />
+
             <!-- Mechanic lanes header -->
             <div
-                class="sticky top-0 z-30 flex bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+                class="sticky top-(--planner-top) z-30 flex bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 follows-app-header">
                 <div class="sticky left-0 z-10 w-10 shrink-0 bg-white dark:bg-slate-900" />
                 <div v-for="user in plannableUsers" :key="'head-' + user.id" data-tour="planner.phone.lane"
                     class="shrink-0 flex items-center gap-1 px-1.5 py-2 border-l border-gray-100 dark:border-slate-800"
@@ -22,9 +24,9 @@
             <template v-for="day in weekDays" :key="day.iso">
                 <!-- Day header: the band scrolls with the lanes, the label stays pinned -->
                 <div
-                    class="sticky z-20 border-b border-gray-200 dark:border-slate-700 backdrop-blur-sm"
+                    class="sticky z-20 border-b border-gray-200 dark:border-slate-700 backdrop-blur-sm follows-app-header"
                     :class="day.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'"
-                    :style="{ top: HEADER_HEIGHT + 'px' }">
+                    :style="{ top: `calc(var(--planner-top) + ${HEADER_HEIGHT}px)` }">
                     <span
                         class="sticky left-0 inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
                         {{ nlDayName(day.iso) }}

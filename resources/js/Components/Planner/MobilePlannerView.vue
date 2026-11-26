@@ -1,11 +1,17 @@
 <template>
-    <div ref="rootEl" class="flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
+    <div ref="rootEl" class="relative flex flex-col h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100"
+        :style="insets">
         <!--
             Alles op één regel: de week, en voor wie de hele planning ziet ook de
             monteur en de weergave. De tellers en de kaart liggen onder de drie
             puntjes; de rondleiding staat in de blauwe balk.
+
+            Deze balk ligt over de week heen, hangt onder de blauwe balk en schuift
+            met hem mee weg. De week zelf staat stil en scrolt onder beide balken
+            door; daarom begint elke lijst met --planner-inset lege ruimte.
         -->
-        <div class="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+        <div ref="barEl"
+            class="absolute inset-x-0 top-(--app-header-offset,0px) z-40 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 follows-app-header">
             <div class="flex items-center gap-1.5 px-3 py-2">
                 <div class="flex items-center justify-between" :class="canSeeAll ? 'w-1/2 shrink-0' : 'min-w-0 flex-1'"
                     data-tour="planner.phone.week">
@@ -73,24 +79,12 @@
             <TourButton tour="planner" bar class="md:hidden" data-tour="planner.phone.tour" />
         </Teleport>
 
-        <!-- User profile (only when a specific user is selected) -->
-        <div v-if="displayUser" class="px-4 pt-4 pb-2 bg-white dark:bg-slate-900">
-            <div class="flex items-center gap-3">
-                <div
-                    class="size-12 rounded-full bg-gray-200 dark:bg-slate-700 ring-2 ring-white dark:ring-slate-900 flex items-center justify-center overflow-hidden text-sm font-semibold shrink-0">
-                    <img v-if="displayUser.avatar" :src="displayUser.avatar" class="object-cover w-full h-full"
-                        :alt="displayUser.name" />
-                    <span v-else>{{ initials(displayUser.name) }}</span>
-                </div>
-                <div>
-                    <div class="font-semibold text-base leading-tight">{{ displayUser.name }}</div>
-                    <div class="text-xs text-gray-500 dark:text-slate-400">Monteur</div>
-                </div>
-            </div>
-        </div>
+        <!-- Wat de rondleiding als de week aanwijst: alleen het stuk dat onder de balken te zien is. -->
+        <div data-tour="planner.phone.timeline" aria-hidden="true"
+            class="pointer-events-none absolute inset-x-0 bottom-0 top-(--planner-top) follows-app-header" />
 
         <!-- Timeline -->
-        <PlannerLoadingOverlay :loading="eventsLoading" data-tour="planner.phone.timeline">
+        <PlannerLoadingOverlay :loading="eventsLoading">
             <MobileLaneView v-if="showLaneView" :plannable-users="plannableUsers" :week-days="weekDays"
                 :events="events" :day-start-hour="WORKDAY_START_HOUR" :day-end-hour="WORKDAY_END_HOUR"
                 :allow-override-unavailability="allowOverrideUnavailability" :can-create="canCreate"
@@ -102,10 +96,28 @@
                     @touchmove.passive="onListTouchMove" @touchend.passive="onListTouchEnd"
                     @touchcancel.passive="onListTouchEnd">
                     <div class="pb-24">
+                    <div aria-hidden="true" class="h-(--planner-inset)" />
+
+                    <!-- User profile (only when a specific user is selected) -->
+                    <div v-if="displayUser" class="px-4 pt-4 pb-2 bg-white dark:bg-slate-900">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="size-12 rounded-full bg-gray-200 dark:bg-slate-700 ring-2 ring-white dark:ring-slate-900 flex items-center justify-center overflow-hidden text-sm font-semibold shrink-0">
+                                <img v-if="displayUser.avatar" :src="displayUser.avatar" class="object-cover w-full h-full"
+                                    :alt="displayUser.name" />
+                                <span v-else>{{ initials(displayUser.name) }}</span>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-base leading-tight">{{ displayUser.name }}</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">Monteur</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div data-tour="planner.phone.day"
-                            class="sticky top-0 z-20 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
+                            class="sticky top-(--planner-top) z-20 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm follows-app-header border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
                             :class="group.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'">
                             <span>
                                 {{ dayLabel(group.dayIso) }}
@@ -145,7 +157,7 @@
                                 </div>
 
                                 <!-- Right: free or blocked room -->
-                                <div v-if="item.kind !== 'event'" class="flex-1 pl-3 pr-4 pb-5">
+                                <div v-if="item.kind !== 'event'" class="flex-1 min-w-0 pl-3 pr-4 pb-5">
                                     <button type="button" class="w-full rounded-xl px-3 py-2 text-left"
                                         :class="[
                                             item.kind === 'free'
@@ -179,7 +191,7 @@
                                 </div>
 
                                 <!-- Right: event card -->
-                                <div v-else class="flex-1 pl-3 pr-4 pb-5">
+                                <div v-else class="flex-1 min-w-0 pl-3 pr-4 pb-5">
                                     <MobileEventCard :event="item.event" :selected-user-id="selectedUserId" data-tour="planner.phone.event"
                                         :is-highlighted="highlightedEventId === item.event.id"
                                         :relevant-user-id="relevantUserId" :can-see-all="canSeeAll"
@@ -245,6 +257,8 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import { useElementSize } from '@vueuse/core'
+import { revealAppHeader } from '@/Composables/useHeaderReveal.js'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -398,6 +412,18 @@ const {
 // ── Event fetching ────────────────────────────────────────────────────────────
 
 const rootEl = ref(null)
+const barEl = ref(null)
+const { height: barHeight } = useElementSize(barEl, undefined, { box: 'border-box' })
+
+/**
+ * --planner-inset: hoe hoog beide balken samen zijn als ze er staan, de lege
+ * ruimte waarmee elke lijst begint. --planner-top: de onderkant van de balk met
+ * de week zoals hij nu staat, waar de dagkoppen tegenaan plakken.
+ */
+const insets = computed(() => ({
+    '--planner-inset': `calc(var(--app-header-height, 0px) + ${barHeight.value}px)`,
+    '--planner-top': `calc(var(--app-header-offset, 0px) + ${barHeight.value}px)`,
+}))
 
 const dayCount = ref(7)
 const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
@@ -636,6 +662,8 @@ function freeUsersLabel(item) {
 // Lanes give each mechanic a column of their own, which the shared list cannot.
 const laneView = ref(false)
 const showLaneView = computed(() => showsGaps.value && selectedUserId.value === null && laneView.value)
+
+watch(showLaneView, revealAppHeader)
 
 // Breaktime comes off the mechanic's own clock, so an event's shown duration is
 // not simply end - start.

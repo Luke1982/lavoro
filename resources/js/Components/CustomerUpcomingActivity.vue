@@ -1,6 +1,6 @@
 <template>
     <BoxComponent>
-        <div class="sticky top-[var(--app-header-offset,4rem)] lg:top-0 z-2 bg-white dark:bg-slate-900 transition-[top] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
+        <div class="sticky top-[var(--app-header-offset,4rem)] lg:top-0 z-2 bg-white dark:bg-slate-900 follows-app-header">
             <CustomerHeaderComponent :customer="mainAsset.customer" layout="horizontal" class="" :counters="{
                 assets: mainAsset.customer.upcoming_assets.length,
                 openTickets: mainAsset.customer.upcoming_assets.reduce((sum, asset) => sum + asset.open_tickets.length, 0),

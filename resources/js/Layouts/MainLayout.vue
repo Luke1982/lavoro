@@ -54,12 +54,12 @@
         <!--
             Zoals in het ontwerp: terug en het logo links, zoeken en meldingen
             rechts, en verder niets. Het menu en het profiel staan onderin binnen duimbereik,
-            dus die hoeven hier niet nog een keer. Naar beneden scrollen schuift
-            hem weg, omhoog haalt hem terug.
+            dus die hoeven hier niet nog een keer. Hij schuift met de duim mee weg
+            en terug; useHeaderReveal zet hem op zijn plek.
         -->
         <div ref="headerEl"
-            class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden"
-            :class="headerHidden ? '-translate-y-full' : 'translate-y-0'" @focusin="revealHeader">
+            class="sticky top-0 z-40 flex items-center justify-between bg-sidebar-bg px-4 py-4 follows-app-header will-change-transform lg:hidden"
+            @focusin="revealHeader">
             <div class="flex items-center gap-x-1">
                 <button type="button" class="-ml-2 p-2 text-sidebar-muted hover:text-lavoro-green" @click="goBack">
                     <span class="sr-only">Terug</span>
@@ -165,7 +165,7 @@ const page = usePage()
 const { authUser, collapsed, loggingOut, setLoggingOut } = useMenu()
 
 const headerEl = ref(null)
-const { hidden: headerHidden, reveal: revealHeader } = useHeaderReveal(headerEl)
+const { reveal: revealHeader } = useHeaderReveal(headerEl)
 
 onMounted(async () => {
     /**

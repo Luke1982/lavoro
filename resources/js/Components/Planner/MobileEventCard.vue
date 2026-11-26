@@ -10,7 +10,7 @@
         <div class="p-3">
             <!-- Title + avatars at top right -->
             <div class="flex items-start gap-2">
-                <div class="font-semibold text-sm leading-tight flex-1 min-w-0"
+                <div class="font-semibold text-sm leading-tight flex-1 min-w-0 break-words hyphens-auto"
                     :class="isCancelled ? 'line-through text-gray-500 dark:text-slate-400' : ''">
                     {{ event.name || event.title }}
                 </div>
