@@ -28,12 +28,13 @@
                         :class="isActive(hit) ? 'bg-lavoro-green' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'"
                         @mouseenter="activeIndex = hit.index" @click="go(hit)">
                         <component :is="hit.icon" v-if="hit.icon" class="size-4 shrink-0"
-                            :class="isActive(hit) ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'" />
+                            :class="isActive(hit) ? 'text-slate-800' : 'text-slate-400'" />
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm text-slate-900 dark:text-slate-100">{{ hit.title }}</span>
-                            <!-- Muted grey vanishes on solid lavorogreen; on the selected row it goes dark. -->
+                            <!-- Lavorogreen stays light in dark mode, so the selected row keeps dark grey text in both themes. -->
+                            <span class="block truncate text-sm"
+                                :class="isActive(hit) ? 'text-slate-800' : 'text-slate-900 dark:text-slate-100'">{{ hit.title }}</span>
                             <span v-if="hit.subtitle" class="block truncate text-xs"
-                                :class="isActive(hit) ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400'">{{ hit.subtitle }}</span>
+                                :class="isActive(hit) ? 'text-slate-700' : 'text-slate-400'">{{ hit.subtitle }}</span>
                             <!--
                                 The searcher guarantees the order, so the first
                                 label can be emphasised as the stage without the
@@ -43,7 +44,7 @@
                                 <span v-for="(label, metaIndex) in hit.meta" :key="metaIndex"
                                     class="rounded px-1.5 py-0.5 text-[10px] font-medium" :class="metaIndex === 0
                                         ? 'bg-slate-900 text-lavoro-green'
-                                        : isActive(hit) ? 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'">{{
+                                        : isActive(hit) ? 'bg-white text-slate-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'">{{
                                             label }}</span>
                             </span>
                         </span>
@@ -87,7 +88,7 @@ import axios from 'axios'
 import SpotlightShell from '@/Components/UI/SpotlightShell.vue'
 import { useMenu } from '@/Composables/useMenu.js'
 import { navIcon } from '@/Navigation/icons.js'
-import { navigatorShortcutLabel, matchesNavigatorShortcut } from '@/Composables/useNavigator.js'
+import { navigatorShortcutLabel, matchesNavigatorShortcut, offerToSamePage } from '@/Composables/useNavigator.js'
 import { closeAssistant } from '@/Composables/useAssistant.js'
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -181,10 +182,11 @@ function go(hit) {
     close()
 
     // Landing on the page you are already on keeps the same component alive, so
-    // anything it reads once on mount — the planner reads its deep link there —
-    // never sees the new query string. A real navigation is the only way in.
+    // anything it reads once on mount never sees the new query string. The page
+    // gets the link first (the planner jumps in place); only a page that cannot
+    // follow it is loaded again.
     if (hit.href.split('?')[0] === window.location.pathname) {
-        window.location.href = hit.href
+        if (!offerToSamePage(hit.href)) window.location.href = hit.href
         return
     }
 

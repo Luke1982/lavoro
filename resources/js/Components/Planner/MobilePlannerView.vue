@@ -286,7 +286,7 @@ import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import TechnicianMapCanvas from '@/Components/Planner/TechnicianMapCanvas.vue'
 import PlannerLoadingOverlay from '@/Components/Planner/PlannerLoadingOverlay.vue'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
-import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
+import { takeJumpTarget, onJumpRequest, waitForEventElement } from '@/Composables/usePlannerJump'
 import { MapIcon, TriangleAlert, Columns3, List } from '@lucide/vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour } from '@/Composables/useTour'
@@ -409,8 +409,10 @@ const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFing
 onMounted(() => {
     fetchEvents()
     startPolling()
-    jumpToTarget()
+    jumpToTarget(takeJumpTarget(rootEl.value))
 })
+
+onJumpRequest(rootEl, jumpToTarget)
 
 onUnmounted(stopPolling)
 watch(weekStart, () => { resetFingerprint(); fetchEvents() })
@@ -484,9 +486,7 @@ let highlightTimer = null
  * open voor wie de hele planning mag zien, en anders blijft het staan: iemand een
  * afspraak laten zien die niet van hem is, is geen hulp.
  */
-async function jumpToTarget() {
-    const target = takeJumpTarget()
-
+async function jumpToTarget(target) {
     if (!target) return
 
     weekStart.value = startOfWeek(new Date(target.start))

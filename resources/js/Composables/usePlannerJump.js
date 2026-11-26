@@ -1,3 +1,6 @@
+import { onMounted, onUnmounted } from 'vue'
+import { SAME_PAGE_EVENT } from '@/Composables/useNavigator.js'
+
 /**
  * De afspraak waar de planner naartoe moet, zoals een melding of een zoekopdracht
  * hem in het adres achterlaat: welke afspraak, welke dag, en wie hem uitvoert.
@@ -9,14 +12,54 @@
  * De twee planners doen er ieder iets anders mee — de een zet een week en klapt
  * een monteur open, de ander schakelt een filter om — maar ze lezen hetzelfde,
  * en dat staat daarom hier en niet twee keer.
+ *
+ * Beide planners staan altijd op de pagina, de een verborgen per schermbreedte.
+ * Alleen de zichtbare mag de sprong pakken: de verborgen telefoonplanner komt
+ * als eerste aan de beurt en zou het adres leeghalen voor de echte.
  */
-export function takeJumpTarget() {
-    const params = new URLSearchParams(window.location.search)
+export function takeJumpTarget(root) {
+    if (!isShown(root)) return null
+
+    const target = readJumpTarget(window.location.search)
+
+    if (target) window.history.replaceState(null, '', window.location.pathname)
+
+    return target
+}
+
+/**
+ * Een sprong terwijl de planner al open staat: het zoekvenster bovenin geeft het
+ * adres van de afspraak door in plaats van de pagina opnieuw te laden. Alleen de
+ * zichtbare planner neemt hem aan; die zegt dat met preventDefault(), zodat het
+ * zoekvenster weet dat het niet zelf hoeft te navigeren.
+ */
+export function onJumpRequest(rootRef, jump) {
+    function handle(event) {
+        if (!isShown(rootRef.value)) return
+
+        const target = readJumpTarget(new URL(event.detail.href, window.location.origin).search)
+
+        if (!target) return
+
+        event.preventDefault()
+        jump(target)
+    }
+
+    onMounted(() => window.addEventListener(SAME_PAGE_EVENT, handle))
+    onUnmounted(() => window.removeEventListener(SAME_PAGE_EVENT, handle))
+}
+
+function isShown(root) {
+    return !root || root.getClientRects().length > 0
+}
+
+function readJumpTarget(search) {
+    const params = new URLSearchParams(search)
     const id = params.get('highlightevent')
 
     if (!id) return null
 
-    const target = {
+    return {
         id: Number(id),
         start: params.get('gotodate') || new Date().toISOString(),
         executing_users: (params.get('executing_user_ids') || '')
@@ -24,10 +67,6 @@ export function takeJumpTarget() {
             .filter(Boolean)
             .map(value => ({ id: Number(value) })),
     }
-
-    window.history.replaceState(null, '', window.location.pathname)
-
-    return target
 }
 
 /**

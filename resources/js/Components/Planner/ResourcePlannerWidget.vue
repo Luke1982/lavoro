@@ -605,7 +605,7 @@ import EmailPreviewModal from '@/Components/EmailPreviewModal.vue'
 import { showContextMenu } from '@/Utilities/contextMenu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
-import { takeJumpTarget, waitForEventElement } from '@/Composables/usePlannerJump'
+import { takeJumpTarget, onJumpRequest, waitForEventElement } from '@/Composables/usePlannerJump'
 import { DAY_END_STORAGE_KEY, DAY_START_STORAGE_KEY } from '@/Utilities/plannerDayView'
 import { HOLIDAY_BAND, HOLIDAY_LABEL, HOLIDAY_TINT, plannerDays } from '@/Utilities/publicHolidays'
 
@@ -1323,11 +1323,13 @@ function jumpToServiceOrder(soId) {
 }
 
 onMounted(() => {
-    const target = takeJumpTarget()
+    const target = takeJumpTarget(rootEl.value)
 
     if (target) jumpToEvent(target)
     if (props.highlightServiceOrderId) jumpToServiceOrder(props.highlightServiceOrderId)
 })
+
+onJumpRequest(rootEl, jumpToEvent)
 
 function scrollToWorkdayStart() {
     const grid = gridScrollRef.value

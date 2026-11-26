@@ -71,9 +71,7 @@ class DashboardMetrics
         $this->previous_end = $this->start->subDay()->endOfDay();
         $this->previous_start = $this->previous_end->subDays($days - 1)->startOfDay();
 
-        $this->event_horizon = $user->can('seeBeyondCurrentWeek', Event::class)
-            ? null
-            : CarbonImmutable::now()->startOfDay()->addDays(7)->endOfDay();
+        $this->event_horizon = Event::horizonFor($user);
     }
 
     public function period(): array

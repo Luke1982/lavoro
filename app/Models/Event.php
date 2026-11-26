@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Domain\Planning\Clock;
+use App\Domain\Search\AddressTerm;
+use App\Domain\Search\SearchTerm;
 use App\Domain\Signals\Appointments\AppointmentCrewChanged;
 use App\Domain\Signals\Appointments\AppointmentCustomerChanged;
 use App\Domain\Signals\Signals;
@@ -14,6 +16,7 @@ use App\Models\Traits\HasOwner;
 use App\Models\Traits\RecordsHistory;
 use App\Models\Traits\RemarkableTrait;
 use App\Services\EventLocationResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -108,6 +111,67 @@ class Event extends Model
             $q->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
                 ->orWhereHas('owners', fn ($sq) => $sq->where('users.id', $user->id)->where('userables.type', 'owner'));
         });
+    }
+
+    /**
+     * The last moment this person may see appointments up to, or null when there
+     * is no limit. Without `event.see_beyond_current_week` that is a week ahead,
+     * and every way in to appointments holds to it: the planner, its search, the
+     * spotlight, a werkbon and the dashboard.
+     */
+    public static function horizonFor(User $user): ?CarbonImmutable
+    {
+        return $user->can('seeBeyondCurrentWeek', self::class)
+            ? null
+            : CarbonImmutable::now()->startOfDay()->addDays(7)->endOfDay();
+    }
+
+    public function scopeWithinHorizonOf(Builder $query, User $user): Builder
+    {
+        $horizon = self::horizonFor($user);
+
+        return $horizon ? $query->where('start', '<=', $horizon) : $query;
+    }
+
+    /**
+     * Appointments the term fits anywhere in: the appointment itself, its
+     * customer, its location, and the werkbon and project behind it. One list for
+     * the planner's search bar and the spotlight, so a term finds the same
+     * appointments in both. Every rung of EventLocationResolver is a place the
+     * address may live, so an address search reaches all of them.
+     */
+    public function scopeMatchesSearch(Builder $query, string $term): Builder
+    {
+        $like = SearchTerm::like($term);
+        $address = AddressTerm::like($term);
+        $order_id = ServiceOrder::idFromNumber($term);
+
+        $match_location = fn ($lq) => $lq
+            ->where('locations.title', 'like', $like)
+            ->orWhereRaw(AddressTerm::sql('locations.address', 'locations.postal_code', 'locations.city'), [$address]);
+
+        $match_customer = fn ($cq) => $cq
+            ->where('customers.name', 'like', $like)
+            ->orWhereRaw(AddressTerm::sql('customers.address', 'customers.postal_code', 'customers.city'), [$address]);
+
+        return $query->where(fn ($q) => $q
+            ->where('name', 'like', $like)
+            ->orWhere('description', 'like', $like)
+            ->orWhereRaw(AddressTerm::sql('events.location'), [$address])
+            ->orWhereHas('linkedLocation', $match_location)
+            ->orWhereHas('customers', $match_customer)
+            ->orWhereHas('serviceOrders', fn ($sq) => $sq->where(fn ($oq) => $oq
+                ->where('external_purchaseorder_no', 'like', $like)
+                ->orWhereRaw(AddressTerm::sql('service_orders.execution_location'), [$address])
+                ->orWhereHas('linkedLocation', $match_location)
+                ->orWhereHas('customer', $match_customer)
+                ->orWhereHas('project', fn ($pq) => $pq
+                    ->where('title', 'like', $like)
+                    ->orWhere('number', 'like', $like)
+                    ->orWhereRaw(AddressTerm::sql('projects.location'), [$address])
+                    ->orWhereHas('linkedLocation', $match_location)
+                    ->when(is_numeric($term), fn ($iq) => $iq->orWhere('id', $term)))
+                ->when($order_id !== null, fn ($iq) => $iq->orWhere('service_orders.id', $order_id)))));
     }
 
     public function eventType()

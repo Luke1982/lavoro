@@ -6,7 +6,6 @@ use App\Domain\Planning\Clock;
 use App\Models\Event;
 use App\Models\ServiceOrder;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -32,18 +31,17 @@ class ServiceOrderEventWidget
     public function events(ServiceOrder $service_order, User $user): Collection
     {
         $can_see_all = $user->isAdmin() || $user->hasPermission('serviceorder.see_events_widget');
-        $can_see_beyond = $user->can('seeBeyondCurrentWeek', Event::class);
-        $max_end = Carbon::now()->startOfDay()->addDays(7)->endOfDay();
+        $max_end = Event::horizonFor($user);
 
         $visible = $service_order->events
-            ->filter(function ($event) use ($user, $can_see_all, $can_see_beyond, $max_end) {
+            ->filter(function ($event) use ($user, $can_see_all, $max_end) {
                 $is_executing = $event->executingUsers->contains('id', $user->id);
 
                 if (!$can_see_all && !$is_executing) {
                     return false;
                 }
 
-                return $can_see_beyond || ($event->start && $event->start->lte($max_end));
+                return !$max_end || ($event->start && $event->start->lte($max_end));
             })
             ->sortBy('start')
             ->values();

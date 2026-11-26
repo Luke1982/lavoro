@@ -24,3 +24,14 @@ export const openNavigator = () => window.dispatchEvent(new CustomEvent('navigat
 
 /** Used by the assistant to get out of the way: two dialogs fight over the focus trap. */
 export const closeNavigator = () => window.dispatchEvent(new CustomEvent('navigator:close'))
+
+/**
+ * Raised when a hit points at the page that is already open. A page that can
+ * follow the new link in place cancels the event; otherwise the box loads the
+ * page again, since a page reads its deep link only once, on mount.
+ */
+export const SAME_PAGE_EVENT = 'navigator:same-page'
+
+/** @returns {boolean} true when an open page took the link itself. */
+export const offerToSamePage = (href) =>
+    !window.dispatchEvent(new CustomEvent(SAME_PAGE_EVENT, { cancelable: true, detail: { href } }))

@@ -29,11 +29,11 @@ class EventReadRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->user()?->can('seeBeyondCurrentWeek', Event::class)) {
+        $max_end = $this->user() ? Event::horizonFor($this->user()) : null;
+
+        if (!$max_end) {
             return;
         }
-
-        $max_end = Carbon::now()->startOfDay()->addDays(7)->endOfDay();
 
         if (!$this->filled('end') || Carbon::parse($this->input('end'))->gt($max_end)) {
             $this->merge(['end' => $max_end->toIso8601ZuluString()]);
