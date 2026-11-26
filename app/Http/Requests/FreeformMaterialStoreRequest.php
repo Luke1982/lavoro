@@ -23,6 +23,12 @@ class FreeformMaterialStoreRequest extends FormRequest
         return $this->user()->can('create', FreeformMaterial::class) && $this->authorizeMateriable('view');
     }
 
+    /** A line typed by hand is onvoorzien unless said otherwise: it was not in the plan. */
+    protected function prepareForValidation(): void
+    {
+        $this->mergeIfMissing(['unforseen' => true]);
+    }
+
     public function rules(): array
     {
         return [

@@ -11,9 +11,9 @@ use App\Domain\Tools\ToolProfile;
 use App\Domain\Tools\ToolResult;
 use App\Domain\Tools\Write\Concerns\ResolvesBeforeConfirming;
 use App\Domain\Tools\Write\Concerns\ValidatesLikeTheForm;
+use App\Exceptions\Refusal;
 use App\Http\Requests\FreeformMaterialStoreRequest;
 use App\Http\Requests\ServiceOrderAttachMaterialRequest;
-use App\Models\FreeformMaterial;
 use App\Models\Material;
 use App\Models\ServiceOrder;
 use App\Models\User;
@@ -31,7 +31,9 @@ use Illuminate\Support\Facades\DB;
  * The one field on the werkbon does two things and so does this: a material
  * from the catalogue takes stock with it, a line in free text does not. Both go
  * through MateriableService, the same as the screen, so the stock moves and the
- * werkbon's timeline says so exactly as when it was typed in.
+ * werkbon's timeline says so exactly as when it was typed in. Who may book is
+ * asked of the two form requests, and whether the werkbon or task still takes
+ * materials of MateriableService, so neither rule has a copy here.
  *
  * The unit somebody said is checked against the material's own. Koelleiding
  * kept per roll and booked as "2" is two rolls off the shelf, and nothing about
@@ -91,19 +93,28 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
     }
 
     /**
-     * The questions the screen asks: attaching a catalogue material to the
-     * werkbon, and writing a free line. Asked again in resolve() of the lines as
-     * they were read, so a line cannot pass here as one kind and be booked as
-     * the other.
+     * The questions the screen asks, put to the screen's own form requests:
+     * attaching a catalogue material, and writing a free line. Bound to the
+     * werkbon also for a line on one of its tasks, which those requests answer
+     * through the werkbon anyway.
+     *
+     * Lines are told apart by isCatalogueLine(), the same as resolve() books
+     * them, so a line cannot pass here as one kind and be booked as the other.
      */
     public function authorize(User $user, array $arguments): bool
     {
         $order = ServiceOrder::find((int) ($arguments['service_order_id'] ?? 0));
+
+        if ($order === null) {
+            return true;
+        }
+
         $lines = array_filter((array) ($arguments['lines'] ?? []), 'is_array');
         $catalogue = array_filter($lines, fn (array $line) => $this->isCatalogueLine($line));
+        $route = ['serviceorder' => $order];
 
-        return ($order === null || $catalogue === [] || $user->can('attachMaterial', $order))
-            && (count($catalogue) === count($lines) || $user->can('create', FreeformMaterial::class));
+        return ($catalogue === [] || $this->allowedAsTheFormWould(ServiceOrderAttachMaterialRequest::class, $user, $route))
+            && (count($catalogue) === count($lines) || $this->allowedAsTheFormWould(FreeformMaterialStoreRequest::class, $user, $route));
     }
 
     /** Wat er gebruikt is, met aantal en eenheid, uit een zin halen en aan materialen koppelen. */
@@ -191,25 +202,29 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
         $materiables = app(MateriableService::class);
 
         /** All of them or none: half of what was used reads as all of it. */
-        $booked = DB::transaction(fn () => array_map(function (array $line) use ($materiables, $resolved) {
-            $attributes = ['quantity' => $line['quantity'], 'unforseen' => $line['unforeseen']];
+        try {
+            $booked = DB::transaction(fn () => array_map(function (array $line) use ($materiables, $resolved) {
+                $attributes = ['quantity' => $line['quantity'], 'unforseen' => $line['unforeseen']];
 
-            if ($line['material'] === null) {
-                $materiables->createFreeform($resolved['owner'], $attributes + ['description' => $line['description']]);
+                if ($line['material'] === null) {
+                    $materiables->createFreeform($resolved['owner'], $attributes + ['description' => $line['description']]);
 
-                return ['line' => $this->lineText($line), 'free_line' => true];
-            }
+                    return ['line' => $this->lineText($line), 'free_line' => true];
+                }
 
-            $materiables->attach($resolved['owner'], $line['material'], $attributes);
+                $materiables->attach($resolved['owner'], $line['material'], $attributes);
 
-            return array_filter([
-                'line' => $this->lineText($line),
-                'material_id' => $line['material']->id,
-                'stock_now' => $resolved['sees_materials'] && !$line['material']->is_service
-                    ? (float) $line['material']->stock
-                    : null,
-            ], fn ($value) => $value !== null);
-        }, $resolved['lines']));
+                return array_filter([
+                    'line' => $this->lineText($line),
+                    'material_id' => $line['material']->id,
+                    'stock_now' => $resolved['sees_materials'] && !$line['material']->is_service
+                        ? (float) $line['material']->stock
+                        : null,
+                ], fn ($value) => $value !== null);
+            }, $resolved['lines']));
+        } catch (Refusal $refusal) {
+            return ToolResult::failed($refusal->getMessage());
+        }
 
         return ToolResult::ok(
             [
@@ -238,17 +253,16 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
             return ToolResult::notFound('Werkbon #' . ($order_id ?? '?'));
         }
 
-        /** The screen offers no field on a werkbon that is closed or went to the administration. */
-        if ($order->is_closed || $order->sent_to_administration) {
-            return ToolResult::failed('Werkbon #' . $order->id . ' is '
-                . ($order->sent_to_administration ? 'naar de administratie verzonden' : 'gesloten')
-                . '; daar kan geen materiaal meer op.');
-        }
-
         $owner = $this->ownerOf($call, $order);
 
         if ($owner instanceof ToolResult) {
             return $owner;
+        }
+
+        $locked_because = app(MateriableService::class)->lockedBecause($owner);
+
+        if ($locked_because !== null) {
+            return ToolResult::failed($locked_because);
         }
 
         $given = array_values(array_filter((array) $call->argument('lines', []), 'is_array'));
@@ -279,16 +293,6 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
             $lines[] = $checked;
         }
 
-        $catalogue = array_filter($lines, fn (array $line) => $line['material'] !== null);
-
-        if ($catalogue !== [] && !$call->user->can('attachMaterial', $order)) {
-            return ToolResult::denied();
-        }
-
-        if (count($catalogue) !== count($lines) && !$call->user->can('create', FreeformMaterial::class)) {
-            return ToolResult::denied();
-        }
-
         return ['order' => $order, 'owner' => $owner, 'lines' => $lines, 'sees_materials' => $sees_materials];
     }
 
@@ -307,8 +311,8 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
     }
 
     /**
-     * One line as the form would take it. A catalogue material is voorzien and a
-     * free line onvoorzien unless said otherwise, as the field on the screen does.
+     * One line as the form would take it, onvoorzien or not by the form's own
+     * default when nobody said.
      *
      * Named by its number to whoever may not see the materials list: booking
      * on a werkbon is not a way to read the catalogue.
@@ -365,10 +369,10 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
     {
         $said = $line['unforeseen'] ?? null;
 
-        $data = [
+        $data = array_filter([
             'quantity' => $line['quantity'] ?? null,
-            'unforseen' => $said === null ? $material === null : ToolCall::booleanFrom($said),
-        ] + ($material === null ? ['description' => $description] : []);
+            'unforseen' => $said === null ? null : ToolCall::booleanFrom($said),
+        ], fn ($value) => $value !== null) + ($material === null ? ['description' => $description] : []);
 
         $validator = $material === null
             ? $this->asTheFormWould(FreeformMaterialStoreRequest::class, $data)
@@ -378,12 +382,14 @@ class BookMaterialsTool implements ChecksBeforeConfirming, Confirmable, SealsWha
             return ToolResult::failed($label . ': ' . $this->complaintOf($validator));
         }
 
+        $validated = $validator->validated();
+
         return [
             'material' => $material,
             'description' => $description,
             'label' => $label,
-            'quantity' => (float) $data['quantity'],
-            'unforeseen' => $data['unforseen'],
+            'quantity' => (float) $validated['quantity'],
+            'unforeseen' => (bool) $validated['unforseen'],
         ];
     }
 

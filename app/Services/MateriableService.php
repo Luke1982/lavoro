@@ -13,6 +13,7 @@ use App\Domain\Signals\ServiceOrders\MaterialDetachedFromOrder;
 use App\Domain\Signals\ServiceOrders\MaterialQuantityChanged;
 use App\Domain\Signals\ServiceOrders\MaterialUnforeseenFlagChanged;
 use App\Domain\Signals\Signals;
+use App\Exceptions\Refusal;
 use App\Models\FreeformMaterial;
 use App\Models\Material;
 use App\Models\ServiceOrder;
@@ -26,11 +27,17 @@ use Illuminate\Support\Facades\DB;
  *
  * The owner is anything using HasMaterials. Activity always lands on the service order, so
  * a task instance's materials read back in the order's history with the task named.
+ *
+ * Once the owner is done (lockedBecause()) every write here is refused, so a request sent
+ * by hand or the assistant cannot move stock on a list the screen shows read-only.
+ * release() is not a write on a living list and is never refused.
  */
 class MateriableService
 {
     public function attach(Model $owner, Material $material, array $attributes): void
     {
+        $this->refuseWhenLocked($owner);
+
         $owner->materials()->attach($material, [
             'quantity' => $attributes['quantity'],
             'unforseen' => $attributes['unforseen'] ?? false,
@@ -50,6 +57,8 @@ class MateriableService
 
     public function detach(Model $owner, string $materiable_id): void
     {
+        $this->refuseWhenLocked($owner);
+
         $pivot_query = $owner->materials()
             ->newPivotQuery()
             ->where('materiables.id', $materiable_id);
@@ -79,6 +88,8 @@ class MateriableService
 
     public function update(Model $owner, string $materiable_id, array $attributes): void
     {
+        $this->refuseWhenLocked($owner);
+
         $pivot_query = $owner->materials()
             ->newPivotQuery()
             ->where('materiables.id', $materiable_id);
@@ -127,6 +138,8 @@ class MateriableService
 
     public function createFreeform(Model $owner, array $attributes): FreeformMaterial
     {
+        $this->refuseWhenLocked($owner);
+
         $freeform = $owner->freeformMaterials()->create($attributes);
 
         $this->announce($owner, fn ($order, $task) => new FreeformMaterialAdded(
@@ -141,6 +154,8 @@ class MateriableService
 
     public function updateFreeform(Model $owner, FreeformMaterial $freeform, array $attributes): void
     {
+        $this->refuseWhenLocked($owner);
+
         $previous_description = (string) $freeform->description;
         $previous_quantity = (float) $freeform->quantity;
         $previous_unforeseen = (bool) $freeform->unforseen;
@@ -180,6 +195,8 @@ class MateriableService
 
     public function deleteFreeform(Model $owner, FreeformMaterial $freeform): void
     {
+        $this->refuseWhenLocked($owner);
+
         $this->announce($owner, fn ($order, $task) => new FreeformMaterialRemoved(
             $order,
             $freeform->description,
@@ -245,6 +262,32 @@ class MateriableService
             ->delete();
     }
 
+    /**
+     * Why the materials on this owner can no longer change, or null while they can. A
+     * werkbon that is closed or went to the administration is done; a cancelled task
+     * is done even while its werkbon is not.
+     */
+    public function lockedBecause(Model $owner): ?string
+    {
+        $service_order = $this->serviceOrderFor($owner);
+
+        if ($service_order?->sent_to_administration) {
+            return 'Werkbon #' . $service_order->id
+                . ' is naar de administratie verzonden; het materiaal erop kan niet meer worden gewijzigd.';
+        }
+
+        if ($service_order?->is_closed) {
+            return 'Werkbon #' . $service_order->id
+                . ' is gesloten. Heropen hem eerst als je het materiaal nog wilt wijzigen.';
+        }
+
+        if ($owner instanceof ServiceOrderTaskInstance && $owner->is_cancelled) {
+            return 'Taak "' . $owner->timelineTitle() . '" is geannuleerd; het materiaal erop kan niet meer worden gewijzigd.';
+        }
+
+        return null;
+    }
+
     public function serviceOrderFor(Model $owner): ?ServiceOrder
     {
         if ($owner instanceof ServiceOrder) {
@@ -271,6 +314,15 @@ class MateriableService
         }
 
         Signals::dispatch($build($service_order, $this->taskTitle($owner)));
+    }
+
+    private function refuseWhenLocked(Model $owner): void
+    {
+        $locked_because = $this->lockedBecause($owner);
+
+        if ($locked_because !== null) {
+            throw new Refusal($locked_because);
+        }
     }
 
     private function restoreStock(Material $material, float $quantity, string $reason): void

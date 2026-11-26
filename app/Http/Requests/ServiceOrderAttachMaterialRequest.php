@@ -15,6 +15,12 @@ class ServiceOrderAttachMaterialRequest extends FormRequest
         return $this->authorizeMateriable('attachMaterial');
     }
 
+    /** A material from the catalogue is voorzien unless said otherwise. */
+    protected function prepareForValidation(): void
+    {
+        $this->mergeIfMissing(['unforseen' => false]);
+    }
+
     public function rules(): array
     {
         $material = $this->route('material');

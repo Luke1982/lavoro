@@ -52,21 +52,7 @@ trait ValidatesLikeTheForm
         array $route_parameters = [],
         array $without_rules = [],
     ): Validator {
-        $request = $request_class::create('/', 'POST', $data);
-
-        if ($user !== null) {
-            $request->setUserResolver(fn () => $user);
-        }
-
-        if ($route_parameters !== []) {
-            $route = (new Route('POST', '/', []))->bind($request);
-
-            foreach ($route_parameters as $name => $value) {
-                $route->setParameter($name, $value);
-            }
-
-            $request->setRouteResolver(fn () => $route);
-        }
+        $request = $this->formRequest($request_class, $data, $user, $route_parameters);
 
         return (function () use ($without_rules): Validator {
             $this->prepareForValidation();
@@ -88,6 +74,47 @@ trait ValidatesLikeTheForm
 
             return $validator;
         })->call($request);
+    }
+
+    /**
+     * Whether the form would let this person in: its own authorize(), given the
+     * records its route would have bound. A copy of that check in the tool would
+     * keep the old rule the day the form's changes.
+     *
+     * @param  class-string<FormRequest>  $request_class
+     * @param  array<string, mixed>  $route_parameters  Bound by name, as the route would: ['serviceorder' => $order].
+     */
+    private function allowedAsTheFormWould(string $request_class, User $user, array $route_parameters = []): bool
+    {
+        $request = $this->formRequest($request_class, [], $user, $route_parameters);
+
+        return (bool) (fn () => $this->authorize())->call($request);
+    }
+
+    /**
+     * @param  class-string<FormRequest>  $request_class
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $route_parameters
+     */
+    private function formRequest(string $request_class, array $data, ?User $user, array $route_parameters): FormRequest
+    {
+        $request = $request_class::create('/', 'POST', $data);
+
+        if ($user !== null) {
+            $request->setUserResolver(fn () => $user);
+        }
+
+        if ($route_parameters !== []) {
+            $route = (new Route('POST', '/', []))->bind($request);
+
+            foreach ($route_parameters as $name => $value) {
+                $route->setParameter($name, $value);
+            }
+
+            $request->setRouteResolver(fn () => $route);
+        }
+
+        return $request;
     }
 
     private function complaintOf(Validator $validator): string
