@@ -3,26 +3,27 @@
         @pointermove="onWindowPointerMove" @pointerup="onWindowPointerUp">
         <!-- Top toolbar -->
         <div
-            class="relative z-30 flex items-center px-4 py-3 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap  dark:bg-slate-900">
-            <h1 class="text-xl font-bold pr-4">Planning</h1>
-            <div data-tour="planner.navigation"
-                class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm divide-x divide-gray-300 dark:divide-slate-700">
-                <button data-tour="planner.today" class="px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800" @click="goToDate(new Date())">
-                    Vandaag
-                </button>
-                <button data-tour="planner.prev-next" class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'" @click="shiftPeriod(-1)">
-                    <ChevronLeftIcon class="size-4" />
-                </button>
-                <button :disabled="!canGoForward" data-tour="planner.prev-next"
-                    class="flex items-center px-2 enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                    :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'" @click="shiftPeriod(1)">
-                    <ChevronRightIcon class="size-4" />
-                </button>
-                <PlannerDateJump :selected-start="weekStart" :selected-days="viewDayCount"
-                    :max-date="lastReachableDay?.toDate()" @select="goToDate" />
+            class="relative z-30 flex items-start px-4 py-2 border-b border-gray-200 dark:border-slate-800 gap-3 flex-wrap  dark:bg-slate-900">
+            <div class="flex flex-col items-center gap-0.5">
+                <div data-tour="planner.navigation"
+                    class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm divide-x divide-gray-300 dark:divide-slate-700">
+                    <button data-tour="planner.today" class="px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-slate-800" @click="goToDate(new Date())">
+                        Vandaag
+                    </button>
+                    <button data-tour="planner.prev-next" class="flex items-center px-2 hover:bg-gray-50 dark:hover:bg-slate-800"
+                        :aria-label="plannerView === 'day' ? 'Vorige dag' : 'Vorige week'" @click="shiftPeriod(-1)">
+                        <ChevronLeftIcon class="size-4" />
+                    </button>
+                    <button :disabled="!canGoForward" data-tour="planner.prev-next"
+                        class="flex items-center px-2 enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        :aria-label="plannerView === 'day' ? 'Volgende dag' : 'Volgende week'" @click="shiftPeriod(1)">
+                        <ChevronRightIcon class="size-4" />
+                    </button>
+                    <PlannerDateJump :selected-start="weekStart" :selected-days="viewDayCount"
+                        :max-date="lastReachableDay?.toDate()" @select="goToDate" />
+                </div>
+                <div class="text-[11px] leading-tight text-gray-500 dark:text-slate-400">{{ periodTitle }}</div>
             </div>
-            <div class="font-semibold text-sm">{{ periodTitle }}</div>
 
             <!-- View mode toggle -->
             <div data-tour="planner.views" class="flex rounded-md border border-gray-300 dark:border-slate-700 overflow-hidden text-sm">
@@ -35,7 +36,7 @@
             </div>
 
             <!-- Open-spot highlighting -->
-            <div data-tour="planner.gaps" class="flex items-center gap-2 text-sm">
+            <div data-tour="planner.gaps" class="flex items-center gap-2 text-sm min-h-[34px]">
                 <span :class="highlightGaps ? 'font-medium' : 'text-gray-500 dark:text-slate-400'">Open plekken</span>
                 <SwitchComponent v-model="highlightGaps" data-tour="planner.gaps.switch" />
                 <label v-if="highlightGaps" data-tour="planner.gaps.minutes"
@@ -48,7 +49,7 @@
                 </label>
             </div>
 
-            <div data-tour="planner.search" class="flex-1 min-w-64">
+            <div data-tour="planner.search" class="flex-1 min-w-48">
                 <ComboBox v-model="eventSearchSelection" :options="eventSearchOptions" :searching="eventSearching"
                     has-external-searching disable-internal-filter placeholder="Zoek een afspraak..."
                     @change="searchEvents">
@@ -269,14 +270,15 @@
                             <span class="block pl-9 pt-2">Projecten ({{ allDay.tracks.length }})</span>
                         </div>
                         <div v-for="(user, idx) in visibleUsers" :key="user.id"
-                            :style="{ height: rowHeightFor(user.id) + 'px' }"
-                            class="relative flex flex-col pl-9 pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
+                            :style="{ height: rowHeightFor(user.id) + 'px', paddingLeft: rowToggleLeft + 30 + 'px' }"
+                            class="relative flex flex-col pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
                             :class="[
                                 idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
                                 latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
                             ]">
                             <button data-tour="planner.row-toggle"
-                                class="absolute top-1.5 left-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                                class="absolute z-[2] top-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                                :style="{ left: rowToggleLeft + 'px' }"
                                 @click="toggleUserRow(user.id)"
                                 :aria-label="collapsedUsers.has(user.id) ? 'Rij uitklappen' : 'Rij inklappen'">
                                 <ChevronDownIcon v-if="!collapsedUsers.has(user.id)" class="size-4" />
@@ -692,6 +694,8 @@ const groupBars = computed(() => {
 
     return bars
 })
+
+const rowToggleLeft = computed(() => Math.max(6, props.groups.length * (BAR_W + BAR_GAP) + 3))
 
 const showProjects = computed(() => hasPermission('project.read'))
 
