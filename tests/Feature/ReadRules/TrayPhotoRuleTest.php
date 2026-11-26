@@ -11,12 +11,14 @@ use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Project;
+use App\Models\QuoteLine;
 use App\Models\ServiceCheck;
 use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\Share;
 use App\Models\User;
 use Tests\Concerns\CreatesAuthenticatedUsers;
+use Tests\Concerns\MakesQuotes;
 use Tests\TestCase;
 
 /**
@@ -26,7 +28,7 @@ use Tests\TestCase;
  */
 class TrayPhotoRuleTest extends TestCase
 {
-    use CreatesAuthenticatedUsers;
+    use CreatesAuthenticatedUsers, MakesQuotes;
 
     private Customer $customer;
 
@@ -150,6 +152,42 @@ class TrayPhotoRuleTest extends TestCase
 
         $this->assertSame([$image->id], $this->onTheTray($planned, $image));
         $this->assertTrue($planned->can('view', $product));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $image));
+    }
+
+    public function test_the_photo_of_what_an_offerte_line_offers_is_read_with_the_offertes(): void
+    {
+        $product_photo = $this->photo();
+        $product = Product::factory()->create();
+        $product->images()->attach($product_photo->id);
+        $material_photo = $this->photo();
+        $material = Material::create(['name' => 'Filter F7', 'price' => 5]);
+        $material->images()->attach($material_photo->id, ['main' => false]);
+        $quote = $this->makeQuote($this->customer);
+        $reader = $this->userWithPermissions('quote.read');
+
+        $this->assertSame([], $this->onTheTray($reader, $product_photo, $material_photo), 'not on a line yet');
+
+        foreach ([$product, $material] as $item) {
+            QuoteLine::create(['quote_id' => $quote->id, 'kind' => 'product', 'description' => 'Regel', 'item_type' => $item::class, 'item_id' => $item->id]);
+        }
+
+        $this->assertSame([$product_photo->id, $material_photo->id], $this->onTheTray($reader, $product_photo, $material_photo));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $product_photo, $material_photo));
+    }
+
+    public function test_the_photo_of_a_machines_product_is_read_with_the_customers(): void
+    {
+        $image = $this->photo();
+        $product = Product::factory()->create();
+        $product->images()->attach($image->id);
+        $reader = $this->userWithPermissions('customer.read');
+
+        $this->assertSame([], $this->onTheTray($reader, $image), 'no machine of the product');
+
+        Asset::factory()->create(['product_id' => $product->id, 'customer_id' => $this->customer->id]);
+
+        $this->assertSame([$image->id], $this->onTheTray($reader, $image));
         $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $image));
     }
 

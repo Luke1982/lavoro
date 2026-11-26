@@ -2,19 +2,20 @@
 
 namespace App\Policies;
 
+use App\Models\Asset;
 use App\Models\Product;
 use App\Models\User;
 
 class ProductPolicy
 {
     /**
-     * Reading products at all: the whole catalogue, or only the products of the
+     * Reading products at all: the whole catalogue, or the products of the
      * machines one may see. Which ones is Product::visibleTo's business; whoever
-     * sees a machine sees its product without this.
+     * is planned for a werkbon sees the products of its machines without this.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyPermission(['product.read', 'product.read.relevant.serviceorder']);
+        return $user->hasPermission('product.read') || $user->can('viewAny', Asset::class);
     }
 
     /** The product list: everyone it is in the menu for. */

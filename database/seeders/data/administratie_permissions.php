@@ -24,7 +24,6 @@ return [
     'event.export',
     'event.read',
     'google_calendar.connect',
-    'image.see',
     'integration.pull',
     'integration.send_serviceorder',
     'material.read',

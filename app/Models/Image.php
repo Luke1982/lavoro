@@ -78,6 +78,11 @@ class Image extends Model
      * A photo shared from a project shows on every werkbon of that project
      * (ServiceOrder::sharedImages), so whoever may open one of those werkbonnen
      * may read it, project or not.
+     *
+     * The catalogue photo of what an offerte line offers shows on that line, so
+     * whoever may read offertes sees it, product or material. The photo of a
+     * machine's product shows with the machine on its customer's page, so
+     * whoever may read customers sees that one.
      */
     protected static function alsoVisibleTo(EloquentBuilder $query, User $user): void
     {
@@ -89,6 +94,30 @@ class Image extends Model
                 'shares.source_id',
                 ServiceOrder::visibleTo($user)->whereNotNull('service_orders.project_id')->select('service_orders.project_id')
             ));
+
+        if ($user->can('viewAny', Quote::class)) {
+            foreach ([Product::class, Material::class] as $item) {
+                self::orOnRecords($query, $item, QuoteLine::query()
+                    ->where('quote_lines.item_type', (new $item)->getMorphClass())
+                    ->select('quote_lines.item_id'));
+            }
+        }
+
+        if ($user->can('viewAny', Customer::class)) {
+            self::orOnRecords($query, Product::class, Asset::query()->whereNotNull('assets.product_id')->select('assets.product_id'));
+        }
+    }
+
+    /**
+     * @param  class-string<Model>  $class
+     * @param  EloquentBuilder<Model>  $ids  the ids of the records of that class
+     */
+    private static function orOnRecords(EloquentBuilder $query, string $class, EloquentBuilder $ids): void
+    {
+        $query->orWhereExists(fn (QueryBuilder $links) => $links->from('imageables')
+            ->whereColumn('imageables.image_id', 'images.id')
+            ->where('imageables.imageable_type', (new $class)->getMorphClass())
+            ->whereIn('imageables.imageable_id', $ids));
     }
 
     /**

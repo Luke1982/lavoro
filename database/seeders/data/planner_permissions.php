@@ -27,7 +27,6 @@ return [
     'event.update',
     'event.update_others',
     'google_calendar.connect',
-    'image.see',
     'planner.manage_settings',
     'product.read',
     'productable.read',

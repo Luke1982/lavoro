@@ -48,7 +48,6 @@ return [
     'google_calendar.connect',
     'image.delete',
     'image.edit',
-    'image.see',
     'image.update',
     'image.upload',
     'internalannouncement.create',
