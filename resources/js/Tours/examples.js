@@ -98,3 +98,52 @@ export function exampleMacro() {
         ],
     }
 }
+
+/**
+ * Where the monteurs stand on the planner's maps while the rondleiding shows
+ * them, for a company where nobody shares a location: made-up spots around
+ * Utrecht, each a few minutes old, and every name marked as an example.
+ */
+const EXAMPLE_LOCATIONS = [
+    { lat: 52.0907, lng: 5.1214, heading: 80 },
+    { lat: 52.0649, lng: 5.0938, heading: null },
+    { lat: 52.1093, lng: 5.1810, heading: 210 },
+]
+
+export function examplePings(users) {
+    const recorded_at = new Date(Date.now() - 4 * 60 * 1000).toISOString()
+
+    return Object.fromEntries(users.slice(0, EXAMPLE_LOCATIONS.length).map((user, index) => [user.id, {
+        ...EXAMPLE_LOCATIONS[index],
+        recorded_at,
+        user: { id: user.id, name: user.name + ' (voorbeeld)', avatar: user.avatar ?? null },
+    }]))
+}
+
+/**
+ * A route put in a monteur's day, laid out the way the planner gets one from the
+ * server. Its link opens a real route in Google Maps along made-up stops, and it
+ * can never be taken out of the planning: there is nothing to take out.
+ */
+export function exampleDayRoute(user, date) {
+    const stops = ['Vredenburg 40, Utrecht', 'Kanaalweg 17, Utrecht', 'Rijnlaan 12, Utrecht']
+    const link = 'https://www.google.com/maps/dir/?api=1'
+        + '&origin=' + encodeURIComponent('Utrecht Centraal')
+        + '&destination=' + encodeURIComponent('Utrecht Centraal')
+        + '&waypoints=' + encodeURIComponent(stops.join('|'))
+        + '&travelmode=driving'
+
+    return {
+        id: EXAMPLE_ID,
+        user_id: user.id,
+        user_name: user.name,
+        date,
+        day_label: date,
+        stops: stops.map((address) => ({ address })),
+        finish: '15:30',
+        links: [link],
+        summary: stops.length + ' adressen, terug om 15:30 (voorbeeld)',
+        can_remove: true,
+        is_example: true,
+    }
+}

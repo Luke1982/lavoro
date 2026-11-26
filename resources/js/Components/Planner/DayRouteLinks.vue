@@ -6,7 +6,7 @@
             <MapIcon v-if="index === 0" class="h-3.5 w-3.5" />
             {{ route.links.length > 1 ? `Route ${index + 1}` : 'Route' }}
         </a>
-        <button v-if="route.can_remove" type="button" title="Route uit de planning halen"
+        <button v-if="route.can_remove" type="button" data-tour="planner.route.remove" title="Route uit de planning halen"
             aria-label="Route uit de planning halen"
             class="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
             @click="emit('remove', route)">

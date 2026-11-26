@@ -316,7 +316,7 @@
                 {
                     "title": "Op welke werkbon?",
                     "text": "Dan kies je: een **nieuwe werkbon** voor de klant, of een **open werkbon** van die klant. Staat een storing al op een werkbon? Dan wordt die werkbon ingepland. Een machine krijgt een keuring op de werkbon.",
-                    "say": "Daarna kies je op welke werkbon de storing komt: een nieuwe, of één die al open staat. Staat de storing al op een werkbon? Dan wordt die ingepland.",
+                    "say": "Daarna kies je op welke werkbon de storing komt: een nieuwe, of één die al open staat. Staat de storing al op een werkbon? Dan wordt die werkbon ingepland.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-choice"
@@ -325,7 +325,7 @@
                 {
                     "title": "Een gemengde stapel",
                     "text": "Soms gaan de storingen van een stapel niet allemaal dezelfde kant op. Bijvoorbeeld omdat ze bij verschillende klanten horen, of omdat er al een op een werkbon staat. Dan kies je **per storing**: de werkbon waar hij op staat, een nieuwe of open werkbon, of **Niet inplannen**. Wat je niet inplant, blijft op het bakje liggen.",
-                    "say": "Moeten de storingen op een stapel niet allemaal naar dezelfde werkbon? Dan kies je per storing waar hij heen gaat. En kies je \"niet inplannen\", dan blijft die storing gewoon op het bakje liggen.",
+                    "say": "Sleep je een stapel storingen in 1 keer naar de planner? Dan kies je per storing wat er moet gebeuren. En kies je \"niet inplannen\", dan blijft die storing gewoon op het bakje liggen.",
                     "aid": {
                         "type": "picture",
                         "scene": "tray-choice",
@@ -543,8 +543,8 @@
                     "spot": "planner.appointment.preliminary",
                     "action": "openNewAppointment",
                     "title": "Voorlopig",
-                    "text": "Nog niet zeker? Vink **Voorlopig** aan. In de planner krijgt de afspraak een waarschuwingsdriehoekje.",
-                    "say": "Weet je het nog niet zeker? Vink dan \"voorlopig\" aan, dan staat er in de planner een waarschuwing bij."
+                    "text": "Nog niet zeker? Vink **Voorlopig** aan. De afspraak staat dan lichter in de planner, met een gestreepte rand en een waarschuwingsdriehoekje. Verder telt hij gewoon mee: de monteur staat op dat moment ingepland, de werkbon gaat naar ingepland en de afspraak komt in een gekoppelde Google Agenda. Het enige verschil: de monteur krijgt er **geen herinnering** voor. Stuur de klant dus pas een bevestiging als het vaststaat, en zet de afspraak dan met de rechtermuisknop op **definitief**.",
+                    "say": "Weet je het nog niet zeker? Vink dan \"voorlopig\" aan. Je ziet het in de planner aan een lichtere afspraak met een waarschuwing erbij. Maar let op: verder telt hij gewoon mee. De monteur staat ingepland, de werkbon gaat naar ingepland en de afspraak komt in de Google Agenda. Alleen krijgt de monteur er geen herinnering voor. Stuur de klant dus pas een bevestiging als het zeker is, en zet hem dan met de rechtermuisknop op definitief."
                 },
                 {
                     "spot": "planner.event",
@@ -1101,25 +1101,27 @@
         },
         {
             "id": "kaart-en-route",
-            "version": 1,
+            "version": 2,
             "title": "Monteurkaart en route van de dag",
-            "summary": "Waar je monteurs zijn, de kaart per monteur en de route van een dag.",
+            "summary": "De knop Monteurkaart, de kaart met iedereen, de kaart per monteur, de knop Route op een dag en waar je een route plant.",
             "requires": {
                 "device": "desktop"
             },
             "actions": [
-                "goToToday"
+                "goToToday",
+                "showExampleLocations",
+                "showExampleRoute"
             ],
             "steps": [
                 {
                     "spot": "planner.map",
                     "title": "De monteurkaart",
-                    "text": "Delen monteurs hun locatie? Dan staat bovenin **Monteurkaart**. Daar zie je waar iedereen de afgelopen acht uur was.",
-                    "say": "Delen je monteurs hun locatie? Dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
-                    "fallback": {
-                        "type": "picture",
-                        "scene": "route",
-                        "variant": "pings"
+                    "text": "Rechtsboven, links van de assistent, staat de knop **Monteurkaart**. Die verschijnt zodra een monteur de afgelopen acht uur zijn locatie deelde met de Android-app. Deelt nog niemand zijn locatie? Dan zet de rondleiding je monteurs even op een verzonnen plek, met *(voorbeeld)* achter hun naam.",
+                    "say": "Rechtsboven, links van de assistent, staat de knop monteurkaart. Die zie je zodra een monteur zijn locatie deelt met de app. Deelt nog niemand zijn locatie? Dan staan je monteurs nu even op een verzonnen plek.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.map",
+                        "gesture": "click"
                     }
                 },
                 {
@@ -1127,16 +1129,36 @@
                     "action": "openMap",
                     "skipIfMissing": true,
                     "title": "Iedereen op de kaart",
-                    "text": "Elke monteur staat op zijn laatste plek.",
-                    "say": "Zo staan ze allemaal op de kaart."
+                    "text": "Klik je erop, dan opent een grote kaart met iedereen op zijn laatste plek: een rondje met de foto of de letters van de monteur, daaronder hoe laat hij daar was, en een pijltje voor de kant die hij op rijdt, als dat bekend is. Klik op een monteur voor zijn naam. Sluiten doe je met het kruisje rechtsboven.",
+                    "say": "Klik je erop, dan zie je iedereen op een grote kaart. Elke monteur staat op zijn laatste plek, met daaronder hoe laat hij daar was. Klik op een monteur voor zijn naam. Met het kruisje rechtsboven sluit je de kaart weer."
                 },
                 {
                     "spot": "planner.minimap",
                     "skipIfMissing": true,
                     "placement": "right",
                     "title": "Per monteur",
-                    "text": "In de rij van een monteur staat zijn laatste locatie. Met het pijltje maak je de kaart groter.",
-                    "say": "In de rij van een monteur staat zijn laatste locatie, op een kleine kaart. Met het pijltje maak je hem groter.",
+                    "text": "Links, in de rij van elke monteur die zijn locatie deelt, staat onder zijn naam een kleine kaart met zijn laatste plek. Rechtsboven die kaart staat een **pijltje**: daarmee maak je hem groter.",
+                    "say": "Links, in de rij van een monteur, staat onder zijn naam een kleine kaart met zijn laatste plek. Rechtsboven die kaart staat een pijltje. Daarmee maak je hem groter.",
+                    "marks": [
+                        {
+                            "spot": "planner.minimap.expand",
+                            "when": "pijltje"
+                        }
+                    ],
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.minimap.expand",
+                        "gesture": "click"
+                    }
+                },
+                {
+                    "spot": "planner.minimap",
+                    "action": "expandMiniMap",
+                    "skipIfMissing": true,
+                    "placement": "right",
+                    "title": "Groter en weer kleiner",
+                    "text": "Zo wordt de rij hoger en de kaart groter. Met hetzelfde pijltje maak je hem weer klein.",
+                    "say": "Zo wordt de kaart groter. Met hetzelfde pijltje maak je hem weer klein.",
                     "marks": [
                         {
                             "spot": "planner.minimap.expand",
@@ -1147,12 +1169,25 @@
                 {
                     "spot": "planner.route",
                     "title": "Route van de dag",
-                    "text": "Is er voor een monteur een route gezet? Dan staat bovenaan die dag in zijn rij een knop **Route**. Die opent Google Maps.",
-                    "say": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\", en die opent de route in Google Maps.",
-                    "fallback": {
-                        "type": "picture",
-                        "scene": "route"
+                    "text": "Heeft een monteur een route voor een dag? Dan staat rechtsboven in die dag, in zijn rij, een blauwe knop **Route**. Klik erop en de route opent in Google Maps, met alle adressen op volgorde. Wijs je hem aan, dan zie je hoeveel adressen het zijn en hoe laat hij terug is. Een lange route staat in delen: **Route 1**, **Route 2**. Hier zie je een voorbeeld als er nog geen route is.",
+                    "say": "Heeft een monteur een route voor die dag? Dan staat rechtsboven in die dag een blauwe knop: route. Klik erop en de route opent in Google Maps. Hier zie je een voorbeeld.",
+                    "aid": {
+                        "type": "pointer",
+                        "to": "planner.route",
+                        "gesture": "click"
                     }
+                },
+                {
+                    "spot": "planner.route",
+                    "title": "De route weghalen",
+                    "text": "Mag je de route weghalen? Dan staat er een **prullenbakje** naast. Daarmee haal je de route uit de planning, en ook uit de Google Agenda van de monteur. Afspraken blijven staan.",
+                    "say": "Mag je de route weghalen? Dan staat er een prullenbakje naast. Daarmee haal je hem uit de planning. De afspraken blijven gewoon staan.",
+                    "marks": [
+                        {
+                            "spot": "planner.route.remove",
+                            "when": "prullenbakje"
+                        }
+                    ]
                 },
                 {
                     "requires": {
@@ -1162,12 +1197,11 @@
                         ]
                     },
                     "title": "Een route plannen",
-                    "text": "Een route plan je met **Route plannen** op de kaart van de aankomende keuringen of van de openstaande storingen. Zet je hem in de planning? Dan verschijnt hij hier.",
-                    "say": "Een route maak je op de kaart van de keuringen, of van de storingen. Zet je hem in de planning? Dan verschijnt hij hier, bij de monteur.",
-                    "aid": {
-                        "type": "picture",
-                        "scene": "route",
-                        "variant": "plan"
+                    "text": "Een route maak je niet in de planner, maar op de kaart van de aankomende keuringen of van de openstaande storingen: daar zet je **Route plannen** aan, klik je de adressen aan en zet je de route bij een monteur in de planning. Dan staat hij hier. Met **Naar de kaart** laat de rondleiding je zien hoe dat gaat.",
+                    "say": "Een route maak je op de kaart van de keuringen, of van de storingen. Zet je hem daar in de planning, dan staat hij hier bij de monteur. Klik op \"naar de kaart\", dan laat de rondleiding je daar zien hoe het gaat.",
+                    "cta": {
+                        "label": "Naar de kaart",
+                        "action": "openRouteTour"
                     }
                 }
             ]

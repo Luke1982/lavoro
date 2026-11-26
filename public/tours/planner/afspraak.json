@@ -49,22 +49,22 @@
             "end": 40.841
         },
         {
-            "text": "Weet je het nog niet zeker? Vink dan \"voorlopig\" aan, dan staat er in de planner een waarschuwing bij.",
-            "hash": "59fb0302215135f6176c0b28a68cb31e72bffc50",
+            "text": "Weet je het nog niet zeker? Vink dan \"voorlopig\" aan. Je ziet het in de planner aan een lichtere afspraak met een waarschuwing erbij. Maar let op: verder telt hij gewoon mee. De monteur staat ingepland, de werkbon gaat naar ingepland en de afspraak komt in de Google Agenda. Alleen krijgt de monteur er geen herinnering voor. Stuur de klant dus pas een bevestiging als het zeker is, en zet hem dan met de rechtermuisknop op definitief.",
+            "hash": "c49942cb170ab82c37c015ce1db501acc516ba88",
             "start": 41.841,
-            "end": 47.135
+            "end": 65.837
         },
         {
             "text": "Een afspraak die er al staat, sleep je naar een andere tijd of een andere monteur. Trek je aan de zijkant, dan maak je hem langer of korter.",
             "hash": "fdb587e689297606b8ddaaac388eb72b3e352460",
-            "start": 48.135,
-            "end": 56.151
+            "start": 66.837,
+            "end": 74.853
         },
         {
             "text": "Met de rechtermuisknop stuur je de klant een afspraakbevestiging. In hetzelfde menu wijzig je ook snel het soort, of de monteurs.",
             "hash": "6f10f0a4dffd97c93d9edd7b4a41ecc9cd80dc3a",
-            "start": 57.151,
-            "end": 64.456
+            "start": 75.853,
+            "end": 83.158
         }
     ]
 }

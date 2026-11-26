@@ -14,6 +14,7 @@ const REFRESH_MS = 60_000;
 export function usePlannerDayRoutes(weekStart, dayCount) {
     const page = usePage();
     const routes = ref([]);
+    const example = ref(null);
 
     const fetchRoutes = async () => {
         const params = {
@@ -26,10 +27,24 @@ export function usePlannerDayRoutes(weekStart, dayCount) {
         }
     };
 
-    const routeFor = (userId, dayIso) => routes.value
-        .find((route) => route.user_id === userId && route.date === dayIso) ?? null;
+    const matches = (route, userId, dayIso) => route?.user_id === userId && route.date === dayIso;
+
+    const routeFor = (userId, dayIso) => (matches(example.value, userId, dayIso) ? example.value : null)
+        ?? routes.value.find((route) => matches(route, userId, dayIso)) ?? null;
+
+    const hasRoutes = () => routes.value.length > 0;
+
+    /** Shows a made-up route for the rondleiding, beside the real ones; hands back how to take it away. */
+    const showExample = (route) => {
+        example.value = route;
+
+        return () => { example.value = null; };
+    };
 
     const removeRoute = async (route) => {
+        if (route.is_example) {
+            return;
+        }
         if (!confirm(`Route van ${route.user_name} voor ${route.day_label} uit de planning halen?`)) {
             return;
         }
@@ -56,5 +71,5 @@ export function usePlannerDayRoutes(weekStart, dayCount) {
     onUnmounted(() => clearInterval(timer));
     watch([weekStart, dayCount], fetchRoutes);
 
-    return { routeFor, removeRoute };
+    return { routeFor, removeRoute, hasRoutes, showExample };
 }

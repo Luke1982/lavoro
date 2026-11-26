@@ -274,7 +274,7 @@
                             class="relative flex flex-col pr-2 border-b border-gray-100 dark:border-slate-800 transition-[height] duration-200 ease-in-out overflow-hidden"
                             :class="[
                                 idx % 2 === 1 ? 'bg-gray-50/40 dark:bg-slate-800/40' : '',
-                                latestPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
+                                shownPings[user.id] && !collapsedUsers.has(user.id) ? 'pt-2 pb-2 gap-1' : 'justify-center'
                             ]">
                             <button data-tour="planner.row-toggle"
                                 class="absolute z-[2] top-1.5 rounded p-0.5 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
@@ -298,7 +298,7 @@
                                         {{ userHoursLabel(user.id) }}</div>
                                 </div>
                             </div>
-                            <div v-if="!collapsedUsers.has(user.id) && latestPings[user.id]" data-tour="planner.minimap"
+                            <div v-if="!collapsedUsers.has(user.id) && shownPings[user.id]" data-tour="planner.minimap"
                                 class="flex flex-col flex-1 min-h-0">
                                 <div class="flex items-center justify-between mb-0.5 shrink-0">
                                     <span class="text-[10px] text-gray-400 dark:text-slate-500 font-medium">Locatie</span>
@@ -311,7 +311,7 @@
                                 </div>
                                 <div class="flex-1 min-h-0">
                                     <TechnicianMiniMap :key="mapExpandedUsers.has(user.id) ? 'exp' : 'mini'"
-                                        :ping="latestPings[user.id]" />
+                                        :ping="shownPings[user.id]" />
                                 </div>
                             </div>
                         </div>
@@ -569,7 +569,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
-import { useTour, findSpot } from '@/Composables/useTour'
+import { useTour, findSpot, requestTour } from '@/Composables/useTour'
+import { examplePings, exampleDayRoute } from '@/Tours/examples'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, ChevronDoubleDownIcon, ArrowsRightLeftIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MapIcon, EllipsisVerticalIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
@@ -755,7 +756,7 @@ const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFing
     viewDayCount,
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
 )
-const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, viewDayCount)
+const { routeFor, removeRoute, hasRoutes, showExample: showExampleRoute } = usePlannerDayRoutes(weekStart, viewDayCount)
 
 const gridScrollRef = ref(null)
 const bodyRef = ref(null)
@@ -848,8 +849,12 @@ function getBlockedUsers(userId, dayIso, startMin, endMin) {
     return blockedUsersAt(props.plannableUsers, userId, dayIso, toAbsMin(startMin), toAbsMin(endMin))
 }
 
+/** The rondleiding's made-up locations, while it shows the maps to a company where nobody shares one. */
+const examplePingsShown = ref(null)
+const shownPings = computed(() => examplePingsShown.value ?? props.latestPings)
+
 const allPingsArray = computed(() =>
-    Object.values(props.latestPings).filter(p => p.lat != null && p.lng != null)
+    Object.values(shownPings.value).filter(p => p.lat != null && p.lng != null)
 )
 
 /** One horizontal track per project, positioned within the visible week. */
@@ -1069,7 +1074,7 @@ function toggleAllDay() {
 
 function rowHeightFor(userId) {
     if (collapsedUsers.value.has(userId)) return COLLAPSED_ROW_H
-    if (props.latestPings[userId]) {
+    if (shownPings.value[userId]) {
         return mapExpandedUsers.value.has(userId) ? MAP_EXPANDED_ROW_H : MAP_DEFAULT_ROW_H
     }
     return props.rowHeight
@@ -2563,6 +2568,32 @@ useTour('planner', {
         mapModalOpen.value = true
 
         return () => { mapModalOpen.value = false }
+    },
+    showExampleLocations: () => {
+        if (allPingsArray.value.length || !visibleUsers.value.length) return null
+        examplePingsShown.value = examplePings(visibleUsers.value)
+
+        return () => { examplePingsShown.value = null }
+    },
+    expandMiniMap: () => {
+        const user = visibleUsers.value.find((candidate) => shownPings.value[candidate.id] && !collapsedUsers.value.has(candidate.id))
+        if (!user || mapExpandedUsers.value.has(user.id)) return null
+        toggleMapExpand(user.id)
+
+        return () => {
+            if (mapExpandedUsers.value.has(user.id)) toggleMapExpand(user.id)
+        }
+    },
+    showExampleRoute: () => {
+        const user = visibleUsers.value[0]
+        if (hasRoutes() || !user) return null
+        const todayIso = formatLocalDateAsISO(new Date())
+        const day = weekDays.value.find((candidate) => candidate.iso === todayIso) ?? weekDays.value[0]
+
+        return day ? showExampleRoute(exampleDayRoute(user, day.iso)) : null
+    },
+    openRouteTour: () => {
+        requestTour(hasPermission('activitylist.read') ? 'activiteiten' : 'storingen', 'kaart')
     },
 }, {
     spots: {

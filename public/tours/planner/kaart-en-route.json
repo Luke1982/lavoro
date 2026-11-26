@@ -1,40 +1,52 @@
 {
     "tour": "planner",
     "chapter": "kaart-en-route",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "kaart-en-route.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Delen je monteurs hun locatie? Dan zie je op de monteurkaart waar iedereen de afgelopen acht uur was.",
-            "hash": "52dc104f7b7fde5b1934ba2c393437fd818990ec",
+            "text": "Rechtsboven, links van de assistent, staat de knop monteurkaart. Die zie je zodra een monteur zijn locatie deelt met de app. Deelt nog niemand zijn locatie? Dan staan je monteurs nu even op een verzonnen plek.",
+            "hash": "6e3c88e91ac3f8a916a6cb10f5cc77244837d186",
             "start": 0,
-            "end": 5.784
+            "end": 12.828
         },
         {
-            "text": "Zo staan ze allemaal op de kaart.",
-            "hash": "bd71b583c18cf73d2fce544a0932711b4eae1e4e",
-            "start": 6.784,
-            "end": 8.389
+            "text": "Klik je erop, dan zie je iedereen op een grote kaart. Elke monteur staat op zijn laatste plek, met daaronder hoe laat hij daar was. Klik op een monteur voor zijn naam. Met het kruisje rechtsboven sluit je de kaart weer.",
+            "hash": "6e83cf1a25c85989da538bce7869f0d8a8d87004",
+            "start": 13.828,
+            "end": 26.103
         },
         {
-            "text": "In de rij van een monteur staat zijn laatste locatie, op een kleine kaart. Met het pijltje maak je hem groter.",
-            "hash": "c35645c3fab494bef9cbdadb8fc8528a60414f4b",
-            "start": 9.389,
-            "end": 15.309
+            "text": "Links, in de rij van een monteur, staat onder zijn naam een kleine kaart met zijn laatste plek. Rechtsboven die kaart staat een pijltje. Daarmee maak je hem groter.",
+            "hash": "391d74e82ea0717fd86cc11b7138c2dec162e5cf",
+            "start": 27.103,
+            "end": 36.229
         },
         {
-            "text": "Staat er voor een dag een route klaar? Dan zie je bovenin die dag een knop \"route\", en die opent de route in Google Maps.",
-            "hash": "2625f2e4bd503a6b1c80f9b6a14888570cb8a066",
-            "start": 16.309,
-            "end": 23.057
+            "text": "Zo wordt de kaart groter. Met hetzelfde pijltje maak je hem weer klein.",
+            "hash": "dd1c801141e29bfe14a7c7384a9947696898a84e",
+            "start": 37.229,
+            "end": 40.963
         },
         {
-            "text": "Een route maak je op de kaart van de keuringen, of van de storingen. Zet je hem in de planning? Dan verschijnt hij hier, bij de monteur.",
-            "hash": "d96753bd9f57027bf75a2065dfe78ee3b555de71",
-            "start": 24.057,
-            "end": 31.332
+            "text": "Heeft een monteur een route voor die dag? Dan staat rechtsboven in die dag een blauwe knop: route. Klik erop en de route opent in Google Maps. Hier zie je een voorbeeld.",
+            "hash": "06fe30a54bc7f55dcbfc822c96f3b134bf8cad47",
+            "start": 41.963,
+            "end": 51.869
+        },
+        {
+            "text": "Mag je de route weghalen? Dan staat er een prullenbakje naast. Daarmee haal je hem uit de planning. De afspraken blijven gewoon staan.",
+            "hash": "3447b5a644df0070a3641735add63ee2f4050e37",
+            "start": 52.869,
+            "end": 59.834
+        },
+        {
+            "text": "Een route maak je op de kaart van de keuringen, of van de storingen. Zet je hem daar in de planning, dan staat hij hier bij de monteur. Klik op \"naar de kaart\", dan laat de rondleiding je daar zien hoe het gaat.",
+            "hash": "410376131c9cff1f3fb890fbefe7abc247bf1a66",
+            "start": 60.834,
+            "end": 72.362
         }
     ]
 }
