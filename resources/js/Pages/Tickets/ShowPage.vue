@@ -190,7 +190,7 @@
                         </div>
                         <div class="col-span-12 sm:col-span-8">
                             <EditableTextField v-model="form.subject" class="w-full" :bordered="false"
-                                :readonly="!hasPermission('ticket.update')" />
+                                :readonly="!mayEdit" />
                         </div>
                     </div>
 
@@ -204,7 +204,7 @@
                         </div>
                         <div class="col-span-12 sm:col-span-8">
                             <EditableTextField v-model="form.description" type="textarea" class="w-full"
-                                :bordered="false" :readonly="!hasPermission('ticket.update')" />
+                                :bordered="false" :readonly="!mayEdit" />
                         </div>
                     </div>
 
@@ -219,7 +219,7 @@
                         <div class="col-span-12 sm:col-span-8">
                             <EditableTextField v-model="form.status_code" class="w-full" :bordered="false"
                                 placeholder="Nog niet ingesteld"
-                                :readonly="!hasPermission('ticket.update')" />
+                                :readonly="!mayEdit" />
                         </div>
                     </div>
 
@@ -234,7 +234,7 @@
                         <div class="col-span-12 sm:col-span-8">
                             <EditableTextField type="combobox" v-model="form.status" :options="statusses"
                                 class="w-full" :bordered="false" indicator="select"
-                                :readonly="!hasPermission('ticket.change_status')" :error="form.errors.status"
+                                :readonly="!mayChangeStatus" :error="form.errors.status"
                                 @revert="form.clearErrors('status')">
                                 <template #display>
                                     <BadgeComponent :color="statusBadgeColor" :hasDot="false">{{ ticket.status }}
@@ -253,7 +253,7 @@
                             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Prioriteit</span>
                         </div>
                         <div class="col-span-12 sm:col-span-8">
-                            <fieldset aria-label="Kies een prioriteit" v-if="hasPermission('ticket.alter_priority')">
+                            <fieldset aria-label="Kies een prioriteit" v-if="mayChangePriority">
                                 <!-- One indicator that slides between segments, rather than a
                                      background toggling on each label. Segments are equal
                                      width, so a whole-width translate lands exactly on one. -->
@@ -427,7 +427,13 @@ const props = defineProps({
     eventWidgetEvents: { type: Array, default: () => [] },
     userRoles: { type: Array, default: () => [] },
     defaultLeadingColor: { type: String, default: 'event' },
+    worksOnIt: { type: Boolean, default: false },
 });
+
+/** Wie op de open werkbon van deze storing gepland staat, werkt hem bij zonder rechten op storingen. */
+const mayEdit = computed(() => props.worksOnIt || hasPermission('ticket.update'));
+const mayChangeStatus = computed(() => props.worksOnIt || hasPermission('ticket.change_status'));
+const mayChangePriority = computed(() => props.worksOnIt || hasPermission('ticket.alter_priority'));
 
 useTrayRecord('ticket', () => props.ticket.id);
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ForgetIntegrationSecretRequest;
+use App\Http\Requests\TechnicalManagementTestMailRequest;
 use App\Http\Requests\UpdateIntegrationSettingsRequest;
 use App\Mail\TestMail;
 use App\Models\GeneralSetting;
@@ -87,13 +88,9 @@ class TechnicalManagementController extends Controller
         return back()->with('success', 'Sleutel gewist.');
     }
 
-    public function sendTestMail(Request $request)
+    public function sendTestMail(TechnicalManagementTestMailRequest $request)
     {
-        abort_unless($request->user()?->isSuperAdmin() ?? false, 403);
-
-        $data = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
+        $data = $request->validated();
 
         $mailer = config('mail.default');
         if (in_array($mailer, ['log', 'array'], true)) {

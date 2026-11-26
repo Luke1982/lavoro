@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImageFileReadRequest;
 use App\Models\Company;
 use App\Models\Image;
 use App\Models\User;
@@ -10,12 +11,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
 {
-    public function image(Image $image)
+    public function image(ImageFileReadRequest $request, Image $image)
     {
         return $this->servePublicFile($image->path);
     }
 
-    public function imageOriginal(Image $image)
+    public function imageOriginal(ImageFileReadRequest $request, Image $image)
     {
         return $this->servePublicFile($image->unannotatedPath());
     }

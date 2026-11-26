@@ -36,7 +36,7 @@ final class QuoteOrigins
     /** Whether this person may open it: a werkbon by its policy, a storing as its own page does. */
     public static function mayOpen(User $user, ServiceOrder|Ticket $origin): bool
     {
-        return $origin instanceof Ticket ? $user->can('viewPage', Ticket::class) : $user->can('view', $origin);
+        return $origin instanceof Ticket ? $user->can('viewPage', $origin) : $user->can('view', $origin);
     }
 
     /** How the trail names what a quote was made from: "werkbon WB-0272", "sjabloon 'Airco 1 ruimte'". */

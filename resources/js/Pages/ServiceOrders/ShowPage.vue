@@ -172,11 +172,11 @@
                             :material-categories="materialCategories" :material-usage-units="materialUsageUnits"
                             :bundle-parts-by-product="bundlePartsByProduct" :hidden-count="hiddenTaskCount"
                             class="my-4" />
-                        <BoxComponent v-if="hasPermission('servicejob.read')" class="my-4" data-tour="werkbon.inspections"
+                        <BoxComponent v-if="mayReadServiceJobs" class="my-4" data-tour="werkbon.inspections"
                             v-tray-drop="{ accepts: ['asset'], target: { type: 'serviceorder', id: serviceOrder.id }, label: 'een keuring op deze werkbon te zetten' }">
                             <SectionHeader :icon="BadgeCheck" title="Keuringen"
                                 subtitle="Beheer en maak keuringen voor dit apparaat." chapter="inspections">
-                                <template v-if="hasPermission('servicejob.create') && !serviceOrder.is_closed"
+                                <template v-if="mayAddServiceJobs && !serviceOrder.is_closed"
                                     #actions>
                                     <AddServiceJobsMenu :service-order-id="serviceOrder.id" :assets="$props.customerAssets"
                                         :present-asset-ids="serviceOrder.servicejobs.map(job => job.asset_id)" />
@@ -186,7 +186,7 @@
                                     </button>
                                 </template>
                             </SectionHeader>
-                            <div v-if="hasPermission('servicejob.create')"
+                            <div v-if="mayAddServiceJobs"
                                 class="flex flex-col sm:flex-row justify-between divide-gray-200/70 dark:divide-slate-700/70 divide-x-1 ring-1 ring-gray-200/70 dark:ring-slate-700/70 rounded-lavoro-sm">
                                 <AssetSelectMenu v-model="selectedAsset" :assets="customerAssets"
                                     class="p-1 sm:p-4 sm:w-1/4 w-full sm:min-w-100" />
@@ -775,6 +775,8 @@ const props = defineProps({
     mapLocation: { type: Object, default: () => ({ address: null, source: null }) },
     /** Whether the reader executes this werkbon, on it or on one of its appointments. */
     viewerExecutes: { type: Boolean, default: false },
+    mayReadServiceJobs: { type: Boolean, default: false },
+    mayAddServiceJobs: { type: Boolean, default: false },
 });
 
 const { view, preview } = useServiceOrderView(() => props.viewerExecutes);

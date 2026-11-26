@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LimitsBulkSelection;
+use App\Http\Requests\Concerns\SplitsDocumentsByRight;
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 
 /**
  * @property int[] $ids
@@ -15,6 +17,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class DocumentBulkCategoryRequest extends FormRequest
 {
     use LimitsBulkSelection;
+    use SplitsDocumentsByRight;
 
     public function authorize(): bool
     {
@@ -28,6 +31,12 @@ class DocumentBulkCategoryRequest extends FormRequest
             'ids.*' => 'integer|exists:documents,id',
             'document_category_id' => 'nullable|integer|exists:document_categories,id',
         ];
+    }
+
+    /** @return array{0: Collection<int, Document>, 1: Collection<int, Document>} the ones this person may change, and the rest */
+    public function documents(): array
+    {
+        return $this->documentsSplitBy('update');
     }
 
     public function messages(): array

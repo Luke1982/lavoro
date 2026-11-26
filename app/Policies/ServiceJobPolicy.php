@@ -13,7 +13,7 @@ class ServiceJobPolicy
         return $user->hasPermission('servicejob.read');
     }
 
-    /** This one keuring: with the right to read keuringen, and on a werkbon this person may open. */
+    /** This one keuring, by ServiceJob::scopeVisibleTo: with the right to read keuringen on a werkbon this person may open, or on one they are planned for. */
     public function view(User $user, ServiceJob $service_job): bool
     {
         return ServiceJob::visibleTo($user)->whereKey($service_job->id)->exists();

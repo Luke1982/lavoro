@@ -376,11 +376,11 @@
         </template>
 
         <template #sidebar>
-            <BoxComponent v-if="hasPermission('image.upload') || hasPermission('image.see')" class="mt-6 md:mt-0">
+            <BoxComponent class="mt-6 md:mt-0">
                 <ImageUploadComponent title="Foto's van de machine" :existing="asset.images" :imageable-id="asset.id"
                     imageable-type="\App\Models\Asset" />
             </BoxComponent>
-            <BoxComponent v-if="asset.product.images.length > 0 && hasPermission('image.see')" class="mt-6">
+            <BoxComponent v-if="asset.product.images.length > 0" class="mt-6">
                 <SectionHeader :icon="CubeIcon" chapter="products" border>
                     Foto's van het
                     <Link :href="`/products/${asset.product.id}`" class="text-blue-600 dark:text-blue-400 underline">product</Link>

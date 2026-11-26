@@ -21,4 +21,15 @@ class ProductTypePolicy
     {
         return $user->hasPermission('producttype.create');
     }
+
+    /** Asked of the class: every one of them takes the same right. */
+    public function update(User $user): bool
+    {
+        return $user->hasPermission('producttype.update');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('producttype.delete');
+    }
 }

@@ -182,7 +182,7 @@ class ComboSearchController extends Controller
                     $match->orWhere('id', 'like', SearchTerm::like((string) $id));
                 }
             }))
-            ->plannableFor($user)
+            ->visibleTo($user)
             ->orderByDesc('order_date')
             ->orderByDesc('id')
             ->limit(50)

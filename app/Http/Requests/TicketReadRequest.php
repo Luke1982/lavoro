@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 
@@ -27,7 +26,7 @@ class TicketReadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('viewPage', Ticket::class);
+        return (bool) $this->user()?->can('viewPage', $this->route('ticket'));
     }
 
     public function rules(): array

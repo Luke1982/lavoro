@@ -143,8 +143,8 @@
                         Storing {{ ticket.id }} is gepland op
                         <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
                             ticket.service_order_id }}</Link>, klik
-                        <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
-                            class="underline">hier
+                        <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}`" method="delete"
+                            as="button" class="underline">hier
                         </Link> om deze te verwijderen van die werkbon, zodat je hem hier
                         kunt koppelen aan een nieuwe.
                     </div>
@@ -166,8 +166,8 @@
                         Storing {{ ticket.id }} is gepland op
                         <Link class="underline" :href="`/serviceorders/${ticket.service_order_id}`">werkbon {{
                             ticket.service_order_id }}</Link>, klik
-                        <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}/detach`"
-                            class="underline">hier
+                        <Link :href="`/serviceorders/${ticket.service_order_id}/tickets/${ticket.id}`" method="delete"
+                            as="button" class="underline">hier
                         </Link> om deze te verwijderen van die werkbon, zodat je hem hier
                         kunt koppelen aan een nieuwe.
                     </div>

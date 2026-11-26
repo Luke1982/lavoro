@@ -28,6 +28,7 @@ use App\Http\Requests\ServiceOrderShowRequest;
 use App\Http\Requests\ServiceOrderStoreRequest;
 use App\Http\Requests\ServiceOrderUpdateMateriableRequest;
 use App\Http\Requests\ServiceOrderUpdateRequest;
+use App\Http\Requests\TicketAttachToServiceOrderRequest;
 use App\Http\Requests\TicketDetachFromServiceOrderRequest;
 use App\Jobs\BulkMoveServiceOrderStageJob;
 use App\Mail\ServiceOrderPdfMail;
@@ -63,11 +64,9 @@ use App\Traits\ReadsPerPage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DompdfPdf;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -223,11 +222,17 @@ class ServiceOrderController extends Controller
         ])->findOrFail($id);
 
         $user = Auth::user();
+        $may_read_service_jobs = $user->can('readServiceJobs', $service_order);
+
+        if (!$may_read_service_jobs) {
+            $service_order->setRelation('servicejobs', collect());
+        }
 
         /**
          * The customer's machines at every depth, not just the roots. Child machines carry
          * no customer_id, so customer->assets would silently drop them and a job could
-         * never be booked on a component.
+         * never be booked on a component. Only the ones this person may open: the pickers
+         * offer nothing else.
          */
         $customer_assets = $service_order->customer
             ? $service_order->customer->assetTree([
@@ -237,7 +242,7 @@ class ServiceOrderController extends Controller
                 'linkedLocation',
                 'servicejobs:id,asset_id,completed_on',
                 'childAssets.product.brand',
-            ])
+            ], visible_to: $user)
             : collect();
 
         /**
@@ -318,6 +323,8 @@ class ServiceOrderController extends Controller
             'documentCategories' => DocumentCategory::forPicker(),
             'mapLocation' => ServiceOrderLocationResolver::resolve($service_order),
             'viewerExecutes' => ServiceOrder::assignedTo($user)->whereKey($service_order->id)->exists(),
+            'mayReadServiceJobs' => $may_read_service_jobs,
+            'mayAddServiceJobs' => $user->can('addServiceJobs', $service_order),
             'customerAssets' => $customer_assets,
             'customerTickets' => $customer_tickets,
             'allTaskInstances' => $all_task_instances,
@@ -354,6 +361,7 @@ class ServiceOrderController extends Controller
             'macroLocations' => $service_order->customer?->locations()->get(['id', 'title']) ?? [],
             'contacts' => $service_order->customer?->contactOptions() ?? [],
             'projects' => Project::query()
+                ->visibleTo($user)
                 ->where(fn ($query) => $query->active()->orWhere('id', $service_order->project_id))
                 ->inNumberOrder()
                 ->get(['id', 'number', 'title']),
@@ -722,9 +730,8 @@ class ServiceOrderController extends Controller
     /**
      * Attach a ticket to a service order.
      */
-    public function attachTicket(Request $request, ServiceOrder $serviceorder, Ticket $ticket)
+    public function attachTicket(TicketAttachToServiceOrderRequest $request, ServiceOrder $serviceorder, Ticket $ticket)
     {
-        Gate::authorize('attach-to-service-order', $ticket);
         app(AttachTicketToServiceOrderAction::class)->execute($serviceorder, $ticket);
 
         return redirect()->back()->with('success', 'Ticket succesvol gekoppeld aan de werkbon.');

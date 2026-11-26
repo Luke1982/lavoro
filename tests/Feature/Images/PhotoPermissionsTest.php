@@ -5,6 +5,7 @@ namespace Tests\Feature\Images;
 use App\Models\Event;
 use App\Models\Image;
 use App\Models\Product;
+use App\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -18,14 +19,13 @@ use Tests\TestCase;
  *
  * Feedback on an event goes by the event, not by the image permissions: only for
  * photos that hang from that event, or naming any event would open every photo.
+ *
+ * Seeing a photo takes no right of its own: whoever opens its record sees it.
  */
 class PhotoPermissionsTest extends TestCase
 {
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
-
-    /** Changing a photo takes one this person may open: here, on a product. */
-    private const SEES_THE_PHOTO = ['image.see', 'product.read'];
 
     private Product $product;
 
@@ -42,7 +42,7 @@ class PhotoPermissionsTest extends TestCase
 
     public function test_renaming_takes_the_rename_permission(): void
     {
-        $this->actingAs($this->userWithPermissions('image.update', ...self::SEES_THE_PHOTO))
+        $this->actingAs($this->userWithPermissions('image.update', 'product.read'))
             ->postJson(route('images.update', $this->image), $this->on($this->product, ['newTitle' => 'Typeplaatje']))
             ->assertOk();
 
@@ -51,7 +51,7 @@ class PhotoPermissionsTest extends TestCase
 
     public function test_the_upload_permission_does_not_rename(): void
     {
-        $this->actingAs($this->userWithPermissions('image.upload'))
+        $this->actingAs($this->userWithPermissions('image.upload', 'product.read'))
             ->postJson(route('images.update', $this->image), $this->on($this->product, ['newTitle' => 'Typeplaatje']))
             ->assertForbidden();
     }
@@ -59,7 +59,7 @@ class PhotoPermissionsTest extends TestCase
     /** The annotation form sends its empty title along, which must not count as renaming. */
     public function test_annotating_takes_only_the_annotate_permission(): void
     {
-        $this->actingAs($this->userWithPermissions('image.edit', ...self::SEES_THE_PHOTO))
+        $this->actingAs($this->userWithPermissions('image.edit', 'product.read'))
             ->postJson(route('images.update', $this->image), $this->on($this->product, [
                 'imageToUpdate' => UploadedFile::fake()->image('image.jpg'),
                 'newTitle' => '',
@@ -71,7 +71,7 @@ class PhotoPermissionsTest extends TestCase
 
     public function test_the_rename_permission_does_not_annotate(): void
     {
-        $this->actingAs($this->userWithPermissions('image.update'))
+        $this->actingAs($this->userWithPermissions('image.update', 'product.read'))
             ->postJson(route('images.update', $this->image), $this->on($this->product, [
                 'imageToUpdate' => UploadedFile::fake()->image('image.jpg'),
             ]))
@@ -121,6 +121,20 @@ class PhotoPermissionsTest extends TestCase
 
         $this->assertSame('Foto', $this->image->fresh()->name);
         Storage::disk('public')->assertExists($this->image->path);
+    }
+
+    public function test_the_file_of_a_photo_is_served_to_whoever_opens_its_record(): void
+    {
+        $order = ServiceOrder::factory()->create();
+        $image = $this->photoOn($order, pivot: ['internal' => false]);
+        $planned = $this->userWithPermissions();
+        $order->addExecutingUser($planned->id);
+
+        $this->actingAs($planned)->get(route('files.image', $image))->assertOk();
+        $this->actingAs($planned)->get(route('files.imageOriginal', $image))->assertOk();
+        $this->actingAs($this->userWithPermissions())->getJson(route('files.image', $image))->assertForbidden();
+        $this->actingAs($this->userWithPermissions('product.read'))->get(route('files.image', $this->image))->assertOk();
+        $this->actingAs($this->userWithPermissions())->getJson(route('files.image', $this->image))->assertForbidden();
     }
 
     private function on(Model $record, array $data = []): array

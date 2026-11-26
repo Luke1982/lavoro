@@ -11,7 +11,9 @@ class EventFeedbackRequest extends FormRequest
     {
         $event = $this->route('event');
 
-        return $event instanceof Event && $this->user()->can('provideFeedback', $event);
+        return $event instanceof Event
+            && $this->user()->can('provideFeedback', $event)
+            && $this->user()->can('view', $event);
     }
 
     public function rules(): array

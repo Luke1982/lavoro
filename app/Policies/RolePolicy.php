@@ -22,4 +22,15 @@ class RolePolicy
     {
         return $role->name !== Role::SUPERADMIN && $this->viewAny($user);
     }
+
+    /** Making roles and choosing what is in them stays the admin's; see the user form for handing them out. */
+    public function create(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function update(User $user, Role $role): bool
+    {
+        return $user->isAdmin();
+    }
 }

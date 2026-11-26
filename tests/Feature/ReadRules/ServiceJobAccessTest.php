@@ -35,7 +35,6 @@ class ServiceJobAccessTest extends TestCase
     private const READER_WITH_PHOTO_RIGHTS = [
         'serviceorder.read',
         'servicejob.read',
-        'image.see',
         'image.upload',
         'image.delete',
     ];

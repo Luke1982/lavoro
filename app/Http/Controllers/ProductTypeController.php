@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductTypeDestroyRequest;
 use App\Http\Requests\ProductTypeReadRequest;
 use App\Http\Requests\ProductTypeStoreRequest;
 use App\Http\Requests\ProductTypeStoreUpdateRequest;
@@ -81,7 +82,7 @@ class ProductTypeController extends Controller
             ->with('success', 'Producttype bijgewerkt.');
     }
 
-    public function destroy(ProductType $producttype)
+    public function destroy(ProductTypeDestroyRequest $request, ProductType $producttype)
     {
         if ($this->hasProducts($producttype)) {
             return back()->with(

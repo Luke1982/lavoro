@@ -4,15 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Domain\Signals\Company\CompanyLogoReplaced;
 use App\Domain\Signals\Signals;
-use App\Models\Company;
+use App\Http\Requests\CompanyDestroyRequest;
+use App\Http\Requests\CompanyLogoRequest;
+use App\Http\Requests\CompanyNegativeLogoRequest;
 use App\Http\Requests\CompanyStoreRequest;
 use App\Http\Requests\CompanyUpdateRequest;
-use Illuminate\Http\Request;
+use App\Models\Company;
 use Illuminate\Http\UploadedFile;
 
-/**
- * @mixin \Illuminate\Http\Request
- */
 class CompanyController extends Controller
 {
     public function index()
@@ -22,9 +21,6 @@ class CompanyController extends Controller
         ]);
     }
 
-    /**
-     * @param CompanyStoreRequest $request
-     */
     public function store(CompanyStoreRequest $request)
     {
         $data = $request->validated();
@@ -36,13 +32,10 @@ class CompanyController extends Controller
             $data['logo_negative_path'] = $request->file('logo_negative')->store('company-logos', 'public');
         }
         Company::create($data);
+
         return back()->with('success', 'Bedrijf aangemaakt.');
     }
 
-    /**
-     * @param UpdateCompanyRequest $request
-     * @param Company $company
-     */
     public function update(CompanyUpdateRequest $request, Company $company)
     {
         $data = $request->validated();
@@ -57,13 +50,12 @@ class CompanyController extends Controller
         if ($request->hasFile('logo_negative')) {
             $this->replaceLogo($company, 'logo_negative_path', $request->file('logo_negative'));
         }
+
         return back()->with('success', 'Bedrijf bijgewerkt.');
     }
 
     /**
      * Inline update for single or multiple simple fields.
-     * @param UpdateCompanyRequest $request
-     * @param Company $company
      */
     public function inline(CompanyUpdateRequest $request, Company $company)
     {
@@ -72,33 +64,35 @@ class CompanyController extends Controller
             $data['is_main'] = $request->boolean('is_main');
         }
         $company->update($data);
+
         return back()->with('success', 'Bedrijf bijgewerkt.');
     }
 
     /**
      * Logo only update.
      */
-    public function logo(Request $request, Company $company)
+    public function logo(CompanyLogoRequest $request, Company $company)
     {
-        $request->validate(['logo' => 'required|image|max:2048']);
         $this->replaceLogo($company, 'logo_path', $request->file('logo'));
+
         return back()->with('success', 'Logo bijgewerkt.');
     }
 
     /**
      * Negative logo only update.
      */
-    public function logoNegative(Request $request, Company $company)
+    public function logoNegative(CompanyNegativeLogoRequest $request, Company $company)
     {
-        $request->validate(['logo_negative' => 'required|image|max:2048']);
         $this->replaceLogo($company, 'logo_negative_path', $request->file('logo_negative'));
+
         return back()->with('success', 'Negatief logo bijgewerkt.');
     }
 
     /** Its logos are removed by a listener once the deletion is final. */
-    public function destroy(Company $company)
+    public function destroy(CompanyDestroyRequest $request, Company $company)
     {
         $company->delete();
+
         return back()->with('success', 'Bedrijf verwijderd.');
     }
 

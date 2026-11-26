@@ -27,7 +27,7 @@ class TrayMovePhotoRuleTest extends TestCase
     use AttachesPhotos;
     use CreatesAuthenticatedUsers;
 
-    private const BINNENDIENST = ['serviceorder.read', 'image.see', 'image.upload', 'image.delete'];
+    private const BINNENDIENST = ['serviceorder.read', 'image.upload', 'image.delete'];
 
     private Customer $customer;
 
@@ -115,7 +115,7 @@ class TrayMovePhotoRuleTest extends TestCase
     /** The bakje takes a photo wherever the screen's upload does: on a werkbon he is assigned to, without the right to read werkbonnen. */
     public function test_a_photo_is_pasted_where_the_screen_would_take_an_upload(): void
     {
-        $monteur = $this->userWithPermissions('material.read', 'image.see', 'image.upload');
+        $monteur = $this->userWithPermissions('material.read', 'image.upload');
         $order = ServiceOrder::factory()->create(['customer_id' => $this->customer->id]);
         $order->syncExecutingUsers([$monteur->id]);
         $photo = $this->photoOn(Material::create(['name' => 'Filter F7', 'price' => 5]), pivot: ['main' => false]);

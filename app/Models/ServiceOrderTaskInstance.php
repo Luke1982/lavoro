@@ -133,8 +133,7 @@ class ServiceOrderTaskInstance extends Model
      * Een taak zonder rollen is van iedereen. Een taak met rollen is van de mensen die
      * de werkbon in een van die rollen uitvoeren, en die rollen staan bij de afspraak,
      * niet bij de gebruiker: dezelfde monteur kan de ene bon als elektricien draaien en
-     * de andere als installateur. Een afspraak telt mee zolang hij niet verwijderd is,
-     * ook als hij geannuleerd is.
+     * de andere als installateur. Een geannuleerde afspraak telt niet mee.
      *
      * TaskInstanceVisibility vraagt dit voor het scherm en voor het weigeren van het
      * sluiten, zodat er één regel is.
@@ -151,6 +150,7 @@ class ServiceOrderTaskInstance extends Model
             ->where('userables.user_id', $user->id)
             ->where('userables.userable_type', (new Event)->getMorphClass())
             ->whereIn('userables.userable_id', Event::query()
+                ->notCancelled()
                 ->join('eventables', 'eventables.event_id', '=', 'events.id')
                 ->where('eventables.eventable_type', (new ServiceOrder)->getMorphClass())
                 ->whereColumn('eventables.eventable_id', $this->qualifyColumn('service_order_id'))

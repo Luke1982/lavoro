@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Event;
-use App\Models\EventType;
-use Illuminate\Http\Request;
+use App\Http\Requests\EventTypeDestroyRequest;
 use App\Http\Requests\EventTypeReadRequest;
+use App\Http\Requests\EventTypeStoreUpdateRequest;
+use App\Models\EventType;
 
 class EventTypeController extends Controller
 {
@@ -20,57 +20,21 @@ class EventTypeController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(EventTypeStoreUpdateRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'color' => 'nullable|string|max:9',
-        ]);
-
-        EventType::create($validated);
+        EventType::create($request->validated());
 
         return redirect()->back()->with('success', 'Afspraaktype aangemaakt.');
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, EventType $eventtype)
+    public function update(EventTypeStoreUpdateRequest $request, EventType $eventtype)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'color' => 'required|string|max:9',
-        ]);
-
-        $eventtype->update($request->all());
+        $eventtype->update($request->validated());
 
         return redirect()->back()->with('success', 'Afspraaktype bijgewerkt.');
     }
@@ -78,9 +42,10 @@ class EventTypeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(EventType $eventtype)
+    public function destroy(EventTypeDestroyRequest $request, EventType $eventtype)
     {
         $eventtype->delete();
+
         return redirect()->back();
     }
 }

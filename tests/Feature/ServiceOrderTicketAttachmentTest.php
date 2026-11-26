@@ -41,7 +41,7 @@ class ServiceOrderTicketAttachmentTest extends TestCase
         $order = $this->order();
         $ticket = $this->ticketOn($order);
 
-        $this->actingAs($this->userWithPermissions('ticket.add_to_serviceorder', 'serviceorder.read'))
+        $this->actingAs($this->userWithPermissions('ticket.add_to_serviceorder', 'serviceorder.read', 'ticket.read'))
             ->post('/serviceorders/' . $order->id . '/tickets/' . $ticket->id)
             ->assertRedirect();
 
@@ -54,9 +54,44 @@ class ServiceOrderTicketAttachmentTest extends TestCase
         $ticket = $this->ticketOn($order, $order->id);
 
         $this->actingAs($this->userWithPermissions('ticket.detach_from_serviceorder', 'serviceorder.read'))
-            ->get('/serviceorders/' . $order->id . '/tickets/' . $ticket->id . '/detach')
+            ->delete('/serviceorders/' . $order->id . '/tickets/' . $ticket->id)
             ->assertRedirect();
 
         $this->assertNull($ticket->fresh()->service_order_id);
+    }
+
+    public function test_a_storing_out_of_sight_is_not_hung_on_a_werkbon(): void
+    {
+        $order = $this->order();
+        $ticket = $this->ticketOn($order);
+
+        $this->actingAs($this->userWithPermissions('ticket.add_to_serviceorder', 'serviceorder.read'))
+            ->postJson('/serviceorders/' . $order->id . '/tickets/' . $ticket->id)
+            ->assertForbidden();
+
+        $this->assertNull($ticket->fresh()->service_order_id);
+    }
+
+    public function test_a_storing_is_not_hung_on_a_werkbon_out_of_sight(): void
+    {
+        $order = $this->order();
+        $ticket = $this->ticketOn($order);
+
+        $this->actingAs($this->userWithPermissions('ticket.add_to_serviceorder', 'ticket.read'))
+            ->postJson('/serviceorders/' . $order->id . '/tickets/' . $ticket->id)
+            ->assertForbidden();
+
+        $this->assertNull($ticket->fresh()->service_order_id);
+    }
+
+    public function test_detaching_takes_a_delete_not_a_link(): void
+    {
+        $order = $this->order();
+        $ticket = $this->ticketOn($order, $order->id);
+
+        $this->actingAs($this->userWithPermissions('ticket.detach_from_serviceorder', 'serviceorder.read'))
+            ->get('/serviceorders/' . $order->id . '/tickets/' . $ticket->id . '/detach');
+
+        $this->assertSame($order->id, $ticket->fresh()->service_order_id);
     }
 }

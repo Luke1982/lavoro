@@ -8,7 +8,8 @@ class TicketDetachFromServiceOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('detachFromServiceOrder', $this->route('ticket')) ?? false;
+        return (bool) $this->user()?->can('detachFromServiceOrder', $this->route('ticket'))
+            && $this->user()->can('view', $this->route('serviceorder'));
     }
 
     public function rules(): array

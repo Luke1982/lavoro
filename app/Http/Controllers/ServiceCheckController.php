@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ServiceCheckTypes;
+use App\Http\Requests\ServiceCheckDestroyRequest;
+use App\Http\Requests\ServiceCheckReadRequest;
+use App\Http\Requests\ServiceCheckStoreUpdateRequest;
 use App\Models\ProductType;
 use App\Models\ServiceCheck;
 use App\Models\ServiceCheckGroup;
-use App\Http\Requests\ServiceCheckReadRequest;
-use App\Enums\ServiceCheckTypes;
-use App\Http\Requests\ServiceCheckStoreUpdateRequest;
 
 class ServiceCheckController extends Controller
 {
@@ -31,15 +32,14 @@ class ServiceCheckController extends Controller
         }
 
         return inertia('ServiceChecks/IndexPage', [
-            'serviceChecks'                => $query->orderBy('order')->paginate(10),
-            'productTypes'                 => ProductType::flatListWithPath(),
-            'groups'                       => ServiceCheckGroup::with('productTypes:id,name')->orderBy('order')->get(),
-            'serviceCheckTypes'            => ServiceCheckTypes::assocArray(),
+            'serviceChecks' => $query->orderBy('order')->paginate(10),
+            'productTypes' => ProductType::flatListWithPath(),
+            'groups' => ServiceCheckGroup::with('productTypes:id,name')->orderBy('order')->get(),
+            'serviceCheckTypes' => ServiceCheckTypes::assocArray(),
             'serviceCheckTypesWithOptions' => ServiceCheckTypes::getTypesWithOptions(),
-            'search'                       => $search,
+            'search' => $search,
         ]);
     }
-
 
     /**
      * Store a newly created resource in storage.
@@ -85,7 +85,7 @@ class ServiceCheckController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(ServiceCheck $servicecheck)
+    public function destroy(ServiceCheckDestroyRequest $request, ServiceCheck $servicecheck)
     {
         $servicecheck->delete();
 

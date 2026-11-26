@@ -13,6 +13,7 @@ use App\Http\Requests\DocumentStoreRequest;
 use App\Http\Requests\DocumentUpdateRequest;
 use App\Http\Requests\DocumentViewRequest;
 use App\Models\Document;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,22 +61,30 @@ class DocumentController extends Controller
 
     public function bulkCategory(DocumentBulkCategoryRequest $request)
     {
-        Signals::asBatch(fn () => DB::transaction(fn () => Document::whereIn('id', $request->ids)
-            ->get()
-            ->each(fn (Document $document) => $this->change($document, [
-                'document_category_id' => $request->document_category_id,
-            ]))));
+        [$allowed, $skipped] = $request->documents();
 
-        return back()->with('success', 'Categorie toegewezen.');
+        Signals::asBatch(fn () => DB::transaction(fn () => $allowed->each(fn (Document $document) => $this->change($document, [
+            'document_category_id' => $request->document_category_id,
+        ]))));
+
+        return back()->with('success', 'Categorie toegewezen aan ' . $allowed->count() . ' document(en).' . self::skippedNote($skipped, 'wijzigen'));
     }
 
     public function bulkDestroy(DocumentBulkDestroyRequest $request)
     {
-        Signals::asBatch(fn () => DB::transaction(fn () => Document::whereIn('id', $request->ids)
-            ->get()
-            ->each(fn (Document $document) => $this->purge($document))));
+        [$allowed, $skipped] = $request->documents();
 
-        return back()->with('success', 'Documenten verwijderd.');
+        Signals::asBatch(fn () => DB::transaction(fn () => $allowed->each(fn (Document $document) => $this->purge($document))));
+
+        return back()->with('success', $allowed->count() . ' document(en) verwijderd.' . self::skippedNote($skipped, 'verwijderen'));
+    }
+
+    /** Which documents a bulk action left alone, by title, so nobody thinks they were done. */
+    private static function skippedNote(Collection $skipped, string $verb): string
+    {
+        return $skipped->isEmpty()
+            ? ''
+            : ' Overgeslagen, want die mag je niet ' . $verb . ': ' . $skipped->map(fn (Document $document) => '"' . ($document->title ?: $document->name) . '"')->implode(', ') . '.';
     }
 
     /**

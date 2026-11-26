@@ -4,6 +4,7 @@ namespace Tests\Feature\ReadRules;
 
 use App\Models\Customer;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\ServiceOrder;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
@@ -68,5 +69,32 @@ class DocumentFileAccessTest extends TestCase
         $document = $this->documentOnAWerkbon();
 
         $this->actingAs($user)->getJson("/documents/{$document->id}/download")->assertForbidden();
+    }
+
+    public function test_a_bulk_removal_removes_the_documents_one_may_and_names_the_others(): void
+    {
+        $monteur = $this->userWithPermissions('serviceorder.read_own', 'document.see', 'document.delete');
+        $mine = $this->documentOnAWerkbon($monteur);
+        $theirs = $this->documentOnAWerkbon();
+
+        $this->actingAs($monteur)->from('/')->delete('/documents/bulk', ['ids' => [$mine->id, $theirs->id]])
+            ->assertSessionHas('success', '1 document(en) verwijderd. Overgeslagen, want die mag je niet verwijderen: "Handleiding.pdf".');
+
+        $this->assertModelMissing($mine);
+        $this->assertModelExists($theirs);
+    }
+
+    public function test_a_bulk_category_changes_the_documents_one_may(): void
+    {
+        $monteur = $this->userWithPermissions('serviceorder.read_own', 'document.see', 'document.update');
+        $mine = $this->documentOnAWerkbon($monteur);
+        $theirs = $this->documentOnAWerkbon();
+        $category = DocumentCategory::create(['name' => 'Tekeningen']);
+
+        $this->actingAs($monteur)->from('/')->put('/documents/bulk-category', ['ids' => [$mine->id, $theirs->id], 'document_category_id' => $category->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($category->id, $mine->fresh()->document_category_id);
+        $this->assertNull($theirs->fresh()->document_category_id);
     }
 }

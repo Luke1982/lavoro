@@ -3,7 +3,7 @@
         <SectionHeader :icon="ClipboardList" title="Wat moet er gebeuren?" chapter="serviceorders" />
 
         <div class="flex flex-col gap-2">
-            <WorkItemRow v-for="job in jobs" :key="'job-' + job.id" :icon="ClipboardCheck" tone="blue"
+            <WorkItemRow v-for="job in servicejobs" :key="'job-' + job.id" :icon="ClipboardCheck" tone="blue"
                 :title="jobTitle(job)" :subtitle="machineLine(job.asset)" :href="'/servicejobs/' + job.id"
                 action-label="Uitvoeren" :action-icon="Play" done-label="Uitgevoerd" :done="!!job.completed_on" />
 
@@ -55,11 +55,10 @@ const props = defineProps({
     materialUsageUnits: { type: Array, default: () => [] },
 })
 
-const jobs = computed(() => hasPermission('servicejob.read') ? props.servicejobs : [])
 const showTasks = computed(() => hasPermission('serviceordertaskinstance.read')
     && (props.taskInstances.length > 0 || props.hiddenTaskCount > 0))
 
-const isEmpty = computed(() => jobs.value.length === 0 && props.tickets.length === 0 && !showTasks.value)
+const isEmpty = computed(() => props.servicejobs.length === 0 && props.tickets.length === 0 && !showTasks.value)
 
 function machineLine(asset) {
     if (!asset) return ''

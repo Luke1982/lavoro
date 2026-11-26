@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Models\Asset;
+use App\Models\ServiceJob;
 use App\Models\ServiceOrder;
 use App\Models\ServiceOrderStage;
 use App\Models\User;
@@ -21,9 +23,10 @@ class ServiceOrderPolicy
     }
 
     /**
-     * This one werkbon, by the same rule as the list: everything with read, only
-     * their own with read_own. A werkbon left out of the list must not open from
-     * a typed-in address either.
+     * This one werkbon, by the same rule as the list: everything with read,
+     * otherwise their own (ServiceOrder::scopeAssignedTo), whatever their role
+     * says: whoever is planned for a werkbon opens it. A werkbon left out of the
+     * list must not open from a typed-in address either.
      */
     public function view(User $user, ServiceOrder $serviceOrder): bool
     {
@@ -33,6 +36,28 @@ class ServiceOrderPolicy
     public function create(User $user): bool
     {
         return $user->hasPermission('serviceorder.create');
+    }
+
+    /**
+     * The keuringen block of this werkbon: with the right to read keuringen, or
+     * for whoever is planned for it (ServiceJob::scopeVisibleTo).
+     */
+    public function readServiceJobs(User $user, ServiceOrder $serviceOrder): bool
+    {
+        return $user->can('view', $serviceOrder)
+            && ($user->can('viewAny', ServiceJob::class) || ServiceOrder::assignedTo($user)->whereKey($serviceOrder->id)->exists());
+    }
+
+    /**
+     * Adding keuringen here: the right to add them and to read machines, since
+     * the form picks one of the customer's machines; the request then holds the
+     * machine itself to view (ServiceJobCreateRequest).
+     */
+    public function addServiceJobs(User $user, ServiceOrder $serviceOrder): bool
+    {
+        return $user->can('create', ServiceJob::class)
+            && $user->can('viewAny', Asset::class)
+            && $user->can('view', $serviceOrder);
     }
 
     /**

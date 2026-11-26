@@ -16,4 +16,20 @@ class ServiceCheckGroupPolicy
     {
         return $this->viewAny($user);
     }
+
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('servicecheckgroup.create');
+    }
+
+    /** Asked of the class: every one of them takes the same right. */
+    public function update(User $user): bool
+    {
+        return $user->hasPermission('servicecheckgroup.update');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('servicecheckgroup.delete');
+    }
 }

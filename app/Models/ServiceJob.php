@@ -153,15 +153,19 @@ class ServiceJob extends Model
 
     /**
      * The keuringen this person may read: with the right to read keuringen, on a
-     * werkbon they may see. A keuring without a werkbon is nobody's to read here.
+     * werkbon they may see; without it, the ones on a werkbon they are planned
+     * for, since they are there to carry them out. A keuring without a werkbon is
+     * nobody's to read here.
      */
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        if (!$user?->can('viewAny', self::class)) {
+        if (!$user) {
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereIn($query->qualifyColumn('service_order_id'), ServiceOrder::visibleTo($user)->select('service_orders.id'));
+        $orders = $user->can('viewAny', self::class) ? ServiceOrder::visibleTo($user) : ServiceOrder::assignedTo($user);
+
+        return $query->whereIn($query->qualifyColumn('service_order_id'), $orders->select('service_orders.id'));
     }
 
     /**

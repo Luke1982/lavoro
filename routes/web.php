@@ -364,7 +364,7 @@ Route::group(
         Route::resource('producttypes', ProductTypeController::class)->except(['show', 'edit', 'create']);
         Route::post('products/bulk-update', [ProductController::class, 'bulkUpdate'])
             ->name('products.bulk-update');
-        Route::resource('products', ProductController::class);
+        Route::resource('products', ProductController::class)->except(['edit']);
         Route::resource('productrelations', ProductRelationController::class)
             ->except(['show', 'edit', 'create']);
         Route::resource('productables', ProductableController::class)->only(['store', 'update', 'destroy']);
@@ -507,7 +507,7 @@ Route::group(
         )->name('serviceordertaskinstances.freeformMaterials.destroy');
         Route::post('servicecheckvalues/reorder', [ServiceCheckValueController::class, 'updateOrder']);
         Route::resource('servicecheckinstances', ServiceCheckInstanceController::class)
-            ->only(['store', 'update', 'destroy']);
+            ->only(['update']);
         Route::get('integrations', [IntegrationController::class, 'index'])->name('integrations.index');
         Route::post('integrations', [IntegrationController::class, 'store'])->name('integrations.store');
         Route::put('integrations/{integration}', [IntegrationController::class, 'update'])
@@ -548,10 +548,8 @@ Route::group(
             ->name('serviceorders.sendToAdministration');
         Route::post('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'attachTicket'])
             ->name('serviceorders.attachTicket');
-        Route::get(
-            'serviceorders/{serviceorder}/tickets/{ticket}/detach',
-            [ServiceOrderController::class, 'detachTicket']
-        )->name('serviceorders.detachTicket');
+        Route::delete('serviceorders/{serviceorder}/tickets/{ticket}', [ServiceOrderController::class, 'detachTicket'])
+            ->name('serviceorders.detachTicket');
         Route::post(
             'serviceorders/{serviceorder}/materials/{material}',
             [ServiceOrderController::class, 'attachMaterial']

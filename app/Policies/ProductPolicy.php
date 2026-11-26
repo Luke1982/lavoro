@@ -8,8 +8,9 @@ use App\Models\User;
 class ProductPolicy
 {
     /**
-     * Reading products at all: the whole catalogue, or only the products on
-     * one's own open werkbonnen. Which ones is Product::visibleTo's business.
+     * Reading products at all: the whole catalogue, or only the products of the
+     * machines one may see. Which ones is Product::visibleTo's business; whoever
+     * sees a machine sees its product without this.
      */
     public function viewAny(User $user): bool
     {

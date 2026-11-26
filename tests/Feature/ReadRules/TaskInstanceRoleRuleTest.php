@@ -104,7 +104,7 @@ class TaskInstanceRoleRuleTest extends TestCase
         $this->assertSame([], $this->seenThroughEveryDoor($here, $user));
     }
 
-    public function test_a_deleted_appointment_gives_no_role_and_a_cancelled_one_still_does(): void
+    public function test_a_cancelled_or_deleted_appointment_gives_no_role(): void
     {
         $user = $this->userWithPermissions('serviceorder.read');
         $electrician = $this->role('Elektricien');
@@ -112,8 +112,10 @@ class TaskInstanceRoleRuleTest extends TestCase
         $task = $this->task($order, $electrician);
         $event = $this->appointment($order, $user, $electrician);
 
-        $event->update(['status' => 'Geannuleerd']);
         $this->assertSame([$task->id], $this->seenThroughEveryDoor($order, $user));
+
+        $event->update(['status' => 'Geannuleerd']);
+        $this->assertSame([], $this->seenThroughEveryDoor($order, $user));
 
         $event->delete();
         $this->assertSame([], $this->seenThroughEveryDoor($order, $user));

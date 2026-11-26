@@ -32,25 +32,21 @@ class DocumentPolicy
         return $user->hasPermission('document.upload');
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
+    /** Changing one this person may open (view). */
     public function update(User $user, Document $document): bool
     {
-        return $user->hasPermission('document.update');
+        return $this->updateAny($user) && $this->view($user, $document);
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
+    /** Removing one this person may open (view). */
     public function delete(User $user, Document $document): bool
     {
-        return $user->hasPermission('document.delete');
+        return $this->deleteAny($user) && $this->view($user, $document);
     }
 
     /**
-     * Determine whether the user can update documents in bulk, where there is no
-     * single model to weigh.
+     * The right to change documents at all, for a bulk action before it knows
+     * which; each document in it is then held to update.
      */
     public function updateAny(User $user): bool
     {
@@ -58,8 +54,8 @@ class DocumentPolicy
     }
 
     /**
-     * Determine whether the user can delete documents in bulk, where there is no
-     * single model to weigh.
+     * The right to remove documents at all, for a bulk action before it knows
+     * which; each document in it is then held to delete.
      */
     public function deleteAny(User $user): bool
     {

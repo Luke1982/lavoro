@@ -402,6 +402,7 @@ class TicketController extends Controller
             'eventWidgetEvents' => $this->eventWidgetEvents($ticket, $event_widget, $request->user()),
             'userRoles' => UserRole::orderBy('name')->get(['id', 'name', 'color']),
             'defaultLeadingColor' => GeneralSetting::get('planner_leading_color', 'event'),
+            'worksOnIt' => $request->user()->can('worksOn', $ticket),
 
             /** Null als deze storing niet gevolgd wordt; anders het abonnement om weer uit te zetten. */
             'subscriptionId' => NotificationSubscription::where('user_id', $request->user()->id)

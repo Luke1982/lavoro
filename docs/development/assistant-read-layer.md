@@ -18,6 +18,16 @@ Every model a person can open somewhere has a policy with two read methods:
 
 A policy without `view` has `viewAny` plus the scope as its whole rule.
 
+Some records open without any permission, by design, because the person is
+there to do the work. Whoever is planned for a werkbon (uitvoerder on it, or on
+one of its afspraken that is not cancelled: `ServiceOrder::scopeAssignedTo`)
+opens that werkbon and its keuringen. While the werkbon is open
+(`ServiceOrder::scopeWorkedOnBy`) they also open the keuringen's machines, and
+open and edit its storingen (`TicketPolicy::worksOn`). Adding a keuring still
+takes the right to read machines. Whoever sees a machine sees its product. A
+record opens with its photos and with the project photos shared to it
+(`HangsOffARecord`); there is no right to see photos of its own.
+
 When `view` depends on the record (own records only, through a werkbon, not the
 super admin), the model has `scopeVisibleTo(Builder $query, User $user)` that
 selects exactly the records `view` allows, and `view` is written as

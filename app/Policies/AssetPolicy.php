@@ -13,9 +13,10 @@ class AssetPolicy
     }
 
     /**
-     * Whether the user may see machines at all, including the narrower case of
-     * only those on their own werkbonnen. Which machines those are is decided by
-     * Asset::scopeVisibleTo, which follows the same two permissions.
+     * Whether the user may see machines by their role, including the narrower
+     * case of only those on their own open werkbonnen. Which machines those are
+     * is decided by Asset::scopeVisibleTo, which also opens the machines of the
+     * keuringen on a werkbon this person is planned for, without any permission.
      */
     public function viewAny(User $user): bool
     {

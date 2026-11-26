@@ -1,5 +1,5 @@
 <template>
-    <div class="w-full mx-auto" v-if="mayUpload() || maySee()" v-tray-drop="photoDrop">
+    <div class="w-full mx-auto" v-tray-drop="photoDrop">
         <SectionHeader v-if="!bare" :icon="PhotoIcon" :title="title" :subtitle="resolvedSubtitle" :internal="internal"
             chapter="photos" />
         <div v-if="mayUpload()" @dragover="handleDragOver" @dragleave.prevent="isDragging = false"
@@ -50,7 +50,7 @@
                 </ul>
             </div>
         </div>
-        <div v-else-if="maySee() && thumbnails.length === 0"
+        <div v-else-if="thumbnails.length === 0"
             class="text-center text-sm text-gray-400 dark:text-slate-500 py-5 rounded-lavoro-sm border border-dashed border-gray-200 dark:border-slate-700">
             Er zijn nog geen afbeeldingen.
         </div>
@@ -357,7 +357,6 @@ watch(thumbnailSignature, () => {
 });
 
 const mayUpload = () => props.canManage !== null ? props.canManage : hasPermission('image.upload');
-const maySee = () => props.canManage !== null ? props.canManage : hasPermission('image.see');
 const mayEdit = () => props.canManage !== null ? props.canManage : hasPermission('image.edit');
 const mayUpdate = () => props.canManage !== null ? props.canManage : hasPermission('image.update');
 const mayDelete = () => props.canManage !== null ? props.canManage : hasPermission('image.delete');

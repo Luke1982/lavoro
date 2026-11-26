@@ -240,6 +240,8 @@ class ServiceOrder extends Model
     /**
      * Limits a query to the orders this person is allowed to see: everything if
      * they may read orders at large, otherwise only the ones that are theirs.
+     * Theirs needs no permission at all, by design: whoever is planned for a
+     * werkbon must be able to open it to do the work.
      *
      * Anything that shows orders to a user goes through here. The rule used to be
      * written out at each call site, which is how a new reader of the data ends up
@@ -265,8 +267,8 @@ class ServiceOrder extends Model
      * two paths: hij staat als uitvoerder op de werkbon zelf, of er staat een
      * afspraak op de werkbon die hij uitvoert. Wie ergens heen gepland is moet
      * die werkbon kunnen openen — anders staat hij voor de deur zonder te weten
-     * wat hij er komt doen. Een geannuleerde afspraak telt bewust mee: het werk
-     * ging niet door, maar wat er speelde blijft navraagbaar.
+     * wat hij er komt doen. Een geannuleerde afspraak telt niet: daar is hij niet
+     * meer voor gepland.
      *
      * The machines a monteur may open from their werkbonnen follow the same rule
      * (User::relevantAssetIds). Checking only the werkbon's own list there let a
@@ -278,26 +280,19 @@ class ServiceOrder extends Model
     {
         return $query->where(fn ($q) => $q
             ->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))
-            ->orWhereHas('events.executingUsers', fn ($sq) => $sq->where('users.id', $user->id)));
+            ->orWhereHas('events', fn ($events) => $events
+                ->notCancelled()
+                ->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id))));
     }
 
     /**
-     * The werkbonnen the planner offers this person to plan: every one with
-     * serviceorder.read, otherwise only those they are on as uitvoerder of the
-     * werkbon itself.
-     *
-     * Narrower than visibleTo() on purpose or by history: being on one of the
-     * werkbon's appointments, which visibleTo() also counts, does not put a
-     * werkbon in the planner's list or its picker. The planner's unplanned list
-     * and its werkbon picker both ask this, so the two cannot drift apart.
+     * The open werkbonnen this person is planned for: there they work on its
+     * machines and storingen, and once it is closed that is over.
      */
-    public function scopePlannableFor($query, User $user)
+    public function scopeWorkedOnBy($query, User $user)
     {
-        if ($user->isAdmin() || $user->hasPermission('serviceorder.read')) {
-            return $query;
-        }
-
-        return $query->whereHas('executingUsers', fn ($sq) => $sq->where('users.id', $user->id));
+        return $query->assignedTo($user)
+            ->whereDoesntHave('serviceOrderStage', fn ($stage) => $stage->closesOrder());
     }
 
     /**

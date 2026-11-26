@@ -56,7 +56,7 @@ class PlannerController extends Controller
             ])
                 ->withCount('events')
                 ->awaitingPlanning()
-                ->plannableFor($user)
+                ->visibleTo($user)
                 ->orderByDesc('order_date')
                 ->orderByDesc('id')
                 ->get()
@@ -66,10 +66,12 @@ class PlannerController extends Controller
                 )),
             'projects' => Project::scheduled()
                 ->active()
+                ->visibleTo($user)
                 ->with([
                     'customer:id,name',
                     'serviceOrders' => fn ($q) => $q
                         ->doesntHave('events')
+                        ->visibleTo($user)
                         ->whereHas('project', fn ($pq) => $pq->openForPlanning())
                         ->orderBy('id'),
                 ])

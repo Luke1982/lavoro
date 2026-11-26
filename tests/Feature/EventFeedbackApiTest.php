@@ -14,7 +14,7 @@ class EventFeedbackApiTest extends TestCase
     {
         $user = User::factory()->create();
         $role = Role::create(['name' => 'planner']);
-        foreach (['event.provide_feedback', 'image.upload', 'image.see', 'image.delete'] as $name) {
+        foreach (['event.provide_feedback', 'image.upload', 'image.delete'] as $name) {
             $permission = Permission::firstOrCreate(['name' => $name], ['label' => $name]);
             $role->permissions()->attach($permission->id);
         }
@@ -45,6 +45,7 @@ class EventFeedbackApiTest extends TestCase
     {
         $user = $this->feedback_user();
         $event = Event::factory()->create();
+        $event->syncExecutingUsers([$user->id]);
 
         $response = $this->actingAs($user)->getJson("/api/events/{$event->id}/feedback");
 

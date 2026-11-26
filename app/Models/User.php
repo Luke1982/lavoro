@@ -49,9 +49,6 @@ class User extends Authenticatable
     /** @var array<int, int>|null */
     private ?array $relevant_asset_ids = null;
 
-    /** @var array<int, int>|null */
-    private ?array $relevant_product_ids = null;
-
     /** Depth of User::withoutHistory(); above zero nothing about a user is recorded. */
     private static int $unrecorded = 0;
 
@@ -263,7 +260,6 @@ class User extends Authenticatable
         $this->is_super_admin = null;
         $this->permission_names = null;
         $this->relevant_asset_ids = null;
-        $this->relevant_product_ids = null;
 
         return $this;
     }
@@ -473,9 +469,9 @@ class User extends Authenticatable
     }
 
     /**
-     * Get asset IDs relevant for open serviceorders where user is executing.
-     * Kept on this instance, like the permissions: every machine and product
-     * scope asks it, and the read layer asks those inside whereHas after
+     * The machines of the keuringen and storingen on the open werkbonnen this
+     * person is planned for. Kept on this instance, like the permissions: the
+     * machine scope asks it, and the read layer asks that inside whereHas after
      * whereHas. forgetPermissions() forgets it along with them.
      *
      * @return array<int>
@@ -488,8 +484,7 @@ class User extends Authenticatable
     /** @return array<int> */
     private function findRelevantAssetIds(): array
     {
-        $serviceorders = $this->serviceOrdersExecuting()
-            ->whereDoesntHave('serviceOrderStage', fn ($q) => $q->closesOrder())
+        $serviceorders = ServiceOrder::workedOnBy($this)
             ->with(['serviceJobs:id,service_order_id,asset_id', 'tickets:id,service_order_id,asset_id'])
             ->get();
 
@@ -501,26 +496,6 @@ class User extends Authenticatable
         })->unique()->values()->all();
 
         return $asset_ids;
-    }
-
-    /**
-     * Get product IDs relevant for open serviceorders where user is executing.
-     *
-     * @return array<int>
-     */
-    public function relevantProductIds(): array
-    {
-        return $this->relevant_product_ids ??= Asset::whereKey($this->relevantAssetIds())
-            ->pluck('product_id')->unique()->values()->all();
-    }
-
-    /**
-     * ServiceOrders where user is executing, on the order itself or on one of its
-     * appointments.
-     */
-    public function serviceOrdersExecuting()
-    {
-        return ServiceOrder::assignedTo($this);
     }
 
     public function googleCalendarIntegration()

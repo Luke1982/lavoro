@@ -36,10 +36,10 @@ trait HangsOffARecord
     }
 
     /**
-     * The ones this person may read: with the right to read this kind at all, and
-     * hanging off a record they may read -- of a kind they may read, and among
-     * that kind's own visibleTo() where it has one. One with more than one link
-     * counts when any of them does.
+     * The ones this person may read: with the right to read this kind at all
+     * (for photos everyone), and hanging off a record they may read (see
+     * readableRecordsOf). One with more than one link counts when any of them
+     * does.
      */
     public function scopeVisibleTo(EloquentBuilder $query, ?User $user): EloquentBuilder
     {
@@ -47,7 +47,7 @@ trait HangsOffARecord
             return $query->whereRaw('1 = 0');
         }
 
-        $readable = array_filter(static::ATTACHABLE_TO, fn (string $class) => $user->can('viewAny', $class));
+        $readable = array_filter(static::ATTACHABLE_TO, fn (string $class) => static::mayReadRecordsOf($class, $user));
 
         if ($readable === []) {
             return $query->whereRaw('1 = 0');
@@ -77,26 +77,32 @@ trait HangsOffARecord
     }
 
     /**
-     * The records of this class that what hangs off them may be read on: of a kind
-     * this person may read, among that kind's own visibleTo() where it has one.
-     * The same rule scopeVisibleTo() applies per link, for whoever starts from the
-     * record instead.
+     * The records of this class that what hangs off them may be read on: the ones
+     * this person may open. A kind with its own visibleTo() is decided by it alone,
+     * also for whoever opens a record without the kind's viewAny (planned for a
+     * werkbon); any other kind by viewAny. The same rule scopeVisibleTo() applies
+     * per link, for whoever starts from the record instead.
      *
      * @param  class-string<Model>  $class
      */
     public static function readableRecordsOf(string $class, User $user): EloquentBuilder
     {
-        if ($user->cannot('viewAny', $class)) {
+        if (!static::mayReadRecordsOf($class, $user)) {
             return $class::query()->whereRaw('1 = 0');
         }
 
         return RecordKinds::hasVisibilityScope($class) ? $class::visibleTo($user) : $class::query();
     }
 
+    /** @param  class-string<Model>  $class */
+    private static function mayReadRecordsOf(string $class, User $user): bool
+    {
+        return RecordKinds::hasVisibilityScope($class) || $user->can('viewAny', $class);
+    }
+
     /**
      * Where this kind can be read other than on the record it hangs off, as further
      * orWhere()s on the query: a photo shared from a project shows on its werkbonnen.
-     * Only asked once viewAny has allowed this kind at all.
      */
     protected static function alsoVisibleTo(EloquentBuilder $query, User $user): void {}
 

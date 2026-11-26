@@ -23,7 +23,7 @@ class ImageChangeRuleTest extends TestCase
 
     public function test_the_photo_rights_reach_only_a_photo_this_person_may_open(): void
     {
-        $monteur = $this->userWithPermissions('serviceorder.read_own', 'image.see', 'image.update', 'image.edit', 'image.delete');
+        $monteur = $this->userWithPermissions('serviceorder.read_own', 'image.update', 'image.edit', 'image.delete');
         $order = ServiceOrder::factory()->create(['customer_id' => Customer::factory()->create()->id]);
         $image = $this->photoOn($order, pivot: ['internal' => false]);
 

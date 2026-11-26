@@ -150,8 +150,11 @@ class Asset extends Model
 
     /**
      * Limits a query to the machines this person may see, mirroring AssetPolicy:
-     * everything with asset.read, otherwise only the machines on their own open
-     * werkbonnen, and nothing at all without either.
+     * everything with asset.read. Without it, the machines that have a keuring on
+     * an open werkbon this person is planned for — they are there to do that
+     * keuring, so they read the machine whatever their role says — and, with
+     * asset.read.relevant.serviceorder, also the machines of the storingen on
+     * their own open werkbonnen.
      */
     public function scopeVisibleTo($query, ?User $user)
     {
@@ -163,11 +166,13 @@ class Asset extends Model
             return $query;
         }
 
-        if ($user->hasPermission('asset.read.relevant.serviceorder')) {
-            return $query->whereKey($user->relevantAssetIds());
-        }
+        return $query->where(function ($visible) use ($user) {
+            $visible->whereHas('servicejobs', fn ($jobs) => $jobs->whereHas('serviceOrder', fn ($orders) => $orders->workedOnBy($user)));
 
-        return $query->whereRaw('1 = 0');
+            if ($user->hasPermission('asset.read.relevant.serviceorder')) {
+                $visible->orWhereIn($visible->getModel()->getQualifiedKeyName(), $user->relevantAssetIds());
+            }
+        });
     }
 
     public function scopeUpcomingAndUnplanned($query, int $days = 60)

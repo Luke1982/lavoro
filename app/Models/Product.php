@@ -114,8 +114,8 @@ class Product extends Model
 
     /**
      * Limits a query to the products this person may see, mirroring ProductPolicy:
-     * everything with product.read, otherwise only the products on their own open
-     * werkbonnen, and nothing at all without either.
+     * everything with product.read, otherwise the products of the machines they
+     * may see, and with them the product's photos.
      */
     public function scopeVisibleTo($query, ?User $user)
     {
@@ -127,11 +127,7 @@ class Product extends Model
             return $query;
         }
 
-        if ($user->hasPermission('product.read.relevant.serviceorder')) {
-            return $query->whereKey($user->relevantProductIds());
-        }
-
-        return $query->whereRaw('1 = 0');
+        return $query->whereIn($query->qualifyColumn('id'), Asset::visibleTo($user)->whereNotNull('assets.product_id')->select('assets.product_id'));
     }
 
     /**

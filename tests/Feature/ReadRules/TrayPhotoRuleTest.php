@@ -94,16 +94,16 @@ class TrayPhotoRuleTest extends TestCase
     {
         $image = $this->keurpuntPhoto($this->order());
 
-        $this->assertSame([], $this->onTheTray($this->userWithPermissions('serviceorder.read', 'image.see'), $image));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions('serviceorder.read'), $image));
         $this->assertSame([$image->id], $this->onTheTray(
-            $this->userWithPermissions('serviceorder.read', 'servicejob.read', 'image.see'),
+            $this->userWithPermissions('serviceorder.read', 'servicejob.read'),
             $image,
         ));
     }
 
     public function test_a_keurpunt_photo_on_someone_elses_werkbon_stays_off_the_tray(): void
     {
-        $monteur = $this->userWithPermissions('serviceorder.read_own', 'servicejob.read', 'image.see');
+        $monteur = $this->userWithPermissions('serviceorder.read_own', 'servicejob.read');
         $own = $this->order();
         $own->syncExecutingUsers([$monteur->id]);
         $mine = $this->keurpuntPhoto($own);
@@ -116,18 +116,41 @@ class TrayPhotoRuleTest extends TestCase
     {
         $image = $this->materialPhoto();
 
-        $this->assertSame([], $this->onTheTray($this->userWithPermissions('image.see'), $image));
-        $this->assertSame([$image->id], $this->onTheTray($this->userWithPermissions('material.read', 'image.see'), $image));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $image));
+        $this->assertSame([$image->id], $this->onTheTray($this->userWithPermissions('material.read'), $image));
     }
 
-    public function test_no_photo_without_the_right_to_see_photos(): void
+    public function test_whoever_opens_the_werkbon_sees_its_photos_without_a_right_of_their_own(): void
     {
         $order = $this->order();
         $image = $this->photo();
         $order->images()->attach($image->id, ['internal' => false]);
+        $planned = $this->userWithPermissions();
+        $order->addExecutingUser($planned->id);
 
-        $this->assertSame([], $this->onTheTray($this->userWithPermissions('serviceorder.read'), $image));
-        $this->assertSame([$image->id], $this->onTheTray($this->userWithPermissions('serviceorder.read', 'image.see'), $image));
+        $this->assertSame([$image->id], $this->onTheTray($this->userWithPermissions('serviceorder.read'), $image));
+        $this->assertSame([$image->id], $this->onTheTray($planned, $image));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $image));
+    }
+
+    public function test_a_product_photo_is_read_with_the_product_or_through_one_of_its_machines(): void
+    {
+        $image = $this->photo();
+        $product = Product::factory()->create();
+        $product->images()->attach($image->id);
+        $planned = $this->userWithPermissions();
+        $order = $this->order();
+        $order->addExecutingUser($planned->id);
+
+        $this->assertSame([], $this->onTheTray($planned, $image), 'no machine of the product on his werkbon');
+        $this->assertSame([$image->id], $this->onTheTray($this->userWithPermissions('product.read'), $image));
+
+        $asset = Asset::factory()->create(['product_id' => $product->id, 'customer_id' => $this->customer->id]);
+        ServiceJob::factory()->create(['asset_id' => $asset->id, 'service_order_id' => $order->id]);
+
+        $this->assertSame([$image->id], $this->onTheTray($planned, $image));
+        $this->assertTrue($planned->can('view', $product));
+        $this->assertSame([], $this->onTheTray($this->userWithPermissions(), $image));
     }
 
     public function test_a_photo_shared_from_a_project_is_read_on_its_werkbonnen_without_the_project(): void
@@ -149,13 +172,13 @@ class TrayPhotoRuleTest extends TestCase
             'access' => ShareAccess::View,
         ]);
 
-        $planner = $this->userWithPermissions('serviceorder.read', 'image.see');
+        $planner = $this->userWithPermissions('serviceorder.read');
         $this->assertSame([], $this->onTheTray($planner, $shared, $kept), 'no werkbon under the project yet');
 
         ServiceOrder::factory()->create(['customer_id' => $this->customer->id, 'project_id' => $project->id]);
         $this->assertSame([$shared->id], $this->onTheTray($planner, $shared, $kept));
 
-        $monteur = $this->userWithPermissions('serviceorder.read_own', 'image.see');
+        $monteur = $this->userWithPermissions('serviceorder.read_own');
         $this->assertSame([], $this->onTheTray($monteur, $shared, $kept), 'not on a werkbon of his');
     }
 
@@ -178,12 +201,12 @@ class TrayPhotoRuleTest extends TestCase
         ]);
         $order = ServiceOrder::factory()->create(['customer_id' => $this->customer->id, 'project_id' => $project->id]);
 
-        $planner = $this->userWithPermissions('serviceorder.read', 'image.see');
+        $planner = $this->userWithPermissions('serviceorder.read');
         $card = ImageKind::describe(ImageKind::visible([$shared->id], $planner)->firstOrFail());
         $this->assertSame('/serviceorders/' . $order->id, $card['url']);
         $this->assertSame(Image::labelOf($order), $card['subtitle']);
 
-        $manager = $this->userWithPermissions('serviceorder.read', 'project.read', 'image.see');
+        $manager = $this->userWithPermissions('serviceorder.read', 'project.read');
         $card = ImageKind::describe(ImageKind::visible([$shared->id], $manager)->firstOrFail());
         $this->assertSame('/projects/' . $project->id, $card['url']);
         $this->assertSame(Image::labelOf($project), $card['subtitle']);

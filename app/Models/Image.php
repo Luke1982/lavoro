@@ -81,10 +81,6 @@ class Image extends Model
      */
     protected static function alsoVisibleTo(EloquentBuilder $query, User $user): void
     {
-        if ($user->cannot('viewAny', ServiceOrder::class)) {
-            return;
-        }
-
         $query->orWhereExists(fn (QueryBuilder $shares) => $shares->from('shares')
             ->whereColumn('shares.shareable_id', 'images.id')
             ->where('shares.shareable_type', (new self)->getMorphClass())

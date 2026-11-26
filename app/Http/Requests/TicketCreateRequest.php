@@ -2,33 +2,41 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\TicketStatusses;
 use App\Enums\TicketPriorities;
+use App\Enums\TicketStatusses;
+use App\Models\Asset;
+use App\Models\Ticket;
+use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TicketCreateRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    /** Logging a storing asks for ticket.create, on a machine this person may open (rules). */
     public function authorize(): bool
     {
-        return true;
+        return (bool) $this->user()?->can('create', Ticket::class);
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             'subject' => 'required|string|max:255',
             'description' => 'required|string',
-            'priority' => 'required|in:' . implode(',', array_map(fn($prio) => $prio->value, TicketPriorities::cases())),
-            'status' => 'required|in:' . implode(',', array_map(fn($status) => $status->value, TicketStatusses::cases())),
-            'asset_id' => 'required|exists:assets,id',
+            'priority' => 'required|in:' . implode(',', array_map(fn ($prio) => $prio->value, TicketPriorities::cases())),
+            'status' => 'required|in:' . implode(',', array_map(fn ($status) => $status->value, TicketStatusses::cases())),
+            'asset_id' => ['required', 'exists:assets,id', function (string $attribute, mixed $value, Closure $fail) {
+                $asset = Asset::find($value);
+
+                if ($asset && $this->user()->cannot('view', $asset)) {
+                    $fail('Deze machine kun je niet openen.');
+                }
+            }],
         ];
     }
 

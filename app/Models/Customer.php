@@ -122,17 +122,19 @@ class Customer extends Model
 
     /**
      * Every machine belonging to this customer at any depth: the roots plus each
-     * descendant hanging under them.
+     * descendant hanging under them; with visible_to, only the ones that person
+     * may open.
      *
      * @param  array<int, string>  $with
      * @return Collection<int, Asset>
      */
-    public function assetTree(array $with = []): Collection
+    public function assetTree(array $with = [], ?User $visible_to = null): Collection
     {
         $ids = Asset::treeIdsForCustomers([$this->id]);
 
         return Asset::query()
-            ->whereIn('id', $ids)
+            ->when($visible_to, fn ($assets) => $assets->visibleTo($visible_to))
+            ->whereIn('assets.id', $ids)
             ->with($with)
             ->orderBy('next_service_date')
             ->get();

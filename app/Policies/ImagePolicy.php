@@ -7,12 +7,16 @@ use App\Models\User;
 
 class ImagePolicy
 {
+    /**
+     * Photos follow the record they hang off: whoever may open the record sees
+     * them, and which ones is Image::scopeVisibleTo's business.
+     */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('image.see') || $user->hasPermission('image.upload');
+        return true;
     }
 
-    /** This one photo: by viewAny, on a record this person may read (Image::scopeVisibleTo). */
+    /** This one photo: on a record this person may open, or shared to one (Image::scopeVisibleTo). */
     public function view(User $user, Image $image): bool
     {
         return Image::visibleTo($user)->whereKey($image->id)->exists();

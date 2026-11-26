@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ServiceCheckGroupDestroyRequest;
+use App\Http\Requests\ServiceCheckGroupReadRequest;
 use App\Http\Requests\ServiceCheckGroupStoreUpdateRequest;
 use App\Models\ProductType;
 use App\Models\ServiceCheckGroup;
-use App\Http\Requests\ServiceCheckGroupReadRequest;
 
 class ServiceCheckGroupController extends Controller
 {
@@ -25,9 +26,9 @@ class ServiceCheckGroupController extends Controller
         }
 
         return inertia('ServiceCheckGroups/IndexPage', [
-            'groups'       => $query->orderBy('order')->paginate(10),
+            'groups' => $query->orderBy('order')->paginate(10),
             'productTypes' => ProductType::flatListWithPath(),
-            'search'       => $search,
+            'search' => $search,
         ]);
     }
 
@@ -47,7 +48,7 @@ class ServiceCheckGroupController extends Controller
 
         return redirect()->route('servicecheckgroups.index')->with([
             'success' => 'Groep is aangemaakt',
-            'extra'   => $group,
+            'extra' => $group,
         ]);
     }
 
@@ -64,13 +65,14 @@ class ServiceCheckGroupController extends Controller
 
         return redirect()->route('servicecheckgroups.index')->with([
             'success' => 'Groep is bijgewerkt',
-            'extra'   => $servicecheckgroup,
+            'extra' => $servicecheckgroup,
         ]);
     }
 
-    public function destroy(ServiceCheckGroup $servicecheckgroup)
+    public function destroy(ServiceCheckGroupDestroyRequest $request, ServiceCheckGroup $servicecheckgroup)
     {
         $servicecheckgroup->delete();
+
         return redirect()->back();
     }
 }

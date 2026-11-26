@@ -25,4 +25,14 @@ class ServiceCheckPolicy
     {
         return $user->hasPermission('servicecheck.update');
     }
+
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('servicecheck.create');
+    }
+
+    public function delete(User $user): bool
+    {
+        return $user->hasPermission('servicecheck.delete');
+    }
 }

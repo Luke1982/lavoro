@@ -34,13 +34,24 @@ class TicketPolicy
     }
 
     /**
-     * The page of one storing: only with the right to read storingen, which puts
-     * every storing in sight. A storing in sight through a werkbon or machine
+     * The page of one storing: with the right to read storingen, or for whoever
+     * works on it. A storing in sight only through a werkbon or machine they read
      * (view) does not open its own page.
      */
-    public function viewPage(User $user): bool
+    public function viewPage(User $user, Ticket $ticket): bool
     {
-        return $user->hasPermission('ticket.read');
+        return $user->hasPermission('ticket.read') || $this->worksOn($user, $ticket);
+    }
+
+    /**
+     * Planned for the open werkbon the storing is on: they read and edit it there
+     * without any right on storingen, by design. Once the werkbon is closed that
+     * is over.
+     */
+    public function worksOn(User $user, Ticket $ticket): bool
+    {
+        return $ticket->service_order_id !== null
+            && ServiceOrder::workedOnBy($user)->whereKey($ticket->service_order_id)->exists();
     }
 
     /**
@@ -64,18 +75,13 @@ class TicketPolicy
         return $user->hasPermission('ticket.create');
     }
 
+    /** Editing a storing: whoever works on it, or with the right for what the request changes. */
     public function update(User $user, Ticket $ticket, TicketUpdateRequest $request): bool
     {
-        if ($request->has('status') && $this->changeStatus($user)) {
-            return true;
-        }
-        if ($request->has('priority')) {
-            if ($user->hasPermission('ticket.alter_priority')) {
-                return true;
-            }
-        }
-
-        return $user->hasPermission('ticket.update');
+        return $this->worksOn($user, $ticket)
+            || $user->hasPermission('ticket.update')
+            || ($request->has('status') && $this->changeStatus($user))
+            || ($request->has('priority') && $user->hasPermission('ticket.alter_priority'));
     }
 
     /** A storing's status alone, one storing or many at once. */
@@ -102,16 +108,17 @@ class TicketPolicy
     }
 
     /**
-     * Determine whether the user can attach a ticket to a service order.
+     * Hanging a storing this person has in sight on a werkbon; which werkbon is
+     * the caller's to check (ServiceOrderPolicy::view).
      */
     public function attachToServiceOrder(User $user, Ticket $ticket): bool
     {
-        return $user->hasPermission('ticket.add_to_serviceorder');
+        return $user->hasPermission('ticket.add_to_serviceorder') && $this->view($user, $ticket);
     }
 
     public function detachFromServiceOrder(User $user, Ticket $ticket): bool
     {
-        return $user->hasPermission('ticket.detach_from_serviceorder');
+        return $user->hasPermission('ticket.detach_from_serviceorder') && $this->view($user, $ticket);
     }
 
     /**

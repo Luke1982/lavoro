@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RoleStoreRequest;
+use App\Http\Requests\RoleUpdateRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
@@ -23,35 +24,21 @@ class RoleController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(RoleStoreRequest $request)
     {
-        $data = $request->validate([
-            /**
-             * The name of our own role is forbidden. Without this a customer's
-             * admin creates a role 'superadmin' themselves and has everything,
-             * because the gate looks at the name.
-             */
-            'name' => ['required', 'string', 'max:255', 'unique:roles,name', 'not_in:' . Role::SUPERADMIN],
-        ]);
-
-        $role = Role::create($data);
+        $role = Role::create($request->validated());
 
         return redirect()->route('roles.index')
             ->with('success', 'Rol aangemaakt.')
             ->with('extra', $role);
     }
 
-    public function update(Request $request, Role $role)
+    public function update(RoleUpdateRequest $request, Role $role)
     {
-        /** Whoever may not see it may not fill it with users either. */
+        /** Whoever may not see it may not fill it with users either, a super admin through Gate::before included. */
         abort_if($role->name === Role::SUPERADMIN, 404);
 
-        $data = $request->validate([
-            'user_ids' => ['nullable', 'array'],
-            'user_ids.*' => ['integer', 'exists:users,id'],
-            'permission_ids' => ['nullable', 'array'],
-            'permission_ids.*' => ['integer', 'exists:permissions,id'],
-        ]);
+        $data = $request->validated();
 
         if (array_key_exists('user_ids', $data)) {
             $role->syncUsers($data['user_ids'] ?? []);
