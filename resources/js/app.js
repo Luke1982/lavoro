@@ -1,7 +1,7 @@
 import { createApp, h } from "vue";
 import { createInertiaApp, router } from "@inertiajs/vue3";
 import MainLayout from "@/Layouts/MainLayout.vue";
-import FloatingVue from "floating-vue";
+import FloatingVue, { createTooltip, destroyTooltip } from "floating-vue";
 import { autoAnimatePlugin } from "@formkit/auto-animate/vue";
 import ContextMenu from "@imengyu/vue3-context-menu";
 import "floating-vue/dist/style.css";
@@ -45,7 +45,23 @@ const applyTitle = (page) => {
     document.title = currentTitle;
 };
 
+/**
+ * Het eerste v-tooltip met tekst start in floating-vue een eigen Vue-app, en
+ * die mount() voert meteen alles uit wat in de app wachtte tot na het tekenen.
+ * Gebeurt dat midden in het opbouwen van een pagina, dan draait dat werk terwijl
+ * de lay-out nog niet in het document staat: de knop die de planner met
+ * <Teleport defer> in de blauwe balk zet vond zijn plek niet, en elke volgende
+ * update en het weggaan naar een werkbon liepen daarop vast. Dus start die app
+ * hier, voordat er iets getekend wordt.
+ */
+function startTooltipApp() {
+    const anchor = document.createElement("span");
+    createTooltip(anchor, "-", {});
+    destroyTooltip(anchor);
+}
+
 installHistoryGuard();
+startTooltipApp();
 
 createInertiaApp({
     title: (title) => title || currentTitle,
