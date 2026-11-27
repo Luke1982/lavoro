@@ -118,7 +118,7 @@
                 </ChapterHeaders>
                 <ChapterContents>
                     <template #chapter-0>
-                        <BoxComponent padding="px-0 pt-0 pb-2 sm:px-0 sm:pb-2 xl:px-0 xl:pt-0 xl:pb-2" class="flow-root" data-tour="quote.lines">
+                        <BoxComponent padding="px-0 pt-0 pb-2 sm:px-0 sm:pb-2 xl:px-0 xl:pt-0 xl:pb-2" class="@container flow-root" data-tour="quote.lines">
                             <div class="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
                                 <SectionHeader :icon="FileTextIcon" title="Offerteregels" chapter="financial" flush class="min-w-0 flex-1"
                                     subtitle="Stel hier de inhoud van de offerte samen. Bepaal per regel of deze optioneel is en meetelt in het totaal." />
@@ -136,7 +136,7 @@
                             </div>
 
                             <div v-if="rows.length && !compact"
-                                class="hidden md:flex items-center gap-2 px-5 pb-1 text-xs font-semibold text-gray-500 dark:text-slate-400">
+                                class="hidden @4xl:flex items-center gap-2 px-5 pb-1 text-xs font-semibold text-gray-500 dark:text-slate-400">
                                 <div class="flex-1" />
                                 <div :class="COLUMNS.quantity" class="text-center">Aantal</div>
                                 <div :class="COLUMNS.unit">Eenheid</div>
@@ -146,7 +146,11 @@
                                 <div :class="COLUMNS.actions" />
                             </div>
 
-                            <draggable v-model="rows" handle=".draghandle" :animation="150" :disabled="!canEdit"
+                            <p v-if="isExample" class="px-5 pb-2 text-xs italic text-amber-700 dark:text-amber-400">
+                                Voorbeeld uit de rondleiding: deze regels worden niet bewaard.
+                            </p>
+
+                            <draggable v-model="rows" handle=".draghandle" :animation="150" :disabled="!canEdit || isExample"
                                 class="space-y-1 px-2 pb-2" @end="reorder">
                                 <QuoteLineRow v-for="(line, index) in rows" :key="line.id + '-' + line.updated_at" :quote-id="quote.id"
                                     :line="line" :vat-rates="vatRates" :units="units" :editable="canEdit" :see-margins="can.seeMargins"
@@ -154,7 +158,7 @@
                                     :data-tour="line.id === firstPricedLineId ? 'quote.line' : null"
                                     class="border-t first:border-t-0 border-gray-100 dark:border-slate-800">
                                     <QuoteMaterialsPanel v-if="line.kind === 'product' && !compact && (line.children.length || canEdit)"
-                                        :quote-id="quote.id" :product="line" :units="units" :editable="canEdit"
+                                        :quote-id="quote.id" :product="line" :units="units" :editable="canEdit && !isExample"
                                         :data-tour="line.id === firstProductId ? 'quote.materials' : null"
                                         :open="openPanels[line.id] ?? true" @update:open="(value) => openPanels[line.id] = value" />
                                 </QuoteLineRow>
@@ -280,28 +284,30 @@
                 <BoxComponent data-tour="quote.totals">
                     <SectionHeader :icon="EuroIcon" title="Totaal" chapter="financial" />
                     <dl class="space-y-1 text-sm">
-                        <div class="flex justify-between px-3 py-1"><dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.net) }}</dd></div>
-                        <div v-for="row in totals.vat" :key="row.rate" class="flex justify-between px-3 py-1 text-gray-600 dark:text-slate-400">
+                        <div class="flex justify-between px-3 py-1"><dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(shownTotals.net) }}</dd></div>
+                        <div v-for="row in shownTotals.vat" :key="row.rate" class="flex justify-between px-3 py-1 text-gray-600 dark:text-slate-400">
                             <dt>Btw {{ nlQuantity(row.rate) }}%</dt><dd class="tabular-nums">{{ nlCurrency(row.vat) }}</dd>
                         </div>
                         <div class="flex justify-between rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-base font-bold text-green-900 dark:text-green-200">
-                            <dt>Totaal incl. btw</dt><dd class="tabular-nums">{{ nlCurrency(totals.gross) }}</dd>
+                            <dt>Totaal incl. btw</dt><dd class="tabular-nums">{{ nlCurrency(shownTotals.gross) }}</dd>
                         </div>
-                        <div v-if="totals.provisional_net" class="flex justify-between px-3 pt-2 text-amber-700 dark:text-amber-400">
-                            <dt>Waarvan stelposten</dt><dd class="tabular-nums">{{ nlCurrency(totals.provisional_net) }}</dd>
+                        <div v-if="shownTotals.provisional_net" class="flex justify-between px-3 pt-2 text-amber-700 dark:text-amber-400">
+                            <dt>Waarvan stelposten</dt><dd class="tabular-nums">{{ nlCurrency(shownTotals.provisional_net) }}</dd>
                         </div>
-                        <div v-if="totals.optional_net" class="flex justify-between px-3 pt-2 text-sky-700 dark:text-sky-400">
-                            <dt>Opties die niet meetellen</dt><dd class="tabular-nums">{{ nlCurrency(totals.optional_net) }}</dd>
+                        <div v-if="shownTotals.optional_net" class="flex justify-between px-3 pt-2 text-sky-700 dark:text-sky-400">
+                            <dt>Opties die niet meetellen</dt><dd class="tabular-nums">{{ nlCurrency(shownTotals.optional_net) }}</dd>
                         </div>
                         <template v-if="can.seeMargins">
-                            <div class="flex justify-between px-3 pt-2 text-gray-500"><dt>Inkoop</dt><dd class="tabular-nums">{{ nlCurrency(totals.cost) }}</dd></div>
+                            <div class="flex justify-between px-3 pt-2 text-gray-500"><dt>Inkoop</dt><dd class="tabular-nums">{{ nlCurrency(shownTotals.cost) }}</dd></div>
                             <div class="flex justify-between px-3 text-gray-500">
                                 <dt>Marge</dt>
-                                <dd class="tabular-nums">{{ nlCurrency(totals.margin) }}<span v-if="totals.net"> ({{ marginShare }})</span></dd>
+                                <dd class="tabular-nums">{{ nlCurrency(shownTotals.margin) }}<span v-if="shownTotals.net"> ({{ marginShare }})</span></dd>
                             </div>
                         </template>
                     </dl>
                 </BoxComponent>
+
+                <QuotePreviewPanel :document="preview" :example="example" />
 
                 <BoxComponent v-if="quote.accepted_name">
                     <SectionHeader :icon="PenLineIcon" title="Akkoord" chapter="signoff"
@@ -457,6 +463,7 @@ import QuoteDeclineDialog from '@/Components/Quotes/QuoteDeclineDialog.vue'
 import QuoteLineRow from '@/Components/Quotes/QuoteLineRow.vue'
 import QuoteMaterialsPanel from '@/Components/Quotes/QuoteMaterialsPanel.vue'
 import QuotePaymentSchedule from '@/Components/Quotes/QuotePaymentSchedule.vue'
+import QuotePreviewPanel from '@/Components/Quotes/QuotePreviewPanel.vue'
 import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
 import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
@@ -472,6 +479,7 @@ import TextInput from '@/Components/UI/TextInput.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 import TwoThirdsOneThird from '@/Layouts/TwoThirdsOneThird.vue'
 import { temporarily, useTour } from '@/Composables/useTour'
+import { exampleQuoteLines } from '@/Tours/examples'
 import { nlCurrency, nlDate, nlDateMedium, nlQuantity, quoteStatusPillClass } from '@/Utilities/Utilities'
 
 const props = defineProps({
@@ -497,6 +505,8 @@ const props = defineProps({
     origin: { type: Object, default: null },
     layout: { type: Object, required: true },
     layoutChoices: { type: Object, required: true },
+    /** The quote as the customer reads it, QuoteForCustomer::forPage, for the live preview. */
+    preview: { type: Object, required: true },
     /** [{ value, label, explanation }] */
     pricingMethods: { type: Array, default: () => [] },
     maxUpfrontPercent: { type: Number, required: true },
@@ -550,14 +560,24 @@ const pricingExplanation = computed(() => props.pricingMethods.find(method => me
 const scheduleError = computed(() => Object.entries(form.errors)
     .find(([field]) => field.startsWith('payment_schedule'))?.[1] ?? null)
 
-/** The lines in the order they are dragged to; the server's order again after every reload. */
+/** The rondleiding's example lines and their totals, { lines, totals }, while it shows them on a quote without lines. */
+const example = ref(null)
+const isExample = computed(() => example.value !== null)
+const shownTotals = computed(() => example.value?.totals ?? props.totals)
+
+/** The lines in the order they are dragged to; the server's order again after every reload, which also ends an example. */
 const rows = ref([...props.lines])
-watch(() => props.lines, (lines) => { rows.value = [...lines] })
+watch(() => props.lines, (lines) => {
+    example.value = null
+    rows.value = [...lines]
+})
 
 /** Which products have their materials open: all, until someone closes one. */
 const openPanels = reactive({})
 const firstProductId = computed(() => rows.value.find(line => line.kind === 'product')?.id ?? null)
 const firstPricedLineId = computed(() => rows.value.find(line => line.kind !== 'text')?.id ?? null)
+const firstOptionCheck = () => document.querySelector('[data-tour="quote.lines"] [data-cell=check]')
+const firstProvisionalBadge = () => document.querySelector('[data-tour="quote.lines"] [data-cell=provisional]')
 const hasPanels = computed(() => firstProductId.value !== null)
 const allOpen = computed(() => rows.value.filter(line => line.kind === 'product').every(line => openPanels[line.id] ?? true))
 
@@ -612,7 +632,7 @@ const projectOptions = computed(() => (props.quote.customer.projects ?? []).map(
     name: `${project.number} ${project.title}`,
 })))
 
-const marginShare = computed(() => Math.round((props.totals.margin / props.totals.net) * 100) + '%')
+const marginShare = computed(() => Math.round((shownTotals.value.margin / shownTotals.value.net) * 100) + '%')
 
 const save = useSaveField(form, () => `/quotes/${props.quote.id}`, () => ({ ...props.quote, layout: props.layout }))
 
@@ -658,6 +678,8 @@ function openChapter(label) {
  * sending; it never sends or saves anything. A tab is opened without an undo of
  * its own, so going from tab to tab never slides back past the first one:
  * rememberChapter turns back to the tab that was open once the chapter ends.
+ * On a quote without lines it shows example lines, in the totals and the
+ * preview too, that nothing on the page can save.
  */
 useTour('offerte', {
     rememberChapter: () => {
@@ -671,9 +693,23 @@ useTour('offerte', {
     openAttachments: () => openChapter('Bijlagen'),
     openSettings: () => openChapter('Instellingen'),
     openSend: () => canSend.value ? temporarily(sending, true) : null,
+    showExampleLines: () => {
+        if (props.lines.length || isExample.value) return null
+        example.value = exampleQuoteLines()
+        rows.value = example.value.lines
+
+        return () => {
+            example.value = null
+            rows.value = [...props.lines]
+        }
+    },
 }, {
     spots: {
         'quote.line.menu': () => document.querySelector('[data-tour="quote.line"] [data-cell=menu]'),
+        'quote.option': () => firstOptionCheck()?.closest('[data-line]') ?? null,
+        'quote.option.check': firstOptionCheck,
+        'quote.provisional': () => firstProvisionalBadge()?.closest('[data-line]') ?? null,
+        'quote.provisional.badge': firstProvisionalBadge,
     },
 })
 </script>

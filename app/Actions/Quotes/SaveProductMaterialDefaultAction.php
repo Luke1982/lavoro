@@ -4,8 +4,9 @@ namespace App\Actions\Quotes;
 
 use App\Domain\Signals\Quotes\ProductMaterialDefaultSet;
 use App\Domain\Signals\Signals;
+use App\Models\Material;
 use App\Models\Product;
-use App\Models\ProductMaterialDefault;
+use App\Models\Productable;
 use App\Support\PendingChanges;
 
 /**
@@ -19,11 +20,12 @@ class SaveProductMaterialDefaultAction
     public function execute(
         Product $product,
         array $data,
-        ?ProductMaterialDefault $default = null,
-    ): ProductMaterialDefault {
-        $default ??= new ProductMaterialDefault([
+        ?Productable $default = null,
+    ): Productable {
+        $default ??= new Productable([
             'product_id' => $product->id,
-            'material_id' => $data['material_id'],
+            'productable_type' => Material::class,
+            'productable_id' => $data['material_id'],
             'position' => (int) $product->materialDefaults()->max('position') + 1,
         ]);
         $is_new = !$default->exists;

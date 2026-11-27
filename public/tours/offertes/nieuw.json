@@ -1,7 +1,7 @@
 {
     "tour": "offertes",
     "chapter": "nieuw",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "nieuw.mp3",
     "gap": 1,
@@ -31,16 +31,16 @@
             "end": 22.335
         },
         {
-            "text": "Met \"Opslaan\" maak je de offerte. Hij gaat dan meteen open, en daar zet je de regels erop.",
-            "hash": "cd1143df2ce0b7c8f59960eb0656a3a17f62c217",
+            "text": "Met \"Opslaan\" maak je de offerte. Hij gaat meteen open, en daar kan je er regels op zetten.",
+            "hash": "eee30ba6701302619ce81783993a2cbddf9600ff",
             "start": 23.335,
-            "end": 28.172
+            "end": 28.402
         },
         {
-            "text": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kiest zelf wat je nog meer overneemt.",
-            "hash": "52b3c219d3986e47c8dda37ab70981958decff49",
-            "start": 29.172,
-            "end": 37.986
+            "text": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kan zelf kiezen wat je nog meer overneemt.",
+            "hash": "e137e42d07e51bba2ead3c7f3767efc953bddd34",
+            "start": 29.402,
+            "end": 38.84
         }
     ]
 }

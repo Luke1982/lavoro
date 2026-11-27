@@ -27,7 +27,7 @@ class MaterialsFollowProductQuantity
         }
 
         [$before, $after] = array_map('floatval', $signal->fields['quantity']);
-        $per_unit = $product->materialDefaults()->pluck('quantity', 'material_id');
+        $per_unit = $product->materialDefaults()->pluck('quantity', 'productable_id');
         $followed = [];
 
         foreach ($signal->line->children()->where('item_type', Material::class)->get() as $child) {

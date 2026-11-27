@@ -15,22 +15,22 @@
     "chapters": [
         {
             "id": "lijst",
-            "version": 1,
+            "version": 2,
             "title": "De offertelijst",
             "summary": "Zoeken en filteren, wat je per offerte ziet, en de status.",
             "steps": [
                 {
                     "spot": "list.search",
                     "title": "Zoeken",
-                    "text": "Zoek op **offertenummer**, **titel** of **klant**.",
-                    "say": "Je zoekt een offerte op nummer of titel. De naam van de klant werkt ook."
+                    "text": "Je kan zoeken op **offertenummer**, **titel** of **klant**.",
+                    "say": "Je kan een offerte zoeken op nummer, titel of de naam van de klant."
                 },
                 {
                     "spot": "list.filter-panel",
                     "action": "openFilters",
                     "title": "Filters",
-                    "text": "De lijst opent op de **lopende offertes**: alles wat nog niet geaccepteerd, afgewezen of vervallen is. Onder **Filters** kies je een andere status, of **Alle statussen**. Je filtert ook op klant, en op de **reden van verlies**: zo zie je waarom offertes niet doorgingen.",
-                    "say": "De lijst opent op de lopende offertes. Onder filters kies je een andere status, of een klant. Je kunt ook filteren op de reden van verlies.",
+                    "text": "De lijst opent op de **lopende offertes**: alles wat nog niet geaccepteerd, afgewezen of vervallen is. Onder **Filters** kan je een andere status kiezen, of **Alle statussen**. Je kan ook filteren op klant, en op de **reden van verlies**: zo zie je waarom offertes niet doorgingen.",
+                    "say": "De lijst opent op de lopende offertes. Onder filters kan je een andere status of een klant kiezen. Je kan ook filteren op de reden van verlies.",
                     "marks": [
                         {
                             "spot": "list.filters",
@@ -66,7 +66,7 @@
         },
         {
             "id": "nieuw",
-            "version": 1,
+            "version": 2,
             "title": "Een offerte maken",
             "summary": "Een nieuwe offerte, leeg of uit een sjabloon, en een offerte vanuit een werkbon of storing.",
             "requires": {
@@ -99,7 +99,7 @@
                     "skipIfMissing": true,
                     "action": "openCreate",
                     "title": "Een sjabloon",
-                    "text": "Kies je een **sjabloon**? Dan begint de offerte met de regels, teksten en afspraken van dat sjabloon. Zonder sjabloon begin je leeg. Een sjabloon maak je zelf, vanuit een offerte.",
+                    "text": "Kies je een **sjabloon**? Dan begint de offerte met de regels, teksten en afspraken van dat sjabloon. Zonder sjabloon begin je leeg. Een sjabloon maak je zelf, van een bestaande offerte.",
                     "say": "Kies je een sjabloon? Dan begint de offerte met de regels en teksten daarvan. Zonder sjabloon begin je leeg."
                 },
                 {
@@ -119,13 +119,13 @@
                     "spot": "quotes.new.save",
                     "action": "openCreate",
                     "title": "Opslaan",
-                    "text": "Met **Opslaan** maak je de offerte en open je hem meteen. Daar zet je de regels erop. De rondleiding slaat niets op.",
-                    "say": "Met \"Opslaan\" maak je de offerte. Hij gaat dan meteen open, en daar zet je de regels erop."
+                    "text": "Met **Opslaan** maak je de offerte, en hij gaat meteen open. Daar kan je er regels op zetten. De rondleiding slaat niets op.",
+                    "say": "Met \"Opslaan\" maak je de offerte. Hij gaat meteen open, en daar kan je er regels op zetten."
                 },
                 {
                     "title": "Vanuit een werkbon of storing",
-                    "text": "Vindt een monteur meer werk, dat eerst een offerte nodig heeft? Op een **werkbon** staat in de standaardweergave bovenaan **Offerte maken**, en op een **storing** staat het onder de **drie puntjes**. De offerte krijgt de klant en het adres, en van een werkbon ook het project. Je vinkt aan wat je overneemt: van een werkbon de storingen, de materialen en de gewerkte uren, van een storing de storing zelf als tekstregel.",
-                    "say": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kiest zelf wat je nog meer overneemt."
+                    "text": "Vindt een monteur meer werk, dat eerst een offerte nodig heeft? Op een **werkbon** staat in de standaardweergave bovenaan **Offerte maken**, en op een **storing** staat het onder de **drie puntjes**. De offerte krijgt de klant en het adres, en van een werkbon ook het project. Je kan aanvinken wat je overneemt: van een werkbon de storingen, de materialen en de gewerkte uren, van een storing de storing zelf als tekstregel.",
+                    "say": "Vindt een monteur meer werk? Dan maak je de offerte vanaf de werkbon of de storing. De klant en het adres gaan mee. Je kan zelf kiezen wat je nog meer overneemt."
                 }
             ]
         }

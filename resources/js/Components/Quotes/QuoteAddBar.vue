@@ -22,10 +22,14 @@
             </button>
         </div>
 
-        <div v-if="mode === 'catalog' || mode === 'option'" class="mt-3 flex flex-col gap-2 md:flex-row md:items-start" data-tour="quote.add.search">
-            <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter class="flex-1"
-                :searching="searching" placeholder="Zoek op merk, model, naam of code" empty-message="Typ om te zoeken"
-                @change="search" />
+        <div v-if="mode === 'catalog' || mode === 'option'" class="mt-3 flex flex-col gap-2 @lg:flex-row @lg:items-start" data-tour="quote.add.search">
+            <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter tall class="flex-1"
+                :searching="searching" placeholder="Zoek op merk, model, artikelnummer, naam of code" empty-message="Typ om te zoeken"
+                @change="search">
+                <template #option="{ option, active }">
+                    <CatalogOption :item="option.item" :active="active" />
+                </template>
+            </ComboBox>
             <div :class="COLUMNS.quantity">
                 <TextInput v-model="quantity" type="number" aria-label="Aantal" />
             </div>
@@ -46,6 +50,7 @@ import { computed, ref } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import { AlignLeftIcon, ChevronDownIcon, PackageIcon, PlusIcon, StarIcon, WrenchIcon } from '@lucide/vue'
+import CatalogOption from '@/Components/Quotes/CatalogOption.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import TextInput from '@/Components/UI/TextInput.vue'

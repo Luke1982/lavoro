@@ -1,6 +1,6 @@
 <template>
-    <div class="flow-root rounded-lg transition-colors" :class="tint">
-        <div class="flex flex-wrap md:flex-nowrap items-start gap-x-3 gap-y-2 px-3" :class="compact ? 'py-2' : 'py-3'">
+    <div class="flow-root rounded-lg transition-colors" :class="tint" data-line>
+        <div class="flex flex-wrap @4xl:flex-nowrap items-start gap-x-3 gap-y-2 px-3" :class="compact ? 'py-2' : 'py-3'">
             <div class="flex items-center gap-2 shrink-0" :class="compact ? '' : 'pt-3'">
                 <button v-if="editable" type="button" class="draghandle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 dark:text-slate-600"
                     aria-label="Verslepen">
@@ -11,18 +11,14 @@
                     :aria-label="`${line.description} telt mee`"
                     v-tooltip="line.is_chosen ? 'Dit alternatief telt mee in het totaal' : 'Kies dit alternatief voor het totaal'"
                     @change="patch({ is_chosen: true })" />
-                <input v-else-if="line.is_optional" type="checkbox" :checked="line.is_chosen === true" :disabled="!editable"
+                <input v-else-if="line.is_optional" type="checkbox" data-cell="check" :checked="line.is_chosen === true" :disabled="!editable"
                     class="size-4 rounded border-gray-300 text-lavoro-blue focus:ring-lavoro-blue"
                     :aria-label="`${line.description} telt mee`"
                     v-tooltip="line.is_chosen ? 'Telt mee in het totaal' : 'Telt niet mee in het totaal'"
                     @change="patch({ is_chosen: !line.is_chosen })" />
             </div>
 
-            <div v-if="!compact"
-                class="size-12 shrink-0 rounded-lg bg-white dark:bg-slate-900 ring-1 ring-gray-200 dark:ring-slate-700 flex items-center justify-center overflow-hidden">
-                <img v-if="line.image" :src="imageFileUrl(line.image)" :alt="line.description" class="size-full object-contain" />
-                <component :is="placeholderIcon" v-else class="size-5 text-gray-500 dark:text-slate-400" />
-            </div>
+            <QuoteItemPhoto v-if="!compact" :image="line.image" :alt="line.description" :icon="placeholderIcon" />
 
             <div class="min-w-0 flex-1 basis-60" :class="compact ? '' : 'pt-0.5'">
                 <div class="flex items-start gap-2">
@@ -50,14 +46,14 @@
                     </div>
                     <div class="mt-1 flex shrink-0 flex-col items-end gap-1">
                         <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="kind.badge">{{ kind.label }}</span>
-                        <span v-if="line.is_provisional" class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="PROVISIONAL_BADGE"
+                        <span v-if="line.is_provisional" data-cell="provisional" class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="PROVISIONAL_BADGE"
                             v-tooltip="'Wordt achteraf verrekend op de werkelijke kosten'">Stelpost</span>
                     </div>
                 </div>
                 <p v-for="error in form.errors" :key="error" class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>
             </div>
 
-            <div class="flex items-start gap-2 w-full md:w-auto justify-end shrink-0">
+            <div class="flex items-start gap-2 w-full @4xl:w-auto justify-end shrink-0">
                 <template v-if="!isText">
                     <div :class="COLUMNS.quantity">
                         <input v-if="editable && !compact" v-model="form.quantity" type="number" step="any" min="0" @change="save('quantity')"
@@ -157,10 +153,10 @@ import {
     BOXED_FIELD, COLUMNS, GHOST_FIELD, KINDS, NO_SPIN, PROVISIONAL_BADGE, isLeftOut, menuItem, unitChoices,
 } from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
+import QuoteItemPhoto from '@/Components/Quotes/QuoteItemPhoto.vue'
 import CurrencyInput from '@/Components/UI/CurrencyInput.vue'
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue'
 import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
-import { imageFileUrl } from '@/Utilities/imageFiles'
 import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
 
 /**
@@ -173,6 +169,12 @@ import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
  *
  * The page keys a row on its id and its updated_at, so a row whose line changed
  * on the server, also by a listener, starts again from what the server holds.
+ *
+ * The fields go under the description when the list is too narrow for both
+ * side by side, also on a wide screen beside the sidebar.
+ *
+ * A line from the rondleiding's example has a negative id: it can be changed on
+ * the screen, and nothing about it reaches the server.
  */
 const props = defineProps({
     quoteId: { type: Number, required: true },
@@ -209,17 +211,25 @@ const form = useForm({
 
 const discounting = ref(false)
 
-const save = useSaveField(form, () => url.value, () => props.line)
+const isExample = computed(() => props.line.id < 0)
+const saveField = useSaveField(form, () => url.value, () => props.line)
+
+function save(name) {
+    if (!isExample.value) saveField(name)
+}
 
 function patch(changes) {
+    if (isExample.value) return
     router.patch(url.value, changes, { preserveScroll: true })
 }
 
 function toggleAlternative() {
+    if (isExample.value) return
     router.post(`${url.value}/alternative`, {}, { preserveScroll: true })
 }
 
 function remove() {
+    if (isExample.value) return
     const along = props.line.children?.length ? ` en de ${props.line.children.length} materialen eronder` : ''
     if (!confirm(`${props.line.description}${along} van de offerte halen?`)) return
     router.delete(url.value, { preserveScroll: true })

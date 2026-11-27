@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Material;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,9 @@ class QuoteProductStoreRequest extends FormRequest
                 'required',
                 'integer',
                 'distinct',
-                Rule::exists('product_material_defaults', 'id')->where('product_id', $this->integer('product_id')),
+                Rule::exists('productables', 'id')
+                    ->where('product_id', $this->integer('product_id'))
+                    ->where('productable_type', Material::class),
             ],
             'materials.*.quantity' => ['required', 'numeric', 'gt:0', 'max:99999'],
         ];

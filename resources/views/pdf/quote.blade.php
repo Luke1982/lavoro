@@ -274,7 +274,7 @@
             </tr>
         @endif
         @if ($hasProvisional)
-            <tr><td class="label">Stelposten</td><td>Een stelpost is een bedrag dat nog niet vaststaat. Wij verrekenen het achteraf op basis van de werkelijke kosten.</td></tr>
+            <tr><td class="label">Stelposten</td><td>{{ \App\Domain\Quotes\QuoteForCustomer::PROVISIONAL_EXPLANATION }}</td></tr>
         @endif
         @if ($document['terms'])
             <tr>

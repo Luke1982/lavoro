@@ -1,6 +1,6 @@
 <template>
-    <div class="text-sm">
-        <div class="hidden sm:flex gap-3 pb-2 text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+    <div class="@container text-sm">
+        <div class="hidden @xl:flex gap-3 pb-2 text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
             <div class="flex-1">Omschrijving</div>
             <div v-for="column in columns" :key="column.key" :class="column.cell">{{ column.label }}</div>
         </div>
@@ -14,9 +14,9 @@
                 <p v-if="startsChoice(line)" class="pt-3 text-xs font-semibold uppercase tracking-wide text-fuchsia-700 dark:text-fuchsia-300">
                     Kies één van deze mogelijkheden
                 </p>
-                <div class="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 py-2 border-b border-slate-100 dark:border-slate-800"
+                <div class="flex flex-wrap @xl:flex-nowrap gap-x-3 gap-y-1 py-2 border-b border-slate-100 dark:border-slate-800"
                     :class="[isOut(line) ? 'text-slate-400 dark:text-slate-500' : '', line.choice_group ? 'pl-2 border-l-2 border-l-fuchsia-300 dark:border-l-fuchsia-700' : '']">
-                    <label class="flex min-w-0 flex-1 basis-full sm:basis-auto items-start gap-2"
+                    <label class="flex min-w-0 flex-1 basis-full @xl:basis-auto items-start gap-2"
                         :class="pickable && isChoosable(line) ? 'cursor-pointer' : ''">
                         <input v-if="pickable && line.choice_group" type="radio" class="mt-1" :name="`alternatives-${line.choice_group}`"
                             :checked="chosen.includes(line.id)" @change="pick(line)" />
@@ -31,24 +31,25 @@
                             <span v-if="line.details" class="block text-xs text-slate-500 dark:text-slate-400 whitespace-pre-line">{{ line.details }}</span>
                         </span>
                     </label>
-                    <div class="ml-auto flex gap-3">
+                    <div class="ml-auto flex flex-wrap justify-end gap-x-3 gap-y-1">
                         <div v-for="column in columns" :key="column.key" :class="[column.cell, column.key === 'line_total' ? 'font-medium' : '']">
+                            <span class="block text-[0.65rem] font-normal text-slate-400 @xl:hidden">{{ column.label }}</span>
                             {{ column.value(line) }}
                         </div>
                     </div>
                 </div>
                 <div v-for="child in line.children" :key="child.id"
-                    class="flex flex-wrap sm:flex-nowrap gap-x-3 gap-y-1 py-1.5 text-xs border-b border-slate-100 dark:border-slate-800"
+                    class="flex flex-wrap @xl:flex-nowrap gap-x-3 gap-y-1 py-1.5 text-xs border-b border-slate-100 dark:border-slate-800"
                     :class="isOut(line) ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'">
-                    <div class="min-w-0 flex-1 basis-full sm:basis-auto pl-6">{{ child.description }}</div>
-                    <div class="ml-auto flex gap-3">
+                    <div class="min-w-0 flex-1 basis-full @xl:basis-auto pl-6">{{ child.description }}</div>
+                    <div class="ml-auto flex flex-wrap justify-end gap-x-3 gap-y-1">
                         <div v-for="column in columns" :key="column.key" :class="column.cell">{{ column.value(child) }}</div>
                     </div>
                 </div>
             </template>
         </template>
 
-        <dl class="mt-4 ml-auto w-full sm:w-72 space-y-1">
+        <dl class="mt-4 ml-auto w-full @xl:w-72 space-y-1">
             <div class="flex justify-between"><dt>Totaal excl. btw</dt><dd class="tabular-nums">{{ nlCurrency(live.net) }}</dd></div>
             <div v-for="row in live.vat" :key="row.rate" class="flex justify-between text-slate-500">
                 <dt>Btw {{ row.rate }}%</dt><dd class="tabular-nums">{{ nlCurrency(row.vat) }}</dd>
@@ -76,6 +77,10 @@ import { nlCurrency, nlQuantity } from '@/Utilities/Utilities'
  * picked: what the server counted, plus each line picked since and minus each
  * one let go, with the VAT counted again per rate the way the server does it,
  * over the sum and not per line.
+ *
+ * It lays itself out by its own width, not the screen's: in a narrow sidebar
+ * or on a phone the amounts go under the description, each with its label,
+ * and wrap instead of running off the edge.
  */
 const props = defineProps({
     lines: { type: Array, required: true },
@@ -87,11 +92,11 @@ const props = defineProps({
 
 const chosen = defineModel({ type: Array, default: () => [] })
 
-/** Fixed widths, so the materials under a product, indented, still line up with the product above them. */
+/** Fixed widths where there is room, so the materials under a product, indented, still line up with the product above them. */
 const CELL = {
-    quantity: 'w-24 shrink-0 text-right tabular-nums',
-    amount: 'w-28 shrink-0 text-right tabular-nums',
-    narrow: 'w-14 shrink-0 text-right tabular-nums',
+    quantity: '@xl:w-24 shrink-0 text-right tabular-nums',
+    amount: '@xl:w-28 shrink-0 text-right tabular-nums',
+    narrow: '@xl:w-14 shrink-0 text-right tabular-nums',
 }
 
 const price = (line, amount) => nlCurrency(props.layout.incl_vat ? amount * (1 + Number(line.vat_percent) / 100) : amount)

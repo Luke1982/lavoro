@@ -1,7 +1,7 @@
 {
     "tour": "offerte",
     "chapter": "afspraken",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "afspraken.mp3",
     "gap": 1,
@@ -13,34 +13,34 @@
             "end": 6.016
         },
         {
-            "text": "Bij afspraken kies je eerst de prijsafspraak. Een vaste prijs, of regie. Bij regie reken je af op de werkelijke uren en materialen.",
-            "hash": "98bc9584a2ea870aef17709fbcca567656fc21d2",
+            "text": "Bij afspraken kies je eerst de prijsafspraak. Een vaste prijs, of nacalculatie. Bij nacalculatie reken je af op de werkelijke uren en materialen.",
+            "hash": "3cb355daec3e024548abdd2917aeaf3b9d24eaad",
             "start": 7.016,
-            "end": 14.888
+            "end": 15.624
         },
         {
-            "text": "Schrijf wanneer het werk start en hoe lang het duurt. En hoe de klant betaalt. Met betaaltermijnen verdeel je het bedrag. Samen moeten ze honderd procent zijn.",
-            "hash": "66e56c004253eba0db5e3fc5bad05f0cd505b1ae",
-            "start": 15.888,
-            "end": 25.377
+            "text": "Schrijf wanneer het werk start en hoe lang het duurt. En hoe de klant betaalt. Met betaaltermijnen kan je het bedrag verdelen. Samen moeten ze honderd procent zijn.",
+            "hash": "15e66b6f48ec6702bae28fc7cb26b1df42eea34c",
+            "start": 16.624,
+            "end": 26.17
         },
         {
-            "text": "Bij bijlagen bewaar je tekeningen en brochures bij de offerte. Ze gaan niet mee naar de klant. De getekende offerte komt hier vanzelf te staan.",
-            "hash": "1e79142fab2840a0bd537d21fc738b6580a246fe",
-            "start": 26.377,
-            "end": 33.704
+            "text": "Bij bijlagen kan je tekeningen en brochures bij de offerte bewaren. Ze gaan niet mee naar de klant. De getekende offerte komt hier vanzelf te staan.",
+            "hash": "7a6efd88f73ce2a3849abe0bc6b7bb7bb5be80b5",
+            "start": 27.17,
+            "end": 34.501
         },
         {
-            "text": "Bij instellingen kies je wat de klant ziet. Zet je de prijzen per regel uit? Dan ziet de klant alleen het totaal.",
-            "hash": "dee4015fb8c73250343d19ed664d0337cf19fd47",
-            "start": 34.704,
-            "end": 40.068
+            "text": "Bij instellingen kan je kiezen wat de klant ziet. Zet je de prijzen per regel uit? Dan ziet de klant alleen het totaal.",
+            "hash": "def841e7145546f0a8895965bd18812fce8837f4",
+            "start": 35.501,
+            "end": 41.679
         },
         {
-            "text": "Hier bepaal je of de klant zelf opties mag kiezen. En of het een particuliere klant is. Die krijgt na het akkoord twee weken bedenktijd.",
-            "hash": "d4a991b04da33fa2716bd1f0c19cf49ffcaa21fa",
-            "start": 41.068,
-            "end": 48.84
+            "text": "Hier bepaal je of de klant zelf optionele regels mag kiezen. En of het een particuliere klant is. Die krijgt na het akkoord twee weken bedenktijd.",
+            "hash": "64c9393f70e026abf2038c08a437178ad447b761",
+            "start": 42.679,
+            "end": 50.776
         }
     ]
 }

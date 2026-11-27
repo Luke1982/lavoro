@@ -17,54 +17,15 @@
                 </header>
 
                 <div class="px-6 py-6">
-                    <h1 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ quote.title }}</h1>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Offerte {{ quote.number }}, versie {{ quote.version }} voor {{ quote.contact || quote.customer }}, {{ nlDateMedium(quote.quote_date) }}
-                        <template v-if="quote.valid_until">· geldig tot en met {{ nlDateMedium(quote.valid_until) }}</template>
-                    </p>
-                    <p v-if="quote.location" class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Locatie: {{ quote.location }}</p>
-
-                    <p v-if="flash.error" class="mt-4 rounded-xl bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-800 dark:text-red-200">
-                        {{ flash.error }}
-                    </p>
-
-                    <div v-if="quote.intro_text" class="rich-text mt-6 text-sm text-slate-700 dark:text-slate-300" v-html="quote.intro_text" />
-
-                    <QuoteDocument v-model="accept.options" class="mt-6" :lines="lines" :totals="totals" :layout="layout"
-                        :pickable="open && quote.customer_picks_options" />
-
-                    <p v-if="open && quote.customer_picks_options && hasChoices" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                        Kies wat u erbij wilt, en bij een keuze welke u neemt; het totaal rekent mee.
-                    </p>
-
-                    <div v-if="quote.closing_text" class="rich-text mt-6 text-sm text-slate-700 dark:text-slate-300" v-html="quote.closing_text" />
-
-                    <section v-if="agreements.length || quote.payment_schedule.length" class="mt-8">
-                        <h2 class="text-sm font-bold text-slate-900 dark:text-slate-100">Afspraken</h2>
-                        <dl class="mt-2 space-y-1.5 text-sm">
-                            <div v-for="agreement in agreements" :key="agreement.label" class="grid grid-cols-3 gap-3">
-                                <dt class="text-slate-500 dark:text-slate-400">{{ agreement.label }}</dt>
-                                <dd class="col-span-2 text-slate-700 dark:text-slate-300">{{ agreement.value }}</dd>
-                            </div>
-                            <div v-if="quote.payment_schedule.length" class="grid grid-cols-3 gap-3">
-                                <dt class="text-slate-500 dark:text-slate-400">Betaaltermijnen</dt>
-                                <dd class="col-span-2 space-y-0.5 text-slate-700 dark:text-slate-300">
-                                    <div v-for="(term, index) in quote.payment_schedule" :key="index" class="flex justify-between gap-3">
-                                        <span>{{ nlQuantity(term.percent) }}% {{ term.description }}<template v-if="term.before_start"> (vóór de start)</template></span>
-                                        <span class="tabular-nums">{{ nlCurrency(term.amount) }}</span>
-                                    </div>
-                                </dd>
-                            </div>
-                        </dl>
-                    </section>
-
-                    <details v-if="withdrawal" class="mt-6 rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
-                        <summary class="cursor-pointer font-semibold">U hebt {{ withdrawal.days }} dagen bedenktijd</summary>
-                        <p v-for="(paragraph, index) in withdrawal.instructions" :key="index" class="mt-2">{{ paragraph }}</p>
-                        <h3 class="mt-4 font-semibold">Modelformulier voor herroeping</h3>
-                        <p class="text-xs text-slate-500">Dit formulier alleen invullen en terugzenden als u de overeenkomst wilt herroepen.</p>
-                        <p v-for="(row, index) in withdrawal.form" :key="`form-${index}`" class="mt-1">{{ row }}</p>
-                    </details>
+                    <QuoteCustomerDocument v-model="accept.options" :quote="quote" :lines="lines" :totals="totals" :layout="layout"
+                        :terms="terms" :withdrawal="withdrawal" :provisional_explanation="provisional_explanation"
+                        :pickable="open && quote.customer_picks_options">
+                        <template #notice>
+                            <p v-if="flash.error" class="mt-4 rounded-xl bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-800 dark:text-red-200">
+                                {{ flash.error }}
+                            </p>
+                        </template>
+                    </QuoteCustomerDocument>
 
                     <div v-if="!open" class="mt-8 rounded-xl bg-amber-50 dark:bg-amber-900/20 px-4 py-4 text-sm text-amber-800 dark:text-amber-200">
                         Op deze offerte kunt u niet meer reageren. Neem gerust contact met ons op.
@@ -169,12 +130,11 @@ import { computed, ref } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import { FileDownIcon } from '@lucide/vue'
 import EmptyLayout from '@/Layouts/EmptyLayout.vue'
-import QuoteDocument from '@/Components/Quotes/QuoteDocument.vue'
+import QuoteCustomerDocument from '@/Components/Quotes/QuoteCustomerDocument.vue'
 import SegmentedToggle from '@/Components/UI/SegmentedToggle.vue'
 import SignaturePad from '@/Components/UI/SignaturePad.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
-import { countedOptions as counted, isChoosable } from '@/Components/Quotes/quoteColumns'
-import { nlCurrency, nlDateMedium, nlQuantity } from '@/Utilities/Utilities'
+import { countedOptions as counted } from '@/Components/Quotes/quoteColumns'
 
 /**
  * Where a customer without an account looks at a quote and answers it, once:
@@ -200,6 +160,8 @@ const props = defineProps({
     preview_of: { type: String, default: null },
     /** What the preview banner says, for an earlier version: when it went out and to whom. */
     preview_note: { type: String, default: null },
+    /** What a stelpost is, as the PDF says it. */
+    provisional_explanation: { type: String, default: null },
     /** Where a preview finds its PDF; the customer's own page finds it under the link. */
     pdf_url: { type: String, default: null },
 })
@@ -215,7 +177,6 @@ const TEXTAREA = 'mt-1 block w-full rounded-md border-0 ring-1 ring-inset ring-g
 const page = usePage()
 const company = computed(() => page.props.company)
 const flash = computed(() => page.props.flash ?? {})
-const hasChoices = computed(() => props.lines.some(isChoosable))
 
 const linkUrl = page.url.split('?')[0]
 const pdfUrl = computed(() => props.pdf_url ?? `${linkUrl}/pdf`)
@@ -224,22 +185,6 @@ const termsUrl = computed(() => {
     if (props.terms?.kind === 'link') return props.terms.url
     return props.preview_of ? '/quote-terms' : `${linkUrl}/voorwaarden`
 })
-
-const termsSentence = computed(() => {
-    if (!props.terms) return null
-    return props.terms.kind === 'link'
-        ? `Op deze offerte zijn onze algemene voorwaarden van toepassing. U leest ze op ${props.terms.url}.`
-        : `Op deze offerte zijn onze algemene voorwaarden van toepassing (${props.terms.name}). U ontvangt ze bij deze offerte.`
-})
-
-/** The terms an installation quote has to state, those it states. */
-const agreements = computed(() => [
-    { label: 'Prijs', value: props.quote.pricing_explanation },
-    { label: 'Start', value: props.quote.start_period },
-    { label: 'Duur', value: props.quote.duration },
-    { label: 'Betaling', value: props.quote.payment_terms },
-    { label: 'Voorwaarden', value: termsSentence.value },
-].filter(agreement => agreement.value))
 
 const sellerLine = computed(() => [
     props.seller.name,

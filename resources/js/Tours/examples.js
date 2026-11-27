@@ -1,3 +1,5 @@
+import { isLeftOut } from '@/Components/Quotes/quoteColumns'
+
 /**
  * Made-up records the rondleidingen type in and show, and never save. A brand
  * and model nobody sells, so no picker ever finds a real one to offer instead
@@ -96,6 +98,57 @@ export function exampleMacro() {
             },
             { id: 'voorbeeld-keuringen', type: 'add_service_jobs', asks: {} },
         ],
+    }
+}
+
+/**
+ * A quote's lines for a quote that has none yet, laid out the way the server
+ * sends them: a heading, an airco with the materials that came along with it,
+ * the hours to fit it, an amount that is not fixed yet and an option to add.
+ * Their ids are negative, so a line can be changed on the screen and nothing
+ * reaches the server. With them come their totals, counted from the lines the
+ * way the server counts them: what is left out apart, VAT once over the sum,
+ * and every line at the one rate the example uses.
+ */
+export function exampleQuoteLines() {
+    const RATE = 21
+    const line = (id, fields) => ({
+        id, parent_id: null, kind: 'free', details: null, location_note: null, unit: 'stuk', cost_price: null,
+        vat_percent: RATE, discount_percent: null, is_optional: false, is_chosen: null, is_provisional: false,
+        choice_group: null, image: null, children: [], updated_at: 'voorbeeld',
+        ...fields,
+        net: fields.quantity * fields.unit_price,
+    })
+
+    const lines = [
+        line(-1, { kind: 'text', description: 'Woonkamer', details: '<p>Een airco boven de bank, met de buitenunit aan de achtergevel.</p>', quantity: 0, unit: null, unit_price: 0 }),
+        line(-2, {
+            kind: 'product', description: 'Airco binnendeel 2,5 kW', details: 'Stil en zuinig, met wifi-bediening',
+            location_note: 'woonkamer', quantity: 1, unit_price: 1250, cost_price: 800,
+            children: [
+                line(-3, { kind: 'material', parent_id: -2, description: 'Muurbeugel', quantity: 1, unit_price: 45, cost_price: 20 }),
+                line(-4, { kind: 'material', parent_id: -2, description: 'Koelleiding', quantity: 4, unit: 'meter', unit_price: 22.5, cost_price: 10 }),
+            ],
+        }),
+        line(-5, { description: 'Montage', quantity: 6, unit: 'uur', unit_price: 65, cost_price: 35 }),
+        line(-6, { description: 'Condensafvoer aanleggen', quantity: 1, unit_price: 150, cost_price: 100, is_provisional: true }),
+        line(-7, { kind: 'material', description: 'Condenspomp', quantity: 1, unit_price: 120, cost_price: 70, is_optional: true, is_chosen: false }),
+    ]
+
+    const sum = (rows, amount) => Math.round(rows.reduce((total, row) => total + amount(row), 0) * 100) / 100
+    const counted = lines.filter(row => !isLeftOut(row)).flatMap(row => [row, ...row.children])
+    const net = sum(counted, row => row.net)
+    const cost = sum(counted, row => row.quantity * (row.cost_price ?? 0))
+    const vat = Math.round(net * RATE) / 100
+
+    return {
+        lines,
+        totals: {
+            net, vat: [{ rate: RATE, net, vat }], vat_total: vat, gross: Math.round((net + vat) * 100) / 100,
+            optional_net: sum(lines.filter(isLeftOut), row => row.net),
+            provisional_net: sum(counted.filter(row => row.is_provisional), row => row.net),
+            cost, margin: Math.round((net - cost) * 100) / 100,
+        },
     }
 }
 

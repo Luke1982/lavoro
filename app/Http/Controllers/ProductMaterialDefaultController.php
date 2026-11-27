@@ -8,7 +8,7 @@ use App\Http\Requests\ProductMaterialDefaultDestroyRequest;
 use App\Http\Requests\ProductMaterialDefaultStoreRequest;
 use App\Http\Requests\ProductMaterialDefaultUpdateRequest;
 use App\Models\Product;
-use App\Models\ProductMaterialDefault;
+use App\Models\Productable;
 
 class ProductMaterialDefaultController extends Controller
 {
@@ -22,7 +22,7 @@ class ProductMaterialDefaultController extends Controller
     public function update(
         ProductMaterialDefaultUpdateRequest $request,
         Product $product,
-        ProductMaterialDefault $materialDefault,
+        Productable $materialDefault,
         SaveProductMaterialDefaultAction $save,
     ) {
         $save->execute($product, $request->validated(), $materialDefault);
@@ -33,7 +33,7 @@ class ProductMaterialDefaultController extends Controller
     public function destroy(
         ProductMaterialDefaultDestroyRequest $request,
         Product $product,
-        ProductMaterialDefault $materialDefault,
+        Productable $materialDefault,
         RemoveProductMaterialDefaultAction $remove,
     ) {
         $remove->execute($materialDefault);

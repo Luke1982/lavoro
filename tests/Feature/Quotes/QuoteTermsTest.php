@@ -125,7 +125,7 @@ class QuoteTermsTest extends TestCase
                 ['description' => 'na oplevering', 'percent' => 75],
             ],
             'layout' => ['unit_price' => false, 'line_total' => false, 'incl_vat' => true],
-            'pricing_method' => 'Regie',
+            'pricing_method' => 'Nacalculatie',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(
@@ -136,7 +136,7 @@ class QuoteTermsTest extends TestCase
             "aantal en eenheid, korting, foto's van producten; prijzen inclusief btw",
             $this->changeLabel($quote, 'layout'),
         );
-        $this->assertSame('Regie', $this->changeLabel($quote, 'pricing_method'));
+        $this->assertSame('Nacalculatie', $this->changeLabel($quote, 'pricing_method'));
     }
 
     private function changeLabel(Quote $quote, string $field): ?string

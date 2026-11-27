@@ -6,7 +6,7 @@ use App\Enums\DefaultMaterialPrompts;
 use App\Enums\QuoteLineKinds;
 use App\Models\Material;
 use App\Models\Product;
-use App\Models\ProductMaterialDefault;
+use App\Models\Productable;
 use App\Models\Quote;
 
 /**
@@ -51,8 +51,8 @@ final class QuoteLineDrafts
             : $product->materialDefaults()->where('prompt', DefaultMaterialPrompts::always->value)->with('material.usageUnit')->get();
 
         return $defaults
-            ->filter(fn (ProductMaterialDefault $default) => $default->prompt === DefaultMaterialPrompts::always)
-            ->map(fn (ProductMaterialDefault $default) => self::forMaterial(
+            ->filter(fn (Productable $default) => $default->prompt === DefaultMaterialPrompts::always)
+            ->map(fn (Productable $default) => self::forMaterial(
                 $quote,
                 $default->material,
                 round($default->quantity * $quantity, 2),

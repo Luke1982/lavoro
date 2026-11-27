@@ -12,13 +12,18 @@ class ProductablePolicy
         return $user->hasPermission('productable.create');
     }
 
+    /**
+     * Only a part of a bundle is changed here. A material default is changed
+     * through its own requests, under QuotePolicy::manageDefaults, and what a
+     * werkbon taak chose goes with the taak.
+     */
     public function update(User $user, Productable $productable): bool
     {
-        return $user->hasPermission('productable.update');
+        return $productable->isComponent() && $user->hasPermission('productable.update');
     }
 
     public function delete(User $user, Productable $productable): bool
     {
-        return $user->hasPermission('productable.delete');
+        return $productable->isComponent() && $user->hasPermission('productable.delete');
     }
 }

@@ -32,6 +32,15 @@ class QuotePolicy
         return self::licensed() && $user->hasPermission('quote.update');
     }
 
+    /**
+     * Putting things on quotes: whoever may work on one sees the catalogue's
+     * sale prices and photos, also without product.read. Offering is selling.
+     */
+    public function searchCatalog(User $user): bool
+    {
+        return self::licensed() && $user->hasPermission('quote.update');
+    }
+
     public function delete(User $user, Quote $quote): bool
     {
         return self::licensed() && $user->hasPermission('quote.delete');

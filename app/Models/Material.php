@@ -99,8 +99,8 @@ class Material extends Model
      * A material that goes is taken off its suppliers and out of the standard
      * materials of every product, one by one, so each of them says so on its
      * timeline. Nothing else would: the supplier links are a morph pivot the
-     * database knows nothing about, and the standard materials would go by the
-     * database's cascade, in silence.
+     * database knows nothing about, and the standard materials are rows of
+     * productables, a morph the database cannot cascade either.
      */
     protected static function booted(): void
     {
@@ -114,10 +114,11 @@ class Material extends Model
 
             $remove_default = app(RemoveProductMaterialDefaultAction::class);
 
-            ProductMaterialDefault::with(['product.brand', 'material'])
-                ->where('material_id', $material->id)
+            Productable::with(['product.brand', 'material'])
+                ->where('productable_type', Material::class)
+                ->where('productable_id', $material->id)
                 ->get()
-                ->each(fn (ProductMaterialDefault $default) => $remove_default->execute($default));
+                ->each(fn (Productable $default) => $remove_default->execute($default));
         });
     }
 

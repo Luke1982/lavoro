@@ -9,7 +9,7 @@ namespace App\Enums;
 enum QuotePricingMethods: string
 {
     case vaste_prijs = 'Vaste prijs';
-    case regie = 'Regie';
+    case nacalculatie = 'Nacalculatie';
 
     /**
      * Each way, as the quote page offers them, with what the customer reads.
@@ -30,7 +30,7 @@ enum QuotePricingMethods: string
     {
         return match ($this) {
             self::vaste_prijs => 'De genoemde prijs is een vaste prijs.',
-            self::regie => 'Wij rekenen af op basis van de werkelijk bestede uren en gebruikte materialen (regie). '
+            self::nacalculatie => 'Wij rekenen af op basis van de werkelijk bestede uren en gebruikte materialen (nacalculatie). '
                 . 'De genoemde bedragen zijn een zo goed mogelijke inschatting.',
         };
     }

@@ -1,40 +1,40 @@
 {
     "tour": "offertes",
     "chapter": "lijst",
-    "version": 1,
+    "version": 2,
     "voice": "elevenlabs:AQfZOwSSAnLexc5cub9s:eleven_multilingual_v2:a173214f",
     "audio": "lijst.mp3",
     "gap": 1,
     "steps": [
         {
-            "text": "Je zoekt een offerte op nummer of titel. De naam van de klant werkt ook.",
-            "hash": "9e4ff7e00c29c8ae546f0e19d8759593b57a8b44",
+            "text": "Je kan een offerte zoeken op nummer, titel of de naam van de klant.",
+            "hash": "ddf5fc49b4235abb25b391a60ee6e093f2678de2",
             "start": 0,
-            "end": 3.9
+            "end": 3.762
         },
         {
-            "text": "De lijst opent op de lopende offertes. Onder filters kies je een andere status, of een klant. Je kunt ook filteren op de reden van verlies.",
-            "hash": "597d626ddbab214119f6d5e2ef9d5396951c9239",
-            "start": 4.9,
-            "end": 13.491
+            "text": "De lijst opent op de lopende offertes. Onder filters kan je een andere status of een klant kiezen. Je kan ook filteren op de reden van verlies.",
+            "hash": "dba4d7eea067898631786e766677f472c2f73569",
+            "start": 4.762,
+            "end": 12.311
         },
         {
             "text": "Per offerte zie je het nummer, de titel en de klant. Ook het bedrag en tot wanneer hij geldig is. Klik erop om hem te openen.",
             "hash": "5f1e8d3f05d05692005145025846d9dba48bfda0",
-            "start": 14.491,
-            "end": 21.911
+            "start": 13.311,
+            "end": 20.731
         },
         {
             "text": "Een offerte begint als concept. Na het versturen staat hij op verzonden. Wat de klant antwoordt, bepaalt de status daarna. Bij een afgewezen offerte staat de reden eronder.",
             "hash": "7364a0540a665b291b1356e6033b62c5c4573dad",
-            "start": 22.911,
-            "end": 32.405
+            "start": 21.731,
+            "end": 31.225
         },
         {
             "text": "Wat voor elke offerte geldt, stel je in bij de offerte-instellingen. Bijvoorbeeld je algemene voorwaarden, en wat de klant op de offerte ziet.",
             "hash": "e4787647d54fb755c893e464f6bbaf2705faffbb",
-            "start": 33.405,
-            "end": 40.498
+            "start": 32.225,
+            "end": 39.318
         }
     ]
 }

@@ -24,7 +24,7 @@
             class="rounded-md hover:ring-1 hover:ring-gray-200 dark:hover:ring-slate-600 text-right" aria-label="Prijs per stuk" />
         <div v-else class="text-right tabular-nums">{{ nlCurrency(line.unit_price) }}</div>
     </div>
-    <div :class="COLUMNS.vat" class="hidden md:block" />
+    <div :class="COLUMNS.vat" class="hidden @4xl:block" />
     <div :class="COLUMNS.total" class="text-right tabular-nums">{{ nlCurrency(line.net) }}</div>
     <div :class="COLUMNS.actions" class="flex justify-end pr-3">
         <button v-if="editable" type="button" @click="remove" v-tooltip="'Verwijderen'"

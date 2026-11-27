@@ -6,7 +6,7 @@ use App\Domain\Signals\BaseSignal;
 use App\Domain\Signals\ChangeSentence;
 use App\Enums\DefaultMaterialPrompts;
 use App\Models\Product;
-use App\Models\ProductMaterialDefault;
+use App\Models\Productable;
 use App\Support\Quantity;
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,7 +23,7 @@ class ProductMaterialDefaultSet extends BaseSignal
      */
     public function __construct(
         public Product $product,
-        public ProductMaterialDefault $default,
+        public Productable $default,
         public bool $is_new,
         public array $fields,
     ) {

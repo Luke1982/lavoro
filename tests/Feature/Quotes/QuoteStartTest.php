@@ -43,7 +43,7 @@ class QuoteStartTest extends TestCase
         $source = $this->makeQuote();
         $this->addLine($source, 1000, 'Unit', ['location_note' => 'woonkamer']);
         $this->addLine($source, 50, 'Condenspomp', ['is_optional' => true]);
-        $this->patch("/quotes/{$source->id}", ['start_period' => 'week 14', 'pricing_method' => 'Regie']);
+        $this->patch("/quotes/{$source->id}", ['start_period' => 'week 14', 'pricing_method' => 'Nacalculatie']);
 
         $this->post("/quotes/{$source->id}/template", ['name' => 'Airco 1 ruimte'])->assertSessionHasNoErrors();
         $template = QuoteTemplate::sole();
@@ -55,7 +55,7 @@ class QuoteStartTest extends TestCase
         $this->assertSame(['Unit', 'Condenspomp'], $quote->lines()->pluck('description')->all());
         $this->assertSame('woonkamer', $quote->lines()->first()->location_note);
         $this->assertSame('week 14', $quote->start_period);
-        $this->assertSame('Regie', $quote->pricing_method->value);
+        $this->assertSame('Nacalculatie', $quote->pricing_method->value);
         $this->assertTrue($quote->origin->is($template));
         $this->assertSame(1, $this->trailEntries($quote, "gemaakt vanuit sjabloon 'Airco 1 ruimte'"));
     }

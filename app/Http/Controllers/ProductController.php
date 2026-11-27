@@ -21,7 +21,6 @@ use App\Models\LedgerAccount;
 use App\Models\Product;
 use App\Models\Productable;
 use App\Models\ProductAttribute;
-use App\Models\ProductMaterialDefault;
 use App\Models\ProductRelation;
 use App\Models\ProductType;
 use App\Models\Quote;
@@ -265,7 +264,7 @@ class ProductController extends Controller
         }
 
         return $product->materialDefaults()->with('material.usageUnit')->get()
-            ->map(fn (ProductMaterialDefault $default) => $default->toOption())
+            ->map(fn (Productable $default) => $default->toMaterialDefaultOption())
             ->all();
     }
 

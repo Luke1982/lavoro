@@ -4,11 +4,11 @@ namespace App\Actions\Quotes;
 
 use App\Domain\Signals\Quotes\ProductMaterialDefaultRemoved;
 use App\Domain\Signals\Signals;
-use App\Models\ProductMaterialDefault;
+use App\Models\Productable;
 
 class RemoveProductMaterialDefaultAction
 {
-    public function execute(ProductMaterialDefault $default): void
+    public function execute(Productable $default): void
     {
         $default->loadMissing(['product.brand', 'material']);
         $default->delete();

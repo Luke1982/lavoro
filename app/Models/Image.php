@@ -80,9 +80,10 @@ class Image extends Model
      * may read it, project or not.
      *
      * The catalogue photo of what an offerte line offers shows on that line, so
-     * whoever may read offertes sees it, product or material. The photo of a
-     * machine's product shows with the machine on its customer's page, so
-     * whoever may read customers sees that one.
+     * whoever may read offertes sees it, product or material; whoever may put
+     * things on offertes sees the photo of everything there is to offer, as the
+     * search shows it. The photo of a machine's product shows with the machine
+     * on its customer's page, so whoever may read customers sees that one.
      */
     protected static function alsoVisibleTo(EloquentBuilder $query, User $user): void
     {
@@ -101,6 +102,11 @@ class Image extends Model
                     ->where('quote_lines.item_type', (new $item)->getMorphClass())
                     ->select('quote_lines.item_id'));
             }
+        }
+
+        if ($user->can('searchCatalog', Quote::class)) {
+            self::orOnRecords($query, Product::class, Product::query()->where('products.active', true)->select('products.id'));
+            self::orOnRecords($query, Material::class, Material::query()->where('materials.is_active', true)->select('materials.id'));
         }
 
         if ($user->can('viewAny', Customer::class)) {

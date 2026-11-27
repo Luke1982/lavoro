@@ -1,5 +1,5 @@
 <template>
-    <div class="mx-3 mb-3 md:ml-[5.5rem] rounded-lg bg-slate-50 dark:bg-slate-800/50 ring-1 ring-slate-200/70 dark:ring-slate-700">
+    <div class="mx-3 mb-3 @4xl:ml-[5.5rem] rounded-lg bg-slate-50 dark:bg-slate-800/50 ring-1 ring-slate-200/70 dark:ring-slate-700">
         <button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-slate-200"
             @click="open = !open">
             <PackageIcon class="size-4 text-gray-500" />
@@ -14,7 +14,7 @@
                     :class="open ? 'opacity-100' : 'opacity-0'">
                     <draggable v-model="rows" handle=".draghandle" :animation="150" :disabled="!editable" @end="reorder">
                         <div v-for="child in rows" :key="child.id + '-' + child.updated_at"
-                            class="group flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1 py-1 text-sm border-b last:border-b-0 border-slate-200/70 dark:border-slate-700/60">
+                            class="group flex flex-wrap @4xl:flex-nowrap items-center gap-x-2 gap-y-1 py-1 text-sm border-b last:border-b-0 border-slate-200/70 dark:border-slate-700/60">
                             <QuoteMaterialRow :quote-id="quoteId" :line="child" :units="units" :editable="editable" />
                         </div>
                     </draggable>
@@ -28,8 +28,12 @@
                         <div v-else class="flex flex-wrap items-start gap-2">
                             <ComboBox v-model="choice" :options="options" has-external-searching disable-internal-filter class="flex-1 min-w-48"
                                 :searching="searching" placeholder="Zoek een materiaal, of typ wat het is" empty-message="Typ om te zoeken"
-                                create-label="Anders, namelijk" @change="search" @create="addOwn"
-                                :has-error="Boolean(error)" :error-message="error" />
+                                create-label="Anders, namelijk" tall @change="search" @create="addOwn"
+                                :has-error="Boolean(error)" :error-message="error">
+                                <template #option="{ option, active }">
+                                    <CatalogOption :item="option.item" :active="active" />
+                                </template>
+                            </ComboBox>
                             <div :class="COLUMNS.quantity">
                                 <input v-model="form.quantity" type="number" step="any" min="0" :class="BOXED_FIELD" aria-label="Aantal" />
                             </div>
@@ -54,6 +58,7 @@ import { computed, ref, watch } from 'vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import { ChevronDownIcon, PackageIcon, PlusIcon } from '@lucide/vue'
+import CatalogOption from '@/Components/Quotes/CatalogOption.vue'
 import ComboBox from '@/Components/UI/ComboBox.vue'
 import QuoteMaterialRow from '@/Components/Quotes/QuoteMaterialRow.vue'
 import { BOXED_FIELD, COLUMNS } from '@/Components/Quotes/quoteColumns'

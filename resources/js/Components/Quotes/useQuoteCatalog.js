@@ -6,7 +6,8 @@ import { nlCurrency } from '@/Utilities/Utilities'
 /**
  * Zoeken in wat je kunt aanbieden, terwijl je typt: producten en materialen, of
  * alleen één van de twee. De keuzes staan klaar voor een ComboBox, met de prijs
- * erbij en bij een product hoeveel materialen er standaard meekomen.
+ * erbij en bij een product hoeveel materialen er standaard meekomen; elke keuze
+ * draagt ook het hele resultaat, voor CatalogOption.
  */
 export function useQuoteCatalog(quoteId, only = null) {
     const results = ref([])
@@ -17,6 +18,7 @@ export function useQuoteCatalog(quoteId, only = null) {
         name: (only ? '' : (item.type === 'product' ? 'Product: ' : 'Materiaal: '))
             + `${item.name}, ${nlCurrency(item.price)}`
             + (item.defaults?.length ? ` (+${item.defaults.length} materialen)` : ''),
+        item,
     })))
 
     const search = debounce(async (q) => {

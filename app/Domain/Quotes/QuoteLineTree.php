@@ -2,9 +2,6 @@
 
 namespace App\Domain\Quotes;
 
-use App\Models\Image;
-use App\Models\Material;
-use App\Models\Product;
 use App\Models\Quote;
 use App\Models\QuoteLine;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -27,21 +24,18 @@ final class QuoteLineTree
     /** @return array<int, array<string, mixed>> */
     public static function of(Quote $quote, bool $for_customer = false): array
     {
-        $quote->lines->load(['item' => fn (MorphTo $item) => $item->morphWith([
-            Product::class => ['mainImage'],
-            Material::class => ['images'],
-        ])]);
+        $quote->lines->load(['item' => fn (MorphTo $item) => $item->morphWith(CatalogPhoto::RELATIONS)]);
 
         $row = fn (QuoteLine $line) => $for_customer
             ? [
                 ...$line->only(self::FOR_CUSTOMER),
                 'net' => $line->netCents() / 100,
-                'image_id' => self::image($line)['id'] ?? null,
+                'image_id' => CatalogPhoto::of($line->item)['id'] ?? null,
             ]
             : [
                 ...$line->withoutRelations()->toArray(),
                 'net' => $line->netCents() / 100,
-                'image' => self::image($line),
+                'image' => CatalogPhoto::of($line->item),
             ];
         $children = $quote->lines->whereNotNull('parent_id')->groupBy('parent_id');
 
@@ -53,17 +47,5 @@ final class QuoteLineTree
             ])
             ->values()
             ->all();
-    }
-
-    /** @return array{id: int, path: ?string}|null the catalogue photo of what the line offers */
-    private static function image(QuoteLine $line): ?array
-    {
-        $image = match (true) {
-            $line->item instanceof Product => $line->item->mainImage->first(),
-            $line->item instanceof Material => $line->item->images->sortByDesc('pivot.main')->first(),
-            default => null,
-        };
-
-        return $image instanceof Image ? $image->only(['id', 'path']) : null;
     }
 }

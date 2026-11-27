@@ -270,11 +270,16 @@ class Product extends Model
 
     /**
      * The materials that come along when this product is put on a quote, and
-     * whether each one comes without asking, is asked, or is only suggested.
+     * whether each one comes without asking, is asked, or is only suggested:
+     * the rows of what belongs with it that point at a material.
      */
     public function materialDefaults()
     {
-        return $this->hasMany(ProductMaterialDefault::class)->orderBy('position')->orderBy('id');
+        return $this->hasMany(Productable::class)
+            ->where('productable_type', Material::class)
+            ->whereHas('material')
+            ->orderBy('position')
+            ->orderBy('id');
     }
 
     public function suppliers()

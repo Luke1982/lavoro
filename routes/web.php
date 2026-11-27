@@ -303,11 +303,11 @@ Route::group(
                 Route::patch(
                     'products/{product}/material-defaults/{materialDefault}',
                     [ProductMaterialDefaultController::class, 'update']
-                )->name('products.materialDefaults.update');
+                )->scopeBindings()->name('products.materialDefaults.update');
                 Route::delete(
                     'products/{product}/material-defaults/{materialDefault}',
                     [ProductMaterialDefaultController::class, 'destroy']
-                )->name('products.materialDefaults.destroy');
+                )->scopeBindings()->name('products.materialDefaults.destroy');
             });
         });
         Route::resource('customers', CustomerController::class)

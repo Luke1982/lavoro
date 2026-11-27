@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\DefaultMaterialPrompts;
+use App\Models\Material;
 use App\Models\Quote;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,7 +22,9 @@ class ProductMaterialDefaultStoreRequest extends FormRequest
                 'required',
                 'integer',
                 'exists:materials,id',
-                Rule::unique('product_material_defaults', 'material_id')->where('product_id', $this->route('product')->id),
+                Rule::unique('productables', 'productable_id')
+                    ->where('product_id', $this->route('product')->id)
+                    ->where('productable_type', Material::class),
             ],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:99999'],
             'prompt' => ['required', Rule::enum(DefaultMaterialPrompts::class)],

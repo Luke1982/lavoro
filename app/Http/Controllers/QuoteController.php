@@ -76,9 +76,15 @@ class QuoteController extends Controller
         ]);
     }
 
+    /**
+     * The quote to work on. Its preview, as the customer would read it, is made
+     * first: the page then loads the customer with only the columns it shows,
+     * and the preview needs the address.
+     */
     public function show(QuoteReadRequest $request, Quote $quote)
     {
         $see_margins = $request->user()->can('seeMargins', Quote::class);
+        $preview = QuoteForCustomer::page($quote);
 
         $quote->load([
             'customer:id,name,city,email,quotes_email',
@@ -137,6 +143,7 @@ class QuoteController extends Controller
             'origin' => $origin,
             'layout' => $quote->layoutForCustomer(),
             'layoutChoices' => QuoteLayout::CHOICES,
+            'preview' => $preview,
             'pricingMethods' => QuotePricingMethods::options(),
             'maxUpfrontPercent' => QuoteSettings::maxUpfrontPercent(),
             'lostReasons' => QuoteLostReason::inOrder()->map->only(['id', 'name']),
@@ -174,7 +181,7 @@ class QuoteController extends Controller
     public function preview(QuoteReadRequest $request, Quote $quote)
     {
         return inertia('Public/QuoteResponsePage', [
-            ...QuoteForCustomer::forPage(QuoteForCustomer::of($quote)),
+            ...QuoteForCustomer::page($quote),
             'open' => true,
             'preview_of' => route('quotes.show', $quote),
             'pdf_url' => route('quotes.pdf', $quote),

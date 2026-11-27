@@ -3,9 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Models\Asset;
+use App\Models\Product;
 use App\Models\Productable;
 use App\Rules\UniqueSerialForProduct;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class AssetChildStoreRequest extends FormRequest
@@ -21,7 +23,11 @@ class AssetChildStoreRequest extends FormRequest
         $requires_serial = $productable?->childProduct?->requiresSerial() ?? true;
 
         return [
-            'productable_id' => ['required', 'integer', 'exists:productables,id'],
+            'productable_id' => [
+                'required',
+                'integer',
+                Rule::exists('productables', 'id')->where('productable_type', Product::class),
+            ],
             'serial_number' => [
                 $requires_serial ? 'required' : 'nullable',
                 'string',

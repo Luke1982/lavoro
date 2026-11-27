@@ -22,6 +22,9 @@ use Illuminate\Support\Arr;
  */
 final class QuoteForCustomer
 {
+    /** What a stelpost is, wherever the customer reads a quote that has one: the page and the PDF. */
+    public const PROVISIONAL_EXPLANATION = 'Een stelpost is een bedrag dat nog niet vaststaat. Wij verrekenen het achteraf op basis van de werkelijke kosten.';
+
     /** @return array<string, mixed> */
     public static function of(Quote $quote): array
     {
@@ -106,7 +109,7 @@ final class QuoteForCustomer
     /**
      * What the customer's page gets: the terms by kind, name and the page they
      * are kept on, never where a file is stored or the text itself, which the
-     * link hands over as a file.
+     * link hands over as a file; and what a stelpost is, as the PDF says it.
      *
      * @param  array<string, mixed>  $document  a completed snapshot
      * @return array<string, mixed>
@@ -116,7 +119,19 @@ final class QuoteForCustomer
         return [
             ...$document,
             'terms' => $document['terms'] ? Arr::only($document['terms'], ['kind', 'name', 'url']) : null,
+            'provisional_explanation' => self::PROVISIONAL_EXPLANATION,
         ];
+    }
+
+    /**
+     * The quote as it stands, as the customer's page would show it if it went
+     * out now.
+     *
+     * @return array<string, mixed>
+     */
+    public static function page(Quote $quote): array
+    {
+        return self::forPage(self::of($quote));
     }
 
     /** Where the work is, when it is not the customer's own address. */

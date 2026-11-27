@@ -27,7 +27,8 @@
                 <div v-if="open && hasPanelContent" ref="floatingRef"
                     data-combobox-dropdown :style="dropdownStyle">
                     <ComboboxOptions v-if="filteredOptions.length > 0 || showCreate"
-                        class="max-h-60 overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm">
+                        class="overflow-auto rounded-md bg-white dark:bg-slate-900 py-1 text-base shadow-lg ring-1 ring-black/5 dark:ring-slate-500 focus:outline-none sm:text-sm"
+                        :class="tall ? 'max-h-96' : 'max-h-60'">
                         <ComboboxOption v-for="option in filteredOptions" :key="option.id" :value="option" as="template"
                             v-slot="{ active, selected }">
                             <li
@@ -125,6 +126,11 @@ const props = defineProps({
     emptyMessage: {
         type: String,
         default: '',
+    },
+    /** A longer list, for options that take more than one line each. */
+    tall: {
+        type: Boolean,
+        default: false,
     },
     emitValue: {
         type: Boolean,

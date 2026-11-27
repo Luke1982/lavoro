@@ -536,7 +536,7 @@
                 </div>
             </template>
 
-            <!-- Chapter 5: Offerte (alleen met de module offertes) -->
+            <!-- Chapter 5: Offertes (alleen met de module offertes) -->
             <template v-if="materialDefaults" #chapter-5>
                 <ProductMaterialDefaults :product-id="product.id" :defaults="materialDefaults"
                     :prompts="materialDefaultPrompts" />
@@ -687,7 +687,7 @@ const chapters = [
     `Gerelateerde producten (${props.product.child_products.length})`,
     `Documenten (${props.product.documents.length})`,
     `Leveranciers (${props.productSuppliers.length})`,
-    ...(props.materialDefaults ? [`Offerte (${props.materialDefaults.length})`] : []),
+    ...(props.materialDefaults ? [`Offertes (${props.materialDefaults.length})`] : []),
 ]
 watch([
     () => form.model,
