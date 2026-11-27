@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import axios from "axios";
 import { formatUtcDatetime } from "@/Utilities/Utilities";
 import dayjs from "@/Utilities/dayjs";
@@ -78,6 +78,10 @@ function mapEvent(ev) {
 export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => false) {
     const events = ref([]);
     const eventsLoading = ref(false);
+    const eventsLoaded = ref(false);
+
+    /** The events on screen are those of the period shown: fetched once, and nothing on its way. */
+    const eventsReady = computed(() => eventsLoaded.value && !eventsLoading.value);
 
     let fetchInFlight = false;
     let refetchQueued = false;
@@ -121,6 +125,7 @@ export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => fal
                 fetchEvents();
             } else if (!silent) {
                 eventsLoading.value = false;
+                eventsLoaded.value = true;
             }
         }
     }
@@ -148,5 +153,5 @@ export function usePlannerEvents(weekStart, dayCount, shouldSkipPoll = () => fal
         lastEventsFingerprint = null;
     }
 
-    return { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint };
+    return { events, eventsLoading, eventsReady, fetchEvents, startPolling, stopPolling, resetFingerprint };
 }

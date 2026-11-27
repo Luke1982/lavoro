@@ -88,8 +88,8 @@
             <MobileLaneView v-if="showLaneView" :plannable-users="plannableUsers" :week-days="weekDays"
                 :events="events" :day-start-hour="WORKDAY_START_HOUR" :day-end-hour="WORKDAY_END_HOUR"
                 :allow-override-unavailability="allowOverrideUnavailability" :can-create="canCreate"
-                :can-go-forward="canShiftForward" @slot-tap="handleSlotTap" @event-tap="handleEventTap"
-                @flip-week="shiftWeek" />
+                :can-go-forward="canShiftForward" :events-ready="eventsReady" @slot-tap="handleSlotTap"
+                @event-tap="handleEventTap" @flip-week="shiftWeek" />
 
             <div v-else class="relative h-full">
                 <div ref="listScrollEl" class="h-full overflow-y-auto overscroll-y-contain" @touchstart.passive="onListTouchStart"
@@ -117,8 +117,8 @@
                     <template v-for="group in groupedByDay" :key="group.dayIso">
                         <!-- Sticky day header -->
                         <div data-tour="planner.phone.day"
-                            class="sticky top-(--planner-top) z-20 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm follows-app-header border-b border-gray-200 dark:border-slate-700 text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide"
-                            :class="group.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'">
+                            class="sticky top-(--planner-top) z-20 flex items-center justify-between gap-2 px-4 py-1.5 backdrop-blur-sm follows-app-header border-b border-gray-200 dark:border-slate-700 text-xs font-semibold uppercase tracking-wide"
+                            :class="dayHeaderClasses(group.dayIso, group.holiday)">
                             <span>
                                 {{ dayLabel(group.dayIso) }}
                                 <span v-if="showsGaps" class="font-normal normal-case">{{ dayjs(group.dayIso).format('D MMM')
@@ -218,7 +218,7 @@
             :style="{ bottom: `${corner.bottom + 16}px`, right: `${corner.right + 24}px` }"
             class="fixed z-30 size-14 rounded-full bg-lavoro-green shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition-[bottom,right,opacity,scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
             aria-label="Nieuwe afspraak aanmaken" @click="openCreate">
-            <PlusIcon class="size-7 text-gray-900 dark:text-slate-100" />
+            <PlusIcon class="size-7 text-gray-900" />
         </button>
 
         <!-- Edit modal -->
@@ -269,7 +269,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import dayjs from '@/Utilities/dayjs'
 import { hasPermission, initials, nlDayName, formatLocalDateAsISO } from '@/Utilities/Utilities'
-import { HOLIDAY_BAND, HOLIDAY_LABEL, plannerDays, publicHolidayOn } from '@/Utilities/publicHolidays'
+import { HOLIDAY_LABEL, dayHeaderClasses, plannerDays, publicHolidayOn } from '@/Utilities/publicHolidays'
 import {
     UNAVAILABLE_PATTERN,
     completionStatusFor,
@@ -287,7 +287,8 @@ import {
 } from '@/Composables/usePlannerGaps'
 import { blockedUsersAt, useUnavailabilityOverride } from '@/Composables/useUnavailability'
 import { usePullToFlip } from '@/Composables/usePullToFlip'
-import { browserStorage } from '@/Utilities/browserStorage'
+import { browserSession, browserStorage } from '@/Utilities/browserStorage'
+import { useScrollMemory } from '@/Composables/useScrollMemory'
 import SelectMenuComponent from '@/Components/UI/SelectMenuComponent.vue'
 import EventEditModal from '@/Components/Planner/EventEditModal.vue'
 import MobileEventCard from '@/Components/Planner/MobileEventCard.vue'
@@ -353,7 +354,28 @@ function startOfWeek(date) {
     return dayjs(date).startOf('isoWeek').toDate()
 }
 
-const weekStart = ref(startOfWeek(new Date()))
+const authUserId = computed(() => page.props.auth.user?.id ?? null)
+
+/**
+ * Terug in de planner sta je in de week waar je was, zolang dit tabblad of de
+ * app open is. Een week later opnieuw beginnen geeft weer de huidige week: een
+ * monteur die maandag een oude week ziet, denkt dat hij niets te doen heeft.
+ */
+const weekKey = 'lavoro_mobile_planner_week_' + authUserId.value
+
+function rememberedWeekStart() {
+    const date = dayjs(browserSession.get(weekKey), 'YYYY-MM-DD', true)
+
+    return date.isValid() && isReachable(date) ? startOfWeek(date) : startOfWeek(new Date())
+}
+
+/** Zonder het recht om verder te kijken is volgende week de laatste die je ziet. */
+function isReachable(weekStartDate) {
+    return hasPermission('event.see_beyond_current_week')
+        || !dayjs(weekStartDate).isAfter(dayjs().add(7, 'day').startOf('isoWeek'), 'day')
+}
+
+const weekStart = ref(rememberedWeekStart())
 
 const weekDays = computed(() => plannerDays(weekStart.value, 7))
 
@@ -384,10 +406,7 @@ const weekTitleShort = computed(() => {
     return first.getDate() + ' ' + SHORT_MONTHS[first.getMonth()] + ' – ' + lastLabel
 })
 
-const canShiftForward = computed(() =>
-    hasPermission('event.see_beyond_current_week') ||
-    dayjs(weekStart.value).startOf('isoWeek').isBefore(dayjs().add(7, 'day').startOf('isoWeek'), 'day')
-)
+const canShiftForward = computed(() => isReachable(dayjs(weekStart.value).add(7, 'day')))
 
 function shiftWeek(direction) {
     if (direction === 1 && !canShiftForward.value) return
@@ -426,22 +445,31 @@ const insets = computed(() => ({
 }))
 
 const dayCount = ref(7)
-const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
+const { events, eventsLoading, eventsReady, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
     dayCount,
     () => modalOpen.value || !rootEl.value?.offsetParent,
 )
 
+const listScroll = useScrollMemory('planner_phone_list', listScrollEl, eventsReady)
+
 onMounted(() => {
     fetchEvents()
     startPolling()
-    jumpToTarget(takeJumpTarget(rootEl.value))
+
+    const target = takeJumpTarget(rootEl.value)
+    if (target) listScroll.skipRestore()
+    jumpToTarget(target)
 })
 
 onJumpRequest(rootEl, jumpToTarget)
 
 onUnmounted(stopPolling)
-watch(weekStart, () => { resetFingerprint(); fetchEvents() })
+watch(weekStart, (value) => {
+    browserSession.set(weekKey, dayjs(value).format('YYYY-MM-DD'))
+    resetFingerprint()
+    fetchEvents()
+})
 
 const { routeFor, removeRoute } = usePlannerDayRoutes(weekStart, dayCount)
 const { corner } = useBottomBars()
@@ -449,8 +477,6 @@ const { corner } = useBottomBars()
 // ── User switcher ─────────────────────────────────────────────────────────────
 
 const canSeeAll = computed(() => hasPermission('event.see_all'))
-
-const authUserId = computed(() => page.props.auth.user?.id ?? null)
 
 /**
  * Wie de hele planning ziet, krijgt op dit toestel de monteur terug die het
@@ -510,12 +536,14 @@ let highlightTimer = null
  * heeft: geen rijen om open te klappen, wel een filter op monteur dat de afspraak
  * kan wegfilteren. Staat de aangewezen monteur er niet bij, dan gaat het filter
  * open voor wie de hele planning mag zien, en anders blijft het staan: iemand een
- * afspraak laten zien die niet van hem is, is geen hulp.
+ * afspraak laten zien die niet van hem is, is geen hulp. De afspraak wordt in de
+ * lijst aangewezen, dus de banen gaan dicht.
  */
 async function jumpToTarget(target) {
     if (!target) return
 
     weekStart.value = startOfWeek(new Date(target.start))
+    laneView.value = false
 
     const crew = target.executing_users.map(u => u.id)
 
@@ -660,7 +688,10 @@ function freeUsersLabel(item) {
 }
 
 // Lanes give each mechanic a column of their own, which the shared list cannot.
-const laneView = ref(false)
+const laneViewKey = 'lavoro_mobile_planner_lanes_' + authUserId.value
+const laneView = ref(browserStorage.get(laneViewKey) === '1')
+watch(laneView, (value) => browserStorage.set(laneViewKey, value ? '1' : '0'))
+
 const showLaneView = computed(() => showsGaps.value && selectedUserId.value === null && laneView.value)
 
 watch(showLaneView, revealAppHeader)

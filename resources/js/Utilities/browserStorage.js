@@ -18,3 +18,12 @@ export const browserStorage = {
     set: (key, value) => quietly(() => window.localStorage?.setItem(key, value)),
     forget: (key) => quietly(() => window.localStorage?.removeItem(key)),
 }
+
+/**
+ * sessionStorage met dezelfde vergevingsgezindheid: wat alleen voor dit
+ * tabblad onthouden hoeft te worden, zoals waar iemand in een lijst was.
+ */
+export const browserSession = {
+    get: (key) => quietly(() => window.sessionStorage?.getItem(key)) ?? null,
+    set: (key, value) => quietly(() => window.sessionStorage?.setItem(key, value)),
+}

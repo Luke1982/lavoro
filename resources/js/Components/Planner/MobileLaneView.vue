@@ -25,10 +25,10 @@
                 <!-- Day header: the band scrolls with the lanes, the label stays pinned -->
                 <div
                     class="sticky z-20 border-b border-gray-200 dark:border-slate-700 backdrop-blur-sm follows-app-header"
-                    :class="day.holiday ? HOLIDAY_BAND : 'bg-gray-50/95 dark:bg-slate-800/95'"
+                    :class="dayHeaderClasses(day.iso, day.holiday)"
                     :style="{ top: `calc(var(--planner-top) + ${HEADER_HEIGHT}px)` }">
                     <span
-                        class="sticky left-0 inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                        class="sticky left-0 inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wide">
                         {{ nlDayName(day.iso) }}
                         <span class="font-normal normal-case">{{ dayjs(day.iso).format('D MMM') }}</span>
                         <span v-if="day.holiday" class="ml-1 normal-case" :class="HOLIDAY_LABEL">{{ day.holiday }}</span>
@@ -120,10 +120,11 @@
 import { computed, ref } from 'vue'
 import dayjs from '@/Utilities/dayjs'
 import { initials, nlDayName, formatWbNumber } from '@/Utilities/Utilities'
-import { HOLIDAY_BAND, HOLIDAY_LABEL, HOLIDAY_TINT } from '@/Utilities/publicHolidays'
+import { HOLIDAY_LABEL, HOLIDAY_TINT, dayHeaderClasses } from '@/Utilities/publicHolidays'
 import { UNAVAILABLE_PATTERN, formatDurationLabel } from '@/Utilities/plannerOverlaps'
 import { daySegmentsFor, eventMinutesFor, eventsOnDay } from '@/Composables/usePlannerGaps'
 import { usePullToFlip } from '@/Composables/usePullToFlip'
+import { useScrollMemory } from '@/Composables/useScrollMemory'
 import WeekFlipIndicator from '@/Components/Planner/WeekFlipIndicator.vue'
 
 const props = defineProps({
@@ -135,6 +136,7 @@ const props = defineProps({
     allowOverrideUnavailability: { type: Boolean, default: false },
     canCreate: { type: Boolean, default: false },
     canGoForward: { type: Boolean, default: true },
+    eventsReady: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['slot-tap', 'event-tap', 'flip-week'])
@@ -252,4 +254,6 @@ const { pull, pullArmed, pullProgress, onTouchStart, onTouchMove, onTouchEnd } =
     canGoForward: () => props.canGoForward,
     onFlip: (direction) => emit('flip-week', direction),
 })
+
+useScrollMemory('planner_phone_lanes', scrollEl, () => props.eventsReady)
 </script>

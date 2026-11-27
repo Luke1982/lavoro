@@ -606,6 +606,7 @@ import { showContextMenu } from '@/Utilities/contextMenu'
 import { useEventFeedback } from '@/Composables/useEventFeedback'
 import { useStandardEmailPreview } from '@/Composables/useStandardEmailPreview'
 import { takeJumpTarget, onJumpRequest, waitForEventElement } from '@/Composables/usePlannerJump'
+import { useScrollMemory } from '@/Composables/useScrollMemory'
 import { DAY_END_STORAGE_KEY, DAY_START_STORAGE_KEY } from '@/Utilities/plannerDayView'
 import { HOLIDAY_BAND, HOLIDAY_LABEL, HOLIDAY_TINT, plannerDays } from '@/Utilities/publicHolidays'
 
@@ -748,7 +749,7 @@ const lastReachableDay = computed(() => {
 const canGoForward = computed(() => !lastReachableDay.value
     || !dayjs(weekStart.value).add(viewDayCount.value, 'day').isAfter(lastReachableDay.value, 'day'))
 
-const { events, eventsLoading, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
+const { events, eventsLoading, eventsReady, fetchEvents, startPolling, stopPolling, resetFingerprint } = usePlannerEvents(
     weekStart,
     viewDayCount,
     () => !!drag.value.mode || modalOpen.value || !rootEl.value?.offsetParent,
@@ -757,6 +758,8 @@ const { routeFor, removeRoute, hasRoutes, showExample: showExampleRoute } = useP
 
 const gridScrollRef = ref(null)
 const bodyRef = ref(null)
+
+const gridScroll = useScrollMemory('planner', gridScrollRef, eventsReady)
 
 const modalOpen = ref(false)
 const editingExistingEvent = ref(false)
@@ -1330,6 +1333,8 @@ function jumpToServiceOrder(soId) {
 
 onMounted(() => {
     const target = takeJumpTarget(rootEl.value)
+
+    if (target || props.highlightServiceOrderId) gridScroll.skipRestore()
 
     if (target) jumpToEvent(target)
     if (props.highlightServiceOrderId) jumpToServiceOrder(props.highlightServiceOrderId)

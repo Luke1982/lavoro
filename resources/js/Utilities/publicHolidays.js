@@ -7,6 +7,18 @@ export const HOLIDAY_LABEL = "text-rose-600 dark:text-rose-400";
 export const HOLIDAY_BAND = "bg-rose-50/95 dark:bg-rose-950/60";
 export const HOLIDAY_TINT = "bg-rose-50/50 dark:bg-rose-950/15";
 
+/**
+ * The band and text colour of a day header in the phone planner. Today wins
+ * over a holiday: the holiday's name, in HOLIDAY_LABEL, still says which it is.
+ */
+export function dayHeaderClasses(iso, holiday) {
+    if (iso === dayjs().format("YYYY-MM-DD")) {
+        return ["bg-blue-50/95 dark:bg-blue-950/80", "text-blue-700 dark:text-blue-300"];
+    }
+
+    return [holiday ? HOLIDAY_BAND : "bg-gray-50/95 dark:bg-slate-800/95", "text-gray-500 dark:text-slate-400"];
+}
+
 const namesByYear = new Map();
 
 function dateOf(year, month, day) {
