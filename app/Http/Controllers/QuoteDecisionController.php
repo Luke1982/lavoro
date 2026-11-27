@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Actions\Quotes\AcceptQuoteAction;
 use App\Actions\Quotes\ConvertQuoteToServiceOrderAction;
+use App\Actions\Quotes\CreateProjectFromQuoteAction;
 use App\Actions\Quotes\SendQuoteAction;
 use App\Actions\Quotes\StartNewQuoteVersionAction;
 use App\Http\Requests\QuoteAcceptRequest;
 use App\Http\Requests\QuoteConvertRequest;
+use App\Http\Requests\QuoteProjectStoreRequest;
 use App\Http\Requests\QuoteSendRequest;
 use App\Http\Requests\QuoteVersionStartRequest;
 use App\Models\Quote;
 use Illuminate\Support\Facades\DB;
 
-/** What happens to a quote between making it and carrying it out: sending, a new version, the yes, and the werkbon. */
+/** What happens to a quote between making it and carrying it out: sending, a new version, the yes, and the werkbon or project. */
 class QuoteDecisionController extends Controller
 {
     public function send(QuoteSendRequest $request, Quote $quote, SendQuoteAction $send)
@@ -58,6 +60,14 @@ class QuoteDecisionController extends Controller
 
         return redirect()->back()
             ->with('success', 'Je werkt nu aan versie ' . $quote->version . ' van offerte ' . $quote->number . '.');
+    }
+
+    public function project(QuoteProjectStoreRequest $request, Quote $quote, CreateProjectFromQuoteAction $create)
+    {
+        $project = $create->execute($quote, $request->validated());
+
+        return redirect()->route('projects.show', $project)
+            ->with('success', 'Project ' . $project->number . ' gemaakt van offerte ' . $quote->number . '.');
     }
 
     public function convert(QuoteConvertRequest $request, Quote $quote, ConvertQuoteToServiceOrderAction $convert)

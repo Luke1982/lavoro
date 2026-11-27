@@ -25,22 +25,22 @@
             "end": 26.17
         },
         {
-            "text": "Bij bijlagen kan je tekeningen en brochures bij de offerte bewaren. Ze gaan niet mee naar de klant. De getekende offerte komt hier vanzelf te staan.",
-            "hash": "7a6efd88f73ce2a3849abe0bc6b7bb7bb5be80b5",
+            "text": "Bij bijlagen kan je documenten en foto's bij de offerte zetten. Met de deelknop deel je er een met de klant: die gaat dan mee met de mail. Wat je niet deelt, blijft intern.",
+            "hash": "1b5c027639b80468a93db8aa4ef69382c5ad7156",
             "start": 27.17,
-            "end": 34.501
+            "end": 36.799
         },
         {
             "text": "Bij instellingen kan je kiezen wat de klant ziet. Zet je de prijzen per regel uit? Dan ziet de klant alleen het totaal.",
             "hash": "def841e7145546f0a8895965bd18812fce8837f4",
-            "start": 35.501,
-            "end": 41.679
+            "start": 37.799,
+            "end": 43.977
         },
         {
-            "text": "Hier bepaal je of de klant zelf optionele regels mag kiezen. En of het een particuliere klant is. Die krijgt na het akkoord twee weken bedenktijd.",
-            "hash": "64c9393f70e026abf2038c08a437178ad447b761",
-            "start": 42.679,
-            "end": 50.776
+            "text": "Hier zet je of het een particuliere klant is. Die ziet de prijzen inclusief btw, en krijgt na het akkoord twee weken bedenktijd. Een bedrijf ziet de prijzen zonder btw.",
+            "hash": "d086a59fb3da15cd09fcb0221731e428873d4c5b",
+            "start": 44.977,
+            "end": 56.011
         }
     ]
 }

@@ -17,7 +17,8 @@
             <div class="mt-4 max-h-[36rem] overflow-y-auto rounded-xl bg-white dark:bg-slate-900 p-4 ring-1 ring-slate-200 dark:ring-slate-700">
                 <QuoteCustomerDocument :quote="document.quote" :lines="example?.lines ?? document.lines"
                     :totals="example?.totals ?? document.totals" :layout="document.layout" :terms="document.terms"
-                    :withdrawal="document.withdrawal" :provisional_explanation="document.provisional_explanation" />
+                    :withdrawal="document.withdrawal" :provisional_explanation="document.provisional_explanation"
+                    :attachments="document.attachments" />
             </div>
         </FoldPanel>
     </BoxComponent>

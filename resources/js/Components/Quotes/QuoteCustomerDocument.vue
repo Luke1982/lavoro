@@ -73,6 +73,8 @@ const props = defineProps({
     pickable: { type: Boolean, default: false },
     /** What a stelpost is, as the PDF says it; shown when a line is one. */
     provisional_explanation: { type: String, default: null },
+    /** The names of the documents and photos shared with the customer, which go along with the mail. */
+    attachments: { type: Array, default: () => [] },
 })
 
 const options = defineModel({ type: Array, default: () => [] })
@@ -99,5 +101,6 @@ const agreements = computed(() => [
     { label: 'Betaling', value: props.quote.payment_terms },
     { label: 'Stelposten', value: props.lines.some(line => line.is_provisional) ? props.provisional_explanation : null },
     { label: 'Voorwaarden', value: termsSentence.value },
+    { label: 'Bijlagen', value: props.attachments.length ? `U ontvangt bij deze offerte ook: ${props.attachments.join(', ')}.` : null },
 ].filter(agreement => agreement.value))
 </script>

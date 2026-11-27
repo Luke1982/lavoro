@@ -19,6 +19,7 @@ use App\Http\Requests\ImageShareRequest;
 use App\Http\Requests\ImageStoreRequest;
 use App\Http\Requests\ImageUpdateRequest;
 use App\Models\Image;
+use App\Models\Share;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
@@ -266,17 +267,17 @@ class ImageController extends Controller
     public function share(ImageShareRequest $request, Image $image, ShareRecordAction $share_record)
     {
         $shared = $request->boolean('shared');
+        $source = $image->attachedRecord();
 
-        $share_record->execute($image, $image->attachedRecord(), $shared);
+        $share_record->execute($image, $source, $shared);
 
         if ($request->wantsJson()) {
             return response()->json(['shared' => $shared]);
         }
 
-        return redirect()->back()->with(
-            'success',
-            $shared ? 'Afbeelding gedeeld met de werkbonnen.' : 'Afbeelding niet meer gedeeld met de werkbonnen.',
-        );
+        return redirect()->back()->with('success', $shared
+            ? 'Afbeelding gedeeld met ' . Share::audience($source) . '.'
+            : 'Afbeelding niet meer gedeeld met ' . Share::audience($source) . '.');
     }
 
     public function importFromUrl(ImageImportFromUrlRequest $request, AttachImagesAction $attach)

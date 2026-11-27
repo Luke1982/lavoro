@@ -26,10 +26,10 @@
                                 {{ image.pivot?.main ? 'Niet meer favoriet' : 'Favoriet maken' }}
                             </button>
                         </MenuItem>
-                        <MenuItem v-if="canShare" v-slot="{ active }">
+                        <MenuItem v-if="shareTo" v-slot="{ active }">
                             <button @click="$emit('share')" :class="[active ? 'bg-gray-50 dark:bg-slate-700' : '', 'flex items-center gap-2.5 w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 cursor-pointer']">
                                 <ShareIcon class="size-4 flex-shrink-0" :class="image.is_shared ? 'text-lavoro-blue dark:text-blue-400' : ''" />
-                                {{ image.is_shared ? 'Niet meer delen' : 'Delen met werkbonnen' }}
+                                {{ shareLabel(image.is_shared, shareTo) }}
                             </button>
                         </MenuItem>
                         <MenuItem v-if="canEdit" v-slot="{ active }">
@@ -56,11 +56,13 @@ import { ref, watch, onBeforeUnmount } from 'vue';
 import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
 import { EyeIcon, StarIcon, PencilSquareIcon, TrashIcon, ShareIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom';
+import { shareLabel } from '@/Utilities/Utilities.js';
 
 defineProps({
     image: { type: Object, required: true },
     canSetMain: { type: Boolean, default: false },
-    canShare: { type: Boolean, default: false },
+    /** Who gets the photo when it is shared, such as "de klant"; without it there is no share item. */
+    shareTo: { type: String, default: null },
     canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
     canSelect: { type: Boolean, default: false },

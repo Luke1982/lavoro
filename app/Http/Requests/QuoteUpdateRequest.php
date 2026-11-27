@@ -33,7 +33,6 @@ class QuoteUpdateRequest extends FormRequest
         return [
             ...$this->quoteFieldRules($quote->customer_id),
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'customer_picks_options' => ['sometimes', 'boolean'],
             'default_vat_percent' => ['sometimes', 'required', Rule::in(VatRates::ALL)],
             'quote_date' => [
                 'sometimes', 'required', 'date',

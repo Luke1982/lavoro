@@ -2,11 +2,13 @@
 
 namespace App\Actions\Shares;
 
+use App\Domain\Signals\Attachments\DocumentShareChanged;
 use App\Domain\Signals\Attachments\ImageShareChanged;
 use App\Domain\Signals\Signal;
 use App\Domain\Signals\Signals;
 use App\Enums\ShareAccess;
 use App\Exceptions\Refusal;
+use App\Models\Document;
 use App\Models\Image;
 use App\Models\Share;
 use Illuminate\Database\Eloquent\Model;
@@ -29,7 +31,7 @@ class ShareRecordAction
         throw_unless(
             Share::canShareFrom($source),
             Refusal::class,
-            'Delen kan alleen vanaf een project, met de werkbonnen eronder.',
+            'Delen kan alleen vanaf een project, met de werkbonnen eronder, of vanaf een offerte, met de klant.',
         );
 
         $signal = $this->signalFor($shareable, $source, $shared);
@@ -58,6 +60,7 @@ class ShareRecordAction
     {
         return match (true) {
             $shareable instanceof Image => new ImageShareChanged($source, $shareable, $shared),
+            $shareable instanceof Document => new DocumentShareChanged($source, $shareable, $shared),
             default => throw new LogicException(class_basename($shareable) . ' has no signal for being shared.'),
         };
     }

@@ -16,7 +16,7 @@ final class QuoteContent
 {
     /** What carries over from a quote; the dates, the customer and the answers belong to the old one. */
     public const QUOTE_FIELDS = [
-        'intro_text', 'closing_text', 'customer_picks_options', 'default_vat_percent', 'layout',
+        'intro_text', 'closing_text', 'default_vat_percent', 'layout',
         'pricing_method', 'start_period', 'duration', 'payment_terms', 'payment_schedule',
     ];
 
@@ -43,14 +43,21 @@ final class QuoteContent
     }
 
     /**
-     * The texts and terms a new quote starts with, over the defaults.
+     * The texts and terms a new quote starts with, over the defaults. Whether
+     * prices include VAT is left to the new quote's own customer.
      *
      * @param  array{quote?: array<string, mixed>}  $content
      * @return array<string, mixed>
      */
     public static function fields(array $content): array
     {
-        return Arr::only($content['quote'] ?? [], self::QUOTE_FIELDS);
+        $fields = Arr::only($content['quote'] ?? [], self::QUOTE_FIELDS);
+
+        if (isset($fields['layout'])) {
+            $fields['layout'] = Arr::except($fields['layout'], QuoteLayout::PER_CUSTOMER_KIND);
+        }
+
+        return $fields;
     }
 
     /**

@@ -21,6 +21,13 @@ use Illuminate\Support\Facades\Log;
  */
 class RecordActivity
 {
+    /**
+     * How long after its last save an entry still takes in the same person
+     * changing the same fields again: long enough for a field saved while it is
+     * typed, short enough that a later change of mind is a change of its own.
+     */
+    private const CONTINUES_WITHIN_SECONDS = 120;
+
     public function __construct(private ActivityBuffer $buffer) {}
 
     /**
@@ -58,7 +65,8 @@ class RecordActivity
 
         $existing = $merge_key === null
             ? null
-            : $this->buffer->existingFor($subject_type, $subject_id, $merge_key, $signal->actorType());
+            : $this->buffer->existingFor($subject_type, $subject_id, $merge_key, $signal->actorType())
+                ?? $this->continuedEntry($signal, $subject_type, $subject_id, $changes);
 
         if ($existing) {
             $this->mergeInto($existing, $changes);
@@ -94,9 +102,47 @@ class RecordActivity
     }
 
     /**
+     * The entry a change continues from an earlier request: the latest on the
+     * record, by the same person, of the same kind, about the same fields, saved
+     * moments ago, with nothing else on the record's timeline since. A title
+     * saved while it is typed then reads as one change, from what it was to what
+     * it became, rather than as an entry per pause in the typing.
+     *
+     * @param  array<int, array<string, mixed>>  $changes
+     */
+    private function continuedEntry(Signal $signal, string $subject_type, int|string|null $subject_id, array $changes): ?Activity
+    {
+        if ($signal->actorId() === null || $changes === []) {
+            return null;
+        }
+
+        $latest = Activity::with('fieldChanges')
+            ->where('subject_type', $subject_type)
+            ->where('subject_id', $subject_id)
+            ->latest('id')
+            ->first();
+
+        $continues = $latest !== null
+            && $latest->event_key === $signal->eventKey()
+            && (int) $latest->user_id === $signal->actorId()
+            && $latest->actor_type === $signal->actorType()
+            && $latest->required_permission === $this->requiredPermission($signal)
+            && $latest->updated_at?->gte(now()->subSeconds(self::CONTINUES_WITHIN_SECONDS))
+            && collect($changes)->pluck('field')->diff($latest->fieldChanges->pluck('field'))->isEmpty()
+            && !DB::table('activityables')
+                ->where('activityable_type', $subject_type)
+                ->where('activityable_id', $subject_id)
+                ->where('activity_id', '>', $latest->id)
+                ->exists();
+
+        return $continues ? $latest : null;
+    }
+
+    /**
      * Folds a later save of the same record into the entry already written for
-     * this request. A field that moves twice keeps its original starting value,
-     * so the entry reads as the whole action rather than as its last step.
+     * it. A field that moves twice keeps its original starting value, so the
+     * entry reads as the whole action rather than as its last step; one that
+     * ends where it started drops out, and an entry left without a change goes.
      *
      * @param  array<int, array<string, mixed>>  $changes
      */
@@ -120,8 +166,19 @@ class RecordActivity
             );
         }
 
+        $activity->fieldChanges
+            ->filter(fn (ActivityChange $change) => $change->old_value === $change->new_value)
+            ->each->delete();
         $activity->load('fieldChanges');
-        $activity->update(['description' => $this->describe($activity)]);
+
+        if ($activity->fieldChanges->isEmpty()) {
+            DB::table('activityables')->where('activity_id', $activity->id)->delete();
+            $activity->delete();
+
+            return;
+        }
+
+        $activity->fill(['description' => $this->describe($activity)])->touch();
     }
 
     /** @param array<string, mixed> $change */

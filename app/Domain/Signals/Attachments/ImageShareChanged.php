@@ -4,12 +4,14 @@ namespace App\Domain\Signals\Attachments;
 
 use App\Domain\Signals\BaseSignal;
 use App\Models\Image;
+use App\Models\Share;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * A photo on a project was shared with the work orders of that project, where it
- * shows among their internal photos, or no longer is. The photo itself stays on
- * the project either way.
+ * A photo was shared from the record it is on, or no longer is: from a project
+ * with its work orders, where it shows among their internal photos, from a
+ * quote with the customer, who gets it with the mail. The photo itself stays
+ * where it is either way.
  */
 class ImageShareChanged extends BaseSignal
 {
@@ -45,7 +47,7 @@ class ImageShareChanged extends BaseSignal
     {
         return 'Afbeelding "' . $this->image->name . '" '
             . ($this->shared ? 'gedeeld' : 'niet meer gedeeld')
-            . ' met de werkbonnen';
+            . ' met ' . Share::audience($this->source);
     }
 
     public function activityMetadata(): ?array
@@ -60,7 +62,7 @@ class ImageShareChanged extends BaseSignal
     {
         return [[
             'field' => 'shared',
-            'label' => 'Gedeeld met de werkbonnen',
+            'label' => 'Gedeeld met ' . Share::audience($this->source),
             'old_value' => $this->shared ? '0' : '1',
             'new_value' => $this->shared ? '1' : '0',
             'old_label' => $this->shared ? 'Nee' : 'Ja',

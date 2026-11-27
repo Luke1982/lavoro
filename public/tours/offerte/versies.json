@@ -7,28 +7,40 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Jij bepaalt wanneer een offerte een nieuwe versie wordt. Kies daarvoor onder de drie puntjes \"Nieuwe versie maken\". De vorige versie blijft bewaard.",
-            "hash": "b8a3a8a67b2edefc53dfcc967564587ae9b21b3a",
+            "text": "Jij bepaalt wanneer een offerte een nieuwe versie wordt. Kies daarvoor onder de drie puntjes \"Nieuwe versie maken\". Dat kan pas als de huidige versie verstuurd is. De vorige versie blijft bewaard.",
+            "hash": "cd68ca561d91e47e7738e18a236f0555076a2327",
             "start": 0,
-            "end": 8.591
+            "end": 11.186
         },
         {
             "text": "Hier staat elke keer dat de offerte verstuurd is. Precies zoals de klant hem kreeg. Je ziet ook wanneer de klant hem bekeek.",
             "hash": "9947d0a2fe43c64145b42bea1824b40b5696b3f5",
-            "start": 9.591,
-            "end": 16.352
+            "start": 12.186,
+            "end": 18.947
         },
         {
-            "text": "Is de offerte geaccepteerd? Dan staat hier \"Werkbon maken\". Wat de klant nam, gaat in één keer mee naar de werkbon.",
-            "hash": "d66749f3f813fcdf7246b42cad9fcdcec522276f",
-            "start": 17.352,
-            "end": 24.119
+            "text": "Is de offerte geaccepteerd? Met \"Werkbon maken\" komt wat de klant nam op een nieuwe werkbon. Opties die hij liet liggen niet.",
+            "hash": "b08e1327db99cd123aad0ff8251771906321a789",
+            "start": 19.947,
+            "end": 27.733
+        },
+        {
+            "text": "Een product wordt een taak, waarbij de monteur de machines registreert. Materialen worden voorzien materiaal, en een eigen regel wordt een vrije regel. Prijzen blijven op de offerte.",
+            "hash": "2c269204209a61e1c87b8be48cea6b5b8eaa66c3",
+            "start": 28.733,
+            "end": 38.582
+        },
+        {
+            "text": "Is het werk groter dan één werkbon? Met \"Project maken\" maak je van de offerte een project. De offerte en de werkbon ervan komen daarin.",
+            "hash": "cf4323b64d4974910273832ff9f5b2083885d351",
+            "start": 39.582,
+            "end": 48.03
         },
         {
             "text": "In de tijdlijn staat alles wat er met de offerte gebeurde. Ook wanneer de klant keek, en elke nieuwe status.",
             "hash": "0c143ec524c8c597299a4fac4840048306ae1a33",
-            "start": 25.119,
-            "end": 31.175
+            "start": 49.03,
+            "end": 55.086
         }
     ]
 }

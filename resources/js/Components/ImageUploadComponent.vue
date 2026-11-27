@@ -96,7 +96,7 @@
                                 'size-full object-cover transition-transform duration-200 motion-reduce:transition-none',
                                 isSelected(image.id) ? 'scale-[0.82] rounded-md' : ''
                             ]">
-                            <span v-if="received || image.is_shared" :title="received ? 'Gedeeld vanuit het project' : 'Gedeeld met de werkbonnen'"
+                            <span v-if="received || image.is_shared" :title="received ? 'Gedeeld vanuit het project' : `Gedeeld met ${audience}`"
                                 class="absolute bottom-1 right-1 flex items-center justify-center rounded-full bg-lavoro-blue p-1 shadow-md">
                                 <ShareIconSolid class="size-3 text-white" />
                             </span>
@@ -120,7 +120,7 @@
                             <button v-if="mayShare()" @click.stop="toggleShared(image)"
                                 class="flex items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md p-1.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800"
                                 :class="image.is_shared ? 'text-lavoro-blue dark:text-blue-400' : 'text-gray-700 dark:text-slate-300'"
-                                :title="image.is_shared ? 'Niet meer delen met de werkbonnen' : 'Delen met de werkbonnen van dit project'">
+                                :title="shareLabel(image.is_shared, audience)">
                                 <ShareIconSolid v-if="image.is_shared" class="size-4" />
                                 <ShareIcon v-else class="size-4" />
                             </button>
@@ -137,7 +137,7 @@
                             </button>
                         </div>
                         <ImageThumbnailMenu v-if="!selecting && !received" :image="image"
-                            :can-set-main="mayUpdate()" :can-share="mayShare()" :can-edit="mayEdit()" :can-delete="mayDelete()"
+                            :can-set-main="mayUpdate()" :share-to="mayShare() ? audience : null" :can-edit="mayEdit()" :can-delete="mayDelete()"
                             can-select @select="startSelecting(image.id)"
                             @view="openLightboxFor(image)" @favorite="setMain(image.id, image.pivot?.main)" @share="toggleShared(image)"
                             @annotate="openEditor(image)" @delete="confirmDelete([image])" />
@@ -232,7 +232,7 @@ import emblaCarouselVue from 'embla-carousel-vue';
 import ImageThumbnailMenu from '@/Components/UI/ImageThumbnailMenu.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
 import SectionHeader from '@/Components/UI/SectionHeader.vue';
-import { hasPermission, morphBasename, subjectSubtitle } from '@/Utilities/Utilities.js';
+import { hasPermission, shareAudience, shareLabel, subjectSubtitle } from '@/Utilities/Utilities.js';
 import { useScrollLock } from '@/Composables/useScrollLock.js';
 import { useUploadQueue } from '@/Composables/useUploadQueue.js';
 import { useImageCompression } from '@/Composables/useImageCompression.js';
@@ -310,6 +310,11 @@ const props = defineProps({
         type: [Boolean, null],
         default: null
     },
+    /** Whether photos may be shared from here, where the record decides more than the right to change photos does. */
+    canShare: {
+        type: [Boolean, null],
+        default: null
+    },
     previewBeforeUpload: {
         type: Boolean,
         default: false
@@ -361,8 +366,9 @@ const mayEdit = () => props.canManage !== null ? props.canManage : hasPermission
 const mayUpdate = () => props.canManage !== null ? props.canManage : hasPermission('image.update');
 const mayDelete = () => props.canManage !== null ? props.canManage : hasPermission('image.delete');
 
-/** Only a project's photos have somewhere to be shared to: the work orders under it. */
-const mayShare = () => !props.apiMode && morphBasename(props.imageableType) === 'Project' && mayUpdate();
+/** Only some records' photos have somewhere to be shared to: a project's werkbonnen, a quote's customer. */
+const audience = computed(() => shareAudience(props.imageableType));
+const mayShare = () => !props.apiMode && audience.value !== null && (props.canShare ?? mayUpdate());
 
 function openLightboxFor(image) {
     const index = props.existing.findIndex(existingImage => existingImage.id === image.id);

@@ -7,40 +7,40 @@
     "gap": 1,
     "steps": [
         {
-            "text": "Met \"Versturen\" gaat de offerte per e-mail naar de klant. Je ziet de mail eerst.",
-            "hash": "b6d8200ada6128679f99a840e9c862aa360c6312",
+            "text": "Met \"Versturen\" gaat de offerte per e-mail naar de klant. Je krijgt de mail eerst nog te zien ter controle.",
+            "hash": "35f9eaf158c9e4e2974091bb416889300c71e2e8",
             "start": 0,
-            "end": 4.039
+            "end": 5.513
         },
         {
             "text": "De mail gaat naar de contactpersoon van de offerte. Of anders naar het adres van de klant. Je kan het hier nog aanpassen.",
             "hash": "cb2ef11c9381096eaec2bd1000560cde1c7be5a2",
-            "start": 5.039,
-            "end": 11.428
+            "start": 6.513,
+            "end": 12.902
         },
         {
-            "text": "Onder de tekst komt een knop. Daarmee opent de klant de offerte, zonder in te loggen. De PDF en je voorwaarden gaan mee.",
-            "hash": "ac5c28163e10ad56e036f314d50b0334ec7ce26a",
-            "start": 12.428,
-            "end": 19.484
+            "text": "Onder de tekst komt een knop. Daarmee opent de klant de offerte, zonder in te loggen. De PDF, je voorwaarden en wat je deelde, gaan mee als bijlage.",
+            "hash": "914e7d66556b4f9e2ae939ce87b0b80c7e8c889d",
+            "start": 13.902,
+            "end": 23.462
         },
         {
-            "text": "De klant geeft akkoord met een handtekening. Of hij vraagt een wijziging, of hij wijst de offerte af. Wie de offerte maakte, krijgt daar een melding van. Ook als de klant de offerte voor het eerst bekijkt.",
-            "hash": "073083ad6a6b1c89c959cc7e0649aad13ead33bb",
-            "start": 20.484,
-            "end": 32.252
+            "text": "De klant geeft akkoord met een handtekening. Of hij vraagt een wijziging, of hij wijst de offerte af. Wie de offerte maakte, krijgt daar een melding van. Je krijgt ook een melding als de klant de offerte voor het eerst bekijkt.",
+            "hash": "49308e2627875f8c9fdee87ade270020f00dfda4",
+            "start": 24.462,
+            "end": 36.962
         },
         {
             "text": "Reageert de klant niet? Dan krijgt hij na een paar dagen vanzelf een herinnering. En verloopt de offerte bijna, dan krijgt wie hem maakte een melding.",
             "hash": "5526a903ae5768ddca07bd78937ca16521f6b9ea",
-            "start": 33.252,
-            "end": 42.159
+            "start": 37.962,
+            "end": 46.869
         },
         {
             "text": "Ben je bij de klant? Met \"Akkoord vastleggen\" tekent de klant op jouw scherm. Hij krijgt de getekende offerte per mail.",
             "hash": "03e686b95ce2d825f6f7779de5510fbae9d686c2",
-            "start": 43.159,
-            "end": 49.462
+            "start": 47.869,
+            "end": 54.172
         }
     ]
 }

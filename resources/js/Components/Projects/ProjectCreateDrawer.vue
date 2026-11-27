@@ -1,6 +1,7 @@
 <template>
-    <DrawerComponent v-model="open" title="Nieuw project"
-        subtitle="Het project krijgt bij het opslaan vanzelf een nummer.">
+    <DrawerComponent v-model="open" title="Nieuw project" :subtitle="quote
+        ? `Van offerte ${quote.number}, voor dezelfde klant, locatie en contactpersoon. De offerte en een werkbon ervan komen in het project.`
+        : 'Het project krijgt bij het opslaan vanzelf een nummer.'">
         <div class="divide-y divide-gray-200 dark:divide-slate-700">
             <DrawerField v-if="templateOptions.length" label="Sjabloon" data-tour="project.new.template">
                 <ComboBox :options="templateOptions" v-model="form.project_template_id" placeholder="Geen sjabloon"
@@ -14,7 +15,10 @@
                 <TextInput v-model="form.title" type="text"
                     :hasError="Boolean(form.errors.title)" :errorMessage="form.errors.title" />
             </DrawerField>
-            <DrawerField label="Klant" data-tour="project.new.customer">
+            <DrawerField v-if="quote" label="Klant">
+                <p class="py-2 text-sm text-gray-900 dark:text-slate-100">{{ quote.customer.name }}</p>
+            </DrawerField>
+            <DrawerField v-else label="Klant" data-tour="project.new.customer">
                 <ComboBox :options="customerOptions" v-model="form.customer_id" placeholder="Selecteer klant"
                     :has-external-searching="customersUseAjax" :searching="customersSearching"
                     @change="searchCustomers"
@@ -76,7 +80,8 @@ import { useComboSearch } from '@/Composables/useComboSearch'
 /**
  * A new project. Customer and project leader start empty on purpose: a picker that
  * starts on the first name in the list made projects for the wrong customer the
- * moment someone saved without looking.
+ * moment someone saved without looking. From an accepted quote the customer is
+ * the quote's, and the title starts as the quote's.
  */
 const props = defineProps({
     customers: { type: Array, default: () => [] },
@@ -84,13 +89,15 @@ const props = defineProps({
     users: { type: Array, default: () => [] },
     statuses: { type: Array, default: () => [] },
     templates: { type: Array, default: () => [] },
+    /** The accepted quote the project is made from: { id, number, title, customer: { name } }. */
+    quote: { type: Object, default: null },
 })
 
 const open = defineModel({ type: Boolean, default: false })
 
 const form = useForm({
     project_template_id: null,
-    title: '',
+    title: props.quote?.title ?? '',
     customer_id: null,
     project_manager_id: null,
     status: props.statuses[0]?.name ?? null,
@@ -118,7 +125,7 @@ function submit() {
         start_date: data.start_date || null,
         end_date: data.end_date || null,
         budget_hours: data.budget_hours === '' ? null : data.budget_hours,
-    })).post('/projects', {
+    })).post(props.quote ? `/quotes/${props.quote.id}/project` : '/projects', {
         onSuccess: () => {
             open.value = false
         },

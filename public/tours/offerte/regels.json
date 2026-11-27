@@ -25,40 +25,46 @@
             "end": 34.763
         },
         {
+            "text": "Bij elke regel kan je een ruimte zetten, zoals woonkamer. De klant leest die onder de regel. Op de werkbon staat de ruimte achter de naam, zodat de monteur weet waar alles heen moet.",
+            "hash": "621003c41e706499a80ef01e6f20bc5fdb16d442",
+            "start": 35.763,
+            "end": 45.635
+        },
+        {
             "text": "Onder dit menu kan je een regel optioneel maken, of een alternatief voor de regel erboven. Je kan er ook een stelpost van maken, of korting geven.",
             "hash": "7e4e9bcc95a634af8d9766984169c44e3b8b99dc",
-            "start": 35.763,
-            "end": 44.179
+            "start": 46.635,
+            "end": 55.051
         },
         {
-            "text": "Dit is een optionele regel. Met het vinkje bepaal jij of hij meetelt in het totaal. Mag de klant zelf kiezen, dan vinkt hij hem bij het akkoord aan of uit.",
-            "hash": "be4864f334a01deb635d7306e20b16d0f53d65f9",
-            "start": 45.179,
-            "end": 55.194
+            "text": "Een optionele regel heeft een vinkje. Daarmee bepaal jij of hij meetelt in het totaal. De klant vinkt hem bij het akkoord zelf aan of uit.",
+            "hash": "50e7b6efadf209e8f2724a95881378bbb22b8cc9",
+            "start": 56.051,
+            "end": 64.542
         },
         {
-            "text": "Dit is een stelpost: een bedrag dat nog niet vaststaat. Je zet er je beste schatting neer. Achteraf reken je af wat het echt kost, meer of minder.",
-            "hash": "0e9f18c6b089b546e762245b7a294d8502a88545",
-            "start": 56.194,
-            "end": 65.939
+            "text": "Een stelpost is een bedrag dat nog niet vaststaat. Je zet er je beste schatting neer. Achteraf reken je af wat het echt kost, meer of minder.",
+            "hash": "d9f5520e7b64a29cc0baab85905d8c06942d6fb5",
+            "start": 65.542,
+            "end": 74.254
         },
         {
             "text": "Onder een product staan de materialen die meekomen. Verander je het aantal van het product? Dan gaan de standaardmaterialen mee.",
             "hash": "8e0b28a4e96f836447d6824c5dc826d9c3600e46",
-            "start": 66.939,
-            "end": 74.092
+            "start": 75.254,
+            "end": 82.407
         },
         {
             "text": "Met het raster links kan je een regel naar een andere plek slepen. Met \"Volgorde\" zie je alleen de namen, en gaat slepen nog makkelijker.",
             "hash": "be2ec97d76d020c2ec1383a592b9a864c5e372f3",
-            "start": 75.092,
-            "end": 82.483
+            "start": 83.407,
+            "end": 90.798
         },
         {
             "text": "Hier zie je de offerte zoals de klant hem leest. Wat je bewaart, staat er meteen in. Met het pijltje kan je het voorbeeld in- of uitklappen.",
             "hash": "f80a33225ac1d88c5b5139a1efb68c899fc5781a",
-            "start": 83.483,
-            "end": 90.807
+            "start": 91.798,
+            "end": 99.122
         }
     ]
 }

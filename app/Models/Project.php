@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class Project extends Model
 {
@@ -120,6 +121,21 @@ class Project extends Model
      *
      * @return array<int, string>
      */
+    /**
+     * What the form for a new project chooses from: who may lead it, the
+     * statuses, and the templates whose milestones it can start with.
+     *
+     * @return array{users: Collection, statuses: array, templates: Collection}
+     */
+    public static function choicesForNew(): array
+    {
+        return [
+            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
+            'statuses' => ProjectStatuses::comboBoxArray(),
+            'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
+        ];
+    }
+
     public static function relationsForAddress(string $path): array
     {
         return [$path . ':id,number,title,status,location,location_id', $path . '.linkedLocation'];

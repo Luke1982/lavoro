@@ -10,9 +10,10 @@ use Illuminate\Support\Arr;
 
 /**
  * A quote as the customer receives it: the heading, who makes it, the texts,
- * the lines and the totals, the terms it is offered under, and nothing
- * internal. The customer's page, the PDF and the preview a colleague opens all
- * show exactly this, and a version freezes it.
+ * the lines and the totals, the terms it is offered under, the files shared
+ * with the customer, and nothing internal. The customer's page, the PDF and
+ * the preview a colleague opens all show exactly this, and a version freezes
+ * it.
  *
  * The general terms are frozen with what the version needs to hand them out
  * again later: the file they are stored in, the text, or the page; the page
@@ -35,7 +36,7 @@ final class QuoteForCustomer
         return [
             'quote' => [
                 ...$quote->only([
-                    'number', 'version', 'title', 'intro_text', 'closing_text', 'customer_picks_options',
+                    'number', 'version', 'title', 'intro_text', 'closing_text',
                     'is_consumer', 'start_period', 'duration', 'payment_terms',
                 ]),
                 'quote_date' => $quote->quote_date?->toDateString(),
@@ -54,6 +55,7 @@ final class QuoteForCustomer
             'withdrawal' => $quote->is_consumer ? WithdrawalRight::for($seller) : null,
             'lines' => QuoteLineTree::of($quote, for_customer: true),
             'totals' => $totals->toArray(with_margin: false),
+            'attachments' => QuoteFiles::shared($quote),
         ];
     }
 
@@ -70,6 +72,7 @@ final class QuoteForCustomer
             'seller' => Company::main()?->details() ?? [],
             'terms' => null,
             'withdrawal' => null,
+            'attachments' => [],
             ...$snapshot,
             'terms' => isset($snapshot['terms'])
                 ? ['kind' => QuoteTermsKinds::pdf->value, ...$snapshot['terms']]
@@ -119,6 +122,7 @@ final class QuoteForCustomer
         return [
             ...$document,
             'terms' => $document['terms'] ? Arr::only($document['terms'], ['kind', 'name', 'url']) : null,
+            'attachments' => array_column($document['attachments'] ?? [], 'name'),
             'provisional_explanation' => self::PROVISIONAL_EXPLANATION,
         ];
     }

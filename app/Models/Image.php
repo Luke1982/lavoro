@@ -36,6 +36,7 @@ class Image extends Model
         Material::class,
         Product::class,
         Project::class,
+        Quote::class,
         ServiceCheckInstance::class,
         ServiceOrder::class,
         Ticket::class,

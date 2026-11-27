@@ -7,6 +7,7 @@ use App\Domain\Quotes\QuoteOrigins;
 use App\Domain\Signals\Attachments\DocumentAttached;
 use App\Domain\Signals\Attachments\DocumentChanged;
 use App\Domain\Signals\Attachments\DocumentRemoved;
+use App\Domain\Signals\Attachments\DocumentShareChanged;
 use App\Domain\Signals\Attachments\ImageAnnotated;
 use App\Domain\Signals\Attachments\ImageAttached;
 use App\Domain\Signals\Attachments\ImageMoved;
@@ -32,6 +33,7 @@ use App\Models\Image;
 use App\Models\Material;
 use App\Models\Product;
 use App\Models\Project;
+use App\Models\Quote;
 use App\Models\Remark;
 use App\Models\Traits\HasCustomFields;
 use App\Models\User;
@@ -126,7 +128,8 @@ trait BuildsEverySignal
         $records = match ($class) {
             ImageAttached::class, ImageAnnotated::class, ImageReplaced::class, ImageRenamed::class,
             ImageRemoved::class, ImageMoved::class, MainImageChanged::class => Image::ATTACHABLE_TO,
-            ImageShareChanged::class => [Project::class],
+            ImageShareChanged::class => [Project::class, Quote::class],
+            DocumentShareChanged::class => [Quote::class],
             DocumentAttached::class, DocumentChanged::class, DocumentRemoved::class => Document::ATTACHABLE_TO,
             RemarkAdded::class, RemarkRemoved::class => Remark::ATTACHABLE_TO,
             SupplierLinked::class, SupplierUnlinked::class, SupplierLinkChanged::class => [Product::class, Material::class],

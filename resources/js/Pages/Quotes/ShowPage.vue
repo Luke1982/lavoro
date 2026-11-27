@@ -20,7 +20,7 @@
                         Versie {{ quote.version }}<template v-if="!versionSent"> · nog niet verstuurd</template>
                     </span>
                 </div>
-                <input v-if="canEdit" v-model="form.title" @change="save('title')" aria-label="Titel" data-tour="quote.title"
+                <input v-if="canEdit" v-model="form.title" @input="saveTitleSoon" @change="saveTitleNow" aria-label="Titel" data-tour="quote.title"
                     class="mt-1 w-full max-w-2xl rounded-lg border-0 bg-white dark:bg-slate-900 px-3 py-1.5 text-2xl font-bold ring-1 ring-inset ring-gray-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-600" />
                 <h1 v-else class="mt-1 text-2xl font-bold">{{ quote.title }}</h1>
                 <p v-if="form.errors.title" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.errors.title }}</p>
@@ -37,8 +37,9 @@
         </div>
 
         <div v-if="can.update || can.create" class="flex flex-wrap items-center gap-2" data-tour="quote.actions">
-            <DropdownMenu placement="bottom-end" width-class="w-64" title="Meer acties" :button-class="`${BUTTON} ${OUTLINE} px-3`"
-                data-tour="quote.menu">
+            <div :class="GROUP">
+            <DropdownMenu placement="bottom-end" width-class="w-64" title="Meer acties" class="flex"
+                :button-class="`${GROUPED} h-full px-3`" data-tour="quote.menu">
                 <template #button>
                     <EllipsisIcon class="size-5" />
                 </template>
@@ -66,19 +67,20 @@
                     </button>
                 </MenuItem>
             </DropdownMenu>
-            <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="[BUTTON, OUTLINE]" data-tour="quote.preview">
+            <a :href="`/quotes/${quote.id}/preview`" target="_blank" :class="GROUPED" data-tour="quote.preview">
                 <EyeIcon class="size-4" /> Voorbeeld
             </a>
-            <a :href="`/quotes/${quote.id}/pdf`" target="_blank" :class="[BUTTON, OUTLINE]" data-tour="quote.pdf">
+            <a :href="`/quotes/${quote.id}/pdf`" target="_blank" :class="GROUPED" data-tour="quote.pdf">
                 <FileDownIcon class="size-4" /> PDF
             </a>
+            </div>
             <button v-if="canSend" type="button" data-tour="quote.send" @click="sending = true"
                 :class="[BUTTON, 'bg-lavoro-blue text-white hover:opacity-90']">
-                {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
+                <SendIcon class="size-4" /> {{ quote.sent_at ? 'Opnieuw versturen' : 'Versturen' }}
             </button>
             <button v-if="can.update && acceptable" type="button" data-tour="quote.accept" @click="accepting = true"
                 :class="[BUTTON, 'border border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400']">
-                <CheckIcon class="size-4" /> Akkoord vastleggen
+                <SignatureIcon class="size-4" /> Akkoord vastleggen
             </button>
             <Link v-if="serviceOrder" :href="`/serviceorders/${serviceOrder.id}`" :class="[BUTTON, OUTLINE]">
                 <ClipboardCheckIcon class="size-4" /> Werkbon {{ serviceOrder.number }}
@@ -86,6 +88,10 @@
             <button v-else-if="quote.status === 'Geaccepteerd' && can.update && can.createServiceOrder" type="button" @click="convert"
                 :class="[BUTTON, 'bg-green-600 text-white hover:bg-green-700']">
                 <ClipboardCheckIcon class="size-4" /> Werkbon maken
+            </button>
+            <button v-if="can.createProject" type="button" @click="makingProject = true" data-tour="quote.project"
+                :class="[BUTTON, OUTLINE]">
+                <FolderKanbanIcon class="size-4" /> Project maken
             </button>
         </div>
     </header>
@@ -97,7 +103,9 @@
             : 'Zet hem via het menu terug naar concept om hem aan te passen.' }}
     </p>
 
-    <QuoteSendDrawer v-if="can.update" v-model="sending" :quote-id="quote.id" :defaults="sendDefaults" />
+    <ProjectCreateDrawer v-if="newProject" v-model="makingProject" :quote="quote" :users="newProject.users"
+        :statuses="newProject.statuses" :templates="newProject.templates" />
+    <QuoteSendDrawer v-if="can.update" v-model="sending" :quote-id="quote.id" :defaults="sendDefaults" :document="preview" />
     <QuoteAcceptDialog v-if="can.update" v-model="accepting" :quote-id="quote.id" :lines="lines" :totals="totals" :layout="layout"
         :terms-name="termsOnOffer" :is-consumer="quote.is_consumer"
         :default-name="quote.contact?.full_name ?? ''" :can-create-service-order="can.createServiceOrder" />
@@ -239,8 +247,15 @@
                     </template>
 
                     <template #chapter-3>
-                        <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id" data-tour="quote.attachments"
-                            documentable-type="\App\Models\Quote" title="Bijlagen" subtitle="Tekeningen, brochures en andere stukken bij deze offerte." />
+                        <div class="flex flex-col gap-4">
+                            <DocumentUploadComponent :existing="quote.documents" :documentable-id="quote.id" data-tour="quote.attachments"
+                                documentable-type="\App\Models\Quote" title="Bijlagen" :can-share="can.shareAttachments"
+                                subtitle="Tekeningen, brochures en andere stukken bij deze offerte. Wat je deelt, gaat mee naar de klant." />
+                            <BoxComponent data-tour="quote.photos">
+                                <ImageUploadComponent :existing="quote.images" :imageable-id="quote.id" imageable-type="\App\Models\Quote"
+                                    :can-share="can.shareAttachments" subtitle="Van de situatie of van wat je aanbiedt. Wat je deelt, gaat mee naar de klant." />
+                            </BoxComponent>
+                        </div>
                     </template>
 
                     <template #chapter-4>
@@ -270,7 +285,8 @@
                                 </div>
                                 <p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
                                     Zonder prijs per eenheid en regeltotaal ziet de klant alleen het totaal, zoals bij een vaste prijs gebruikelijk.
-                                    De standaard stel je in bij de offerte-instellingen.
+                                    De standaard stel je in bij de offerte-instellingen. Prijzen inclusief btw volgen Particuliere klant: aan voor een
+                                    particulier, uit voor een bedrijf. Je kan het hier nog aanpassen.
                                 </p>
                             </div>
                         </BoxComponent>
@@ -374,16 +390,6 @@
                     <SectionHeader :icon="SettingsIcon" title="Offerte-instellingen" chapter="details" />
                     <label class="flex items-start justify-between gap-3">
                         <span>
-                            <span class="block text-sm font-semibold">Klant mag opties selecteren</span>
-                            <span class="block text-xs text-gray-500 dark:text-slate-400">
-                                De klant kan optionele onderdelen aan- of uitzetten. Het totaal wordt automatisch aangepast.
-                            </span>
-                        </span>
-                        <SwitchComponent v-model="form.customer_picks_options" :disabled="!canEdit"
-                            @update:model-value="save('customer_picks_options')" />
-                    </label>
-                    <label class="mt-4 flex items-start justify-between gap-3 border-t border-gray-100 dark:border-slate-800 pt-4">
-                        <span>
                             <span class="block text-sm font-semibold">Particuliere klant</span>
                             <span class="block text-xs text-gray-500 dark:text-slate-400">
                                 De klant krijgt 14 dagen bedenktijd, met het modelformulier voor herroeping bij de offerte.
@@ -441,14 +447,15 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { debounce } from 'lodash'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { MenuItem } from '@headlessui/vue'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import {
-    ArrowDownIcon, ArrowDownUpIcon, BookmarkIcon, CalendarCheckIcon, CalendarIcon, CheckIcon, CircleXIcon, ClipboardCheckIcon,
-    CopyIcon, EllipsisIcon, EuroIcon, EyeIcon, FileDownIcon, FileTextIcon, HandshakeIcon, HistoryIcon, InfoIcon, LayersIcon,
-    ListIcon, MessageSquareIcon, PaperclipIcon, PenLineIcon, SettingsIcon, Trash2Icon, UserIcon,
+    ArrowDownIcon, ArrowDownUpIcon, BookmarkIcon, CalendarCheckIcon, CalendarIcon, CircleXIcon, ClipboardCheckIcon,
+    CopyIcon, EllipsisIcon, EuroIcon, EyeIcon, FileDownIcon, FileTextIcon, FolderKanbanIcon, HandshakeIcon, HistoryIcon, InfoIcon, LayersIcon,
+    ListIcon, MessageSquareIcon, PaperclipIcon, PenLineIcon, SendIcon, SettingsIcon, SignatureIcon, Trash2Icon, UserIcon,
 } from '@lucide/vue'
 import BoxComponent from '@/Components/BoxComponent.vue'
 import ChapterContents from '@/Components/Chapters/ChapterContents.vue'
@@ -456,6 +463,7 @@ import ChapterHeader from '@/Components/Chapters/ChapterHeader.vue'
 import ChapterHeaders from '@/Components/Chapters/ChapterHeaders.vue'
 import ChaptersComponent from '@/Components/Chapters/ChaptersComponent.vue'
 import DocumentUploadComponent from '@/Components/DocumentUploadComponent.vue'
+import ImageUploadComponent from '@/Components/ImageUploadComponent.vue'
 import QuoteAcceptDialog from '@/Components/Quotes/QuoteAcceptDialog.vue'
 import QuoteAddBar from '@/Components/Quotes/QuoteAddBar.vue'
 import QuoteCopyDialog from '@/Components/Quotes/QuoteCopyDialog.vue'
@@ -465,6 +473,7 @@ import QuoteMaterialsPanel from '@/Components/Quotes/QuoteMaterialsPanel.vue'
 import QuotePaymentSchedule from '@/Components/Quotes/QuotePaymentSchedule.vue'
 import QuotePreviewPanel from '@/Components/Quotes/QuotePreviewPanel.vue'
 import QuoteSendDrawer from '@/Components/Quotes/QuoteSendDrawer.vue'
+import ProjectCreateDrawer from '@/Components/Projects/ProjectCreateDrawer.vue'
 import { BOXED_FIELD, COLUMNS, menuItem } from '@/Components/Quotes/quoteColumns'
 import { useSaveField } from '@/Components/Quotes/useSaveField'
 import TimelineComponent from '@/Components/Timeline/TimelineComponent.vue'
@@ -514,13 +523,15 @@ const props = defineProps({
     customers: { type: Array, default: () => [] },
     customersUseAjax: { type: Boolean, default: false },
     can: { type: Object, required: true },
+    /** What the form for a project from this quote chooses from, Project::choicesForNew; only on an accepted quote without one. */
+    newProject: { type: Object, default: null },
 })
 
 const chapters = computed(() => [
     { label: 'Regels', icon: ListIcon },
     { label: 'Aanhef & slot', icon: FileTextIcon },
     { label: 'Afspraken', icon: HandshakeIcon },
-    { label: 'Bijlagen', icon: PaperclipIcon, count: props.quote.documents.length },
+    { label: 'Bijlagen', icon: PaperclipIcon, count: props.quote.documents.length + props.quote.images.length },
     { label: 'Instellingen', icon: SettingsIcon },
 ])
 
@@ -539,11 +550,16 @@ const STATUS_ACTIONS = {
     Vervallen: 'Vervallen',
 }
 
-const BUTTON = 'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors'
+const BUTTON_SHAPE = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold transition-colors'
+const BUTTON = `${BUTTON_SHAPE} rounded-lg`
+/** Outline buttons joined into one: the same radius and height as the rest, a line between them. */
+const GROUP = 'inline-flex divide-x divide-gray-300 dark:divide-slate-600 overflow-hidden rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+const GROUPED = `${BUTTON_SHAPE} text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800`
 const SMALL_BUTTON = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium'
 const OUTLINE = 'border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
 
 const sending = ref(false)
+const makingProject = ref(false)
 const accepting = ref(false)
 const declining = ref(false)
 /** Which way the quote is being taken along: 'copy', 'template', or not at all. */
@@ -560,7 +576,7 @@ const pricingExplanation = computed(() => props.pricingMethods.find(method => me
 const scheduleError = computed(() => Object.entries(form.errors)
     .find(([field]) => field.startsWith('payment_schedule'))?.[1] ?? null)
 
-/** The rondleiding's example lines and their totals, { lines, totals }, while it shows them on a quote without lines. */
+/** The rondleiding's example lines and their totals, { lines, totals }, while it shows them in place of the quote's own. */
 const example = ref(null)
 const isExample = computed(() => example.value !== null)
 const shownTotals = computed(() => example.value?.totals ?? props.totals)
@@ -597,7 +613,6 @@ const form = useForm({
     location_id: props.quote.location_id,
     contact_id: props.quote.contact_id,
     project_id: props.quote.project_id,
-    customer_picks_options: props.quote.customer_picks_options,
     default_vat_percent: props.quote.default_vat_percent,
     is_consumer: props.quote.is_consumer,
     layout: { ...props.layout },
@@ -635,6 +650,24 @@ const projectOptions = computed(() => (props.quote.customer.projects ?? []).map(
 const marginShare = computed(() => Math.round((shownTotals.value.margin / shownTotals.value.net) * 100) + '%')
 
 const save = useSaveField(form, () => `/quotes/${props.quote.id}`, () => ({ ...props.quote, layout: props.layout }))
+
+/** The columns as stored: switching to or from a private customer switches prices with or without VAT along. */
+watch(() => props.layout, (layout) => { form.layout = { ...layout } })
+
+/**
+ * The title also saves while it is typed: a moment after the typing stops, and
+ * at least every few seconds while it goes on, so a title typed and never left
+ * is not lost. Leaving the page drops a save still waiting, since a save sent
+ * then would bring the quote back.
+ */
+const saveTitleSoon = debounce(() => save('title'), 1500, { maxWait: 5000 })
+
+function saveTitleNow() {
+    saveTitleSoon.cancel()
+    save('title')
+}
+
+onBeforeUnmount(saveTitleSoon.cancel)
 
 /** Picking toggles: clicking the chosen location, contact or project again clears it. */
 watch(() => [form.location_id, form.contact_id, form.project_id], () => {
@@ -678,8 +711,9 @@ function openChapter(label) {
  * sending; it never sends or saves anything. A tab is opened without an undo of
  * its own, so going from tab to tab never slides back past the first one:
  * rememberChapter turns back to the tab that was open once the chapter ends.
- * On a quote without lines it shows example lines, in the totals and the
- * preview too, that nothing on the page can save.
+ * It shows example lines in place of the quote's own, in the totals and the
+ * preview too, so every kind of line is there to point at; nothing on the page
+ * can save them, and the quote's own lines come back when the chapter ends.
  */
 useTour('offerte', {
     rememberChapter: () => {
@@ -694,7 +728,7 @@ useTour('offerte', {
     openSettings: () => openChapter('Instellingen'),
     openSend: () => canSend.value ? temporarily(sending, true) : null,
     showExampleLines: () => {
-        if (props.lines.length || isExample.value) return null
+        if (isExample.value) return null
         example.value = exampleQuoteLines()
         rows.value = example.value.lines
 
@@ -706,6 +740,7 @@ useTour('offerte', {
 }, {
     spots: {
         'quote.line.menu': () => document.querySelector('[data-tour="quote.line"] [data-cell=menu]'),
+        'quote.line.room': () => document.querySelector('[data-tour="quote.line"] [data-cell=room]'),
         'quote.option': () => firstOptionCheck()?.closest('[data-line]') ?? null,
         'quote.option.check': firstOptionCheck,
         'quote.provisional': () => firstProvisionalBadge()?.closest('[data-line]') ?? null,

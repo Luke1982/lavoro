@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Traits\HangsOffARecord;
+use App\Models\Traits\Shareable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
-    use HangsOffARecord, HasFactory;
+    use HangsOffARecord, HasFactory, Shareable;
 
     /**
      * The records a document can be filed on. An upload names its record by

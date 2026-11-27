@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\AttachDocumentAction;
+use App\Actions\Shares\ShareRecordAction;
 use App\Domain\Signals\Attachments\DocumentChanged;
 use App\Domain\Signals\Attachments\DocumentRemoved;
 use App\Domain\Signals\Signals;
 use App\Http\Requests\DocumentBulkCategoryRequest;
 use App\Http\Requests\DocumentBulkDestroyRequest;
 use App\Http\Requests\DocumentDestroyRequest;
+use App\Http\Requests\DocumentShareRequest;
 use App\Http\Requests\DocumentStoreRequest;
 use App\Http\Requests\DocumentUpdateRequest;
 use App\Http\Requests\DocumentViewRequest;
 use App\Models\Document;
+use App\Models\Share;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -116,6 +119,18 @@ class DocumentController extends Controller
         $document->delete();
 
         Signals::dispatch(new DocumentRemoved($record, $document->id, $document->name, $document->path));
+    }
+
+    public function share(DocumentShareRequest $request, Document $document, ShareRecordAction $share_record)
+    {
+        $shared = $request->boolean('shared');
+        $source = $document->attachedRecord();
+
+        $share_record->execute($document, $source, $shared);
+
+        return back()->with('success', $shared
+            ? 'Document gedeeld met ' . Share::audience($source) . '.'
+            : 'Document niet meer gedeeld met ' . Share::audience($source) . '.');
     }
 
     public function download(DocumentViewRequest $request, Document $document)

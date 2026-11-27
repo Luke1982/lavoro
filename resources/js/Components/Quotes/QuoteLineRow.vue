@@ -35,7 +35,7 @@
                                 placeholder="Toelichting" aria-label="Toelichting"
                                 :class="[GHOST_FIELD, 'text-xs text-gray-500 dark:text-slate-400 resize-none field-sizing-content']" />
                             <p v-else-if="line.details" class="text-xs text-gray-500 dark:text-slate-400 whitespace-pre-line">{{ line.details }}</p>
-                            <label v-if="editable || line.location_note" class="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
+                            <label v-if="editable || line.location_note" data-cell="room" class="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
                                 <MapPinIcon class="size-3.5 shrink-0" />
                                 <input v-if="editable" v-model="form.location_note" @change="save('location_note')" maxlength="100"
                                     placeholder="Ruimte, bijvoorbeeld woonkamer" aria-label="Ruimte"

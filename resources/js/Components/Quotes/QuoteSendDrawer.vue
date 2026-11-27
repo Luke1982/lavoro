@@ -16,6 +16,17 @@
                     klant eerder kreeg werkt daarna niet meer.
                 </p>
             </DrawerField>
+            <DrawerField label="Bijlagen" data-tour="quote.send.files">
+                <ul class="flex flex-col gap-1.5 py-1 text-sm text-gray-700 dark:text-slate-200">
+                    <li v-for="file in files" :key="file" class="flex items-center gap-2">
+                        <PaperclipIcon class="size-4 shrink-0 text-gray-400" />
+                        <span class="truncate">{{ file }}</span>
+                    </li>
+                </ul>
+                <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                    Een document of foto onder Bijlagen gaat mee als je hem deelt met de klant.
+                </p>
+            </DrawerField>
         </div>
         <template #footer>
             <div class="flex justify-end gap-2">
@@ -33,7 +44,8 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
+import { PaperclipIcon } from '@lucide/vue'
 import { useForm } from '@inertiajs/vue3'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import DrawerField from '@/Components/UI/DrawerField.vue'
@@ -44,7 +56,15 @@ import TipTapEditor from '@/Components/UI/TipTapEditor.vue'
 const props = defineProps({
     quoteId: { type: Number, required: true },
     defaults: { type: Object, required: true },
+    /** The quote as it would go out now, QuoteForCustomer::forPage: for the files the mail carries. */
+    document: { type: Object, required: true },
 })
+
+const files = computed(() => [
+    'De offerte als PDF',
+    ...(props.document.terms && props.document.terms.kind !== 'link' ? [props.document.terms.name] : []),
+    ...props.document.attachments,
+])
 
 const open = defineModel({ type: Boolean, default: false })
 

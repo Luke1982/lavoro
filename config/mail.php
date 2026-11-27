@@ -163,4 +163,17 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Attachments
+    |--------------------------------------------------------------------------
+    |
+    | How much a mail may carry in files, in megabytes. Encoding a file for
+    | mail makes it a third larger, so 15 stays under the 25 most mail servers
+    | accept; raise it only for a server known to take more.
+    |
+    */
+
+    'max_attachments_mb' => (int) env('MAIL_MAX_ATTACHMENTS_MB', 15),
+
 ];

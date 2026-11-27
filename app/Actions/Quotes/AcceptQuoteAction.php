@@ -21,9 +21,9 @@ use Illuminate\Support\Facades\DB;
  * be accepted, and the link is used up by it; in the app the customer signs in
  * front of someone, and a concept will do.
  *
- * The choices: who may choose them chooses which optional lines are taken and
- * which of each set of alternatives. On the link that is the customer, when the
- * quote lets them; otherwise what the quote already counts is taken.
+ * The choices: the customer chooses which optional lines are taken and which
+ * of each set of alternatives, on the link as on the screen. A line made
+ * optional is one the customer decides on; that is what makes it optional.
  *
  * Along with the yes go the general terms the version was offered under, which
  * the request made sure were accepted, and for a private customer whether the
@@ -53,10 +53,6 @@ class AcceptQuoteAction
         }
 
         QuoteGuard::offersSomething($quote);
-
-        if ($link && !$quote->customer_picks_options) {
-            $chosen_ids = $quote->lines()->where('is_chosen', true)->pluck('id')->all();
-        }
 
         $early = $quote->is_consumer ? $starts_within_cooling_off : null;
 

@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Image;
+use App\Models\Share;
 use App\Models\User;
 
 class ImagePolicy
@@ -44,7 +45,8 @@ class ImagePolicy
      */
     public function share(User $user, Image $image): bool
     {
-        return $user->hasPermission('image.update') && $this->mayChange($user, $image);
+        return $user->hasPermission('image.update') && $this->mayChange($user, $image)
+            && Share::mayShareFrom($user, $image->attachedRecord());
     }
 
     public function edit(User $user, Image $image): bool

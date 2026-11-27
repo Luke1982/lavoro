@@ -20,6 +20,7 @@ use App\Http\Requests\QuoteUnitUpdateRequest;
 use App\Models\QuoteLostReason;
 use App\Models\QuoteTemplate;
 use App\Models\QuoteUnit;
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -33,7 +34,7 @@ class QuoteSettingsController extends Controller
     {
         return inertia('Quotes/SettingsPage', [
             'settings' => QuoteSettings::toArray(),
-            'layoutChoices' => QuoteLayout::CHOICES,
+            'layoutChoices' => Arr::except(QuoteLayout::CHOICES, QuoteLayout::PER_CUSTOMER_KIND),
             'units' => QuoteUnit::inOrder()->map->only(['id', 'name']),
             'reasons' => QuoteLostReason::withCount('quotes')->orderBy('position')->get(),
             'templates' => QuoteTemplate::with('createdBy:id,name')->orderBy('name')->get()

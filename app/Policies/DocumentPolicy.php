@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Document;
+use App\Models\Share;
 use App\Models\User;
 
 class DocumentPolicy
@@ -36,6 +37,15 @@ class DocumentPolicy
     public function update(User $user, Document $document): bool
     {
         return $this->updateAny($user) && $this->view($user, $document);
+    }
+
+    /**
+     * Sending one along from the record it is on, as a document on a quote goes to
+     * the customer with it: changing where it goes, like changing it at all.
+     */
+    public function share(User $user, Document $document): bool
+    {
+        return $this->update($user, $document) && Share::mayShareFrom($user, $document->attachedRecord());
     }
 
     /** Removing one this person may open (view). */

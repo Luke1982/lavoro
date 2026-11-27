@@ -66,7 +66,6 @@ class Quote extends Model
         'valid_until',
         'intro_text',
         'closing_text',
-        'customer_picks_options',
         'default_vat_percent',
         'is_consumer',
         'layout',
@@ -103,7 +102,6 @@ class Quote extends Model
         'valid_until' => 'Geldig tot',
         'intro_text' => 'Aanhef',
         'closing_text' => 'Slot',
-        'customer_picks_options' => 'Klant mag opties selecteren',
         'default_vat_percent' => 'Standaard btw-tarief',
         'is_consumer' => 'Particuliere klant',
         'layout' => 'Weergave',
@@ -158,7 +156,6 @@ class Quote extends Model
             'sent_at' => 'datetime',
             'accepted_via' => QuoteAcceptedVia::class,
             'decided_at' => 'datetime',
-            'customer_picks_options' => 'boolean',
             'default_vat_percent' => 'float',
             'is_consumer' => 'boolean',
             'layout' => 'array',
@@ -370,10 +367,13 @@ class Quote extends Model
         return $this->morphTo();
     }
 
-    /** The columns the customer sees: this quote's own choice, or else the settings. */
+    /**
+     * The columns the customer sees: this quote's own choice, or else the
+     * settings; prices with VAT for a private customer, without for a business.
+     */
     public function layoutForCustomer(): array
     {
-        return QuoteLayout::complete($this->layout, QuoteSettings::layout());
+        return QuoteLayout::complete($this->layout, [...QuoteSettings::layout(), 'incl_vat' => (bool) $this->is_consumer]);
     }
 
     /** Until when a private customer who said yes may still change their mind; null when that does not apply. */
@@ -388,6 +388,14 @@ class Quote extends Model
     public function documents(): MorphToMany
     {
         return $this->morphToMany(Document::class, 'documentable')->withTimestamps();
+    }
+
+    /** Photos with the quote: of the situation, or of what is offered. */
+    public function images(): MorphToMany
+    {
+        return $this->morphToMany(Image::class, 'imageable')
+            ->withPivot(['main'])
+            ->withTimestamps();
     }
 
     /** The links the customer was sent. */

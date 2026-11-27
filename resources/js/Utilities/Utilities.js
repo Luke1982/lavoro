@@ -614,6 +614,18 @@ const SUBJECT_PHRASES = {
  */
 export const morphBasename = (morph_type) => (morph_type ?? '').split('\\').pop();
 
+const SHARE_AUDIENCES = { Project: 'de werkbonnen', Quote: 'de klant' };
+
+/**
+ * Who gets what is shared from a record, as the share buttons say it: a
+ * project's photos go to its werkbonnen, a quote's photos and documents to the
+ * customer, with the mail that sends it. Null where sharing goes nowhere.
+ */
+export const shareAudience = (morph_type) => SHARE_AUDIENCES[morphBasename(morph_type)] ?? null;
+
+/** What a share button does next, for what is shared already or not yet. */
+export const shareLabel = (shared, audience) => (shared ? 'Niet meer delen met ' : 'Delen met ') + audience;
+
 export function subjectPhrase(morph_type) {
     const key = morphBasename(morph_type).toLowerCase();
 

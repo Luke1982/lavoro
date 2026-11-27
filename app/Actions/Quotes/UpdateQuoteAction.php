@@ -21,9 +21,31 @@ class UpdateQuoteAction
     {
         QuoteGuard::editable($quote);
 
-        $quote->update([...$data, ...Arr::only(self::normalized($quote, $data), array_keys($data))]);
+        $quote->update([
+            ...$data,
+            ...Arr::only(self::normalized($quote, $data), array_keys($data)),
+            ...self::vatFollowsCustomerKind($quote, $data),
+        ]);
 
         return $quote;
+    }
+
+    /**
+     * A private customer reads prices with VAT, a business without: switching
+     * between them switches how the prices show, which can then still be set
+     * back by hand.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{layout?: array<string, bool>}
+     */
+    private static function vatFollowsCustomerKind(Quote $quote, array $data): array
+    {
+        if (!array_key_exists('is_consumer', $data) || array_key_exists('layout', $data)
+            || (bool) $data['is_consumer'] === $quote->is_consumer) {
+            return [];
+        }
+
+        return ['layout' => [...$quote->layoutForCustomer(), 'incl_vat' => (bool) $data['is_consumer']]];
     }
 
     /**

@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Sends a quote to the customer, with a link to look at it and answer, the quote
- * on paper, and the general terms. Sending again after a change is the same
+ * on paper, the general terms, and the documents and photos shared with the
+ * customer. Sending again after a change is the same
  * thing; once the new mail is out, the links sent before stop working, so there
  * is only ever one way to answer, and it shows what is offered now.
  *
@@ -53,7 +54,7 @@ class SendQuoteAction
         }
 
         $snapshot = QuoteForCustomer::of($quote);
-        $files = QuoteFiles::forMail($snapshot);
+        $files = QuoteFiles::forSending($snapshot);
 
         $issued = $this->mailer->send(
             $quote,
@@ -81,6 +82,7 @@ class SendQuoteAction
                 $to,
                 $issued->token->expires_at,
                 $version->number,
+                array_column($snapshot['attachments'], 'name'),
             );
 
             if (!$this->change_status->execute($quote, QuoteStatuses::verzonden, announce: $announce)) {

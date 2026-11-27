@@ -60,7 +60,7 @@
                                             u.name }}</span>
                                     </div>
                                 </div>
-                                <div v-if="event.thumbnailPath" class="mt-2">
+                                <div v-if="event.thumbnailImageId" class="mt-2">
                                     <img :src="`/files/images/${event.thumbnailImageId}`" alt=""
                                         class="h-16 w-24 object-cover rounded-md border border-gray-200 dark:border-slate-700" />
                                 </div>
@@ -249,7 +249,7 @@ const visibleItems = computed(() => (expanded.value ? raw.value : raw.value.slic
         user: a.user ?? null,
         byline: byline(a),
         executing_users: a.executing_users || [],
-        thumbnailPath: a.metadata?.thumbnail_path ?? null,
+        thumbnailImageId: a.metadata?.thumbnail_image_id ?? null,
         is_event: a.category === 'event',
         completed: typeof a.status === 'string' ? a.status === 'Afgerond' : false,
         date: formatDate(a.created_at),

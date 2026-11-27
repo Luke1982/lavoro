@@ -7,7 +7,6 @@ use App\Actions\Projects\DeleteProject;
 use App\Actions\Projects\UpdateProject;
 use App\Domain\Planning\Clock;
 use App\Domain\Search\SearchTerm;
-use App\Enums\ProjectStatuses;
 use App\Http\Requests\ProjectDestroyRequest;
 use App\Http\Requests\ProjectReadRequest;
 use App\Http\Requests\ProjectStoreRequest;
@@ -17,9 +16,7 @@ use App\Models\AssistantFilter;
 use App\Models\Customer;
 use App\Models\DocumentCategory;
 use App\Models\Project;
-use App\Models\ProjectTemplate;
 use App\Models\ServiceOrderStage;
-use App\Models\User;
 use App\Services\ProjectFigures;
 use App\Traits\OffersCustomerPicker;
 use Illuminate\Database\Eloquent\Builder;
@@ -53,9 +50,7 @@ class ProjectController extends Controller
         return inertia('Projects/IndexPage', [
             'projects' => $projects,
             ...$this->customerPicker($list['customer']),
-            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
-            'statuses' => ProjectStatuses::comboBoxArray(),
-            'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
+            ...Project::choicesForNew(),
             'list' => $list,
         ]);
     }
@@ -89,11 +84,9 @@ class ProjectController extends Controller
             'project' => $project,
             'progress' => $figures->summary($project, $request->user()),
             'contacts' => $project->customer?->contactOptions() ?? [],
-            'templates' => ProjectTemplate::orderBy('name')->get(['id', 'name']),
+            ...Project::choicesForNew(),
             'documentCategories' => DocumentCategory::forPicker(),
             'customers' => Customer::orderBy('name')->get(['id', 'name']),
-            'users' => User::canLeadProjects()->orderBy('name')->get(['id', 'name']),
-            'statuses' => ProjectStatuses::comboBoxArray(),
             'serviceOrderStages' => ServiceOrderStage::orderBy('order')->get(),
         ]);
     }

@@ -283,6 +283,7 @@ Route::group(
                 ->name('quotes.send');
             Route::post('quotes/{quote}/accept', [QuoteDecisionController::class, 'accept'])->name('quotes.accept');
             Route::post('quotes/{quote}/service-order', [QuoteDecisionController::class, 'convert'])->name('quotes.convert');
+            Route::post('quotes/{quote}/project', [QuoteDecisionController::class, 'project'])->name('quotes.project');
             Route::get('quotes/{quote}/catalog', QuoteCatalogController::class)
                 ->middleware('throttle:120,1')
                 ->name('quotes.catalog');
@@ -613,6 +614,7 @@ Route::group(
             ->name('documents.bulkDestroy');
         Route::resource('documents', DocumentController::class)
             ->only(['store', 'update', 'destroy']);
+        Route::post('documents/{document}/share', [DocumentController::class, 'share'])->name('documents.share');
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
             ->name('documents.download');
         Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])

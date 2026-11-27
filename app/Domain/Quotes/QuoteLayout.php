@@ -6,7 +6,9 @@ namespace App\Domain\Quotes;
  * Which columns the customer sees on a quote, whether the PDF shows the photos
  * of what is offered, and whether its prices include VAT. A fixed-price quote
  * to a private customer often shows no unit prices at all, only the total. The
- * settings hold the usual choice; a quote that differs keeps its own.
+ * settings hold the usual choice; a quote that differs keeps its own. Whether
+ * prices include VAT follows the customer instead: with VAT for a private one,
+ * without for a business, so the settings do not offer it.
  */
 final class QuoteLayout
 {
@@ -20,6 +22,9 @@ final class QuoteLayout
         'images' => "Foto's van producten",
         'incl_vat' => 'Prijzen inclusief btw',
     ];
+
+    /** The choices a quote takes from whether its customer is private, not from the settings. */
+    public const PER_CUSTOMER_KIND = ['incl_vat'];
 
     public const DEFAULT = [
         'quantity' => true,

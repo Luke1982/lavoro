@@ -46,11 +46,29 @@ class Share extends Pivot
     }
 
     /**
-     * The records whose shares have somewhere to go: a project's go to its work orders.
+     * The records whose shares have somewhere to go: a project's go to its work
+     * orders, a quote's to the customer, with the mail that sends it.
      */
     public static function canShareFrom(?Model $source): bool
     {
-        return $source instanceof Project;
+        return $source instanceof Project || $source instanceof Quote;
+    }
+
+    /** Where a record's shares go, as a person says it. */
+    public static function audience(Model $source): string
+    {
+        return $source instanceof Quote ? 'de klant' : 'de werkbonnen';
+    }
+
+    /**
+     * Whether this person may decide what goes from here, beyond their rights on
+     * what is shared: what a quote sends along is part of the quote, so it is
+     * theirs to change only while they may change the quote itself.
+     */
+    public static function mayShareFrom(User $user, ?Model $source): bool
+    {
+        return !$source instanceof Quote
+            || ($user->can('update', $source) && $source->statusEnum()->allowsEditing());
     }
 
     public function shareable(): MorphTo

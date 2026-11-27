@@ -18,8 +18,8 @@
 
                 <div class="px-6 py-6">
                     <QuoteCustomerDocument v-model="accept.options" :quote="quote" :lines="lines" :totals="totals" :layout="layout"
-                        :terms="terms" :withdrawal="withdrawal" :provisional_explanation="provisional_explanation"
-                        :pickable="open && quote.customer_picks_options">
+                        :terms="terms" :withdrawal="withdrawal" :provisional_explanation="provisional_explanation" :attachments="attachments"
+                        :pickable="open">
                         <template #notice>
                             <p v-if="flash.error" class="mt-4 rounded-xl bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-800 dark:text-red-200">
                                 {{ flash.error }}
@@ -162,6 +162,8 @@ const props = defineProps({
     preview_note: { type: String, default: null },
     /** What a stelpost is, as the PDF says it. */
     provisional_explanation: { type: String, default: null },
+    /** The names of the files shared with the customer, which came with the mail. */
+    attachments: { type: Array, default: () => [] },
     /** Where a preview finds its PDF; the customer's own page finds it under the link. */
     pdf_url: { type: String, default: null },
 })

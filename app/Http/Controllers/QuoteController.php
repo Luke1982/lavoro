@@ -25,6 +25,7 @@ use App\Http\Requests\QuoteStoreRequest;
 use App\Http\Requests\QuoteUpdateRequest;
 use App\Models\AssistantFilter;
 use App\Models\MaterialUsageUnit;
+use App\Models\Project;
 use App\Models\Quote;
 use App\Models\QuoteLine;
 use App\Models\QuoteLostReason;
@@ -32,6 +33,7 @@ use App\Models\QuoteTemplate;
 use App\Models\QuoteUnit;
 use App\Models\QuoteVersion;
 use App\Models\ServiceOrder;
+use App\Models\Share;
 use App\Models\Ticket;
 use App\Traits\OffersCustomerPicker;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,7 +47,7 @@ class QuoteController extends Controller
     private const LIST_COLUMNS = ['id', 'number', 'title', 'status', 'quote_date', 'valid_until'];
 
     /** What the quote page gets of the relations it loaded; the rest it gets in a shape of its own. */
-    private const SHOWN_RELATIONS = ['customer', 'contact', 'documents', 'activities', 'lostReason'];
+    private const SHOWN_RELATIONS = ['customer', 'contact', 'documents', 'images', 'activities', 'lostReason'];
 
     public function index(QuoteReadRequest $request)
     {
@@ -84,6 +86,8 @@ class QuoteController extends Controller
     public function show(QuoteReadRequest $request, Quote $quote)
     {
         $see_margins = $request->user()->can('seeMargins', Quote::class);
+        $may_start_project = $quote->statusEnum() === QuoteStatuses::geaccepteerd && $quote->project_id === null
+            && $request->user()->can('update', $quote) && $request->user()->can('create', Project::class);
         $preview = QuoteForCustomer::page($quote);
 
         $quote->load([
@@ -96,8 +100,10 @@ class QuoteController extends Controller
             'origin',
             'lostReason',
             'answeredLinks',
+            'documents' => fn ($query) => $query->withExists('shares as is_shared'),
             'documents.category',
             'documents.user:id,name',
+            'images' => fn ($query) => $query->withExists('shares as is_shared'),
             'versions',
             'lines',
             'activities' => fn ($query) => $query->visibleTo($request->user())
@@ -154,7 +160,10 @@ class QuoteController extends Controller
                 'create' => $request->user()->can('create', Quote::class),
                 'seeMargins' => $see_margins,
                 'createServiceOrder' => $request->user()->can('create', ServiceOrder::class),
+                'shareAttachments' => Share::mayShareFrom($request->user(), $quote),
+                'createProject' => $may_start_project,
             ],
+            'newProject' => $may_start_project ? Project::choicesForNew() : null,
         ]);
     }
 

@@ -25,7 +25,7 @@ class SendQuoteReminderAction
     public function execute(QuoteVersion $version): void
     {
         $quote = $version->quote;
-        $files = QuoteFiles::forMail($version->document());
+        $files = QuoteFiles::forSending($version->document());
 
         $this->mailer->send(
             $quote,

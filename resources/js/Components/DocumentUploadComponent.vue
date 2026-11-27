@@ -183,6 +183,11 @@
                                          from the width where its own column disappears. -->
                                     <span class="mt-1 block truncate text-xs text-gray-500 dark:text-slate-400 @6xl:hidden"
                                         :title="doc.name">{{ doc.name }}</span>
+                                    <span v-if="audience && doc.is_shared"
+                                        class="mt-1 inline-flex items-center gap-1 rounded-full bg-lavoro-lightblue px-2 py-0.5 text-xs font-medium text-lavoro-blue dark:bg-lavoro-blue/20 dark:text-blue-300">
+                                        <ShareIconSolid class="size-3" />
+                                        Gedeeld met {{ audience }}
+                                    </span>
                                     <p v-if="doc.category || doc.size"
                                         class="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-slate-400 @4xl:hidden">
                                         <span v-if="doc.category" class="truncate @xl:hidden">{{ doc.category.name
@@ -258,11 +263,18 @@
                         <td class="px-5 py-3 @2xl:px-6">
                             <div class="flex items-center justify-end gap-2">
                                 <!-- Narrow: everything folds into the menu below, which
-                                     carries the same two actions at every width. -->
+                                     carries the same actions at every width; sharing stays
+                                     out as well, being what a document on a quote is for. -->
                                 <button type="button" @click="openDocument(doc)" :disabled="!canPreview(doc)"
                                     :title="canPreview(doc) ? 'Bekijken' : 'Geen voorbeeld beschikbaar'"
                                     class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer transition-colors @4xl:flex">
                                     <EyeIcon class="size-5" />
+                                </button>
+                                <button v-if="mayShare" type="button" @click="toggleShared(doc)"
+                                    :title="shareLabel(doc.is_shared, audience)"
+                                    :class="['flex size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer', doc.is_shared ? 'text-lavoro-blue dark:text-blue-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200']">
+                                    <ShareIconSolid v-if="doc.is_shared" class="size-5" />
+                                    <ShareIcon v-else class="size-5" />
                                 </button>
                                 <button type="button" @click="downloadDocument(doc)" title="Downloaden"
                                     class="hidden size-9 items-center justify-center rounded-lavoro-sm border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-slate-200 transition-colors cursor-pointer @4xl:flex">
@@ -285,6 +297,13 @@
                                         :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
                                         <ArrowDownTrayIcon class="size-4 text-gray-400" />
                                         Downloaden
+                                    </button>
+                                    </MenuItem>
+                                    <MenuItem v-if="mayShare" v-slot="{ active }">
+                                    <button type="button" @click="toggleShared(doc)"
+                                        :class="['flex w-full items-center gap-2 px-3 py-2 text-left text-sm cursor-pointer', active ? 'bg-gray-50 dark:bg-slate-700' : '']">
+                                        <ShareIcon class="size-4 text-gray-400" />
+                                        {{ shareLabel(doc.is_shared, audience) }}
                                     </button>
                                     </MenuItem>
                                     <!-- The iOS home-screen app has no tabs, and a same-scope
@@ -520,8 +539,10 @@ import {
     FolderPlusIcon,
     MagnifyingGlassIcon,
     PlusIcon,
+    ShareIcon,
     TrashIcon,
 } from '@heroicons/vue/24/outline';
+import { ShareIcon as ShareIconSolid } from '@heroicons/vue/24/solid';
 import DropdownMenu from '@/Components/UI/DropdownMenu.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';
 import ModalDialog from '@/Components/UI/ModalDialog.vue';
@@ -542,6 +563,8 @@ import {
     formatFileSize,
     hasPermission,
     nlDate,
+    shareAudience,
+    shareLabel,
     subjectSubtitle,
 } from '@/Utilities/Utilities';
 
@@ -553,6 +576,8 @@ const props = defineProps({
     title: { type: String, default: 'Documenten' },
     /** Overrides the subject phrase derived from documentableType. */
     subtitle: { type: String, default: '' },
+    /** Whether documents may be shared from here; only where sharing goes somewhere (shareAudience). */
+    canShare: { type: Boolean, default: false },
 });
 
 const resolvedSubtitle = computed(() => props.subtitle || subjectSubtitle(
@@ -586,6 +611,8 @@ const mayUpload = computed(() => hasPermission('document.upload'));
 const mayUpdate = computed(() => hasPermission('document.update'));
 const mayDelete = computed(() => hasPermission('document.delete'));
 const mayManageCategories = computed(() => hasPermission('documentcategory.manage'));
+const audience = computed(() => shareAudience(props.documentableType));
+const mayShare = computed(() => props.canShare && audience.value !== null);
 const mayShow = computed(() => (maySee.value && props.existing.length > 0) || mayUpload.value);
 
 const categories = computed(() => page.props.documentCategories ?? []);
@@ -796,6 +823,11 @@ const handleDrop = (event) => {
     isDragging.value = false;
     enqueue(Array.from(event.dataTransfer.files));
 };
+
+/** Asks for the state wanted rather than a flip, so a second screen showing the old state cannot undo it. */
+function toggleShared(doc) {
+    router.post(`/documents/${doc.id}/share`, { shared: !doc.is_shared }, { preserveScroll: true, preserveState: true });
+}
 
 function updateTitle(id, title) {
     router.put(`/documents/${id}`, { title }, { preserveScroll: true, preserveState: true });
