@@ -80,15 +80,13 @@
 
         <main
             :class="[page.props.noPadding ? 'pb-24 lg:pb-0' : 'pt-4 pb-28 lg:pb-10', collapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-72', 'bg-svg menu-pad min-h-[100dvh]']">
-            <div v-if="showGoogleReconnectBanner"
-                class="bg-amber-100 border-b border-amber-300 px-4 py-2 text-sm text-amber-900 flex items-center justify-between dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
-                <span>Je Google Agenda synchronisatie is gepauzeerd.</span>
-                <span class="flex items-center gap-3">
-                    <a href="/google/oauth/start" class="underline">Opnieuw koppelen</a>
-                    <button type="button" class="text-lg leading-none" @click="dismissGoogleBanner">&times;</button>
-                </span>
+            <div :class="[page.props.noPadding ? 'px-4 pt-4' : 'px-4 sm:px-6 lg:px-8', 'empty:hidden']">
+                <PageNotice v-if="showGoogleReconnectBanner" tone="warning" :icon="CalendarIcon"
+                    title="Google Agenda-synchronisatie gepauzeerd" action-label="Opnieuw koppelen"
+                    action-href="/google/oauth/start" dismissible @dismiss="dismissGoogleBanner"
+                    text="Koppel je Google Agenda opnieuw om je afspraken weer te synchroniseren." />
+                <AssistantFilterBanner />
             </div>
-            <AssistantFilterBanner />
             <div :class="[page.props.noPadding ? '' : 'px-4 sm:px-6 lg:px-8', 'max-w-full']">
                 <slot></slot>
             </div>
@@ -121,7 +119,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
-import { ArrowLeftIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon, CalendarIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { usePage, router } from '@inertiajs/vue3'
 import { hasPermission } from '@/Utilities/Utilities'
 import { useMenu } from '@/Composables/useMenu.js'
@@ -135,6 +133,7 @@ import NotificationBell from '@/Components/Notifications/NotificationBell.vue'
 import MobileTabBar from '@/Components/Layout/MobileTabBar.vue'
 import AssistantSpotlight from '@/Components/Assistant/AssistantSpotlight.vue'
 import AssistantFilterBanner from '@/Components/Assistant/AssistantFilterBanner.vue'
+import PageNotice from '@/Components/UI/PageNotice.vue'
 import NavigatorSpotlight from '@/Components/Navigator/NavigatorSpotlight.vue'
 import TrayDock from '@/Components/Tray/TrayDock.vue'
 import TourLayer from '@/Components/Tour/TourLayer.vue'
