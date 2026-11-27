@@ -8,7 +8,6 @@
         </div>
         <div class="flex items-center gap-2">
             <TourButton tour="storing" />
-            <AssistantButton />
         </div>
     </div>
 
@@ -370,7 +369,6 @@
 
 <script setup>
 import BoxComponent from '@/Components/BoxComponent.vue';
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ImageUploadComponent from '@/Components/ImageUploadComponent.vue';
 import RemarksComponent from '@/Components/RemarksComponent.vue';
 import EditableTextField from '@/Components/UI/EditableTextField.vue';

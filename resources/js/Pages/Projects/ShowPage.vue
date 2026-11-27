@@ -9,7 +9,6 @@
         <div class="flex items-stretch gap-2">
             <TourButton tour="project" />
             <ExcelExportButton :url="`/projects/${project.id}/export`" data-tour="project.export" />
-            <AssistantButton />
         </div>
     </div>
     <div v-if="isClosed" class="mb-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-900/25 dark:text-amber-200">
@@ -544,7 +543,6 @@
 <script setup>
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import { ref, reactive, watch, computed, nextTick } from 'vue'
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ExcelExportButton from '@/Components/UI/ExcelExportButton.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour, findSpot } from '@/Composables/useTour'

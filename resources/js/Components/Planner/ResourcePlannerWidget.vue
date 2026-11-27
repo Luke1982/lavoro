@@ -94,9 +94,7 @@
                     Monteurkaart
                 </button>
 
-                <AssistantButton data-tour="planner.assistant" />
-
-                <TourButton tour="planner" data-tour="planner.tour" />
+                <TourButton tour="planner" data-tour="planner.tour" assistant-spot="planner.assistant" />
 
                 <button ref="settingsButtonRef" data-tour="planner.settings" @click="settingsOpen = !settingsOpen"
                     class="flex items-center rounded-md border border-gray-300 dark:border-slate-700 p-1.5 hover:bg-gray-50 dark:hover:bg-slate-800"
@@ -567,7 +565,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
 import { useTour, findSpot, requestTour } from '@/Composables/useTour'
 import { examplePings, exampleDayRoute } from '@/Tours/examples'

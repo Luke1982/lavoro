@@ -10,6 +10,7 @@ use App\Models\GeneralSetting;
 use App\Models\InternalAnnouncement;
 use App\Models\LedgerAccount;
 use App\Models\Ticket;
+use App\Policies\AssistantPolicy;
 use App\Support\PageTitle;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -88,7 +89,7 @@ class HandleInertiaRequests extends Middleware
                  * is a second implementation waiting to disagree with the first.
                  */
                 'can' => [
-                    'use_assistant' => $request->user()?->can('use', Assistant::class) ?? false,
+                    'use_assistant' => AssistantPolicy::licensed() && ($request->user()?->can('use', Assistant::class) ?? false),
                 ],
             ],
             /**

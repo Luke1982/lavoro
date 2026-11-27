@@ -6,7 +6,6 @@
             <span class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ formula.name }}</span>
         </div>
         <div class="flex items-center gap-3 self-start sm:self-auto">
-            <AssistantButton />
             <TourButton tour="prijsformule" />
             <button v-if="canDelete" type="button" class="text-sm font-medium text-red-600 hover:underline"
                 @click="confirmDelete = true">
@@ -235,7 +234,6 @@ import NodeSettings from '@/Components/PriceFormulas/NodeSettings.vue'
 import TestBench from '@/Components/PriceFormulas/TestBench.vue'
 import ContractsOnFormula from '@/Components/PriceFormulas/ContractsOnFormula.vue'
 import TourButton from '@/Components/Tour/TourButton.vue'
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { usePriceFormulaTour } from '@/Components/PriceFormulas/usePriceFormulaTour'
 import { tourSample } from '@/Components/PriceFormulas/tourExamples'
 import { useLeaveGuard } from '@/Composables/useLeaveGuard'

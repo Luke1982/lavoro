@@ -16,7 +16,6 @@
             <TourButton tour="werkbon" class="shrink-0" />
             <ButtonGroup class="shrink-0">
                 <RunMacroMenu :service-order-id="serviceOrder.id" :macros="shownMacros" :locations="macroLocations" />
-                <AssistantButton />
                 <PillButton v-if="hasPermission('serviceorder.delete') && !serviceOrder.sent_to_administration"
                     title="Werkbon verwijderen" class="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700"
                     @click="deleteServiceOrder">
@@ -675,7 +674,6 @@
 <script setup>
 import { vTrayDrop } from '@/Utilities/trayDrop.js'
 import BoxComponent from '@/Components/BoxComponent.vue';
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import ButtonGroup from '@/Components/UI/ButtonGroup.vue'
 import PillButton from '@/Components/UI/PillButton.vue'
 import DrawerComponent from '@/Components/UI/DrawerComponent.vue';

@@ -4,7 +4,6 @@
         :show-search="false" add-label="Nieuwe formule" @add="showCreate = true"
         :can-add="hasPermission('priceformula.create')">
         <template #actions>
-            <AssistantButton />
             <TourButton tour="prijsformules" />
         </template>
     </IndexHeaderComponent>
@@ -93,7 +92,6 @@ import DrawerComponent from '@/Components/UI/DrawerComponent.vue'
 import TextInput from '@/Components/UI/TextInput.vue'
 import { hasPermission } from '@/Utilities/Utilities'
 import TourButton from '@/Components/Tour/TourButton.vue'
-import AssistantButton from '@/Components/Assistant/AssistantButton.vue'
 import { useTour } from '@/Composables/useTour'
 
 /** Every price formula, with how many contracts it prices and how many still wait for its newest version. */

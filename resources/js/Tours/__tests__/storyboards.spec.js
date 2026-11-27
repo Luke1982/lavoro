@@ -131,7 +131,7 @@ function declarations() {
     for (const path of sourceFiles(sourceRoot)) {
         const source = readFileSync(path, 'utf8')
         const file = relative(root, path)
-        for (const found of source.matchAll(/(?<![:\w-])data-tour="([^"]+)"/g)) spots.set(found[1], file)
+        for (const found of source.matchAll(/(?<![:\w-])(?:data-tour|assistant-spot)="([^"]+)"/g)) spots.set(found[1], file)
         for (const found of source.matchAll(/:data-tour="([^"]+)"/g)) {
             for (const name of found[1].matchAll(/'([a-z][\w.-]*)'/g)) spots.set(name[1], file)
         }
